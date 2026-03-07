@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:edu_pridge_flutter/screens/teacher/login_screen.dart';
+import 'screens/onboarding/onboarding_one.dart'; // استدعاء صفحة الترحيب الأولى
 
 void main() {
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: LoginScreen(),
-  ));
+  runApp(const EduBridgeApp());
+}
+
+class EduBridgeApp extends StatelessWidget {
+  const EduBridgeApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false, // لإخفاء شريط الـ Debug المزعج
+      title: 'Edu-Bridge',
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        fontFamily: 'Tajawal', // هاد بيفيدك لما نركب الخطوط لاحقاً
+      ),
+// هاد السطر هو الأهم، بيخبر التطبيق يبدأ من صفحتك
+      home: const OnboardingOne(),
+    );
+  }
 }
