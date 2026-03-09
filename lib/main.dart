@@ -17,7 +17,7 @@ class EduBridgeApp extends StatelessWidget {
         primarySwatch: Colors.green,
         fontFamily: 'Tajawal', // هاد بيفيدك لما نركب الخطوط لاحقاً
       ),
-// هاد السطر هو الأهم، بيخبر التطبيق يبدأ من صفحتك
+ // هاد السطر هو الأهم، بيخبر التطبيق يبدأ من صفحتك
       home: const OnboardingOne(),
     );
   }

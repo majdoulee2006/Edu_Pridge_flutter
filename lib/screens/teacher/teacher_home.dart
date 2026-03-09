@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'profile_screen.dart';
+import 'notifications_screen.dart';
+import 'messages_screen.dart';
 import '../../widgets/custom_speed_dial.dart';
 
 class TeacherHomeScreen extends StatelessWidget {
@@ -7,97 +10,166 @@ class TeacherHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9F8),
-      extendBody: true, // مهم جداً لجعل الزر يركب فوق الشريط
+      backgroundColor: const Color(0xFFFBFBF9),
+      // لضمان ظهور الشريط السفلي بشكل صحيح فوق المحتوى
+      extendBody: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: const Icon(Icons.settings_outlined, color: Colors.black),
-        centerTitle: true,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Edu-Bridge", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20)),
-            const SizedBox(width: 8),
-            // رجعنا أيقونة طاقية التخرج
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
-              child: const Icon(Icons.school, size: 18, color: Colors.black),
-            ),
-          ],
+        title: const Text(
+          "Edu-Bridge",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("لوحة التحكم", style: TextStyle(color: Colors.grey, fontSize: 14)),
-              const Row(
-                children: [
-                  Text("مرحباً، ", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  Text("أستاذ أحمد", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
-                  Text(" 👋", style: TextStyle(fontSize: 24)),
-                ],
+              // قسم الترحيب
+              const Text(
+                "لوحة التحكم",
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(height: 5),
+              RichText(
+                text: const TextSpan(
+                  style: TextStyle(fontSize: 24, color: Colors.black, fontWeight: FontWeight.bold),
+                  children: [
+                    TextSpan(text: "مرحباً، "),
+                    TextSpan(
+                      text: "أستاذ أحمد",
+                      style: TextStyle(color: Color(0xFF239B56)), // اللون الأخضر كما في التصميم
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 30),
-              _buildNewsCard(),
+
+              // قسم آخر الأخبار والإعلانات
+              const Text(
+                "آخر الأخبار والإعلانات",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 15),
+
+              // بطاقات الأخبار (يمكن تكرارها أو جعلها ListView)
+              _buildNewsCard(
+                title: "موعد الامتحانات النصفية",
+                subtitle: "تم تحديد المواعيد الجديدة، يرجى مراجعة الجدول.",
+                imagePath: "assets/images/exam_banner.png", // تأكدي من إضافة المسار في pubspec.yaml
+              ),
+              _buildNewsCard(
+                title: "ورشة عمل تقنيات التعليم",
+                subtitle: "ندعوكم لحضور ورشة العمل يوم الخميس القادم في القاعة المركزية.",
+                imagePath: "assets/images/workshop.png",
+              ),
+
+              const SizedBox(height: 100), // مساحة إضافية لعدم تغطية المحتوى بالشريط السفلي
             ],
           ),
         ),
       ),
-      // هذا الجزء يضمن بقاء الزر في المنتصف وفوق شريط التنقل
+
+      // الزر الدائري الأوسط
       floatingActionButton: const CustomSpeedDial(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _buildBottomNav(),
+
+      // شريط التنقل السفلي المفعل بالكامل
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
-  Widget _buildNewsCard() {
+  // بطاقة الأخبار
+  Widget _buildNewsCard({required String title, required String subtitle, required String imagePath}) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(20)), child: Container(height: 180, width: double.infinity, color: Colors.grey[200], child: const Icon(Icons.image, size: 40, color: Colors.grey))),
-          const Padding(
-            padding: EdgeInsets.all(15),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text("موعد الامتحانات النصفية", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 5),
-              Text("تم تحديد مواعيد الامتحانات، يرجى مراجعة الجدول المرفق.", style: TextStyle(color: Colors.grey, fontSize: 14)),
-            ]),
+          // مكان الصورة (Placeholder)
+          Container(
+            height: 150,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F2),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: const Icon(Icons.image, size: 50, color: Colors.grey),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 5),
+                Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomNav() {
+  // شريط التنقل السفلي مع الربط (Navigation)
+  Widget _buildBottomNav(BuildContext context) {
     return BottomAppBar(
-      notchMargin: 8,
       height: 70,
       shape: const CircularNotchedRectangle(),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(Icons.home, "الرئيسية", true),
-          _navItem(Icons.person_outline, "الملف", false),
-          const SizedBox(width: 40), // مساحة للزر
-          _navItem(Icons.notifications_none, "الإشعارات", false),
-          _navItem(Icons.chat_bubble_outline, "الرسائل", false),
-        ],
+      notchMargin: 8,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _navItem(context, Icons.home, "الرئيسية", true, onTap: () {}),
+            _navItem(context, Icons.person_outline, "الملف", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
+            const SizedBox(width: 40), // فراغ للـ Speed Dial
+            _navItem(context, Icons.notifications_none, "الإشعارات", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
+            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen()))),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _navItem(IconData icon, String label, bool active) {
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, color: active ? Colors.black : Colors.grey),
-      Text(label, style: TextStyle(fontSize: 10, color: active ? Colors.black : Colors.grey)),
-    ]);
+  Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: active ? const Color(0xFFEFFF00) : Colors.grey,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

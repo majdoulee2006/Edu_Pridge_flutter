@@ -17,8 +17,8 @@ class _CustomSpeedDialState extends State<CustomSpeedDial> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 350));
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOutQuart);
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
   }
 
   void _toggle() => setState(() {
@@ -32,49 +32,52 @@ class _CustomSpeedDialState extends State<CustomSpeedDial> with SingleTickerProv
       alignment: Alignment.bottomCenter,
       clipBehavior: Clip.none,
       children: [
-        // 1. التغبيش الخلفي
+        // 1. التغبيش (Blur)
         if (isOpened)
           GestureDetector(
             onTap: _toggle,
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(width: MediaQuery.of(context).size.width, height: MediaQuery.of(context).size.height, color: Colors.transparent),
+              child: Container(color: Colors.black.withOpacity(0.1)),
             ),
           ),
 
-        // 2. القوس الأبيض (نصف دائرة فقط)
+        // 2. رسم نصف الدائرة المقسمة (خلفية الأيقونات)
         Positioned(
-          bottom: 0, // يبدأ من مستوى الزر
+          bottom: 35, // لتبدأ الرسمة من منتصف الزر الأصفر تماماً
           child: ScaleTransition(
             scale: _animation,
             alignment: Alignment.bottomCenter,
-            child: Container(
-              width: 320,
-              height: 160, // نصف ارتفاع القطر ليظهر كنصف دائرة
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(160)),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)],
-              ),
+            child: CustomPaint(
+              size: const Size(320, 160), // عرض نصف الدائرة
+              painter: HalfCirclePainter(),
             ),
           ),
         ),
 
-        // 3. الأيقونات (توزيع مروحي فوق الزر)
-        _buildItem(Icons.play_circle_fill, "المحاضرات", 120, 160, Colors.purple),
-        _buildItem(Icons.assignment, "الواجبات", 120, 115, Colors.blue),
-        _buildItem(Icons.calendar_month, "الجدول", 120, 65, Colors.orange),
-        _buildItem(Icons.how_to_reg, "الحضور", 120, 20, Colors.green),
+        // 3. الأيقونات (توزيع مروحي دقيق بداخل الأقسام)
+        _buildItem(Icons.how_to_reg, "الحضور", 115, 155, Colors.green),
+        _buildItem(Icons.play_circle_fill, "المحاضرات", 115, 115, Colors.purple),
+        _buildItem(Icons.assignment, "الواجبات", 115, 65, Colors.blue),
+        _buildItem(Icons.calendar_month, "الجدول", 115, 25, Colors.orange),
 
-        // 4. الزر الأصفر مع أيقونة المربعات الأربعة
+        // 4. الزر الأصفر الرئيسي (أيقونة المربعات الأربعة)
         GestureDetector(
           onTap: _toggle,
           child: Container(
-            width: 60,
-            height: 60,
-            margin: const EdgeInsets.only(bottom: 10),
-            decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)]),
-            child: Icon(isOpened ? Icons.close : Icons.grid_view_rounded, color: Colors.black, size: 30),
+            width: 65,
+            height: 65,
+            margin: const EdgeInsets.only(bottom: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFFF00),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+            ),
+            child: Icon(
+              isOpened ? Icons.close : Icons.grid_view_rounded,
+              color: Colors.black,
+              size: 30,
+            ),
           ),
         ),
       ],
@@ -89,14 +92,14 @@ class _CustomSpeedDialState extends State<CustomSpeedDial> with SingleTickerProv
         double x = _animation.value * radius * math.cos(angle);
         double y = _animation.value * radius * math.sin(angle);
         return Positioned(
-          bottom: 40 + y,
-          left: (MediaQuery.of(context).size.width / 2) - 25 - x,
+          bottom: 35 + y,
+          left: (MediaQuery.of(context).size.width / 2) - 30 - x,
           child: Opacity(
             opacity: _controller.value,
             child: Column(
               children: [
                 Icon(icon, color: color, size: 28),
-                Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
               ],
             ),
           ),
@@ -104,4 +107,40 @@ class _CustomSpeedDialState extends State<CustomSpeedDial> with SingleTickerProv
       },
     );
   }
+}
+
+// الرسام الهندسي لنصف الدائرة والخطوط
+class HalfCirclePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    // رسم نصف الدائرة (الخلفية البيضاء)
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..arcTo(Rect.fromLTWH(0, 0, size.width, size.height * 2), math.pi, math.pi, false)
+      ..close();
+
+    // إضافة ظل خفيف لنصف الدائرة
+    canvas.drawShadow(path, Colors.black.withOpacity(0.5), 10, true);
+    canvas.drawPath(path, paint);
+
+    // رسم الخطوط الفاصلة (الرمادية الخفيفة)
+    final linePaint = Paint()
+      ..color = Colors.grey.withOpacity(0.2)
+      ..strokeWidth = 1.2;
+
+    final center = Offset(size.width / 2, size.height);
+    for (var angle in [45.0, 90.0, 135.0]) {
+      final rad = angle * math.pi / 180;
+      final dx = (size.width / 2) * math.cos(rad);
+      final dy = (size.width / 2) * math.sin(rad);
+      canvas.drawLine(center, Offset(center.dx - dx, center.dy - dy), linePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
