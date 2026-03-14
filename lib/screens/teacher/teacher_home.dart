@@ -1,8 +1,9 @@
+import 'package:edu_pridge_flutter/screens/teacher/profile_screen.dart';
 import 'package:flutter/material.dart';
-import 'profile_screen.dart';
-import 'notifications_screen.dart';
-import 'messages_screen.dart';
+
 import '../../widgets/custom_speed_dial.dart';
+import 'messages_screen.dart';
+import 'notifications_screen.dart';
 
 class TeacherHomeScreen extends StatelessWidget {
   const TeacherHomeScreen({super.key});

@@ -17,5 +17,7 @@ class AppColors {
 
   // 5. ألوان التنبيهات
   static const Color error = Color(0xFFD32F2F);   // للخطأ أو التنبيهات الهامة
-  static const Color success = Color(0xFF4CAF50); // لعمليات الحفظ الناجحة
+  static const Color success = Color(0xFF4CAF50);
+
+  static Color? get primaryColor => null; // لعمليات الحفظ الناجحة
 }
