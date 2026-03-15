@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
+<<<<<<< Updated upstream
 // تأكد أن المسار صحيح كما في الملفات السابقة
+=======
+// استيراد صفحة الإعدادات من المجلد المشترك
+import '../shared/settings_screen.dart';
+>>>>>>> Stashed changes
 import '../../widgets/custom_speed_dial.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -29,7 +34,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Icon(Icons.settings_outlined, color: Colors.black),
+        // ✅ التعديل: تفعيل زر الإعدادات لينقلك لصفحة الإعدادات
+        leading: IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
         title: const Text("الرسائل", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
@@ -72,8 +86,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
         ),
       ),
 
+<<<<<<< Updated upstream
       // تم تعديل الاسم هنا وحذف الـ const
       floatingActionButton: CustomSpeedDialEduBridge(),
+=======
+      // استخدام الكلاس الموحد (EduBridge)
+      floatingActionButton: const CustomSpeedDialEduBridge(),
+>>>>>>> Stashed changes
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       bottomNavigationBar: _buildBottomNav(context),
@@ -167,7 +186,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
-          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey)),
+          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );

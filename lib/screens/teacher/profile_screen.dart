@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'teacher_home.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
+<<<<<<< Updated upstream
 // تأكد أن المسار صحيح كما في الملفات السابقة
+=======
+// استيراد صفحة الإعدادات من المجلد المشترك
+import '../shared/settings_screen.dart';
+>>>>>>> Stashed changes
 import '../../widgets/custom_speed_dial.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -16,13 +21,28 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const Icon(Icons.settings_outlined, color: Colors.black),
+        // ✅ تعديل: زر الإعدادات الآن ينقلك لصفحة الإعدادات
+        leading: IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
         title: const Text("الملف الشخصي", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
+          // ✅ تعديل: زر الرجوع الآن يعود للصفحة الرئيسية للمعلم
           IconButton(
             icon: const Icon(Icons.arrow_forward, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -53,7 +73,10 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
+<<<<<<< Updated upstream
       // تم تعديل الاسم هنا وحذف const
+=======
+>>>>>>> Stashed changes
       floatingActionButton: const CustomSpeedDialEduBridge(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildBottomNav(context),
@@ -179,7 +202,11 @@ class ProfileScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
+<<<<<<< Updated upstream
               Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey))
+=======
+              Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey, fontWeight: active ? FontWeight.bold : FontWeight.normal))
+>>>>>>> Stashed changes
             ]
         )
     );

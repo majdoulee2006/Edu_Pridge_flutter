@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
+<<<<<<< Updated upstream
 // تأكدي من صحة مسار الملف كالعادة
+=======
+// استيراد صفحة الإعدادات من المجلد المشترك
+import '../shared/settings_screen.dart';
+>>>>>>> Stashed changes
 import '../../widgets/custom_speed_dial.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -15,13 +20,31 @@ class NotificationsScreen extends StatelessWidget {
       extendBody: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
+<<<<<<< Updated upstream
         elevation: 0, // إضافة لمسة جمالية لتناسق التصميم
+=======
+        elevation: 0,
+        // ✅ إضافة أيقونة الإعدادات على اليسار (leading)
+        leading: IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
+>>>>>>> Stashed changes
         title: const Text(
             "الإشعارات",
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
         ),
         centerTitle: true,
         actions: [
+<<<<<<< Updated upstream
+=======
+          // زر الرجوع للخلف (العودة للصفحة السابقة)
+>>>>>>> Stashed changes
           IconButton(
               icon: const Icon(Icons.arrow_forward, color: Colors.black),
               onPressed: () => Navigator.pop(context)
@@ -56,8 +79,13 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ),
 
+<<<<<<< Updated upstream
       // التعديل هنا: اسم الكلاس الجديد وحذف الـ const
       floatingActionButton: CustomSpeedDialEduBridge(),
+=======
+      // استخدام الكلاس الجديد بدون const لتجنب الأخطاء
+      floatingActionButton: const CustomSpeedDialEduBridge(),
+>>>>>>> Stashed changes
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       bottomNavigationBar: _buildBottomNav(context),

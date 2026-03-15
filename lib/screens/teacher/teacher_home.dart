@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
+<<<<<<< Updated upstream
+=======
+// استيراد صفحة الإعدادات من مجلد shared
+import '../shared/settings_screen.dart';
+>>>>>>> Stashed changes
 import '../../widgets/custom_speed_dial.dart';
 
 class TeacherHomeScreen extends StatelessWidget {
@@ -15,7 +20,16 @@ class TeacherHomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Icon(Icons.settings_outlined, color: Colors.black),
+        // زر الإعدادات الصحيح (الترس)
+        leading: IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
         title: const Text(
           "Edu-Bridge",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
@@ -29,7 +43,11 @@ class TeacherHomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+<<<<<<< Updated upstream
               // قسم الترحيب مع الإيموجي واللون الأخضر
+=======
+              // قسم الترحيب
+>>>>>>> Stashed changes
               Align(
                 alignment: Alignment.centerRight,
                 child: RichText(
@@ -51,7 +69,11 @@ class TeacherHomeScreen extends StatelessWidget {
 
               const SizedBox(height: 30),
 
+<<<<<<< Updated upstream
               // عنوان قسم الأخبار مع "عرض الكل"
+=======
+              // عنوان قسم الأخبار
+>>>>>>> Stashed changes
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -70,7 +92,11 @@ class TeacherHomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
+<<<<<<< Updated upstream
               // بطاقات الأخبار مع مكان محجوز للصورة
+=======
+              // بطاقات الأخبار المعدلة لتستقبل صور
+>>>>>>> Stashed changes
               _buildNewsCard(
                 title: "موعد الامتحانات النصفية",
                 tag: "هام جداً",
@@ -97,7 +123,10 @@ class TeacherHomeScreen extends StatelessWidget {
     );
   }
 
+<<<<<<< Updated upstream
   // ويدجت بطاقة الخبر مع مكان مخصص للصورة (Placeholder)
+=======
+>>>>>>> Stashed changes
   Widget _buildNewsCard({
     required String title,
     required String tag,
@@ -127,7 +156,11 @@ class TeacherHomeScreen extends StatelessWidget {
             height: 180,
             width: double.infinity,
             decoration: BoxDecoration(
+<<<<<<< Updated upstream
               color: Colors.grey[200], // لون رمادي فاتح مكان الصورة
+=======
+              color: Colors.grey[200],
+>>>>>>> Stashed changes
               borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
             ),
             child: Column(
@@ -148,7 +181,10 @@ class TeacherHomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+<<<<<<< Updated upstream
                 // التوقيت والـ Tag
+=======
+>>>>>>> Stashed changes
                 Row(
                   children: [
                     Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
@@ -169,13 +205,19 @@ class TeacherHomeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
+<<<<<<< Updated upstream
                 // العنوان
+=======
+>>>>>>> Stashed changes
                 Text(
                     title,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, height: 1.2)
                 ),
                 const SizedBox(height: 8),
+<<<<<<< Updated upstream
                 // الوصف
+=======
+>>>>>>> Stashed changes
                 Text(
                     description,
                     style: TextStyle(color: Colors.grey[600], fontSize: 14, height: 1.5)
@@ -199,8 +241,16 @@ class TeacherHomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _navItem(context, Icons.home, "الرئيسية", true),
+<<<<<<< Updated upstream
             _navItem(context, Icons.person_outline, "الملف", false,
                 onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
+=======
+
+            // ✅ تم التصليح: الانتقال لصفحة البروفايل وليس الإعدادات
+            _navItem(context, Icons.person_outline, "الملف", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
+
+>>>>>>> Stashed changes
             const SizedBox(width: 40),
             _navItem(context, Icons.notifications_none, "الإشعارات", false,
                 onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
