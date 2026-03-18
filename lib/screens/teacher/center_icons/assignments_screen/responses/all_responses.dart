@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'corrected_responses.dart';
+// استدعاء ملف صفحة التصحيح التي أنشأناها
+import '../../grading_screen/grading_screen.dart';
 
 class AllResponsesScreen extends StatefulWidget {
   const AllResponsesScreen({super.key});
@@ -143,7 +145,16 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
                     style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Tajawal')
                 ),
                 const Spacer(),
-                const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                // التعديل هنا: إضافة GestureDetector للربط مع صفحة التصحيح
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const GradingScreen()),
+                    );
+                  },
+                  child: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                ),
               ],
             ),
           ],
