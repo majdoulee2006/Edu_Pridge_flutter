@@ -164,7 +164,7 @@ color: Colors.black,
 
 
   // الزر الدائري الأوسط
-  floatingActionButton: const CustomSpeedDial(),
+  floatingActionButton: CustomSpeedDialEduBridge(),
   floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
   // شريط التنقل السفلي المفعل بالكامل

@@ -250,7 +250,7 @@ style: TextStyle(color: Colors.red),
 
 
   // الزر الدائري الأوسط
-  floatingActionButton: const CustomSpeedDial(),
+  floatingActionButton: CustomSpeedDialEduBridge(),
   floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
   // شريط التنقل السفلي المفعل بالكامل

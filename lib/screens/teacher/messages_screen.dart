@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
-import '../../widgets/custom_speed_dial.dart'; // تأكدي من وجود هذا الملف
+// استيراد صفحة الإعدادات من المجلد المشترك
+import '../shared/settings_screen.dart';
+import '../../widgets/custom_speed_dial.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -14,22 +16,30 @@ class MessagesScreen extends StatefulWidget {
 class _MessagesScreenState extends State<MessagesScreen> {
   String selectedFilter = "الكل";
 
-  // قائمة الرسائل (نفس البيانات السابقة)
   final List<Map<String, dynamic>> chats = [
-    {"name": "د. سمير (رئيس القسم)", "message": "يرجى تأكيد موعد اجتماع المجلس اليوم", "time": "الآن", "unreadCount": 1, "isOnline": true, "category": "الإدارة", "type": "individual"},
+    {"name": "د. سمير (رئيس القسم)", "message": "يرجى تأكيد موعد اجتماع المجلس اليوم", "time": "الآن", "unreadCount": 1, "isOnline": true, "category": "الإدارة", "type": "individual", "initials": "س"},
     {"name": "أحمد محمد (سنة 3)", "message": "دكتور، هل يمكن تأجيل تسليم المشروع؟", "time": "10:30 ص", "unreadCount": 0, "isOnline": true, "category": "الطلاب", "initials": "أ", "type": "individual"},
-    {"name": "جروب الفيزياء العامة", "message": "خالد: متى موعد الاختبار؟", "time": "أمس", "unreadCount": 5, "isOnline": false, "category": "الطلاب", "type": "group"},
+    {"name": "جروب الفيزياء العامة", "message": "خالد: متى موعد الاختبار؟", "time": "أمس", "unreadCount": 5, "isOnline": false, "category": "الطلاب", "initials": "ف", "type": "group"},
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFBFBF9),
-      extendBody: true, // مهم جداً عشان الدائرة تظهر فوق المحتوى
+      extendBody: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Icon(Icons.settings_outlined, color: Colors.black),
+        // تفعيل زر الإعدادات لينقلك لصفحة الإعدادات
+        leading: IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
         title: const Text("الرسائل", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
@@ -43,7 +53,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
         textDirection: TextDirection.rtl,
         child: Column(
           children: [
-            // شريط البحث
             Padding(
               padding: const EdgeInsets.all(20),
               child: TextField(
@@ -57,10 +66,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ),
               ),
             ),
-            // أزرار التصفية
             _buildFilterRow(),
             const SizedBox(height: 15),
-            // القائمة
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -75,40 +82,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
         ),
       ),
 
-      // هنا السر! استدعاء نفس الدائرة الموجودة في الرئيسية
-      floatingActionButton: const CustomSpeedDial(),
+      // استخدام الكلاس الموحد (EduBridge) كما عدله الفريق
+      floatingActionButton: const CustomSpeedDialEduBridge(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
-  // شريط التنقل بنفس الهوية البصرية
-  Widget _buildBottomNav(BuildContext context) {
-    return BottomAppBar(
-      height: 70,
-      shape: const CircularNotchedRectangle(), // الحفرة اللي بتقعد فيها الدائرة
-      notchMargin: 8,
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(context, Icons.home_outlined, "الرئيسية", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()))),
-            _navItem(context, Icons.person_outline, "الملف", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
-            const SizedBox(width: 40), // فراغ للدائرة الصفراء
-            _navItem(context, Icons.notifications_none, "الإشعارات", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
-            _navItem(context, Icons.chat_bubble, "الرسائل", true, onTap: () {}), // الحالة النشطة هنا
-          ],
-        ),
-      ),
-    );
-  }
-
-  // باقي الـ Widgets (FilterChip و ChatTile) تبقى كما هي في الكود السابق...
   Widget _buildFilterRow() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -134,16 +115,58 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _buildChatTile(Map<String, dynamic> chat) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        radius: 28,
-        backgroundColor: const Color(0xFFEBF5FB),
-        child: Text(chat['initials'] ?? "D", style: const TextStyle(color: Color(0xFF2E86C1))),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
       ),
-      title: Text(chat['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(chat['message'], maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: Text(chat['time'], style: const TextStyle(color: Colors.grey, fontSize: 11)),
+      child: ListTile(
+        leading: CircleAvatar(
+          radius: 28,
+          backgroundColor: const Color(0xFFEBF5FB),
+          child: Text(chat['initials'] ?? "D", style: const TextStyle(color: Color(0xFF2E86C1))),
+        ),
+        title: Text(chat['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(chat['message'], maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(chat['time'], style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            if (chat['unreadCount'] > 0)
+              Container(
+                margin: const EdgeInsets.only(top: 5),
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
+                child: Text(chat['unreadCount'].toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNav(BuildContext context) {
+    return BottomAppBar(
+      height: 70,
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 8,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _navItem(context, Icons.home_outlined, "الرئيسية", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()))),
+            _navItem(context, Icons.person_outline, "الملف", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
+            const SizedBox(width: 40),
+            _navItem(context, Icons.notifications_none, "الإشعارات", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
+            _navItem(context, Icons.chat_bubble, "الرسائل", true, onTap: () {}),
+          ],
+        ),
+      ),
     );
   }
 
@@ -154,7 +177,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
-          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey)),
+          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );

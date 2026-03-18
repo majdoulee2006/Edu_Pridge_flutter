@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'teacher_home.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
+// استيراد صفحة الإعدادات من المجلد المشترك
+import '../shared/settings_screen.dart';
 import '../../widgets/custom_speed_dial.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -15,13 +17,28 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const Icon(Icons.settings_outlined, color: Colors.black),
+        // تفعيل زر الإعدادات لينقلك لصفحة الإعدادات
+        leading: IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
         title: const Text("الملف الشخصي", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
+          // زر الرجوع يعود للصفحة الرئيسية للمعلم
           IconButton(
             icon: const Icon(Icons.arrow_forward, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -46,13 +63,14 @@ class ProfileScreen extends StatelessWidget {
               _buildInfoTile(Icons.apartment, "القسم", "كلية علوم الحاسب", false, isLocked: true),
               _buildSpecialTile(Icons.menu_book_outlined, "المواد الدراسية", "الفصل الحالي", ["خوارزميات", "هياكل بيانات"]),
               const SizedBox(height: 30),
-              _buildChangePasswordButton(), // الزر المعاد
+              _buildChangePasswordButton(),
               const SizedBox(height: 120),
             ],
           ),
         ),
       ),
-      floatingActionButton: const CustomSpeedDial(),
+      // استخدام الكلاس الموحد المتفق عليه مع الفريق
+      floatingActionButton: const CustomSpeedDialEduBridge(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildBottomNav(context),
     );
@@ -120,13 +138,30 @@ class ProfileScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15),
       width: double.infinity,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
-      child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.lock_reset), SizedBox(width: 10), Text("تغيير كلمة المرور", style: TextStyle(fontWeight: FontWeight.bold))]),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]
+      ),
+      child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_reset),
+            SizedBox(width: 10),
+            Text("تغيير كلمة المرور", style: TextStyle(fontWeight: FontWeight.bold))
+          ]
+      ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
-    return Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(bottom: 10), child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFB4B48E)))));
+    return Align(
+        alignment: Alignment.centerRight,
+        child: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFB4B48E)))
+        )
+    );
   }
 
   Widget _buildBottomNav(BuildContext context) {
@@ -139,11 +174,14 @@ class ProfileScreen extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _navItem(context, Icons.home_outlined, "الرئيسية", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()))),
+            _navItem(context, Icons.home_outlined, "الرئيسية", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()))),
             _navItem(context, Icons.person, "الملف", true, onTap: () {}),
             const SizedBox(width: 40),
-            _navItem(context, Icons.notifications_none, "الإشعارات", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
-            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen()))),
+            _navItem(context, Icons.notifications_none, "الإشعارات", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
+            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen()))),
           ],
         ),
       ),
@@ -151,6 +189,22 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
-    return InkWell(onTap: onTap, child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey), Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey))]));
+    return InkWell(
+        onTap: onTap,
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
+              Text(
+                  label,
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: active ? const Color(0xFFEFFF00) : Colors.grey,
+                      fontWeight: active ? FontWeight.bold : FontWeight.normal
+                  )
+              )
+            ]
+        )
+    );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../widgets/custom_button.dart';
-import '../teacher/teacher_home.dart'; // تأكدي من إنشاء هذا الملف كما في الرد السابق
+import '../teacher/teacher_home.dart';
+// ✅ استيراد الصفحة الجديدة
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -48,7 +50,29 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 20),
               _buildTextField(label: "كلمة المرور", hint: "********", icon: Icons.lock_outline, isPassword: true),
 
-              const SizedBox(height: 30),
+              // زر هل نسيت كلمة المرور
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    // ✅ الربط بصفحة استعادة كلمة المرور
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                    );
+                  },
+                  child: const Text(
+                    "هل نسيت كلمة المرور؟",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
 
               // زر تسجيل الدخول المربوط بواجهة المعلم
               CustomButton(
@@ -56,18 +80,20 @@ class LoginScreen extends StatelessWidget {
                 color: const Color(0xFFEFFF00),
                 textColor: Colors.black,
                 onPressed: () {
-                  // الانتقال لواجهة المعلم (التلقائي)
+                  // الانتقال لواجهة المعلم ومنع الرجوع للخلف
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
-                        (route) => false, // يمنع الرجوع لصفحة اللوجن بعد الدخول
+                        (route) => false,
                   );
                 },
               ),
 
               const SizedBox(height: 20),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  // هنا يمكن ربط صفحة إنشاء حساب جديد
+                },
                 child: const Text("إنشاء حساب جديد", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
               ),
             ],

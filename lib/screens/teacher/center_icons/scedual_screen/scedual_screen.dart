@@ -146,7 +146,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
           ],
         ),
       ),
-      floatingActionButton: const CustomSpeedDial(),
+      floatingActionButton: CustomSpeedDialEduBridge(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildBottomNav(context),
     );
