@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-// الاستدعاءات بناءً على هيكلية مجلداتك
-import '../../../../widgets/custom_speed_dial.dart';
+import '../../../../widgets/teacher_speed_dial.dart';
 import '../../messages_screen.dart';
 import '../../profile_screen.dart';
 import '../../teacher_home.dart';
@@ -16,7 +15,6 @@ class AssignmentsScreen extends StatefulWidget {
 }
 
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
-
   @override
   Widget build(BuildContext context) {
     const Color mainAppColor = Color(0xFFF7F7F7);
@@ -37,27 +35,27 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: textDarkColor),
+              icon: const Icon(Icons.arrow_back, color: textDarkColor),
               onPressed: () => Navigator.pop(context),
             ),
-            title: Text(
+            title: const Text(
               'الواجبات والمشاريع',
               style: TextStyle(color: textDarkColor, fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'Tajawal'),
             ),
             actions: [
               IconButton(
-                icon: Icon(Icons.settings, color: textDarkColor),
+                icon: const Icon(Icons.settings, color: textDarkColor),
                 onPressed: () {},
               ),
             ],
             centerTitle: true,
-            bottom: TabBar(
+            bottom: const TabBar(
               indicatorColor: activeTabColor,
               indicatorWeight: 3,
               labelColor: activeTabColor,
               unselectedLabelColor: Colors.grey,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Tajawal'),
-              tabs: const [
+              labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Tajawal'),
+              tabs: [
                 Tab(text: 'الكل'),
                 Tab(text: 'الردود'),
               ],
@@ -67,11 +65,11 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             children: [
               TabBarView(
                 children: [
-                  _buildAllAssignmentsList(activeGlowColor, activeTabColor, badgeActiveColor, badgeGradingColor, badgeGradedColor),
+                  _buildAllAssignmentsList(activeGlowColor, badgeActiveColor, badgeGradingColor, badgeGradedColor),
                   const AllResponsesScreen(),
                 ],
               ),
-              // الزر الأصفر في الطرف اليمين كما طلبت سابقاً
+              // الزر الأصفر في الطرف اليمين
               Positioned(
                 bottom: 20,
                 right: 20,
@@ -90,7 +88,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               ),
             ],
           ),
-          floatingActionButton: CustomSpeedDialEduBridge(),
+          floatingActionButton: const CustomSpeedDialEduBridge(),
           floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
           bottomNavigationBar: _buildBottomNav(context),
         ),
@@ -98,7 +96,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  Widget _buildAllAssignmentsList(Color activeGlowColor, Color activeTabColor, Color badgeActiveColor, Color badgeGradingColor, Color badgeGradedColor) {
+  Widget _buildAllAssignmentsList(Color activeGlowColor, Color badgeActiveColor, Color badgeGradingColor, Color badgeGradedColor) {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
@@ -132,14 +130,14 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         const SizedBox(height: 12),
         _buildAssignmentCard(
           title: 'واجب القراءة والاستيعاب',
-          subject: 'الغة العربية | الصف 9 - ج',
+          subject: 'اللغة العربية | الصف 9 - ج',
           date: '2023-10-15',
           progress: '30/30',
           icon: Icons.check_circle_outline,
           iconColor: Colors.green,
           statusBadge: _buildStatusBadge('تم\nالتصحيح', badgeGradedColor, const Color(0xFF1B5E20)),
         ),
-        const SizedBox(height: 80),
+        const SizedBox(height: 80), // مساحة للـ FloatingActionButton
       ],
     );
   }
@@ -167,14 +165,23 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: hasGlow ? glowColor.withAlpha(204) : Colors.grey.withAlpha(30),
-            spreadRadius: hasGlow ? 3 : 1,
-            blurRadius: hasGlow ? 7 : 3,
-            offset: Offset(0, hasGlow ? 0 : 2),
-          ),
-        ],
+        boxShadow: hasGlow
+            ? [
+                BoxShadow(
+                  color: glowColor.withAlpha(204),
+                  spreadRadius: 3,
+                  blurRadius: 7,
+                  offset: const Offset(0, 0),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.grey.withAlpha(30),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
@@ -185,7 +192,14 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF333333), fontFamily: 'Tajawal'))),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF333333), fontFamily: 'Tajawal'),
+                  ),
+                ),
                 if (statusBadge != null) statusBadge,
               ],
             ),
@@ -198,7 +212,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             const SizedBox(height: 16),
             const Divider(color: Color(0xFFEEEEEE), height: 1),
             const SizedBox(height: 12),
-            // تعديل الترتيب هنا: التاريخ يميناً والسهم يساراً
             Row(
               children: [
                 // 1. التاريخ والأيقونة (أصبح في اليمين)
@@ -232,6 +245,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   Widget _buildBottomNav(BuildContext context) {
     return BottomAppBar(
       height: 70,
+      color: Colors.white,
       shape: const CircularNotchedRectangle(),
       notchMargin: 8,
       child: Row(
@@ -250,6 +264,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

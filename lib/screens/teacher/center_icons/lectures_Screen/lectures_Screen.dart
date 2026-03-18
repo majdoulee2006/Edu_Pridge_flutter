@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../../widgets/teacher_speed_dial.dart';
 import '../../messages_screen.dart';
 import '../../profile_screen.dart';
 import '../../teacher_home.dart';
-
 class LecturesScreen extends StatelessWidget {
-  const LecturesScreen({Key? key}) : super(key: key);
+const LecturesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

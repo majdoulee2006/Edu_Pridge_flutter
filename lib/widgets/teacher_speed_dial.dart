@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui';
-
-// ✅ ملاحظة: تأكد من صحة مسارات الملفات أدناه حسب مشروعك
 import '../screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
 import '../screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
 import '../screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';

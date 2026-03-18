@@ -11,7 +11,7 @@ class OnboardingThree extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Container(
+          child: SizedBox(
             // ضبط الارتفاع ليتناسب مع حجم الشاشة ومنع Overflow
             height: MediaQuery.of(context).size.height -
                 MediaQuery.of(context).padding.top -

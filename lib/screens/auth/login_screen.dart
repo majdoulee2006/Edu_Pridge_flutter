@@ -3,6 +3,7 @@ import '../../widgets/custom_button.dart';
 import '../teacher/teacher_home.dart';
 // ✅ استيراد الصفحة الجديدة
 import 'forgot_password_screen.dart';
+import '../student/nav_bar/student_home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -25,7 +26,11 @@ class LoginScreen extends StatelessWidget {
                     color: const Color(0xFFEFFF00).withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.school, size: 60, color: Colors.black),
+                  child: const Icon(
+                    Icons.school,
+                    size: 60,
+                    color: Colors.black,
+                  ),
                 ),
               ),
 
@@ -44,11 +49,24 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 40),
 
               // حقول الإدخال
-              _buildTextField(label: "اسم المستخدم", hint: "أدخل اسم المستخدم", icon: Icons.person_outline),
+              _buildTextField(
+                label: "اسم المستخدم",
+                hint: "أدخل اسم المستخدم",
+                icon: Icons.person_outline,
+              ),
               const SizedBox(height: 20),
-              _buildTextField(label: "رقم الهاتف", hint: "05x xxx xxxx", icon: Icons.phone_android),
+              _buildTextField(
+                label: "رقم الهاتف",
+                hint: "05x xxx xxxx",
+                icon: Icons.phone_android,
+              ),
               const SizedBox(height: 20),
-              _buildTextField(label: "كلمة المرور", hint: "********", icon: Icons.lock_outline, isPassword: true),
+              _buildTextField(
+                label: "كلمة المرور",
+                hint: "********",
+                icon: Icons.lock_outline,
+                isPassword: true,
+              ),
 
               // زر هل نسيت كلمة المرور
               Align(
@@ -58,7 +76,9 @@ class LoginScreen extends StatelessWidget {
                     // ✅ الربط بصفحة استعادة كلمة المرور
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen(),
+                      ),
                     );
                   },
                   child: const Text(
@@ -74,7 +94,7 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // زر تسجيل الدخول المربوط بواجهة المعلم
+              // زر تسجيل الدخول الأساسي (مربوط حالياً بالمدرب)
               CustomButton(
                 text: "تسجيل الدخول  ←",
                 color: const Color(0xFFEFFF00),
@@ -83,8 +103,10 @@ class LoginScreen extends StatelessWidget {
                   // الانتقال لواجهة المعلم ومنع الرجوع للخلف
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
-                        (route) => false,
+                    MaterialPageRoute(
+                      builder: (context) => const TeacherHomeScreen(),
+                    ),
+                    (route) => false,
                   );
                 },
               ),
@@ -94,8 +116,66 @@ class LoginScreen extends StatelessWidget {
                 onPressed: () {
                   // هنا يمكن ربط صفحة إنشاء حساب جديد
                 },
-                child: const Text("إنشاء حساب جديد", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "إنشاء حساب جديد",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
+
+              // ==========================================
+              // أزرار مؤقتة للمطورين (تُحذف قبل تسليم المشروع)
+              // ==========================================
+              const SizedBox(height: 20),
+              const Divider(),
+              const Text(
+                "اختصارات للمطورين (للتجربة فقط):",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const StudentHomeScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'دخول كطالب',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                    ),
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TeacherHomeScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'دخول كمدرب',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
             ],
           ),
         ),
@@ -103,11 +183,19 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField({required String label, required String hint, required IconData icon, bool isPassword = false}) {
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         const SizedBox(height: 8),
         TextField(
           obscureText: isPassword,
@@ -115,9 +203,18 @@ class LoginScreen extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: Colors.grey),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 15,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
           ),
         ),
       ],

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+
 import 'profile_screen.dart';
-import 'notifications_screen.dart';
 import 'messages_screen.dart';
-// استيراد صفحة الإعدادات من مجلد shared
+import 'notifications_screen.dart';
 import '../shared/settings_screen.dart';
-import '../../widgets/custom_speed_dial.dart';
+import '../../widgets/teacher_speed_dial.dart';
 
 class TeacherHomeScreen extends StatelessWidget {
   const TeacherHomeScreen({super.key});

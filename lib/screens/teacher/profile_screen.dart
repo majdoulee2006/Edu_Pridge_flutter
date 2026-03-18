@@ -4,7 +4,8 @@ import 'notifications_screen.dart';
 import 'messages_screen.dart';
 // استيراد صفحة الإعدادات من المجلد المشترك
 import '../shared/settings_screen.dart';
-import '../../widgets/custom_speed_dial.dart';
+
+import '../../widgets/teacher_speed_dial.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
