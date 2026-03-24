@@ -143,7 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         trailing: Switch(
           value: value,
-          activeColor: const Color(0xFFEFFF00),
+          activeThumbColor: const Color(0xFFEFFF00),
           onChanged: onChanged,
         ),
       ),

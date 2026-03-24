@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../widgets/custom_button.dart';
+import '../../widgets/student_speed_dial.dart';
+import '../../widgets/teacher_speed_dial.dart';
 import '../teacher/teacher_home.dart';
-// ✅ استيراد الصفحة الجديدة
-import 'forgot_password_screen.dart';
 import '../student/nav_bar/student_home_screen.dart';
+//import '../teacher/teacher_home.dart';
+import 'forgot_password_screen.dart';
+// ✅ استيراد صفحة إنشاء الحساب الجديدة
+import 'create_account_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -95,10 +98,7 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               // زر تسجيل الدخول الأساسي (مربوط حالياً بالمدرب)
-              CustomButton(
-                text: "تسجيل الدخول  ←",
-                color: const Color(0xFFEFFF00),
-                textColor: Colors.black,
+              ElevatedButton(
                 onPressed: () {
                   // الانتقال لواجهة المعلم ومنع الرجوع للخلف
                   Navigator.pushAndRemoveUntil(
@@ -109,12 +109,34 @@ class LoginScreen extends StatelessWidget {
                     (route) => false,
                   );
                 },
-              ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEFFF00), // لون الزر الأصفر
+                  foregroundColor: Colors.black, // لون النص
+                  minimumSize: const Size(double.infinity, 50), // عرض الزر وارتفاعه
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12), // تدوير الحواف
+                  ),
+                ),
+                child: const Text(
+                  "تسجيل الدخول",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Tajawal',
+                  ),
+                ),
+              ), // <--- هون كانت الفاصلة الناقصة اللي عاملة المشكلة! ✅
 
               const SizedBox(height: 20),
               TextButton(
                 onPressed: () {
-                  // هنا يمكن ربط صفحة إنشاء حساب جديد
+                  // ✅ تم ربط صفحة إنشاء حساب جديد هنا
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CreateAccountScreen(),
+                    ),
+                  );
                 },
                 child: const Text(
                   "إنشاء حساب جديد",

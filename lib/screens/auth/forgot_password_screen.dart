@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../widgets/custom_button.dart';
+//import '../../widgets/custom_button.dart';
 import 'otp_screen.dart'; // تأكد من وجود الملف
 
 class ForgotPasswordScreen extends StatelessWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Scaffold Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

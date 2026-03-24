@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../widgets/custom_button.dart';
+
 import 'onboarding_two.dart';
 import '../auth/login_screen.dart';
 

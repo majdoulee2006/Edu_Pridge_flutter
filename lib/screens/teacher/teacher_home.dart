@@ -45,7 +45,11 @@ class TeacherHomeScreen extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: RichText(
                   text: const TextSpan(
-                    style: TextStyle(fontSize: 24, color: Colors.black, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
                     children: [
                       TextSpan(text: "مرحباً، "),
                       TextSpan(
@@ -58,7 +62,10 @@ class TeacherHomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 5),
-              const Text("لوحة التحكم", style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const Text(
+                "لوحة التحكم",
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
 
               const SizedBox(height: 30),
 
@@ -74,7 +81,10 @@ class TeacherHomeScreen extends StatelessWidget {
                     onPressed: () {},
                     child: const Text(
                       "عرض الكل",
-                      style: TextStyle(color: Color(0xFF239B56), fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Color(0xFF239B56),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -85,14 +95,16 @@ class TeacherHomeScreen extends StatelessWidget {
               _buildNewsCard(
                 title: "موعد الامتحانات النصفية",
                 tag: "هام جداً",
-                description: "تم تحديد مواعيد الامتحانات للفصل الدراسي الأول، يرجى مراجعة الجدول المرفق.",
+                description:
+                    "تم تحديد مواعيد الامتحانات للفصل الدراسي الأول، يرجى مراجعة الجدول المرفق.",
                 time: "منذ ساعتين",
                 tagColor: Colors.red,
               ),
               _buildNewsCard(
                 title: "اجتماع الهيئة التدريسية",
                 tag: "تنبيه هام",
-                description: "ندعوكم لحضور اجتماع الهيئة التدريسية يوم الخميس القادم لمناقشة الخطة الأكاديمية.",
+                description:
+                    "ندعوكم لحضور اجتماع الهيئة التدريسية يوم الخميس القادم لمناقشة الخطة الأكاديمية.",
                 time: "منذ 5 ساعات",
                 tagColor: Colors.orange,
               ),
@@ -124,10 +136,10 @@ class TeacherHomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 5)
-          )
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Column(
@@ -163,30 +175,48 @@ class TeacherHomeScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
                     const SizedBox(width: 5),
-                    Text(time, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                    Text(
+                      time,
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: tagColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         tag,
-                        style: TextStyle(color: tagColor, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: tagColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, height: 1.2)
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    height: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                    description,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14, height: 1.5)
+                  description,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),
@@ -207,21 +237,55 @@ class TeacherHomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _navItem(context, Icons.home, "الرئيسية", true),
-            // الانتقال لصفحة البروفايل
-            _navItem(context, Icons.person_outline, "الملف", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
+
+            // ✅ تم التصليح: الانتقال لصفحة البروفايل وليس الإعدادات
+            _navItem(
+              context,
+              Icons.person_outline,
+              "الملف",
+              false,
+              onTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              ),
+            ),
+
             const SizedBox(width: 40),
-            _navItem(context, Icons.notifications_none, "الإشعارات", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
-            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen()))),
+            _navItem(
+              context,
+              Icons.notifications_none,
+              "الإشعارات",
+              false,
+              onTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              ),
+            ),
+            _navItem(
+              context,
+              Icons.chat_bubble_outline,
+              "الرسائل",
+              false,
+              onTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const MessagesScreen()),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
+  Widget _navItem(
+    BuildContext context,
+    IconData icon,
+    String label,
+    bool active, {
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Column(
@@ -229,12 +293,12 @@ class TeacherHomeScreen extends StatelessWidget {
         children: [
           Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
           Text(
-              label,
-              style: TextStyle(
-                  fontSize: 10,
-                  color: active ? const Color(0xFFEFFF00) : Colors.grey,
-                  fontWeight: active ? FontWeight.bold : FontWeight.normal
-              )
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: active ? const Color(0xFFEFFF00) : Colors.grey,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
         ],
       ),
