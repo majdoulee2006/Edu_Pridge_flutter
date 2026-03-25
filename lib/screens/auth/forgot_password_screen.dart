@@ -6,7 +6,7 @@ class ForgotPasswordScreen extends StatelessWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
- Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -15,7 +15,11 @@ class ForgotPasswordScreen extends StatelessWidget {
         centerTitle: true,
         title: const Text(
           "استعادة كلمة المرور",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -41,10 +45,14 @@ class ForgotPasswordScreen extends StatelessWidget {
                         color: const Color(0xFFEFFF00).withOpacity(0.4),
                         blurRadius: 50,
                         spreadRadius: 5,
-                      )
+                      ),
                     ],
                   ),
-                  child: const Icon(Icons.phone_android_rounded, size: 50, color: Color(0xFFF1C40F)),
+                  child: const Icon(
+                    Icons.phone_android_rounded,
+                    size: 50,
+                    color: Color(0xFFF1C40F),
+                  ),
                 ),
               ),
               const SizedBox(height: 30),
@@ -65,7 +73,11 @@ class ForgotPasswordScreen extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: Text(
                   "رقم الجوال",
-                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -75,7 +87,10 @@ class ForgotPasswordScreen extends StatelessWidget {
                 children: [
                   // كود الدولة
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 15,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8F9F9),
                       borderRadius: BorderRadius.circular(20),
@@ -83,7 +98,10 @@ class ForgotPasswordScreen extends StatelessWidget {
                     ),
                     child: const Text(
                       "+966",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -97,10 +115,15 @@ class ForgotPasswordScreen extends StatelessWidget {
                         hintStyle: const TextStyle(color: Colors.grey),
                         filled: true,
                         fillColor: const Color(0xFFF8F9F9),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(color: Color(0xFFF2F3F4)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFF2F3F4),
+                          ),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
@@ -125,12 +148,18 @@ class ForgotPasswordScreen extends StatelessWidget {
                       // الربط الفعلي مع واجهة الـ OTP
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const OTPScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const OTPScreen(),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEFFF00), // اللون الأصفر المعتمد
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      backgroundColor: const Color(
+                        0xFFEFFF00,
+                      ), // اللون الأصفر المعتمد
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       elevation: 0,
                     ),
                     child: Row(
@@ -138,10 +167,18 @@ class ForgotPasswordScreen extends StatelessWidget {
                       children: const [
                         Text(
                           "إرسال رمز التحقق",
-                          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         SizedBox(width: 10),
-                        Icon(Icons.arrow_forward, color: Colors.black, size: 20),
+                        Icon(
+                          Icons.arrow_forward,
+                          color: Colors.black,
+                          size: 20,
+                        ),
                       ],
                     ),
                   ),
