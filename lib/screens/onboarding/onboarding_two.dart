@@ -70,7 +70,7 @@ class OnboardingTwo extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.all(20.0),
-                  child: CustomButton(
+                   child: CustomButton(
                     text: "التالي  ←",
                     color: const Color(0xFFEFFF00),
                     textColor: Colors.black,
