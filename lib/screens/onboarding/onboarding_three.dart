@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../auth/login_screen.dart'; // تأكدي من صحة المسار لملف تسجيل الدخول
-
+import '../../widgets/custom_button.dart';
 class OnboardingThree extends StatelessWidget {
   const OnboardingThree({super.key});
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'onboarding_three.dart';
 import '../auth/login_screen.dart';
-
+import '../../widgets/custom_button.dart';
 class OnboardingTwo extends StatelessWidget {
   const OnboardingTwo({super.key});
 
