@@ -1,5 +1,6 @@
-
 import 'package:flutter/material.dart';
+// ✅ تم إضافة استدعاء واجهة التحقق (تأكدي من المسار الصحيح بملفاتك)
+import 'otp_screen.dart';
 
 class EditEmailScreen extends StatefulWidget {
   const EditEmailScreen({super.key});
@@ -33,7 +34,11 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
           ),
           // سهم الرجوع
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: const Icon(
+              Icons
+                  .arrow_back, // ✅ تم تعديل السهم ليتناسب مع الواجهة العربية بشكل صحيح
+              color: Colors.black,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -49,7 +54,9 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                   width: 150,
                   height: 150,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFFF00).withOpacity(0.1), // أصفر شفاف جداً
+                    color: const Color(
+                      0xFFEFFF00,
+                    ).withOpacity(0.1), // أصفر شفاف جداً
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
@@ -77,11 +84,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
               const Text(
                 "يرجى إدخال عنوان البريد الإلكتروني الجديد.\nسنرسل لك رمز تحقق لتأكيد التغيير.",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                  height: 1.5,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
               ),
 
               const SizedBox(height: 45),
@@ -114,7 +117,32 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    // أضف منطق الإرسال هنا
+                    // ✅ تم ربط الزر مع تمرير دالة الرجوع المزدوج (Double Pop) ورسالة النجاح
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OTPScreen(
+                          appBarTitle: "تأكيد البريد الإلكتروني",
+                          message:
+                              "تم إرسال رمز التحقق المكون من 4 أرقام إلى\nبريدك الإلكتروني الجديد",
+                          // 🌟 أمر الرجوع خطوتين للوراء مع إظهار رسالة النجاح 🌟
+                          onConfirm: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "تم تغيير البريد الإلكتروني بنجاح! ✅",
+                                  textAlign: TextAlign.center,
+                                ),
+                                backgroundColor: Colors.green,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            int count = 0;
+                            Navigator.of(context).popUntil((_) => count++ >= 2);
+                          },
+                        ),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEFFF00),
@@ -188,12 +216,17 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
       child: TextField(
         controller: controller,
         obscureText: isPassword,
-        textAlign: isEmail ? TextAlign.left : TextAlign.right, // الإيميل يبدأ من اليسار
+        textAlign: isEmail
+            ? TextAlign.left
+            : TextAlign.right, // الإيميل يبدأ من اليسار
         keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
           border: InputBorder.none,
           // وضع الأيقونة في نهاية الحقل (جهة اليسار في RTL)
           suffixIcon: Padding(

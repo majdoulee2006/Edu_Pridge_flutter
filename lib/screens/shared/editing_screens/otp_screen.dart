@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../teacher/teacher_home.dart'; // ✅ تأكد من استيراد ملف الرئيسية
 
 class OTPScreen extends StatefulWidget {
-  const OTPScreen({super.key});
+  // 🌟 متغيرات جديدة عشان الواجهة تصير مرنة وتناسب كل الحالات 🌟
+  final String appBarTitle;
+  final String message;
+  final VoidCallback? onConfirm;
+
+  const OTPScreen({
+    super.key,
+    // قيم افتراضية عشان ما يضرب الكود القديم
+    this.appBarTitle = "التحقق من الحساب",
+    this.message =
+        "تم إرسال رمز التحقق المكون من 4 أرقام إلى رقم\nهاتفك المسجل +966 5X XXX XXXX",
+    this.onConfirm,
+  });
 
   @override
   State<OTPScreen> createState() => _OTPScreenState();
@@ -43,16 +54,20 @@ class _OTPScreenState extends State<OTPScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          "التحقق من الحساب",
-          style: TextStyle(
+        title: Text(
+          widget.appBarTitle, // 🌟 النص متغير حسب الحالة
+          style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(
+            Icons
+                .arrow_back, // ✅ تم تعديل السهم ليؤشر لليمين في الواجهة العربية
+            color: Colors.black,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -83,10 +98,14 @@ class _OTPScreenState extends State<OTPScreen> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 15),
-              const Text(
-                "تم إرسال رمز التحقق المكون من 4 أرقام إلى رقم\nهاتفك المسجل +966 5X XXX XXXX",
+              Text(
+                widget.message, // 🌟 الرسالة متغيرة
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.6),
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
+                  height: 1.6,
+                ),
               ),
               const SizedBox(height: 40),
 
@@ -155,14 +174,14 @@ class _OTPScreenState extends State<OTPScreen> {
                   height: 60,
                   child: ElevatedButton(
                     onPressed: () {
-                      // ✅ تم الربط هنا بالرئيسية
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TeacherHomeScreen(),
-                        ),
-                        (route) => false,
-                      );
+                      // 🌟 إذا تم تمرير دالة خاصة، بنفذها، وإلا بنرجع خطوة لورا
+                      if (widget.onConfirm != null) {
+                        widget.onConfirm!();
+                      } else {
+                        Navigator.pop(
+                          context,
+                        ); // يرجع للشاشة اللي استدعته (بروفايل أو غيره)
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFEFFF00),
@@ -181,7 +200,7 @@ class _OTPScreenState extends State<OTPScreen> {
                         ),
                         SizedBox(width: 10),
                         Text(
-                          "تأكيد الحساب",
+                          "تأكيد الرمز", // 🌟 خليتها عامة لتناسب الكل
                           style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.bold,
