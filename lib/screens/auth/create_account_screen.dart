@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+// ✅ تأكدي من مسار استدعاء واجهة التحقق حسب هيكلة مجلداتك
+import 'otp_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -220,48 +222,88 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     child: isStudent ? _buildStudentForm() : _buildParentForm(),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 30),
 
-                  // 4. زر إنشاء حساب
+                  // 4. زر إنشاء حساب (التصميم الجديد المطابق للصورة)
                   SizedBox(
+                    width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // ✅ الانتقال لواجهة رمز التحقق OTPScreen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const OTPScreen(
+                              appBarTitle: "التحقق من الحساب",
+                              message:
+                                  "تم إرسال رمز التحقق المكون من 4 أرقام لتأكيد حسابك",
+                            ),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryYellow,
                         foregroundColor: Colors.black,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
+                          borderRadius: BorderRadius.circular(
+                            30,
+                          ), // حواف دائرية بالكامل
                         ),
                       ),
-                      child: const Text(
-                        'إنشاء حساب',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.arrow_back,
+                            size: 22,
+                            color: Colors.black,
+                          ), // سهم لليسار
+                          SizedBox(width: 10),
+                          Text(
+                            'إنشاء حساب',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 30),
 
-                  // 5. رابط تسجيل الدخول
+                  // 5. رابط تسجيل الدخول في الأسفل (التصميم الجديد المطابق للصورة)
                   Center(
                     child: GestureDetector(
                       onTap: () =>
                           Navigator.pop(context), // العودة لشاشة تسجيل الدخول
-                      child: const Text(
-                        'تسجيل الدخول',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                      child: RichText(
+                        text: const TextSpan(
+                          text: 'لديك حساب بالفعل؟ ',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            fontFamily:
+                                'Tajawal', // تأكدي من إضافة الخط إذا كنت تستخدمينه
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'تسجيل الدخول',
+                              style: TextStyle(
+                                color: Color(0xFFD4AC0D), // لون ذهبي/برتقالي
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -280,27 +322,28 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       children: [
         _buildInputField(
           label: 'الاسم الكامل',
-          hint: 'الاسم الثلاثي',
+          hint: 'الاسم الرباعي',
           icon: Icons.person_outline,
           controller: _studentNameController,
         ),
         _buildInputField(
-          label: 'البريد الإلكتروني',
-          hint: 'student@example.com',
-          icon: Icons.mail_outline,
-          controller: _studentEmailController,
-        ),
-        _buildInputField(
           label: 'رقم الهاتف',
           hint: '05xxxxxxxx',
-          icon: Icons.smartphone,
+          icon: Icons.phone_enabled_outlined,
           controller: _studentPhoneController,
         ),
         _buildInputField(
           label: 'الرقم الجامعي',
-          hint: 'مثال: 12345678',
+          hint: '12345678',
           icon: Icons.badge_outlined,
           controller: _studentIdController,
+        ),
+        _buildInputField(
+          label: 'البريد الإلكتروني',
+          hint: 'example@university.edu',
+          icon: Icons.email_outlined,
+          controller: _studentEmailController,
+          isEmail: true, // لضبط اتجاه النص لليسار
         ),
 
         Row(
@@ -362,7 +405,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         _buildInputField(
           label: 'رقم الهاتف',
           hint: '05xxxxxxxx',
-          icon: Icons.smartphone,
+          icon: Icons.phone_enabled_outlined,
           controller: _parentPhoneController,
         ),
 
@@ -456,6 +499,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     TextEditingController? controller,
     bool isPassword = false,
     bool isDropdown = false,
+    bool isEmail = false,
     List<String>? dropdownItems,
     String? value,
     Function(String?)? onChanged,
@@ -471,39 +515,41 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               label,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: Colors.black,
+                fontSize: 13,
+                color: Colors.black87,
               ),
             ),
           ),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(30), // حواف أكثر دائرية
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
+                  color: Colors.black.withOpacity(0.01),
                   blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: isDropdown
                 ? DropdownButtonFormField<String>(
+                    isExpanded: true, // 🌟 السطر السحري لمنع الـ Overflow 🌟
                     value: value,
                     decoration: InputDecoration(
                       hintText: hint,
                       hintStyle: const TextStyle(
                         color: Colors.grey,
-                        fontSize: 13,
+                        fontSize: 14,
                       ),
                       prefixIcon: icon != null
-                          ? Icon(icon, color: Colors.grey, size: 20)
+                          ? Icon(icon, color: Colors.grey.shade500, size: 20)
                           : null,
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 15,
-                        vertical: 15,
+                        vertical: 16,
                       ),
                     ),
                     icon: const Padding(
@@ -523,6 +569,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         enabled: !isHeader, // يمنع الضغط على العناوين
                         child: Text(
                           displayText,
+                          overflow: TextOverflow
+                              .ellipsis, // 🌟 لمعالجة النصوص الطويلة 🌟
                           style: TextStyle(
                             fontSize: isHeader ? 16 : 14,
                             fontWeight: isHeader
@@ -538,19 +586,25 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 : TextField(
                     controller: controller,
                     obscureText: isPassword,
+                    textAlign: isEmail
+                        ? TextAlign.left
+                        : TextAlign.right, // الإيميل يبدأ من اليسار
+                    keyboardType: isEmail
+                        ? TextInputType.emailAddress
+                        : TextInputType.text,
                     decoration: InputDecoration(
                       hintText: hint,
                       hintStyle: const TextStyle(
                         color: Colors.grey,
-                        fontSize: 13,
+                        fontSize: 14,
                       ),
                       prefixIcon: icon != null
-                          ? Icon(icon, color: Colors.grey, size: 20)
+                          ? Icon(icon, color: Colors.grey.shade500, size: 20)
                           : null,
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 15,
-                        vertical: icon != null ? 15 : 18,
+                        vertical: icon != null ? 16 : 18,
                       ),
                     ),
                   ),

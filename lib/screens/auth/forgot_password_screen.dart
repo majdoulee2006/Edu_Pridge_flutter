@@ -1,39 +1,49 @@
 import 'package:flutter/material.dart';
-//import '../../widgets/custom_button.dart';
-import 'otp_screen.dart'; // تأكد من وجود الملف
+// ✅ تم استدعاء واجهة رمز التحقق
+import 'otp_screen.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
+class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  // للتحكم بحقل الإدخال (يمكن أن يكون هاتف أو إيميل)
+  final TextEditingController _inputController = TextEditingController();
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          "استعادة كلمة المرور",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+    return Directionality(
+      textDirection: TextDirection.rtl, // لضمان ظهور العناصر من اليمين لليسار
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFAFAFA), // خلفية فاتحة
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: const Text(
+            "نسيت كلمة السر",
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          // سهم الرجوع يؤشر لليمين بشكل صحيح
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             children: [
-              const SizedBox(height: 30),
-              // ✅ الأيقونة المتوهجة (نفس ديزاين الصورة اللي بعتتها)
+              const SizedBox(height: 40),
+
+              // 1. الأيقونة المضيئة
               Center(
                 child: Container(
                   padding: const EdgeInsets.all(25),
@@ -42,92 +52,86 @@ class ForgotPasswordScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFEFFF00).withOpacity(0.4),
-                        blurRadius: 50,
-                        spreadRadius: 5,
+                        color: const Color(0xFFEFFF00).withOpacity(0.3),
+                        blurRadius: 40,
+                        spreadRadius: 10,
                       ),
                     ],
                   ),
                   child: const Icon(
-                    Icons.phone_android_rounded,
-                    size: 50,
-                    color: Color(0xFFF1C40F),
+                    Icons
+                        .lock_reset_rounded, // أيقونة مناسبة لاستعادة كلمة المرور
+                    size: 45,
+                    color: Color(0xFFEFFF00),
                   ),
                 ),
               ),
+
               const SizedBox(height: 30),
-              const Text(
-                "أدخل رقم هاتفك",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                "سنقوم بإرسال رمز تحقق (OTP) إلى رقم هاتفك المسجل لتتمكن من إعادة تعيين كلمة المرور.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.6),
-              ),
-              const SizedBox(height: 40),
 
-              // ✅ تسمية الحقل
-              const Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  "رقم الجوال",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+              // 2. النص التوضيحي
+              const Text(
+                "استعادة كلمة المرور",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+              const Text(
+                "يرجى إدخال رقم هاتفك أو بريدك الإلكتروني المسجل لدينا لنرسل لك رمز التحقق.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
+              ),
 
-              // ✅ حقل إدخال الرقم (الديزاين الرمادي الفاتح)
-              Row(
+              const SizedBox(height: 45),
+
+              // 3. حقل الإدخال (للهاتف أو البريد)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // كود الدولة
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 15,
-                      vertical: 15,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9F9),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFF2F3F4)),
-                    ),
-                    child: const Text(
-                      "+966",
+                  const Padding(
+                    padding: EdgeInsets.only(right: 15, bottom: 8),
+                    child: Text(
+                      "رقم الهاتف أو البريد الإلكتروني",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 14,
+                        color: Colors.black,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  // حقل الرقم
-                  Expanded(
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
                     child: TextField(
-                      keyboardType: TextInputType.phone,
-                      textAlign: TextAlign.right,
+                      controller: _inputController,
                       decoration: InputDecoration(
-                        hintText: "50 123 4567",
-                        hintStyle: const TextStyle(color: Colors.grey),
-                        filled: true,
-                        fillColor: const Color(0xFFF8F9F9),
+                        hintText: "أدخل بياناتك هنا...",
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 13,
+                        ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
-                          vertical: 18,
+                          vertical: 16,
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFF2F3F4),
-                          ),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
+                        border: InputBorder.none,
+                        prefixIcon: Icon(
+                          Icons.person_search_outlined,
+                          color: Colors.grey.shade500,
+                          size: 20,
                         ),
                       ),
                     ),
@@ -135,55 +139,85 @@ class ForgotPasswordScreen extends StatelessWidget {
                 ],
               ),
 
-              const Spacer(),
+              const SizedBox(height: 50),
 
-              // ✅ زر الإرسال المربوط بـ OTP
-              Padding(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // الربط الفعلي مع واجهة الـ OTP
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const OTPScreen(),
+              // 4. زر المتابعة
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // ✅ الانتقال لواجهة الـ OTP للتحقق من هويته
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OTPScreen(
+                          appBarTitle: "التحقق من الحساب",
+                          message:
+                              "تم إرسال رمز التحقق المكون من 4 أرقام لتأكيد هويتك.",
+                          onConfirm: () {
+                            // بعد ما يدخل الرمز صح، المفروض يروح لشاشة "إنشاء كلمة سر جديدة"
+                            // مؤقتاً رح نرجعه خطوتين كإثبات نجاح العملية
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "تم التحقق بنجاح! يمكنك الآن إعادة تعيين كلمة المرور.",
+                                  textAlign: TextAlign.center,
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            int count = 0;
+                            Navigator.of(context).popUntil((_) => count++ >= 2);
+                          },
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(
-                        0xFFEFFF00,
-                      ), // اللون الأصفر المعتمد
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
                       ),
-                      elevation: 0,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEFFF00),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Text(
-                          "إرسال رمز التحقق",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Icon(
-                          Icons.arrow_forward,
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "متابعة",
+                        style: TextStyle(
                           color: Colors.black,
-                          size: 20,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                      ],
-                    ),
+                      ),
+                      SizedBox(width: 10),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.black,
+                        size: 22,
+                      ),
+                    ],
                   ),
                 ),
               ),
+
+              const SizedBox(height: 15),
+
+              // 5. زر الإلغاء
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "إلغاء والعودة",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
             ],
           ),
         ),
