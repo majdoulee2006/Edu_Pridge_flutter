@@ -21,7 +21,7 @@ class EduBridgeApp extends StatelessWidget {
         fontFamily: 'Tajawal', // هاد بيفيدك لما نركب الخطوط لاحقاً
       ),
  // هاد السطر هو الأهم، بيخبر التطبيق يبدأ من صفحتك
-      home:  TeacherHomeScreen(),
+      home:  OnboardingOne(),
     );
   }
 }

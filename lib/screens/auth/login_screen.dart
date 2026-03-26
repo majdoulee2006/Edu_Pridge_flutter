@@ -1,9 +1,9 @@
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/student_speed_dial.dart';
-import '../../widgets/teacher_speed_dial.dart';
+//import '../../widgets/student_speed_dial.dart';
+//import '../../widgets/teacher_speed_dial.dart';
 import '../teacher/teacher_home.dart';
 import '../student/nav_bar/student_home_screen.dart';
-//import '../teacher/teacher_home.dart';
 import 'forgot_password_screen.dart';
 // ✅ استيراد صفحة إنشاء الحساب الجديدة
 import 'create_account_screen.dart';
@@ -112,7 +112,10 @@ class LoginScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEFFF00), // لون الزر الأصفر
                   foregroundColor: Colors.black, // لون النص
-                  minimumSize: const Size(double.infinity, 50), // عرض الزر وارتفاعه
+                  minimumSize: const Size(
+                    double.infinity,
+                    50,
+                  ), // عرض الزر وارتفاعه
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12), // تدوير الحواف
                   ),
@@ -125,7 +128,7 @@ class LoginScreen extends StatelessWidget {
                     fontFamily: 'Tajawal',
                   ),
                 ),
-              ), // <--- هون كانت الفاصلة الناقصة اللي عاملة المشكلة! ✅
+              ),
 
               const SizedBox(height: 20),
               TextButton(
@@ -157,8 +160,10 @@ class LoginScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10, // المسافة الأفقية بين الأزرار
+                runSpacing: 10, // المسافة العمودية بين الأزرار
                 children: [
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -174,10 +179,9 @@ class LoginScreen extends StatelessWidget {
                     },
                     child: const Text(
                       'دخول كطالب',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
-                  const SizedBox(width: 15),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
@@ -192,7 +196,25 @@ class LoginScreen extends StatelessWidget {
                     },
                     child: const Text(
                       'دخول كمدرب',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange, // لون مميز لولي الأمر
+                    ),
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          // ✅ استدعاء واجهة الأهل
+                          builder: (context) => const ParentsHomeScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'دخول كولي أمر',
+                      style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
                 ],
