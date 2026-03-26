@@ -18,33 +18,33 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // تفعيل زر الإعدادات لينقلك لصفحة الإعدادات
-        leading: IconButton(
-          icon: const Icon(Icons.settings_outlined, color: Colors.black),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            );
-          },
-        ),
-        title: const Text("الملف الشخصي", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        centerTitle: true,
+        // تم نقل زر الإعدادات ليكون في الجهة المقابلة للسهم في الـ RTL
         actions: [
-          // زر الرجوع يعود للصفحة الرئيسية للمعلم
           IconButton(
-            icon: const Icon(Icons.arrow_forward, color: Colors.black),
+            icon: const Icon(Icons.settings_outlined, color: Colors.black),
             onPressed: () {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
           ),
         ],
+        title: const Text("الملف الشخصي", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        // زر الرجوع في التوجيه العربي يكون في الـ leading (جهة اليمين)
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
+            );
+          },
+        ),
       ),
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: TextDirection.rtl, // التوجيه العام للصفحة من اليمين لليسار
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -79,7 +79,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildAvatarSection() {
     return Stack(
-      alignment: Alignment.bottomRight,
+      alignment: Alignment.bottomLeft, // نقل قلم التعديل لجهة اليسار في الـ RTL
       children: [
         Container(
           padding: const EdgeInsets.all(4),
@@ -98,15 +98,15 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Row(
         children: [
-          if (isEditable) const Icon(Icons.edit_outlined, size: 18, color: Color(0xFFB4B48E)),
-          if (isLocked) const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
-          const Spacer(),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Icon(icon, color: Colors.black54), // الأيقونة تبدأ من اليمين
+          const SizedBox(width: 15),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ // المحاذاة لليمين (بداية العمود)
             Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFFB4B48E))),
             Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           ]),
-          const SizedBox(width: 15),
-          Icon(icon, color: Colors.black54),
+          const Spacer(),
+          if (isEditable) const Icon(Icons.edit_outlined, size: 18, color: Color(0xFFB4B48E)),
+          if (isLocked) const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
         ],
       ),
     );
@@ -117,16 +117,17 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, // لضمان بقاء المحتوى الداخلي لليمين
         children: [
           Row(children: [
-            const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
-            const Spacer(),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Icon(icon, color: Colors.black54),
+            const SizedBox(width: 15),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFFB4B48E))),
               Text(subTitle, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             ]),
-            const SizedBox(width: 15),
-            Icon(icon, color: Colors.black54),
+            const Spacer(),
+            const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
           ]),
           const SizedBox(height: 10),
           Wrap(spacing: 8, children: tags.map((t) => Chip(label: Text(t, style: const TextStyle(fontSize: 11)))).toList()),
@@ -171,7 +172,7 @@ class ProfileScreen extends StatelessWidget {
       shape: const CircularNotchedRectangle(),
       notchMargin: 8,
       child: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: TextDirection.rtl, // شريط التنقل السفلي يتبع لغة الصفحة
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
