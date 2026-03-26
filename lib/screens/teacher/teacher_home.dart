@@ -12,12 +12,13 @@ class TeacherHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFBFBF9),
+      // لضمان ظهور الزر الأصفر فوق البار السفلي
       extendBody: true,
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Column(
           children: [
-            // الهيدر الثابت - أبيض بالكامل وبدون مسافات إضافية
+            // --- الهيدر العلوي الأبيض الثابت ---
             Container(
               color: Colors.white,
               child: SafeArea(
@@ -26,7 +27,6 @@ class TeacherHomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Column(
                     children: [
-                      // السطر العلوي: اسم التطبيق (يمين) | الإعدادات والبروفايل (يسار)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -70,7 +70,6 @@ class TeacherHomeScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      // سطر آخر الأخبار ثابت بداخل الخلفية البيضاء
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -95,7 +94,7 @@ class TeacherHomeScreen extends StatelessWidget {
               ),
             ),
 
-            // المحتوى القابل للسكرول
+            // --- قائمة الأخبار القابلة للتمرير ---
             Expanded(
               child: ListView(
                 physics: const BouncingScrollPhysics(),
@@ -115,7 +114,7 @@ class TeacherHomeScreen extends StatelessWidget {
                     time: 'منذ 4 ساعات',
                     headerColor: const Color(0xFF4DB6AC),
                   ),
-                  const SizedBox(height: 100), // مساحة للـ SpeedDial
+                  const SizedBox(height: 100), // مساحة إضافية للتمرير فوق البار السفلي
                 ],
               ),
             ),
@@ -123,9 +122,11 @@ class TeacherHomeScreen extends StatelessWidget {
         ),
       ),
 
-      // 🌟 الشريط السفلي والزر العائم (رجعوا متل ما كانوا بكودك القديم) 🌟
+      // الزر الأصفر الحقيقي
       floatingActionButton: const CustomSpeedDialEduBridge(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+      // شريط التنقل السفلي الموحد مع ملف البروفايل
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
@@ -176,24 +177,31 @@ class TeacherHomeScreen extends StatelessWidget {
     );
   }
 
-  // الـ NavBar القديم تبعك
   Widget _buildBottomNav(BuildContext context) {
     return BottomAppBar(
       height: 70,
       shape: const CircularNotchedRectangle(),
       notchMargin: 8,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(context, Icons.home, "الرئيسية", true),
-          _navItem(context, Icons.person_outline, "الملف", false,
-              onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
-          const SizedBox(width: 40),
-          _navItem(context, Icons.notifications_none, "الإشعارات", false,
-              onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
-          _navItem(context, Icons.chat_bubble_outline, "الرسائل", false,
-              onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen()))),
-        ],
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // جهة اليمين
+            _navItem(context, Icons.home, "الرئيسية", true, onTap: () {}),
+            _navItem(context, Icons.person_outline, "الملف", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
+
+            // فراغ للزر الأصفر
+            const SizedBox(width: 40),
+
+            // جهة اليسار
+            _navItem(context, Icons.notifications_none, "الإشعارات", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
+            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false,
+                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen()))),
+          ],
+        ),
       ),
     );
   }
