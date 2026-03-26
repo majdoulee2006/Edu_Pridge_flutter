@@ -82,7 +82,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
           centerTitle: true,
           actions: [
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                // 🌟 إظهار النافذة المنبثقة عند الضغط على زر حفظ 🌟
+                showDialog(
+                  context: context,
+                  barrierDismissible:
+                      false, // يمنع الإغلاق عند الضغط خارج النافذة
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: Colors.green,
+                            size: 70,
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "تم الحفظ بنجاح!",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            "تم تحديث بيانات ملفك الشخصي وحفظ جميع التغييرات.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 25),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 45,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context); // 1. إغلاق النافذة
+                                Navigator.pushReplacement(
+                                  // 2. الرجوع لشاشة الهوم
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const StudentHomeScreen(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    AppColors.accent, // استخدام لون التطبيق
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                              child: const Text(
+                                "حسناً",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
               child: const Text(
                 'حفظ',
                 style: TextStyle(
