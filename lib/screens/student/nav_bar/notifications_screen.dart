@@ -1,7 +1,9 @@
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
+
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
@@ -71,12 +73,31 @@ class NotificationsScreen extends StatelessWidget {
                   _AdministrativeNotificationsView(),
                 ],
               ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: _buildFloatingBottomNavBar(context),
+
+              // 🌟 استدعاء الشريط الموحد هنا بدلاً من الأكواد الطويلة 🌟
+              CustomBottomNav(
+                currentIndex: 2, // 2 = الإشعارات مفعّلة
+                centerButton: const StudentSpeedDial(),
+                onHomeTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StudentHomeScreen(),
+                  ),
+                ),
+                onProfileTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                ),
+                onNotificationsTap: () {}, // نحن بالفعل هنا
+                onMessagesTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MessagesScreen(),
+                  ),
+                ),
               ),
-              // الزر الأصفر الحقيقي مغلف بـ Positioned.fill
-              Positioned.fill(child: const StudentSpeedDial()),
             ],
           ),
         ),
@@ -120,91 +141,6 @@ class NotificationsScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildFloatingBottomNavBar(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(
-            Icons.home_outlined,
-            'الرئيسية',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const StudentHomeScreen(),
-              ),
-            ),
-          ),
-          _buildNavItem(
-            Icons.person_outline,
-            'الملف',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            ),
-          ),
-          const SizedBox(width: 70), // مساحة للزر الحقيقي
-          _buildNavItem(
-            Icons.notifications,
-            'الإشعارات',
-            true,
-            () {},
-          ), // الأيقونة النشطة
-          _buildNavItem(
-            Icons.chat_bubble_outline,
-            'المراسلات',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MessagesScreen()),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    bool isActive,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? AppColors.textDark : Colors.grey,
-            size: 26,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? AppColors.textDark : Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ==========================================
@@ -215,7 +151,12 @@ class _AcademicNotificationsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 100),
+      padding: const EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 10,
+        bottom: 120,
+      ), // 🌟 زدنا الـ bottom padding لتجنب الشريط 🌟
       children: [
         _buildDateHeader('اليوم'),
         _buildNotificationCard(
@@ -262,7 +203,12 @@ class _AdministrativeNotificationsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 100),
+      padding: const EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 10,
+        bottom: 120,
+      ), // 🌟 زدنا الـ bottom padding لتجنب الشريط 🌟
       children: [
         _buildDateHeader('جديد'),
         _buildNotificationCard(

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 // استدعاء ملف الزر المنبثق (السبيد ديال)
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
+// 🌟 استدعاء الشريط السفلي الموحد الجديد 🌟
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 // استدعاء باقي الواجهات لضمان عمل التنقل
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
@@ -28,7 +30,7 @@ class StudentHomeScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    // ✅ تمرير الـ context هنا لتمكين الانتقال من شريط العناوين
+                    // تمرير الـ context هنا لتمكين الانتقال من شريط العناوين
                     _buildAppBar(context),
                     const SizedBox(height: 24),
                     _buildSectionTitle(),
@@ -36,7 +38,9 @@ class StudentHomeScreen extends StatelessWidget {
                     Expanded(
                       child: ListView(
                         physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.only(bottom: 100),
+                        padding: const EdgeInsets.only(
+                          bottom: 100,
+                        ), // مساحة للشريط السفلي
                         children: [
                           _buildNewsCard(
                             tag: 'إعلان هام',
@@ -69,21 +73,45 @@ class StudentHomeScreen extends StatelessWidget {
               ),
             ),
 
-            // شريط التنقل السفلي (بدون الزر الأصفر المزيف)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: _buildFloatingBottomNavBar(context),
+            // 🌟 شريط التنقل السفلي الموحد والذكي 🌟
+            CustomBottomNav(
+              currentIndex: 0, // 0 = الرئيسية
+              centerButton:
+                  const StudentSpeedDial(), // نمرر الزر الأصفر الخاص بالطالب
+              onHomeTap: () {
+                // نحن بالفعل في الرئيسية، فلا نفعل شيئاً أو يمكننا عمل Refresh
+              },
+              onProfileTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
+              onNotificationsTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationsScreen(),
+                  ),
+                );
+              },
+              onMessagesTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MessagesScreen(),
+                  ),
+                );
+              },
             ),
-
-            // الزر الأصفر الحقيقي مغلف بـ Positioned.fill
-            Positioned.fill(child: const StudentSpeedDial()),
           ],
         ),
       ),
     );
   }
 
-  // ✅ استقبال الـ context هنا
   Widget _buildAppBar(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -119,7 +147,7 @@ class StudentHomeScreen extends StatelessWidget {
         ),
         Row(
           children: [
-            // ✅ ربط أيقونة الإعدادات بواجهة الإعدادات
+            // ربط أيقونة الإعدادات بواجهة الإعدادات
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -132,7 +160,7 @@ class StudentHomeScreen extends StatelessWidget {
               child: const Icon(Icons.settings, color: Colors.amber, size: 28),
             ),
             const SizedBox(width: 12),
-            // ✅ ربط صورة البروفايل بواجهة البروفايل
+            // ربط صورة البروفايل بواجهة البروفايل
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -282,7 +310,7 @@ class StudentHomeScreen extends StatelessWidget {
                         color: AppColors.background,
                         shape: BoxShape.circle,
                       ),
-                      // ✅ تم تغيير السهم ليؤشر لليسار بشكل صحيح في الواجهة العربية
+                      // تم تغيير السهم ليؤشر لليسار بشكل صحيح في الواجهة العربية
                       child: const Icon(
                         Icons.keyboard_arrow_left,
                         size: 20,
@@ -296,81 +324,6 @@ class StudentHomeScreen extends StatelessWidget {
                   ],
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingBottomNavBar(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(Icons.home, 'الرئيسية', true, () {}),
-          _buildNavItem(Icons.person_outline, 'الملف', false, () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            );
-          }),
-          const SizedBox(width: 70), // مساحة للزر الحقيقي
-          _buildNavItem(Icons.notifications_none, 'الإشعارات', false, () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const NotificationsScreen(),
-              ),
-            );
-          }),
-          _buildNavItem(Icons.chat_bubble_outline, 'الرسائل', false, () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MessagesScreen()),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    bool isActive,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? AppColors.textDark : Colors.grey,
-            size: 26,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? AppColors.textDark : Colors.grey,
             ),
           ),
         ],

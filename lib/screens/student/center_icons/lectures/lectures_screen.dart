@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; // مكتبة فتح الروابط
 import '../../../../core/constants/app_colors.dart';
@@ -229,11 +230,31 @@ class _LecturesScreenState extends State<LecturesScreen> {
               ],
             ),
 
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: _buildFloatingBottomNavBar(context),
+            // 🌟 استدعاء الشريط الموحد هنا (-1 لأنها واجهة فرعية) 🌟
+            CustomBottomNav(
+              currentIndex: -1,
+              centerButton: const StudentSpeedDial(),
+              onHomeTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StudentHomeScreen(),
+                ),
+              ),
+              onProfileTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              ),
+              onNotificationsTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              ),
+              onMessagesTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const MessagesScreen()),
+              ),
             ),
-            const Positioned.fill(child: StudentSpeedDial()),
           ],
         ),
       ),
@@ -266,92 +287,6 @@ class _LecturesScreenState extends State<LecturesScreen> {
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
-      ),
-    );
-  }
-
-  Widget _buildFloatingBottomNavBar(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(
-            Icons.home_outlined,
-            'الرئيسية',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const StudentHomeScreen(),
-              ),
-            ),
-          ),
-          _buildNavItem(
-            Icons.person_outline,
-            'حسابي',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            ),
-          ),
-          const SizedBox(width: 70),
-          _buildNavItem(
-            Icons.notifications_none,
-            'إشعارات',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const NotificationsScreen(),
-              ),
-            ),
-          ),
-          _buildNavItem(
-            Icons.mail_outline,
-            'مراسلات',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MessagesScreen()),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    bool isActive,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: isActive ? Colors.black : Colors.grey, size: 26),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? Colors.black : Colors.grey,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
 // ✅ تم إضافة استدعاء واجهة تغيير كلمة المرور
@@ -5,11 +6,11 @@ import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
+
 // استدعاء الصفحات للتنقل
 import 'student_home_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
-// استدعاء واجهات التعديل من المجلد الجديد
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -250,12 +251,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: _buildFloatingBottomNavBar(context),
+            // 🌟 استدعاء الشريط الموحد هنا بدلاً من الأكواد الطويلة 🌟
+            CustomBottomNav(
+              currentIndex: 1, // 1 = الملف الشخصي مفعّل
+              centerButton: const StudentSpeedDial(),
+              onHomeTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StudentHomeScreen(),
+                ),
+              ),
+              onProfileTap: () {}, // نحن بالفعل هنا
+              onNotificationsTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              ),
+              onMessagesTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const MessagesScreen()),
+              ),
             ),
-
-            Positioned.fill(child: const StudentSpeedDial()),
           ],
         ),
       ),
@@ -482,115 +499,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: Colors.grey,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildFloatingBottomNavBar(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(
-            Icons.home_outlined,
-            'الرئيسية',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const StudentHomeScreen(),
-              ),
-            ),
-          ),
-          _buildNavItem(Icons.person, 'الملف الشخصي', true, () {}),
-          const SizedBox(width: 70),
-          _buildNavItem(
-            Icons.notifications_none,
-            'الإشعارات',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const NotificationsScreen(),
-              ),
-            ),
-          ),
-          _buildNavItem(
-            Icons.chat_bubble_outline,
-            'المراسلات',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MessagesScreen()),
-            ),
-            badgeCount: 3,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    bool isActive,
-    VoidCallback onTap, {
-    int badgeCount = 0,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(
-                icon,
-                color: isActive ? AppColors.textDark : Colors.grey,
-                size: 26,
-              ),
-              if (badgeCount > 0)
-                Positioned(
-                  right: -5,
-                  top: -5,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE57373),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '$badgeCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? AppColors.textDark : Colors.grey,
-            ),
-          ),
-        ],
       ),
     );
   }

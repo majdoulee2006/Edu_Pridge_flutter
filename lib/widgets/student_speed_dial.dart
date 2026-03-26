@@ -165,24 +165,18 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
 
           // 3. الزر الأصفر المركزي (الأساسي)
           Positioned(
-            bottom: 35,
+            bottom: 50, // 🌟 تم رفع الأيقونة قليلاً للأعلى (كانت 35) 🌟
             child: GestureDetector(
               onTap: _toggleMenu,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: 60,
                 width: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFFF00),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEFFF00),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFEFFF00).withOpacity(0.4),
-                      blurRadius: 15,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                  border: Border.all(color: Colors.white, width: 4),
+                  // 🌟 تم إزالة boxShadow (التوهج) 🌟
+                  // 🌟 تم إزالة border (الاطار الابيض) 🌟
                 ),
                 child: Icon(
                   _isOpen ? Icons.close : Icons.grid_view_rounded,

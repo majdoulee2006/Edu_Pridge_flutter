@@ -1,8 +1,9 @@
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/select_teacher_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+//import '../../../core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
@@ -183,12 +184,28 @@ class _MessagesScreenState extends State<MessagesScreen> {
               ),
             ),
 
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: _buildFloatingBottomNavBar(context),
+            // 🌟 استدعاء الشريط الموحد هنا بدلاً من الأكواد الطويلة 🌟
+            CustomBottomNav(
+              currentIndex: 3, // 3 = الرسائل مفعّلة
+              centerButton: const StudentSpeedDial(),
+              onHomeTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StudentHomeScreen(),
+                ),
+              ),
+              onProfileTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              ),
+              onNotificationsTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              ),
+              onMessagesTap: () {}, // نحن بالفعل هنا
             ),
-
-            Positioned.fill(child: const StudentSpeedDial()),
           ],
         ),
       ),
@@ -380,108 +397,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildFloatingBottomNavBar(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(
-            Icons.home_outlined,
-            'الرئيسية',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const StudentHomeScreen(),
-              ),
-            ),
-          ),
-          _buildNavItem(
-            Icons.person_outline,
-            'الملف',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            ),
-          ),
-          const SizedBox(width: 70),
-          _buildNavItem(
-            Icons.notifications_none,
-            'الإشعارات',
-            false,
-            () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const NotificationsScreen(),
-              ),
-            ),
-            hasBadge: true,
-          ),
-          _buildNavItem(Icons.chat_bubble_outline, 'الرسائل', true, () {}),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    bool isActive,
-    VoidCallback onTap, {
-    bool hasBadge = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(
-                icon,
-                color: isActive ? AppColors.textDark : Colors.grey,
-                size: 26,
-              ),
-              if (hasBadge)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    height: 8,
-                    width: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? AppColors.textDark : Colors.grey,
-            ),
-          ),
-        ],
       ),
     );
   }
