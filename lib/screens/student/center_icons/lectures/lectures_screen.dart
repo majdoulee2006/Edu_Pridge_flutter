@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart'; // مكتبة فتح الروابط
 import '../../../../core/constants/app_colors.dart';
 import '../../../../widgets/student_speed_dial.dart';
 // مسارات شاشات الـ nav_bar (تأكدي منها حسب مشروعك)
@@ -6,6 +7,7 @@ import '../../nav_bar/student_home_screen.dart';
 import '../../nav_bar/profile_screen.dart';
 import '../../nav_bar/notifications_screen.dart';
 import '../../nav_bar/messages_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class LecturesScreen extends StatefulWidget {
   const LecturesScreen({super.key});
@@ -15,25 +17,176 @@ class LecturesScreen extends StatefulWidget {
 }
 
 class _LecturesScreenState extends State<LecturesScreen> {
+  // متغير لحفظ نص البحث
+  String _searchQuery = '';
+
+  // بيانات تجريبية للمواد مع ملفاتها
+  final List<Map<String, dynamic>> _allSubjects = [
+    {
+      'title': 'الرياضيات المتقدمة',
+      'subtitle': 'د. أحمد علي • 3 ملفات',
+      'icon': Icons.calculate_outlined,
+      'iconColor': const Color(0xFFFBC02D),
+      'iconBgColor': const Color(0xFFFFF9C4),
+      'initiallyExpanded': true,
+      'files': [
+        {
+          'title': 'المحاضرة 4: التكامل',
+          'subtitle': '12 أكتوبر • 2.5 MB',
+          'type': 'pdf',
+          'icon': Icons.picture_as_pdf,
+          'actionIcon': Icons.download_outlined,
+          'color': Colors.red,
+          'bgColor': const Color(0xFFFFEBEE),
+        },
+        {
+          'title': 'شرح الدوال المثلثية',
+          'subtitle': '10 أكتوبر • 45 دقيقة',
+          'type': 'video',
+          'icon': Icons.play_arrow_rounded,
+          'actionIcon': Icons.play_arrow_rounded,
+          'color': const Color(0xFFFBC02D),
+          'bgColor': const Color(0xFFFFF9C4),
+        },
+        // 🌟 ملف الرابط الخارجي 🌟
+        {
+          'title': 'مصادر خارجية للمراجعة',
+          'subtitle': 'رابط ويب',
+          'type': 'link',
+          'url': 'https://www.google.com',
+          'icon': Icons.link_rounded,
+          'actionIcon': Icons.open_in_new_rounded,
+          'color': const Color(0xFF4CAF50),
+          'bgColor': const Color(0xFFE8F5E9),
+        },
+      ],
+    },
+    {
+      'title': 'الفيزياء العامة',
+      'subtitle': 'أ. سارة محمد • 2 ملفات',
+      'icon': Icons.science_outlined,
+      'iconColor': const Color(0xFFF57C00),
+      'iconBgColor': const Color(0xFFFFE0B2),
+      'initiallyExpanded': false,
+      'files': [
+        {
+          'title': 'قوانين نيوتن للحركة',
+          'subtitle': '15 أكتوبر • 3.1 MB',
+          'type': 'pdf',
+          'icon': Icons.picture_as_pdf,
+          'actionIcon': Icons.download_outlined,
+          'color': Colors.red,
+          'bgColor': const Color(0xFFFFEBEE),
+        },
+        {
+          'title': 'تجربة السقوط الحر',
+          'subtitle': '14 أكتوبر • 20 دقيقة',
+          'type': 'video',
+          'icon': Icons.play_arrow_rounded,
+          'actionIcon': Icons.play_arrow_rounded,
+          'color': const Color(0xFFFBC02D),
+          'bgColor': const Color(0xFFFFF9C4),
+        },
+      ],
+    },
+    {
+      'title': 'علوم الحاسوب',
+      'subtitle': 'م. خالد يوسف • 2 ملفات',
+      'icon': Icons.computer_outlined,
+      'iconColor': const Color(0xFF1976D2),
+      'iconBgColor': const Color(0xFFBBDEFB),
+      'initiallyExpanded': false,
+      'files': [
+        {
+          'title': 'مقدمة في الخوارزميات',
+          'subtitle': '18 أكتوبر • 1.5 MB',
+          'type': 'pdf',
+          'icon': Icons.picture_as_pdf,
+          'actionIcon': Icons.download_outlined,
+          'color': Colors.red,
+          'bgColor': const Color(0xFFFFEBEE),
+        },
+        {
+          'title': 'شرح لغة Dart',
+          'subtitle': '17 أكتوبر • 55 دقيقة',
+          'type': 'video',
+          'icon': Icons.play_arrow_rounded,
+          'actionIcon': Icons.play_arrow_rounded,
+          'color': const Color(0xFFFBC02D),
+          'bgColor': const Color(0xFFFFF9C4),
+        },
+      ],
+    },
+    {
+      'title': 'اللغة الإنجليزية',
+      'subtitle': 'د. ليلى حسن • 2 ملفات',
+      'icon': Icons.language_outlined,
+      'iconColor': const Color(0xFFE53935),
+      'iconBgColor': const Color(0xFFFFCDD2),
+      'initiallyExpanded': false,
+      'files': [
+        {
+          'title': 'Grammar Rules: Tenses',
+          'subtitle': '20 أكتوبر • 2 MB',
+          'type': 'pdf',
+          'icon': Icons.picture_as_pdf,
+          'actionIcon': Icons.download_outlined,
+          'color': Colors.red,
+          'bgColor': const Color(0xFFFFEBEE),
+        },
+        {
+          'title': 'Conversation Practice',
+          'subtitle': '19 أكتوبر • 30 دقيقة',
+          'type': 'video',
+          'icon': Icons.play_arrow_rounded,
+          'actionIcon': Icons.play_arrow_rounded,
+          'color': const Color(0xFFFBC02D),
+          'bgColor': const Color(0xFFFFF9C4),
+        },
+      ],
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
+    // منطق البحث
+    List<Map<String, dynamic>> filteredSubjects = _allSubjects.where((subject) {
+      return subject['title'].toLowerCase().contains(
+        _searchQuery.toLowerCase(),
+      );
+    }).toList();
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9), // لون الخلفية الفاتح
+        backgroundColor: const Color(0xFFF9F9F9),
         appBar: AppBar(
           backgroundColor: const Color(0xFFF9F9F9),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_forward, color: Colors.black),
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text('المحاضرات', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+          title: const Text(
+            'المحاضرات',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
           centerTitle: true,
           actions: [
             IconButton(
               icon: const Icon(Icons.settings, color: Colors.black),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -43,83 +196,80 @@ class _LecturesScreenState extends State<LecturesScreen> {
               children: [
                 _buildSearchBar(),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      // الكرت الأول (مفتوح افتراضياً)
-                      _SubjectCard(
-                        title: 'الرياضيات المتقدمة',
-                        subtitle: 'د. أحمد علي • 12 ملف',
-                        icon: Icons.calculate_outlined,
-                        iconColor: const Color(0xFFFBC02D),
-                        iconBgColor: const Color(0xFFFFF9C4),
-                        initiallyExpanded: true,
-                      ),
-                      // الكروت المغلقة
-                      const _SubjectCard(
-                        title: 'الفيزياء العامة',
-                        subtitle: 'أ. سارة محمد • 8 ملفات',
-                        icon: Icons.science_outlined,
-                        iconColor: Color(0xFFF57C00),
-                        iconBgColor: Color(0xFFFFE0B2),
-                      ),
-                      const _SubjectCard(
-                        title: 'علوم الحاسوب',
-                        subtitle: 'م. خالد يوسف • 15 ملف',
-                        icon: Icons.computer_outlined,
-                        iconColor: Color(0xFF1976D2),
-                        iconBgColor: Color(0xFFBBDEFB),
-                      ),
-                      const _SubjectCard(
-                        title: 'اللغة الإنجليزية',
-                        subtitle: 'د. ليلى حسن • 5 ملفات',
-                        icon: Icons.language_outlined,
-                        iconColor: Color(0xFFE53935),
-                        iconBgColor: Color(0xFFFFCDD2),
-                      ),
-                    ],
-                  ),
+                  child: filteredSubjects.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'لا توجد مواد مطابقة لبحثك',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(
+                            left: 20,
+                            right: 20,
+                            top: 10,
+                            bottom: 120,
+                          ),
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: filteredSubjects.length,
+                          itemBuilder: (context, index) {
+                            final subject = filteredSubjects[index];
+                            return _SubjectCard(
+                              title: subject['title'],
+                              subtitle: subject['subtitle'],
+                              icon: subject['icon'],
+                              iconColor: subject['iconColor'],
+                              iconBgColor: subject['iconBgColor'],
+                              initiallyExpanded: subject['initiallyExpanded'],
+                              files: subject['files'],
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
-            
-            // الشريط السفلي والزر الأصفر المنبثق
+
             Align(
               alignment: Alignment.bottomCenter,
               child: _buildFloatingBottomNavBar(context),
             ),
-            const Positioned.fill(
-              child: StudentSpeedDial(),
-            ),
+            const Positioned.fill(child: StudentSpeedDial()),
           ],
         ),
       ),
     );
   }
 
-  // 1. شريط البحث
   Widget _buildSearchBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+        ],
       ),
       child: TextField(
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
         decoration: InputDecoration(
-          hintText: 'ابحث عن مادة أو ملف...',
+          hintText: 'ابحث عن مادة...',
           hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
           prefixIcon: const Icon(Icons.search, color: Colors.grey),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
           contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
       ),
     );
   }
 
-  // 2. الشريط السفلي الموحد
   Widget _buildFloatingBottomNavBar(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
@@ -127,22 +277,65 @@ class _LecturesScreenState extends State<LecturesScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(35),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildNavItem(Icons.home_outlined, 'الرئيسية', false, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentHomeScreen()))),
-          _buildNavItem(Icons.person_outline, 'حسابي', false, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
-          const SizedBox(width: 70), // مساحة للزر المنبثق
-          _buildNavItem(Icons.notifications_none, 'إشعارات', false, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
-          _buildNavItem(Icons.mail_outline, 'مراسلات', false, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen()))),
+          _buildNavItem(
+            Icons.home_outlined,
+            'الرئيسية',
+            false,
+            () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StudentHomeScreen(),
+              ),
+            ),
+          ),
+          _buildNavItem(
+            Icons.person_outline,
+            'حسابي',
+            false,
+            () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            ),
+          ),
+          const SizedBox(width: 70),
+          _buildNavItem(
+            Icons.notifications_none,
+            'إشعارات',
+            false,
+            () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NotificationsScreen(),
+              ),
+            ),
+          ),
+          _buildNavItem(
+            Icons.mail_outline,
+            'مراسلات',
+            false,
+            () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MessagesScreen()),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
+  Widget _buildNavItem(
+    IconData icon,
+    String label,
+    bool isActive,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -150,7 +343,14 @@ class _LecturesScreenState extends State<LecturesScreen> {
         children: [
           Icon(icon, color: isActive ? Colors.black : Colors.grey, size: 26),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: isActive ? FontWeight.bold : FontWeight.normal, color: isActive ? Colors.black : Colors.grey)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              color: isActive ? Colors.black : Colors.grey,
+            ),
+          ),
         ],
       ),
     );
@@ -158,7 +358,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
 }
 
 // ============================================================================
-// كلاس خاص لكرت المادة (Stateful عشان يتحكم بالفتح والإغلاق والفلاتر)
+// كلاس خاص لكرت المادة
 // ============================================================================
 class _SubjectCard extends StatefulWidget {
   final String title;
@@ -167,6 +367,7 @@ class _SubjectCard extends StatefulWidget {
   final Color iconColor;
   final Color iconBgColor;
   final bool initiallyExpanded;
+  final List<Map<String, dynamic>> files;
 
   const _SubjectCard({
     required this.title,
@@ -174,6 +375,7 @@ class _SubjectCard extends StatefulWidget {
     required this.icon,
     required this.iconColor,
     required this.iconBgColor,
+    required this.files,
     this.initiallyExpanded = false,
   });
 
@@ -183,7 +385,7 @@ class _SubjectCard extends StatefulWidget {
 
 class _SubjectCardState extends State<_SubjectCard> {
   late bool isExpanded;
-  int selectedFilter = 0; // 0=الكل, 1=محاضرات, 2=فيديو
+  int selectedFilter = 0;
 
   @override
   void initState() {
@@ -191,8 +393,27 @@ class _SubjectCardState extends State<_SubjectCard> {
     isExpanded = widget.initiallyExpanded;
   }
 
+  // 🌟 دالة لفتح الروابط الخارجية (جوجل وغيرها) 🌟
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('عذراً، لا يمكن فتح الرابط حالياً')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<Map<String, dynamic>> filteredFiles = widget.files.where((file) {
+      if (selectedFilter == 0) return true;
+      if (selectedFilter == 1) return file['type'] == 'pdf';
+      if (selectedFilter == 2) return file['type'] == 'video';
+      return true;
+    }).toList();
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(bottom: 15),
@@ -200,43 +421,61 @@ class _SubjectCardState extends State<_SubjectCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+        ],
       ),
       child: Column(
         children: [
-          // الهيدر (عند الضغط عليه بيفتح ويسكر)
           GestureDetector(
             onTap: () => setState(() => isExpanded = !isExpanded),
             child: Row(
               children: [
-                // أيقونة المادة المربعة
                 Container(
-                  width: 45, height: 45,
-                  decoration: BoxDecoration(color: widget.iconBgColor, borderRadius: BorderRadius.circular(12)),
+                  width: 45,
+                  height: 45,
+                  decoration: BoxDecoration(
+                    color: widget.iconBgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Icon(widget.icon, color: widget.iconColor, size: 24),
                 ),
                 const SizedBox(width: 15),
-                // النصوص
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
+                      Text(
+                        widget.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.black87,
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text(widget.subtitle, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                      Text(
+                        widget.subtitle,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                // سهم الفتح والإغلاق
-                Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.grey),
+                Icon(
+                  isExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: Colors.grey,
+                ),
               ],
             ),
           ),
-          
-          // المحتوى الداخلي (بيظهر بس إذا الكرت مفتوح)
+
           if (isExpanded) ...[
             const SizedBox(height: 15),
-            // الفلاتر
             Row(
               children: [
                 _buildFilterChip('الكل', 0, null),
@@ -247,46 +486,62 @@ class _SubjectCardState extends State<_SubjectCard> {
               ],
             ),
             const SizedBox(height: 15),
-            
-            // قائمة الملفات للمادة
-            _buildFileItem(
-              title: 'المحاضرة 4: التكامل',
-              subtitle: '12 أكتوبر • 2.5 MB',
-              iconBgColor: const Color(0xFFFFEBEE),
-              iconColor: Colors.red,
-              icon: Icons.picture_as_pdf,
-              actionIcon: Icons.download_outlined,
-            ),
-            Divider(color: Colors.grey.shade100, height: 1),
-            _buildFileItem(
-              title: 'شرح الدوال المثلثية',
-              subtitle: '10 أكتوبر • 45 دقيقة',
-              iconBgColor: const Color(0xFFFFF9C4),
-              iconColor: const Color(0xFFFBC02D),
-              icon: Icons.play_arrow_rounded,
-              actionIcon: Icons.play_arrow_rounded,
-            ),
-            Divider(color: Colors.grey.shade100, height: 1),
-            _buildFileItem(
-              title: 'مصادر خارجية للمراجعة',
-              subtitle: 'رابط ويب',
-              iconBgColor: const Color(0xFFE8F5E9),
-              iconColor: const Color(0xFF4CAF50),
-              icon: Icons.link_rounded,
-              actionIcon: Icons.open_in_new_rounded,
-            ),
+
+            if (filteredFiles.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'لا توجد ملفات من هذا النوع',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              )
+            else
+              Column(
+                children: filteredFiles.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  var file = entry.value;
+                  return Column(
+                    children: [
+                      _buildFileItem(
+                        title: file['title'],
+                        subtitle: file['subtitle'],
+                        iconBgColor: file['bgColor'],
+                        iconColor: file['color'],
+                        icon: file['icon'],
+                        actionIcon: file['actionIcon'],
+                        // 🌟 تفعيل الضغط على الأيقونة اللي ع اليسار 🌟
+                        onActionTap: () {
+                          if (file['type'] == 'link') {
+                            _launchURL(file['url']); // فتح الرابط في متصفح جوجل
+                          } else {
+                            // رسالة وهمية للملفات الأخرى (تحميل أو تشغيل)
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('جاري فتح ${file['title']}...'),
+                                backgroundColor: Colors.blue,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      if (index < filteredFiles.length - 1)
+                        Divider(color: Colors.grey.shade100, height: 1),
+                    ],
+                  );
+                }).toList(),
+              ),
           ],
         ],
       ),
     );
   }
 
-  // تصميم حبة الفلتر (Chip)
   Widget _buildFilterChip(String label, int index, IconData? icon) {
     bool isSelected = selectedFilter == index;
     return GestureDetector(
       onTap: () => setState(() => selectedFilter = index),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFEFFF00) : Colors.white,
@@ -299,22 +554,44 @@ class _SubjectCardState extends State<_SubjectCard> {
               Icon(icon, size: 14, color: Colors.grey.shade700),
               const SizedBox(width: 5),
             ],
-            Text(label, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: Colors.black87)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // تصميم عنصر الملف الواحد
-  Widget _buildFileItem({required String title, required String subtitle, required Color iconBgColor, required Color iconColor, required IconData icon, required IconData actionIcon}) {
+  // ✅ تم تحديث الدالة لتدعم خاصية الضغط على أيقونة الإجراء (actionIcon)
+  Widget _buildFileItem({
+    required String title,
+    required String subtitle,
+    required Color iconBgColor,
+    required Color iconColor,
+    required IconData icon,
+    required IconData actionIcon,
+    required VoidCallback onActionTap,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        vertical: 8,
+        horizontal: 5,
+      ), // تقليل البادينغ شوي ليتناسب مع الزر
       child: Row(
         children: [
           Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(width: 15),
@@ -322,13 +599,28 @@ class _SubjectCardState extends State<_SubjectCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.black87,
+                  ),
+                ),
                 const SizedBox(height: 3),
-                Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
               ],
             ),
           ),
-          Icon(actionIcon, color: Colors.grey, size: 20),
+          // 🌟 زر الإجراء (التحميل، التشغيل، أو فتح الرابط) 🌟
+          IconButton(
+            icon: Icon(actionIcon, color: Colors.grey, size: 22),
+            onPressed: onActionTap, // استدعاء الدالة عند الضغط
+            splashRadius: 24, // تأثير الموجة عند الضغط
+          ),
         ],
       ),
     );
