@@ -1,9 +1,11 @@
+import 'dart:io'; // ✅ إضافة استيراد للتعامل مع الملفات (الصورة)
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
 // ✅ تم إضافة استدعاء واجهة تغيير كلمة المرور
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // ✅ إضافة مكتبة اختيار الصور
 import '../../../core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 
@@ -23,7 +25,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // متغير لحفظ تاريخ الميلاد وتحديثه على الشاشة
   String dob = '15 مايو 2002';
 
+  // ✅ متغير لحفظ ملف الصورة المختارة
+  File? _pickedImage;
+  // ✅ كائن للتعامل مع اختيار الصور
+  final ImagePicker _picker = ImagePicker();
+
+  // ✅ دالة لاختيار الصورة من المصدر (كاميرا أو معرض)
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 80, // تقليل الجودة قليلاً للحفاظ على الأداء
+        maxWidth: 500, // تحديد أقصى عرض للصورة
+      );
+      if (image != null) {
+        setState(() {
+          _pickedImage = File(image.path); // تحديث الحالة بالصورة الجديدة
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ أثناء اختيار الصورة')),
+        );
+      }
+    }
+  }
+
+  // ✅ دالة لإظهار القائمة السفلية لاختيار مصدر الصورة
+  void _showImageSourceBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'تغيير الصورة الشخصية',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library,
+                  color: AppColors.primary,
+                ),
+                title: const Text('اختيار من المعرض'),
+                onTap: () {
+                  Navigator.pop(context); // إغلاق القائمة
+                  _pickImage(ImageSource.gallery); // اختيار من المعرض
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                title: const Text('التقاط صورة بالكاميرا'),
+                onTap: () {
+                  Navigator.pop(context); // إغلاق القائمة
+                  _pickImage(ImageSource.camera); // التقاط بالكاميرا
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // دالة فتح التقويم مع شرط العمر (18 سنة فما فوق)
+  // 📝 ملاحظة: هذه الدالة لم تعد مستخدمة ولكن تم الإبقاء عليها بناءً على الطلب
   Future<void> _selectDate(BuildContext context) async {
     final DateTime now = DateTime.now();
     // حساب أقصى تاريخ مسموح (اليوم الحالي ناقص 18 سنة)
@@ -197,7 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     // ✅ تم تفعيل الضغط للانتقال لواجهة تعديل الإيميل
                     _InfoRow(
-                      title: 'البريد الإلكتروني',
+                      title: 'بريد الإلكتروني',
                       value: 'ahmed.ali@institute.edu',
                       icon: Icons.email,
                       isEditable: true,
@@ -234,8 +314,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'تاريخ الميلاد',
                       value: dob,
                       icon: Icons.cake_outlined,
-                      isEditable: true,
-                      onTap: () => _selectDate(context),
+                      isEditable: false, // 🔒 تم التغيير لـ false لمنع التعديل
+                      onTap: null, // 🔒 إزالة حدث الضغط
                     ),
                     _InfoRow(
                       title: 'الجنس',
@@ -291,26 +371,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const CircleAvatar(
+              child: CircleAvatar(
                 radius: 65,
-                backgroundColor: Color(0xFFFF7043),
-                child: Icon(Icons.person, size: 70, color: Colors.white),
+                backgroundColor: const Color(0xFFFF7043),
+                // ✅ عرض الصورة المختارة إذا وجدت، وإلا عرض الأيقونة الافتراضية
+                backgroundImage: _pickedImage != null
+                    ? FileImage(_pickedImage!)
+                    : null,
+                child: _pickedImage == null
+                    ? const Icon(Icons.person, size: 70, color: Colors.white)
+                    : null,
               ),
             ),
-            Positioned(
-              right: 5,
-              bottom: 5,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.accent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  size: 18,
-                  color: Colors.black,
+            // ✅ جعل زر الكاميرا قابلاً للضغط
+            GestureDetector(
+              onTap: () => _showImageSourceBottomSheet(
+                context,
+              ), // فتح قائمة اختيار الصورة
+              child: Positioned(
+                right: 5,
+                bottom: 5,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    size: 18,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ),

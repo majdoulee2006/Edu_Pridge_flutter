@@ -1,6 +1,6 @@
 import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+//import '../../../core/constants/app_colors.dart';
 
 class SelectTeacherScreen extends StatelessWidget {
   const SelectTeacherScreen({super.key});

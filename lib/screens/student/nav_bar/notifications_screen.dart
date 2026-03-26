@@ -1,7 +1,7 @@
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+//import '../../../core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 
 import 'student_home_screen.dart';

@@ -31,6 +31,7 @@ dependencies:
 
   flutter:
       sdk: flutter
+  image_picker: ^1.1.2 # أو أحدث إصدار
   flutter_speed_dial: ^7.0.0 # تأكدي من المسافة هون
 
   # The following adds the Cupertino Icons font to your application.
