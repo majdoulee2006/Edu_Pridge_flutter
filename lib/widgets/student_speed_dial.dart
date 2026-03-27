@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import '../screens/student/center_icons/assignments/assignments_screen.dart';
-import '../screens/student/center_icons/attendance/attendance_screen.dart';
-import '../screens/student/center_icons/lectures/lectures_screen.dart';
-import '../screens/student/center_icons/schedule/schedule_screen.dart';
 
-class StudentSpeedDial extends StatefulWidget {
-  const StudentSpeedDial({super.key});
+// 🌟 مسارات شاشات المعلم (نفسها اللي بكودك ما انحذف منها شي) 🌟
+import '../screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
+import '../screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
+import '../screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
+import '../screens/teacher/center_icons/scedual_screen/scedual_screen.dart';
+
+class CustomSpeedDialEduBridge extends StatefulWidget {
+  const CustomSpeedDialEduBridge({super.key});
 
   @override
-  State<StudentSpeedDial> createState() => _StudentSpeedDialState();
+  State<CustomSpeedDialEduBridge> createState() => _CustomSpeedDialEduBridgeState();
 }
 
-class _StudentSpeedDialState extends State<StudentSpeedDial>
+class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
     with SingleTickerProviderStateMixin {
   bool _isOpen = false;
   late AnimationController _animationController;
@@ -20,7 +22,7 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
   @override
   void initState() {
     super.initState();
-    // 🌟 زدنا الوقت لـ 400ms ليكون التأثير التدريجي واضحاً وجميلاً 🌟
+    // 🌟 التوقيت التدريجي المريح (400ms) 🌟
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -46,6 +48,16 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 التحقق من الثيم لتحديد ألوان القائمة المنبثقة 🌟
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // تحديد لون خلفية نصف الدائرة
+    final Color menuBgColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    // تحديد لون نصوص الأزرار
+    final Color itemTextColor = isDark ? Colors.white : Colors.black87;
+    // تحديد لون الخطوط الفاصلة
+    final Color separatorColor = isDark ? Colors.grey.shade800 : Colors.grey.shade200;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Stack(
@@ -56,8 +68,9 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
             animation: _animationController,
             builder: (context, child) {
               // إذا كانت القائمة مغلقة تماماً لا نعرض شيئاً
-              if (_animationController.value == 0.0)
+              if (_animationController.value == 0.0) {
                 return const SizedBox.shrink();
+              }
 
               return Stack(
                 alignment: Alignment.bottomCenter,
@@ -67,7 +80,7 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
                     onTap: _toggleMenu,
                     child: Opacity(
                       opacity: _animationController.value,
-                      child: Container(color: Colors.black.withOpacity(0.5)),
+                      child: Container(color: Colors.black.withAlpha(125)), // 125 تعادل 0.5 opacity تقريباً
                     ),
                   ),
 
@@ -77,14 +90,16 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
                     child: CustomPaint(
                       size: const Size(320, 160),
                       painter: MenuBackgroundPainter(
-                        _animationController.value,
+                        progress: _animationController.value,
+                        bgColor: menuBgColor, // 🌟 تمرير لون الخلفية
+                        lineColor: separatorColor, // 🌟 تمرير لون الخط الفاصل
                       ),
                       child: SizedBox(
                         width: 320,
                         height: 160,
                         child: Stack(
                           children: [
-                            // 🌟 إضافة الأزرار مع توقيت تدريجي (Interval) 🌟
+                            // 🌟 إضافة الأزرار وتمرير لون النص المتجاوب 🌟
                             _buildMenuItem(
                               'الجدول',
                               Icons.calendar_month_outlined,
@@ -92,12 +107,13 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
                               22.5,
                               0.0, // يبدأ فوراً
                               0.4, // ينتهي عند 40% من وقت الحركة
+                              itemTextColor,
                               () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const ScheduleScreen(),
+                                        const TeacherScheduleScreen(),
                                   ),
                                 );
                               },
@@ -109,6 +125,7 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
                               67.5,
                               0.2, // يبدأ متأخراً قليلاً
                               0.6,
+                              itemTextColor,
                               () {
                                 Navigator.push(
                                   context,
@@ -126,6 +143,7 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
                               112.5,
                               0.4,
                               0.8,
+                              itemTextColor,
                               () {
                                 Navigator.push(
                                   context,
@@ -143,6 +161,7 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
                               157.5,
                               0.6, // يبدأ أخيراً
                               1.0,
+                              itemTextColor,
                               () {
                                 Navigator.push(
                                   context,
@@ -163,9 +182,9 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
             },
           ),
 
-          // 3. الزر الأصفر المركزي (الأساسي)
+          // 3. الزر الأصفر المركزي (الأساسي) - مرفوع لـ 50 مثل الطالب
           Positioned(
-            bottom: 50, // 🌟 تم رفع الأيقونة قليلاً للأعلى (كانت 35) 🌟
+            bottom: 50,
             child: GestureDetector(
               onTap: _toggleMenu,
               child: AnimatedContainer(
@@ -175,8 +194,6 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
                 decoration: const BoxDecoration(
                   color: Color(0xFFEFFF00),
                   shape: BoxShape.circle,
-                  // 🌟 تم إزالة boxShadow (التوهج) 🌟
-                  // 🌟 تم إزالة border (الاطار الابيض) 🌟
                 ),
                 child: Icon(
                   _isOpen ? Icons.close : Icons.grid_view_rounded,
@@ -191,7 +208,7 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
     );
   }
 
-  // 🌟 دالة بناء العناصر مع الحركة التدريجية (Staggered Animation) 🌟
+  // 🌟 دالة بناء العناصر مع دعم لون النص المتجاوب 🌟
   Widget _buildMenuItem(
     String title,
     IconData icon,
@@ -199,6 +216,7 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
     double angleInDegrees,
     double startAnim,
     double endAnim,
+    Color textColor, // 🌟 المعامل الجديد للون النص
     VoidCallback onTapAction,
   ) {
     double angleInRadians = angleInDegrees * math.pi / 180.0;
@@ -220,8 +238,8 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
         scale: scaleAnimation, // تطبيق الحركة على الزر
         child: GestureDetector(
           onTap: () {
-            _toggleMenu();
-            onTapAction();
+            _toggleMenu(); // يغلق القائمة أولاً
+            onTapAction(); // ينفذ الانتقال للشاشة
           },
           child: SizedBox(
             width: 70,
@@ -234,10 +252,10 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
                 const SizedBox(height: 6),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: textColor, // 🌟 تطبيق لون النص المتجاوب
                   ),
                 ),
               ],
@@ -253,17 +271,23 @@ class _StudentSpeedDialState extends State<StudentSpeedDial>
 // --- الرسام المخصص لنصف الدائرة والخطوط ---
 // ==========================================
 class MenuBackgroundPainter extends CustomPainter {
-  final double progress; // قيمة الحركة (من 0.0 إلى 1.0)
+  final double progress; // قيمة الحركة
+  final Color bgColor;   // 🌟 لون الخلفية الذكي
+  final Color lineColor; // 🌟 لون الخط الذكي
 
-  MenuBackgroundPainter(this.progress);
+  MenuBackgroundPainter({
+    required this.progress,
+    required this.bgColor,
+    required this.lineColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     Paint fillPaint = Paint()
-      ..color = Colors.white
+      ..color = bgColor // 🌟 استخدام لون الخلفية المتجاوب
       ..style = PaintingStyle.fill;
 
-    // 🌟 رسم نصف الدائرة بشكل تدريجي من اليمين إلى اليسار 🌟
+    // رسم نصف الدائرة بشكل تدريجي من اليمين إلى اليسار
     canvas.drawArc(
       Rect.fromCircle(
         center: Offset(size.width / 2, size.height),
@@ -275,27 +299,30 @@ class MenuBackgroundPainter extends CustomPainter {
       fillPaint,
     );
 
-    Paint linePaint = Paint()
-      ..color = Colors.grey.shade200
-          .withOpacity(progress) // شفافة في البداية وتوضح تدريجياً
+    // 🌟 استخدام withAlpha بدلاً من withOpacity لتجنب التحذيرات
+    int alphaValue = (255 * progress).toInt();
+    Paint linePaintPaint = Paint()
+      ..color = lineColor.withAlpha(alphaValue) // شفافة في البداية وتوضح تدريجياً
       ..strokeWidth = 1.5;
 
     Offset center = Offset(size.width / 2, size.height);
     List<double> angles = [math.pi / 4, math.pi / 2, 3 * math.pi / 4];
 
     for (double angle in angles) {
-      // 🌟 لا نرسم الخط الفاصل إلا إذا وصلت الدائرة إليه 🌟
+      // لا نرسم الخط الفاصل إلا إذا وصلت الدائرة إليه
       if (math.pi * progress >= angle) {
         double dx = center.dx + size.height * math.cos(angle);
         double dy = center.dy - size.height * math.sin(angle);
-        canvas.drawLine(center, Offset(dx, dy), linePaint);
+        canvas.drawLine(center, Offset(dx, dy), linePaintPaint);
       }
     }
   }
 
   @override
   bool shouldRepaint(covariant MenuBackgroundPainter oldDelegate) {
-    // يجب إعادة الرسم في كل إطار من الحركة
-    return oldDelegate.progress != progress;
+    // يجب إعادة الرسم في كل إطار من الحركة أو عند تغير الثيم
+    return oldDelegate.progress != progress ||
+           oldDelegate.bgColor != bgColor ||
+           oldDelegate.lineColor != lineColor;
   }
 }

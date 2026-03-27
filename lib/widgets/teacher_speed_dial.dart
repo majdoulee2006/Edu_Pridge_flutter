@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'dart:ui';
+
+// 🌟 مسارات شاشات المعلم (نفسها اللي بكودك ما انحذف منها شي) 🌟
 import '../screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
 import '../screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
 import '../screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
@@ -10,163 +11,327 @@ class CustomSpeedDialEduBridge extends StatefulWidget {
   const CustomSpeedDialEduBridge({super.key});
 
   @override
-  State<CustomSpeedDialEduBridge> createState() => _CustomSpeedDialEduBridgeState();
+  State<CustomSpeedDialEduBridge> createState() =>
+      _CustomSpeedDialEduBridgeState();
 }
 
-class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge> with SingleTickerProviderStateMixin {
-  bool isOpened = false;
-  late AnimationController _controller;
-  late Animation<double> _animation;
+class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
+    with SingleTickerProviderStateMixin {
+  bool _isOpen = false;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 350)
+    // 🌟 التوقيت التدريجي المريح (400ms) 🌟
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
     );
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
-  void _toggle() => setState(() {
-    isOpened = !isOpened;
-    isOpened ? _controller.forward() : _controller.reverse();
-  });
+  void _toggleMenu() {
+    setState(() {
+      _isOpen = !_isOpen;
+      if (_isOpen) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // حساب الأبعاد بناءً على حجم الشاشة
-    double dialWidth = MediaQuery.of(context).size.width * 0.90;
-    double dialRadius = dialWidth / 2;
+    // 🌟 التحقق من الثيم لتحديد ألوان القائمة المنبثقة 🌟
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      clipBehavior: Clip.none,
-      children: [
-        if (isOpened)
-          GestureDetector(
-            onTap: _toggle,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(color: Colors.black.withOpacity(0.1)),
-            ),
+    // تحديد لون خلفية نصف الدائرة
+    final Color menuBgColor = isDark
+        ? Theme.of(context).cardColor
+        : Colors.white;
+    // تحديد لون نصوص الأزرار
+    final Color itemTextColor = isDark ? Colors.white : Colors.black87;
+    // تحديد لون الخطوط الفاصلة
+    final Color separatorColor = isDark
+        ? Colors.grey.shade800
+        : Colors.grey.shade200;
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          // 🌟 نستخدم AnimatedBuilder لتحديث الحركة 60 مرة بالثانية 🌟
+          AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              // إذا كانت القائمة مغلقة تماماً لا نعرض شيئاً
+              if (_animationController.value == 0.0) {
+                return const SizedBox.shrink();
+              }
+
+              return Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // 1. الطبقة الشفافة السوداء (تظهر تدريجياً)
+                  GestureDetector(
+                    onTap: _toggleMenu,
+                    child: Opacity(
+                      opacity: _animationController.value,
+                      child: Container(
+                        color: Colors.black.withAlpha(125),
+                      ), // 125 تعادل 0.5 opacity تقريباً
+                    ),
+                  ),
+
+                  // 2. القائمة المنبثقة (نصف الدائرة تُرسم تدريجياً)
+                  Positioned(
+                    bottom: 45,
+                    child: CustomPaint(
+                      size: const Size(320, 160),
+                      painter: MenuBackgroundPainter(
+                        progress: _animationController.value,
+                        bgColor: menuBgColor, // 🌟 تمرير لون الخلفية
+                        lineColor: separatorColor, // 🌟 تمرير لون الخط الفاصل
+                      ),
+                      child: SizedBox(
+                        width: 320,
+                        height: 160,
+                        child: Stack(
+                          children: [
+                            // 🌟 إضافة الأزرار وتمرير لون النص المتجاوب 🌟
+                            _buildMenuItem(
+                              'الجدول',
+                              Icons.calendar_month_outlined,
+                              Colors.orange,
+                              22.5,
+                              0.0, // يبدأ فوراً
+                              0.4, // ينتهي عند 40% من وقت الحركة
+                              itemTextColor,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const TeacherScheduleScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildMenuItem(
+                              'الواجبات',
+                              Icons.assignment_outlined,
+                              Colors.blue,
+                              67.5,
+                              0.2, // يبدأ متأخراً قليلاً
+                              0.6,
+                              itemTextColor,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AssignmentsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildMenuItem(
+                              'المحاضرات',
+                              Icons.play_circle_outline,
+                              Colors.purple,
+                              112.5,
+                              0.4,
+                              0.8,
+                              itemTextColor,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const LecturesScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildMenuItem(
+                              'الحضور',
+                              Icons.how_to_reg_outlined,
+                              Colors.green,
+                              157.5,
+                              0.6, // يبدأ أخيراً
+                              1.0,
+                              itemTextColor,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AttendanceScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
 
-        Positioned(
-          bottom: 35,
-          child: ScaleTransition(
-            scale: _animation,
-            alignment: Alignment.bottomCenter,
-            child: CustomPaint(
-              size: Size(dialWidth, dialRadius),
-              painter: HalfCirclePainter(),
-            ),
-          ),
-        ),
-
-        // توزيع الأيقونات في نصف الدائرة
-        _buildItem(context, Icons.how_to_reg, "الحضور", dialRadius * 0.75, 155, Colors.green, () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceScreen()));
-        }),
-        _buildItem(context, Icons.play_circle_fill, "المحاضرات", dialRadius * 0.75, 110, Colors.purple, () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const LecturesScreen()));
-        }),
-        _buildItem(context, Icons.assignment, "الواجبات", dialRadius * 0.75, 70, Colors.blue, () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const AssignmentsScreen()));
-        }),
-        _buildItem(context, Icons.calendar_month, "الجدول", dialRadius * 0.75, 25, Colors.orange, () {
-          // تأكد من اسم كلاس الجدول في مشروعك
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherScheduleScreen()));
-        }),
-
-        // الزر الأساسي (النبض)
-        GestureDetector(
-          onTap: _toggle,
-          child: Container(
-            width: 65,
-            height: 65,
-            margin: const EdgeInsets.only(bottom: 5),
-            decoration: const BoxDecoration(
-              color: Color(0xFFEFFF00),
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
-            ),
-            child: Icon(
-              isOpened ? Icons.close : Icons.grid_view_rounded,
-              color: Colors.black,
-              size: 30,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildItem(BuildContext context, IconData icon, String label, double radius, double angleDeg, Color color, VoidCallback onTap) {
-    double rad = angleDeg * math.pi / 180;
-
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        double x = math.cos(rad) * radius * _animation.value;
-        double y = math.sin(rad) * radius * _animation.value;
-
-        return Positioned(
-          bottom: 40 + y,
-          left: (MediaQuery.of(context).size.width / 2) - 30 - x,
-          child: Opacity(
-            opacity: _controller.value,
+          // 3. الزر الأصفر المركزي (الأساسي) - مرفوع لـ 50 مثل الطالب
+          Positioned(
+            bottom: 50,
             child: GestureDetector(
-              onTap: () {
-                _toggle();
-                onTap();
-              },
-              child: SizedBox(
+              onTap: _toggleMenu,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: 60,
                 width: 60,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, color: color, size: 28),
-                    const SizedBox(height: 2),
-                    Text(label,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEFFF00),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isOpen ? Icons.close : Icons.grid_view_rounded,
+                  size: 28,
+                  color: Colors.black,
                 ),
               ),
             ),
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  // 🌟 دالة بناء العناصر مع دعم لون النص المتجاوب 🌟
+  Widget _buildMenuItem(
+    String title,
+    IconData icon,
+    Color color,
+    double angleInDegrees,
+    double startAnim,
+    double endAnim,
+    Color textColor, // 🌟 المعامل الجديد للون النص
+    VoidCallback onTapAction,
+  ) {
+    double angleInRadians = angleInDegrees * math.pi / 180.0;
+    double radius = 100.0;
+
+    double x = 160 + radius * math.cos(angleInRadians);
+    double y = 160 - radius * math.sin(angleInRadians);
+
+    // تجهيز حركة القفز الخاصة بهذا الزر تحديداً
+    Animation<double> scaleAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Interval(startAnim, endAnim, curve: Curves.easeOutBack),
+    );
+
+    return Positioned(
+      left: x - 35,
+      top: y - 35,
+      child: ScaleTransition(
+        scale: scaleAnimation, // تطبيق الحركة على الزر
+        child: GestureDetector(
+          onTap: () {
+            _toggleMenu(); // يغلق القائمة أولاً
+            onTapAction(); // ينفذ الانتقال للشاشة
+          },
+          child: SizedBox(
+            width: 70,
+            height: 70,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: color, size: 26),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: textColor, // 🌟 تطبيق لون النص المتجاوب
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-class HalfCirclePainter extends CustomPainter {
+// ==========================================
+// --- الرسام المخصص لنصف الدائرة والخطوط ---
+// ==========================================
+class MenuBackgroundPainter extends CustomPainter {
+  final double progress; // قيمة الحركة
+  final Color bgColor; // 🌟 لون الخلفية الذكي
+  final Color lineColor; // 🌟 لون الخط الذكي
+
+  MenuBackgroundPainter({
+    required this.progress,
+    required this.bgColor,
+    required this.lineColor,
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white..style = PaintingStyle.fill;
-    final path = Path()
-      ..moveTo(0, size.height)
-      ..arcTo(Rect.fromLTWH(0, 0, size.width, size.height * 2), math.pi, math.pi, false)
-      ..close();
-    canvas.drawShadow(path, Colors.black26, 10, false);
-    canvas.drawPath(path, paint);
+    Paint fillPaint = Paint()
+      ..color =
+          bgColor // 🌟 استخدام لون الخلفية المتجاوب
+      ..style = PaintingStyle.fill;
 
-    // رسم الخطوط الفاصلة في المروحة
-    final linePaint = Paint()..color = Colors.grey.withOpacity(0.1)..strokeWidth = 1.0;
-    final center = Offset(size.width / 2, size.height);
-    for (var angle in [45.0, 90.0, 135.0]) {
-      final rad = angle * math.pi / 180;
-      canvas.drawLine(center, Offset(center.dx - (size.width / 2) * math.cos(rad), center.dy - (size.width / 2) * math.sin(rad)), linePaint);
+    // رسم نصف الدائرة بشكل تدريجي من اليمين إلى اليسار
+    canvas.drawArc(
+      Rect.fromCircle(
+        center: Offset(size.width / 2, size.height),
+        radius: size.height,
+      ),
+      0.0, // نقطة البداية (من اليمين)
+      -math.pi * progress, // مقدار الالتفاف (يعتمد على الحركة)
+      true,
+      fillPaint,
+    );
+
+    // 🌟 استخدام withAlpha بدلاً من withOpacity لتجنب التحذيرات
+    int alphaValue = (255 * progress).toInt();
+    Paint linePaintPaint = Paint()
+      ..color = lineColor
+          .withAlpha(alphaValue) // شفافة في البداية وتوضح تدريجياً
+      ..strokeWidth = 1.5;
+
+    Offset center = Offset(size.width / 2, size.height);
+    List<double> angles = [math.pi / 4, math.pi / 2, 3 * math.pi / 4];
+
+    for (double angle in angles) {
+      // لا نرسم الخط الفاصل إلا إذا وصلت الدائرة إليه
+      if (math.pi * progress >= angle) {
+        double dx = center.dx + size.height * math.cos(angle);
+        double dy = center.dy - size.height * math.sin(angle);
+        canvas.drawLine(center, Offset(dx, dy), linePaintPaint);
+      }
     }
   }
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant MenuBackgroundPainter oldDelegate) {
+    // يجب إعادة الرسم في كل إطار من الحركة أو عند تغير الثيم
+    return oldDelegate.progress != progress ||
+        oldDelegate.bgColor != bgColor ||
+        oldDelegate.lineColor != lineColor;
+  }
 }

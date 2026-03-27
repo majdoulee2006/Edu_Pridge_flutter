@@ -77,7 +77,7 @@ class StudentHomeScreen extends StatelessWidget {
             CustomBottomNav(
               currentIndex: 0, // 0 = الرئيسية
               centerButton:
-                  const StudentSpeedDial(), // نمرر الزر الأصفر الخاص بالطالب
+                  const CustomSpeedDialEduBridge(), // نمرر الزر الأصفر الخاص بالطالب
               onHomeTap: () {
                 // نحن بالفعل في الرئيسية، فلا نفعل شيئاً أو يمكننا عمل Refresh
               },

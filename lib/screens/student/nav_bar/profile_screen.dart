@@ -334,7 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // 🌟 استدعاء الشريط الموحد هنا بدلاً من الأكواد الطويلة 🌟
             CustomBottomNav(
               currentIndex: 1, // 1 = الملف الشخصي مفعّل
-              centerButton: const StudentSpeedDial(),
+              centerButton: const CustomSpeedDialEduBridge(),
               onHomeTap: () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(

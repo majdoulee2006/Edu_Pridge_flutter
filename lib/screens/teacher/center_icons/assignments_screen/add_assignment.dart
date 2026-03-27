@@ -10,63 +10,93 @@ class AddAssignmentScreen extends StatefulWidget {
 class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   @override
   Widget build(BuildContext context) {
-    const Color mainAppColor = Color(0xFFF7F7F7);
-    const Color activeTabColor = Color(0xFFEFFF00); // اللون الأصفر من التصميم
-    const Color textDarkColor = Color(0xFF333333);
-    const Color hintColor = Color(0xFF9E9E9E);
+    // الألوان الأساسية
+    const Color primaryYellow = Color(0xFFEFFF00);
+
+    // جلب ألوان الثيم (دعم Dark Mode تلقائياً)
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardColor;
+    final textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: mainAppColor,
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: textDarkColor),
+            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: Text(
             'إضافة تمرين منزلي',
             style: TextStyle(
-              color: textDarkColor,
+              color: textColor,
               fontWeight: FontWeight.bold,
               fontSize: 18,
-              fontFamily: 'Tajawal',
             ),
           ),
+          centerTitle: true,
           actions: [
             IconButton(
-              icon: const Icon(Icons.settings_outlined, color: textDarkColor),
+              icon: Icon(Icons.info_outline, color: textColor),
               onPressed: () {},
             ),
           ],
-          centerTitle: true,
         ),
         body: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // حقل عنوان التمرين
-              _buildTextField(hint: 'أدخل عنوان التمرين...'),
+              _buildSectionLabel("عنوان التمرين", textColor),
+              _buildTextField(
+                context,
+                hint: 'مثال: حل مسائل قوانين نيوتن',
+                cardColor: cardColor,
+                textColor: textColor,
+              ),
               const SizedBox(height: 20),
 
-              const Text(
-                'وصف التمرين',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Tajawal'),
+              // حقل وصف التمرين
+              _buildSectionLabel("وصف ومتطلبات التمرين", textColor),
+              _buildTextField(
+                context,
+                hint:
+                    'اكتب تفاصيل الواجب، الصفحات المطلوبة، أو أي تعليمات إضافية للطلاب...',
+                maxLines: 5,
+                cardColor: cardColor,
+                textColor: textColor,
               ),
-              const SizedBox(height: 10),
-              // حقل وصف التمرين (متعدد الأسطر)
-              _buildTextField(hint: 'اكتب تفاصيل ومتطلبات التمرين هنا...', maxLines: 5),
               const SizedBox(height: 20),
 
               // صف المادة والصف
               Row(
                 children: [
-                  Expanded(child: _buildDropdownField(label: 'المادة', hint: 'اختر المادة')),
+                  Expanded(
+                    child: _buildDropdownField(
+                      label: 'المادة الدراسية',
+                      hint: 'اختر المادة',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
+                    ),
+                  ),
                   const SizedBox(width: 15),
-                  Expanded(child: _buildDropdownField(label: 'الصف', hint: 'اختر الصف')),
+                  Expanded(
+                    child: _buildDropdownField(
+                      label: 'الصف / الشعبة',
+                      hint: 'اختر الصف',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -74,28 +104,65 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
               // صف التاريخ والوقت
               Row(
                 children: [
-                  Expanded(child: _buildPickerField(label: 'تاريخ التسليم', hint: 'mm/dd/yy', icon: Icons.calendar_today_outlined)),
+                  Expanded(
+                    child: _buildPickerField(
+                      label: 'تاريخ التسليم النهائي',
+                      hint: '2024/12/30',
+                      icon: Icons.calendar_month_outlined,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                    ),
+                  ),
                   const SizedBox(width: 15),
-                  Expanded(child: _buildPickerField(label: 'وقت التسليم', hint: '--:-- --', icon: Icons.access_time)),
+                  Expanded(
+                    child: _buildPickerField(
+                      label: 'وقت التسليم',
+                      hint: '11:59 PM',
+                      icon: Icons.access_time,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 30),
 
               // إرفاق ملفات
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey.withOpacity(0.3), style: BorderStyle.solid),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('إرفاق ملفات (اختياري)', style: TextStyle(color: hintColor, fontFamily: 'Tajawal')),
-                    const SizedBox(width: 10),
-                    Icon(Icons.attach_file, color: hintColor),
-                  ],
+              _buildSectionLabel("المرفقات (صور، PDF، نماذج)", textColor),
+              InkWell(
+                onTap: () {}, // هنا تضاف وظيفة اختيار الملفات
+                borderRadius: BorderRadius.circular(15),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: primaryYellow.withOpacity(0.5),
+                      style: BorderStyle.solid,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.cloud_upload_outlined,
+                        color: primaryYellow,
+                        size: 30,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'اضغط لرفع الملفات المساعدة',
+                        style: TextStyle(
+                          color: textColor.withOpacity(0.6),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 40),
@@ -105,25 +172,36 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // منطق الحفظ هنا
+                    Navigator.pop(context);
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: activeTabColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    elevation: 0,
+                    backgroundColor: primaryYellow,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 5,
+                    shadowColor: primaryYellow.withOpacity(0.3),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'إضافة التمرين',
-                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'Tajawal'),
+                        'نشر التمرين الآن',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
-                      const SizedBox(width: 10),
-                      Icon(Icons.check_circle_outline, color: Colors.black),
+                      SizedBox(width: 10),
+                      Icon(Icons.send_rounded, color: Colors.black, size: 20),
                     ],
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -131,44 +209,89 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     );
   }
 
-  // ودجيت بناء حقول النص
-  Widget _buildTextField({required String hint, int maxLines = 1}) {
+  // --- ويجيتات البناء المساعدة ---
+
+  Widget _buildSectionLabel(String label, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, right: 4),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    BuildContext context, {
+    required String hint,
+    int maxLines = 1,
+    required Color cardColor,
+    required Color textColor,
+  }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: TextField(
         maxLines: maxLines,
+        style: TextStyle(color: textColor),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Color(0xFF9E9E9E), fontSize: 14),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+          hintStyle: TextStyle(color: textColor.withOpacity(0.4), fontSize: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
+          ),
           contentPadding: const EdgeInsets.all(16),
         ),
       ),
     );
   }
 
-  // ودجيت بناء حقول الاختيار (Dropdown)
-  Widget _buildDropdownField({required String label, required String hint}) {
+  Widget _buildDropdownField({
+    required String label,
+    required String hint,
+    required Color cardColor,
+    required Color textColor,
+    required bool isDark,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Tajawal')),
-        const SizedBox(height: 8),
+        _buildSectionLabel(label, textColor),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            color: cardColor,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: isDark ? Colors.white10 : Colors.grey.shade200,
+            ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
-              hint: Text(hint, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-              items: [],
+              dropdownColor: cardColor,
+              hint: Text(
+                hint,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: textColor.withOpacity(0.5),
+                ),
+              ),
+              items: const [],
               onChanged: (value) {},
             ),
           ),
@@ -177,25 +300,39 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     );
   }
 
-  // ودجيت بناء حقول التاريخ والوقت
-  Widget _buildPickerField({required String label, required String hint, required IconData icon}) {
+  Widget _buildPickerField({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required Color cardColor,
+    required Color textColor,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Tajawal')),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, size: 20, color: Colors.grey),
-              Text(hint, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-            ],
+        _buildSectionLabel(label, textColor),
+        InkWell(
+          onTap: () {}, // وظيفة اختيار التاريخ/الوقت
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.grey.withOpacity(0.1)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, size: 18, color: const Color(0xFFEFFF00)),
+                Text(
+                  hint,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: textColor.withOpacity(0.6),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

@@ -233,7 +233,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
             // 🌟 استدعاء الشريط الموحد هنا (-1 لأنها واجهة فرعية) 🌟
             CustomBottomNav(
               currentIndex: -1,
-              centerButton: const StudentSpeedDial(),
+              centerButton: const CustomSpeedDialEduBridge(),
               onHomeTap: () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(

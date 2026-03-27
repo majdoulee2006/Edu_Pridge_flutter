@@ -187,7 +187,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             // 🌟 استدعاء الشريط الموحد هنا بدلاً من الأكواد الطويلة 🌟
             CustomBottomNav(
               currentIndex: 3, // 3 = الرسائل مفعّلة
-              centerButton: const StudentSpeedDial(),
+              centerButton: const CustomSpeedDialEduBridge(),
               onHomeTap: () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(

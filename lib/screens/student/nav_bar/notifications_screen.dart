@@ -77,7 +77,7 @@ class NotificationsScreen extends StatelessWidget {
               // 🌟 استدعاء الشريط الموحد هنا بدلاً من الأكواد الطويلة 🌟
               CustomBottomNav(
                 currentIndex: 2, // 2 = الإشعارات مفعّلة
-                centerButton: const StudentSpeedDial(),
+                centerButton: const CustomSpeedDialEduBridge(),
                 onHomeTap: () => Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(

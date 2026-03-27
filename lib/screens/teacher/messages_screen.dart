@@ -5,7 +5,10 @@ import 'notifications_screen.dart';
 // استيراد صفحة الإعدادات من المجلد المشترك
 import '../shared/settings_screen.dart';
 
-import '../../widgets/teacher_speed_dial.dart'; // تأكدي من وجود هذا الملف
+// 🌟 1. استدعاء الشريط الموحد 🌟
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+// 🌟 2. استدعاء زر المعلم الموحد 🌟
+import '../../widgets/teacher_speed_dial.dart'; // تأكدي من وجود هذا الملف ومساره الصحيح
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -25,15 +28,20 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب ألوان الثيم للـ Dark Mode 🌟
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFBFBF9),
+      backgroundColor: bgColor,
       extendBody: true,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor, // 🌟 يتجاوب مع الثيم
         elevation: 0,
         // تفعيل زر الإعدادات لينقلك لصفحة الإعدادات
         leading: IconButton(
-          icon: const Icon(Icons.settings_outlined, color: Colors.black),
+          icon: Icon(Icons.settings_outlined, color: textColor), // 🌟 يتجاوب مع الثيم
           onPressed: () {
             Navigator.push(
               context,
@@ -41,59 +49,87 @@ class _MessagesScreenState extends State<MessagesScreen> {
             );
           },
         ),
-        title: const Text("الرسائل", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text("الرسائل", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)), // 🌟 يتجاوب مع الثيم
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.arrow_forward, color: Colors.black),
+            icon: Icon(Icons.arrow_forward, color: textColor), // 🌟 يتجاوب مع الثيم
             onPressed: () => Navigator.pop(context),
           ),
         ],
       ),
+      
+      // 🌟 التعديل السحري: تغليف الـ Stack بـ Directionality لضمان اتجاه الشريط السفلي والمحتوى 🌟
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: Column(
+        child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: TextField(
-                textAlign: TextAlign.right,
-                decoration: InputDecoration(
-                  hintText: "ابحث في المحادثات...",
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+            // 1. محتوى الشاشة الأساسي
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: TextField(
+                    textAlign: TextAlign.right,
+                    style: TextStyle(color: textColor), // لون النص المكتوب يتبع الثيم
+                    decoration: InputDecoration(
+                      hintText: "ابحث في المحادثات...",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: cardColor, // 🌟 لون خلفية شريط البحث من الثيم
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                    ),
+                  ),
                 ),
-              ),
+                _buildFilterRow(context), // 🌟 تمرير context ليدعم الثيم
+                const SizedBox(height: 15),
+                Expanded(
+                  child: ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: chats.length,
+                    itemBuilder: (context, index) {
+                      return _buildChatTile(context, chats[index]); // 🌟 تمرير context ليدعم الثيم
+                    },
+                  ),
+                ),
+                const SizedBox(height: 100), // مساحة لتجنب تغطية الشريط السفلي للمحادثات
+              ],
             ),
-            _buildFilterRow(),
-            const SizedBox(height: 15),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: chats.length,
-                itemBuilder: (context, index) {
-                  return _buildChatTile(chats[index]);
-                },
+
+            // 2. الشريط السفلي الموحد
+            CustomBottomNav(
+              currentIndex: 3, // 🌟 3 = الرسائل مفعلة
+              centerButton: const CustomSpeedDialEduBridge(), // زر المعلم الموحد
+              onHomeTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
               ),
+              onProfileTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              ),
+              onNotificationsTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              ),
+              onMessagesTap: () {}, // نحن في الرسائل أصلاً
             ),
-            const SizedBox(height: 100),
           ],
         ),
       ),
-
-      // استخدام الكلاس الموحد (EduBridge) كما عدله الفريق
-      floatingActionButton: const CustomSpeedDialEduBridge(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
-  Widget _buildFilterRow() {
+  // 🌟 إضافة BuildContext للدعم اللوني 🌟
+  Widget _buildFilterRow(BuildContext context) {
+    final cardColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: ["الكل", "غير مقروءة", "الجروبات"].map((label) {
@@ -104,10 +140,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
               margin: const EdgeInsets.only(left: 10),
               padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFEFFF00) : Colors.white,
+                // 🌟 إذا كان محدد يأخذ اللون الأصفر، وإلا يأخذ لون الكرت من الثيم
+                color: isSelected ? const Color(0xFFEFFF00) : cardColor,
                 borderRadius: BorderRadius.circular(25),
               ),
-              child: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+              child: Text(
+                label, 
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  // 🌟 النص أسود إذا كان الزر أصفر ليظهر بوضوح، وإلا يتبع الثيم
+                  color: isSelected ? Colors.black : textColor,
+                )
+              ),
             ),
           );
         }).toList(),
@@ -115,21 +159,25 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
-  Widget _buildChatTile(Map<String, dynamic> chat) {
+  // 🌟 إضافة BuildContext للدعم اللوني 🌟
+  Widget _buildChatTile(BuildContext context, Map<String, dynamic> chat) {
+    final cardColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🌟 لون الكرت من الثيم
         borderRadius: BorderRadius.circular(15),
       ),
       child: ListTile(
         leading: CircleAvatar(
           radius: 28,
-          backgroundColor: const Color(0xFFEBF5FB),
-          child: Text(chat['initials'] ?? "D", style: const TextStyle(color: Color(0xFF2E86C1))),
+          backgroundColor: const Color(0xFFEBF5FB), // خلفية صورة الشخص
+          child: Text(chat['initials'] ?? "D", style: const TextStyle(color: Color(0xFF2E86C1), fontWeight: FontWeight.bold)),
         ),
-        title: Text(chat['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(chat['message'], maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(chat['name'], style: TextStyle(fontWeight: FontWeight.bold, color: textColor)), // 🌟 لون الاسم من الثيم
+        subtitle: Text(chat['message'], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.grey)),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -139,47 +187,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 margin: const EdgeInsets.only(top: 5),
                 padding: const EdgeInsets.all(6),
                 decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
-                child: Text(chat['unreadCount'].toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                child: Text(chat['unreadCount'].toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return BottomAppBar(
-      height: 70,
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(context, Icons.home_outlined, "الرئيسية", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()))),
-            _navItem(context, Icons.person_outline, "الملف", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()))),
-            const SizedBox(width: 40),
-            _navItem(context, Icons.notifications_none, "الإشعارات", false,
-                onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
-            _navItem(context, Icons.chat_bubble, "الرسائل", true, onTap: () {}),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
-          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
-        ],
       ),
     );
   }
