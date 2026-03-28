@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 class OTPScreen extends StatefulWidget {
-  // 🌟 متغيرات جديدة عشان الواجهة تصير مرنة وتناسب كل الحالات 🌟
   final String appBarTitle;
   final String message;
   final VoidCallback? onConfirm;
 
   const OTPScreen({
     super.key,
-    // قيم افتراضية عشان ما يضرب الكود القديم
     this.appBarTitle = "التحقق من الحساب",
-    this.message =
-        "تم إرسال رمز التحقق المكون من 4 أرقام إلى رقم\nهاتفك المسجل +966 5X XXX XXXX",
+    this.message = "تم إرسال رمز التحقق المكون من 4 أرقام إلى رقم\nهاتفك المسجل +966 5X XXX XXXX",
     this.onConfirm,
   });
 
@@ -22,7 +19,7 @@ class OTPScreen extends StatefulWidget {
 
 class _OTPScreenState extends State<OTPScreen> {
   int _counter = 59;
-  late Timer _timer;
+  Timer? _timer; // جعل التايمر قابل للإلغاء بشكل آمن
 
   @override
   void initState() {
@@ -31,43 +28,49 @@ class _OTPScreenState extends State<OTPScreen> {
   }
 
   void _startTimer() {
+    _timer?.cancel(); // إلغاء أي تايمر سابق لتجنب التداخل
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_counter > 0) {
-        setState(() => _counter--);
+        if (mounted) setState(() => _counter--);
       } else {
-        _timer.cancel();
+        _timer?.cancel();
       }
     });
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 استخراج ألوان الثيم الحالي
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final primaryYellow = const Color(0xFFEFFF00);
+    final containerBg = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF2F3F4);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scaffoldBg,
         elevation: 0,
         centerTitle: true,
         title: Text(
-          widget.appBarTitle, // 🌟 النص متغير حسب الحالة
-          style: const TextStyle(
-            color: Colors.black,
+          widget.appBarTitle,
+          style: TextStyle(
+            color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(
-            Icons
-                .arrow_back, // ✅ تم تعديل السهم ليؤشر لليمين في الواجهة العربية
-            color: Colors.black,
-          ),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -82,33 +85,34 @@ class _OTPScreenState extends State<OTPScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF9E7),
+                    color: isDark ? Colors.amber.withValues(alpha: 0.1) : const Color(0xFFFEF9E7),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.chat_bubble_rounded,
                     size: 45,
-                    color: Color(0xFFD4AC0D),
+                    color: isDark ? primaryYellow : const Color(0xFFD4AC0D),
                   ),
                 ),
               ),
               const SizedBox(height: 30),
-              const Text(
+              Text(
                 "أدخل رمز التحقق",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
               ),
               const SizedBox(height: 15),
               Text(
-                widget.message, // 🌟 الرسالة متغيرة
+                widget.message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.grey,
+                style: TextStyle(
+                  color: subTextColor,
                   fontSize: 14,
                   height: 1.6,
                 ),
               ),
               const SizedBox(height: 40),
 
+              // صناديق OTP
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -120,9 +124,9 @@ class _OTPScreenState extends State<OTPScreen> {
               ),
 
               const SizedBox(height: 30),
-              const Text(
+              Text(
                 "لم يصلك الرمز؟",
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: subTextColor, fontSize: 13),
               ),
               const SizedBox(height: 10),
               Row(
@@ -131,34 +135,33 @@ class _OTPScreenState extends State<OTPScreen> {
                   TextButton(
                     onPressed: _counter == 0
                         ? () {
-                            setState(() => _counter = 59);
-                            _startTimer();
-                          }
+                      setState(() => _counter = 59);
+                      _startTimer();
+                    }
                         : null,
                     child: Text(
                       "إعادة إرسال الرمز",
                       style: TextStyle(
-                        color: _counter == 0 ? Colors.black : Colors.grey,
+                        color: _counter == 0 ? (isDark ? primaryYellow : Colors.black) : Colors.grey,
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.underline,
+                        decorationColor: _counter == 0 ? (isDark ? primaryYellow : Colors.black) : Colors.grey,
                       ),
                     ),
                   ),
                   const SizedBox(width: 5),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F3F4),
+                      color: containerBg,
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(
                       "00:${_counter.toString().padLeft(2, '0')}",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        color: textColor,
                       ),
                     ),
                   ),
@@ -174,38 +177,25 @@ class _OTPScreenState extends State<OTPScreen> {
                   height: 60,
                   child: ElevatedButton(
                     onPressed: () {
-                      // 🌟 إذا تم تمرير دالة خاصة، بنفذها، وإلا بنرجع خطوة لورا
                       if (widget.onConfirm != null) {
                         widget.onConfirm!();
                       } else {
-                        Navigator.pop(
-                          context,
-                        ); // يرجع للشاشة اللي استدعته (بروفايل أو غيره)
+                        Navigator.pop(context);
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEFFF00),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                      backgroundColor: primaryYellow,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       elevation: 0,
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(
-                          Icons.check_circle_outline,
-                          color: Colors.black,
-                          size: 20,
-                        ),
+                      children: [
+                        Icon(Icons.check_circle_outline, color: Colors.black, size: 20),
                         SizedBox(width: 10),
                         Text(
-                          "تأكيد الرمز", // 🌟 خليتها عامة لتناسب الكل
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                          "تأكيد الرمز",
+                          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ],
                     ),
@@ -219,18 +209,20 @@ class _OTPScreenState extends State<OTPScreen> {
     );
   }
 
-  Widget _otpBox(
-    BuildContext context, {
-    required bool first,
-    required bool last,
-  }) {
+  Widget _otpBox(BuildContext context, {required bool first, required bool last}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
+
     return Container(
       height: 70,
       width: 65,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFFF2F3F4), width: 2),
+        border: Border.all(
+          color: isDark ? Colors.white10 : const Color(0xFFF2F3F4),
+          width: 2,
+        ),
       ),
       child: TextField(
         autofocus: true,
@@ -244,7 +236,7 @@ class _OTPScreenState extends State<OTPScreen> {
         },
         showCursor: false,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
         keyboardType: TextInputType.number,
         maxLength: 1,
         decoration: const InputDecoration(

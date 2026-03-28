@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// ✅ تم إضافة استدعاء واجهة التحقق (تأكدي من المسار الصحيح بملفاتك)
+// تأكدي من أن ملف otp_screen يدعم الثيم الداكن أيضاً
 import 'otp_screen.dart';
 
 class EditPhoneScreen extends StatefulWidget {
@@ -10,138 +10,134 @@ class EditPhoneScreen extends StatefulWidget {
 }
 
 class _EditPhoneScreenState extends State<EditPhoneScreen> {
-  // 🌟 متغير لحفظ رمز الدولة المختار
+  // متغير لحفظ رمز الدولة المختار
   String _selectedCountryCode = '+966';
 
-  // 🌟 قائمة برموز الدول المتاحة للاختيار (فيك تعدليها وتزيدي عليها)
+  // قائمة برموز الدول المتاحة
   final List<String> _countryCodes = [
-    '+966', // السعودية
-    '+971', // الإمارات
-    '+965', // الكويت
-    '+974', // قطر
-    '+968', // عُمان
-    '+973', // البحرين
-    '+20', // مصر
-    '+963', // سوريا
-    '+962', // الأردن
-    '+961', // لبنان
+    '+966', '+971', '+965', '+974', '+968', '+973', '+20', '+963', '+962', '+961',
   ];
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 استخراج ألوان الثيم الحالي
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final cardColor = theme.cardColor; // لون الحقول في الوضع الداكن
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final primaryYellow = const Color(0xFFF6E300);
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: scaffoldBg,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            // ✅ تم التعديل هنا: استخدام arrow_back ليؤشر لليمين بشكل صحيح في الواجهة العربية
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: Text(
             'تعديل رقم الهاتف',
             style: TextStyle(
-              color: Colors.black,
+              color: textColor,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
           ),
           centerTitle: true,
         ),
-        body: Padding(
+        body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
 
-              // 1. الأيقونة المضيئة (Glowing Icon)
+              // 1. الأيقونة المضيئة (تتأثر بالثيم)
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFF6E300).withOpacity(0.3),
+                      color: primaryYellow.withValues(alpha: 0.2),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.phone_iphone,
                   size: 40,
-                  color: Color(0xFFF6E300),
+                  color: primaryYellow,
                 ),
               ),
               const SizedBox(height: 30),
 
               // 2. النصوص
-              const Text(
+              Text(
                 'رقم الهاتف الجديد',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: textColor,
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 'يرجى إدخال رقم هاتفك الجديد. سنقوم بإرسال رمز تحقق\nبرسالة نصية (SMS) لتأكيد الرقم.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+                style: TextStyle(fontSize: 13, color: subTextColor, height: 1.5),
               ),
               const SizedBox(height: 40),
 
-              // 3. حقل إدخال رقم الجوال
+              // 3. عنوان الحقل
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
                   'رقم الجوال',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: subTextColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
-              // استخدمنا LTR هون لأن الأرقام ومفتاح الدولة دايماً من اليسار لليمين
+
+              // حقل إدخال رقم الجوال (LTR للأرقام)
               Directionality(
                 textDirection: TextDirection.ltr,
                 child: Row(
                   children: [
-                    // 🌟 مفتاح الدولة (تحول لقائمة منسدلة Dropdown)
+                    // مفتاح الدولة (Dropdown)
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical:
-                            11, // قللنا البادينج شوي ليناسب حجم الدروب داون
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
+                        color: cardColor,
+                        border: Border.all(color: textColor.withValues(alpha: 0.1)),
                         borderRadius: BorderRadius.circular(25),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedCountryCode,
                           isDense: true,
-                          icon: Padding(
-                            padding: const EdgeInsets.only(left: 4.0),
-                            child: Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.grey.shade600,
-                              size: 18,
-                            ),
+                          dropdownColor: cardColor, // لون القائمة المنسدلة في الداكن
+                          icon: Icon(
+                            Icons.keyboard_arrow_down,
+                            color: subTextColor,
+                            size: 18,
                           ),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: textColor,
                           ),
                           items: _countryCodes.map((String code) {
                             return DropdownMenuItem<String>(
@@ -151,32 +147,32 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                           }).toList(),
                           onChanged: (String? newValue) {
                             if (newValue != null) {
-                              setState(() {
-                                _selectedCountryCode = newValue;
-                              });
+                              setState(() => _selectedCountryCode = newValue);
                             }
                           },
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // حقل الإدخال
+                    // حقل الإدخال النصي
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
+                          color: cardColor,
+                          border: Border.all(color: textColor.withValues(alpha: 0.1)),
                           borderRadius: BorderRadius.circular(25),
                         ),
-                        child: const TextField(
+                        child: TextField(
                           keyboardType: TextInputType.phone,
+                          style: TextStyle(color: textColor),
                           decoration: InputDecoration(
                             hintText: '50 123 4567',
                             hintStyle: TextStyle(
-                              color: Colors.grey,
+                              color: textColor.withValues(alpha: 0.3),
                               fontSize: 15,
                             ),
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 20,
                               vertical: 15,
                             ),
@@ -196,15 +192,12 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
-                    // ✅ تم ربط الزر بواجهة رمز التحقق مع دالة الرجوع المزدوج
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => OTPScreen(
                           appBarTitle: "تأكيد الهاتف",
-                          message:
-                              "تم إرسال الرمز المكون من 4 أرقام إلى رقم\nهاتفك الجديد",
-                          // 🌟 أمر الرجوع خطوتين للوراء مع رسالة نجاح
+                          message: "تم إرسال الرمز المكون من 4 أرقام إلى رقم\nهاتفك الجديد",
                           onConfirm: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -224,7 +217,8 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF6E300),
+                    backgroundColor: primaryYellow,
+                    foregroundColor: Colors.black, // النص يبقى أسود للوضوح على الأصفر
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
@@ -233,7 +227,6 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                   child: const Text(
                     'إرسال رمز التحقق',
                     style: TextStyle(
-                      color: Colors.black,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),

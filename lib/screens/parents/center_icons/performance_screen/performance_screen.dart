@@ -1,14 +1,12 @@
-import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:flutter/material.dart';
-
+// استيراد القطع الموحدة
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import '../../../../widgets/parents_center_icon.dart';
-import '../../../teacher/messages_screen.dart';
-import '../../../teacher/notifications_screen.dart';
-import '../../../teacher/profile_screen.dart';
-import '../../../teacher/teacher_home.dart';
-import '../../nav_bar/parents_messages_screen.dart';
-import '../../nav_bar/parents_notifications_screen.dart';
-import '../../nav_bar/parents_profile_screen.dart';
 
 class PerformanceScreen extends StatefulWidget {
   const PerformanceScreen({super.key});
@@ -22,50 +20,74 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 تعريف الألوان المتجاوبة
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return DefaultTabController(
       length: 3,
       initialIndex: 0,
       child: Directionality(
-        textDirection: TextDirection.rtl, // تفعيل الاتجاه العربي للواجهة بالكامل
+        textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: const Color(0xFFFDFDFD),
-          appBar: _showSubjectDetails ? _buildDetailsAppBar() : _buildMainAppBar(),
-          body: _showSubjectDetails
-              ? _buildSubjectDetailsView()
-              : TabBarView(
+          backgroundColor: bgColor,
+          appBar: _showSubjectDetails
+              ? _buildDetailsAppBar(context, textColor)
+              : _buildMainAppBar(context, textColor, cardColor),
+          body: Stack(
             children: [
-              _buildResultsTab(),
-              _buildGradesTab(),
-              _buildAttendanceTab(),
+              _showSubjectDetails
+                  ? _buildSubjectDetailsView(textColor, cardColor)
+                  : TabBarView(
+                children: [
+                  _buildResultsTab(textColor, cardColor),
+                  _buildGradesTab(textColor, cardColor),
+                  _buildAttendanceTab(textColor, cardColor),
+                ],
+              ),
+
+              // 2. الشريط السفلي الموحد
+              CustomBottomNav(
+                currentIndex: 0, // تتبع للرئيسية
+                centerButton: const Parents_Center_Icon(),
+                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
+                onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
+              ),
             ],
           ),
-          floatingActionButton: const Parents_Center_Icon(),
-          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-          bottomNavigationBar: _buildBottomNav(context),
         ),
       ),
     );
   }
 
-  // --- AppBar الرئيسي ---
-  PreferredSizeWidget _buildMainAppBar() {
+  // --- AppBars المحسنة ---
+  PreferredSizeWidget _buildMainAppBar(BuildContext context, Color textColor, Color cardColor) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      leading: _buildCircleBtn(Icons.settings_outlined),
-      title: const Text("أداء سارة محمد", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
       centerTitle: true,
-      actions: [_buildCircleBtn(Icons.arrow_forward), const SizedBox(width: 10)],
+      title: Text("أداء الطالبة", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+      leading: IconButton(
+        icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
+      ),
+      actions: [
+        IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pop(context)),
+      ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(color: const Color(0xFFF9F9F9), borderRadius: BorderRadius.circular(35)),
+          decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(35)),
           child: TabBar(
             indicator: BoxDecoration(color: const Color(0xFFEFFF00), borderRadius: BorderRadius.circular(30)),
             labelColor: Colors.black,
             unselectedLabelColor: Colors.grey,
             indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent,
             tabs: const [Tab(text: "النتائج"), Tab(text: "العلامات"), Tab(text: "الحضور")],
           ),
         ),
@@ -73,268 +95,232 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  PreferredSizeWidget _buildDetailsAppBar() {
+  PreferredSizeWidget _buildDetailsAppBar(BuildContext context, Color textColor) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      leading: _buildCircleBtn(Icons.settings_outlined),
-      title: const Text("علامات برمجة متقدمة 2", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
       centerTitle: true,
+      title: Text("تفاصيل المادة", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+      leading: IconButton(
+        icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
+        onPressed: () {},
+      ),
       actions: [
-        GestureDetector(
-          onTap: () => setState(() => _showSubjectDetails = false),
-          child: _buildCircleBtn(Icons.arrow_forward),
+        IconButton(
+          icon: Icon(Icons.arrow_forward, color: textColor),
+          onPressed: () => setState(() => _showSubjectDetails = false),
         ),
-        const SizedBox(width: 10)
       ],
     );
   }
 
-  // ================= 1. واجهة النتائج (RTL) =================
-  Widget _buildResultsTab() {
+  // --- تبويب النتائج ---
+  Widget _buildResultsTab(Color textColor, Color cardColor) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _buildGpaCard(),
+        _buildGpaCard(textColor, cardColor),
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: _buildSmallStatCard("الترتيب على الدفعة", "الـ 5", Icons.bar_chart, Colors.blue)),
+            Expanded(child: _buildSmallStatCard("الترتيب", "الـ 5", Icons.bar_chart, Colors.blue, textColor, cardColor)),
             const SizedBox(width: 15),
-            Expanded(child: _buildSmallStatCard("الساعات المنجزة", "84 / 132", Icons.school_outlined, Colors.purple)),
+            Expanded(child: _buildSmallStatCard("الساعات", "84 / 132", Icons.school, Colors.purple, textColor, cardColor)),
           ],
         ),
         const SizedBox(height: 30),
-        const Align(alignment: Alignment.centerRight, child: Text("أبرز المواد هذا الفصل", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-        const SizedBox(height: 15),
-        _buildSubjectResultCard("برمجة متقدمة 2", "د. سمير خليل", "95", "ممتاز", Colors.blue, Icons.code),
-        _buildSubjectResultCard("قواعد بيانات", "د. نورة العلي", "88", "جيد جداً", Colors.orange, Icons.storage),
-        _buildAdvisorNote(),
-        const SizedBox(height: 100),
+        _buildSubjectResultCard("برمجة متقدمة", "95", Colors.blue, cardColor, textColor),
+        _buildSubjectResultCard("قواعد بيانات", "88", Colors.orange, cardColor, textColor),
+        const SizedBox(height: 150),
       ],
     );
   }
 
-  // ================= 2. واجهة العلامات (RTL) =================
-  Widget _buildGradesTab() {
+  // --- تبويب العلامات ---
+  Widget _buildGradesTab(Color textColor, Color cardColor) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        GestureDetector(
-          onTap: () => setState(() => _showSubjectDetails = true),
-          child: _buildGradeDetailCard("برمجة متقدمة 2", "د. سمير خليل", "88%", Icons.code, const Color(0xFF5D78FF)),
-        ),
-        _buildGradeDetailCard("قواعد بيانات", "د. نورة العلي", "85%", Icons.storage, const Color(0xFFFF9E43)),
-        _buildGradeDetailCard("جبر خطي", "أ. مازن سعيد", "79%", Icons.functions, const Color(0xFFFF69B4)),
-        _buildGradeDetailCard("تطوير ويب", "د. عمر فاروق", "92%", Icons.language, const Color(0xFF00C48C)),
-        const SizedBox(height: 100),
+        _buildGradeDetailCard("برمجة متقدمة", "88%", Colors.blue, textColor, cardColor, true),
+        _buildGradeDetailCard("قواعد بيانات", "85%", Colors.orange, textColor, cardColor, false),
+        _buildGradeDetailCard("تطوير ويب", "92%", Colors.green, textColor, cardColor, false),
+        const SizedBox(height: 150),
       ],
     );
   }
 
-  // ================= 3. واجهة الحضور (RTL) =================
-  Widget _buildAttendanceTab() {
+  // --- تبويب الحضور ---
+  Widget _buildAttendanceTab(Color textColor, Color cardColor) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         Row(
           children: [
-            Expanded(child: _buildAttendanceCircleCard("92%", "نسبة الحضور", Colors.green, Icons.check_circle_outline)),
+            Expanded(child: _buildAttendanceCircleCard("92%", "حضور", Colors.green, textColor, cardColor)),
             const SizedBox(width: 15),
-            Expanded(child: _buildAttendanceCircleCard("8%", "نسبة الغياب", Colors.red, Icons.cancel_outlined)),
+            Expanded(child: _buildAttendanceCircleCard("8%", "غياب", Colors.red, textColor, cardColor)),
           ],
         ),
         const SizedBox(height: 25),
-        _buildDistributionSection(),
-        const SizedBox(height: 25),
-        const Align(alignment: Alignment.centerRight, child: Text("سجل المحاضرات", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-        const SizedBox(height: 15),
-        _buildLectureRow("15", "OCT", "برمجة متقدمة 2", "08:30 ص", "حاضر", Colors.green),
-        _buildLectureRow("12", "OCT", "جبر خطي", "09:30 ص", "غائب", Colors.red),
-        const SizedBox(height: 100),
+        _buildLectureRow("15", "أكتوبر", "برمجة متقدمة", "حاضر", Colors.green, textColor, cardColor),
+        _buildLectureRow("12", "أكتوبر", "جبر خطي", "غائب", Colors.red, textColor, cardColor),
+        const SizedBox(height: 150),
       ],
     );
   }
 
-  // ================= 4. واجهة تفاصيل المادة (RTL) =================
-  Widget _buildSubjectDetailsView() {
+  // --- واجهة تفاصيل المادة ---
+  Widget _buildSubjectDetailsView(Color textColor, Color cardColor) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _buildSectionHeader("المذاكرات", Icons.assignment_outlined, Colors.blue),
-        _buildDetailsGroupCard([
-          _buildDetailRow("مذاكرة منتصف الفصل", "20 نوفمبر 2023", "28/30", "نظري", Colors.blue, Icons.edit_note),
-          _buildDetailRow("مشروع الفصل العملي", "15 ديسمبر 2023", "29/30", "عملي", Colors.blue, Icons.laptop_mac),
+        _buildSectionHeader("المذاكرات", Icons.assignment, Colors.blue, textColor),
+        _buildDetailsGroupCard(cardColor, [
+          _buildDetailRow("مذاكرة منتصف الفصل", "28/30", Colors.blue, textColor),
+          _buildDetailRow("مشروع الفصل", "29/30", Colors.blue, textColor),
         ]),
-        const SizedBox(height: 20),
-        _buildSectionHeader("الامتحانات", Icons.fact_check_outlined, Colors.green),
-        _buildDetailsGroupCard([
-          _buildDetailRow("الامتحان النظري النهائي", "15 يناير 2024", "48/50", "96%", Colors.blue, Icons.description_outlined),
-          _buildDetailRow("الامتحان العملي النهائي", "10 يناير 2024", "47/50", "94%", Colors.blue, Icons.terminal_outlined),
-        ]),
-        const SizedBox(height: 20),
-        _buildSectionHeader("الكويزات", Icons.quiz_outlined, Colors.purple),
-        _buildDetailsGroupCard([
-          _buildDetailRow("كويز 3 - البرمجة كائنية التوجه", "10 ديسمبر 2023", "10/10", "ممتاز", Colors.purple, Icons.code),
-          _buildDetailRow("كويز 2 - المؤشرات (Pointers)", "25 نوفمبر 2023", "7/10", "جيد", Colors.purple, Icons.memory),
-        ]),
-        const SizedBox(height: 100),
+        const SizedBox(height: 150),
       ],
     );
   }
 
-  // --- Widgets المساعدة مع تعديل الترتيب ليناسب RTL ---
+  // --- الويجت المساعدة (Helper Widgets) ---
 
-  Widget _buildSectionHeader(String title, IconData icon, Color col) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start, // الأيقونة ثم النص من اليمين
-        children: [
-          Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: col.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: col, size: 20)),
-          const SizedBox(width: 10),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String title, String date, String score, String sub, Color col, IconData icon) {
+  Widget _buildGpaCard(Color textColor, Color cardColor) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.black.withOpacity(0.05), width: 0.5))),
-      child: Row(children: [
-        Container(width: 45, height: 45, decoration: BoxDecoration(color: col.withOpacity(0.08), shape: BoxShape.circle), child: Icon(icon, color: col, size: 22)),
-        const SizedBox(width: 15),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold)), Text(date, style: const TextStyle(color: Colors.grey, fontSize: 11))],
-          ),
-        ),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(score, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18)), Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 11))]),
-      ]),
-    );
-  }
-
-  Widget _buildLectureRow(String day, String month, String subject, String time, String status, Color col) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), border: Border.all(color: Colors.black12)),
-      child: Row(children: [
-        Column(children: [Text(month, style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)), Text(day, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))]),
-        const SizedBox(width: 15),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(subject, style: const TextStyle(fontWeight: FontWeight.bold)), Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11))]),
-        ),
-        Container(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5), decoration: BoxDecoration(color: col.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text(status, style: TextStyle(color: col, fontWeight: FontWeight.bold, fontSize: 12))),
-      ]),
-    );
-  }
-
-  Widget _buildGradeDetailCard(String t, String te, String p, IconData i, Color c) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(40), border: Border.all(color: Colors.black.withOpacity(0.05))),
-      child: Row(children: [
-        CircleAvatar(radius: 25, backgroundColor: c.withOpacity(0.08), child: Icon(i, color: c)),
-        const SizedBox(width: 15),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Row(children: [Text("المعدل: ", style: const TextStyle(color: Colors.grey, fontSize: 12)), Text(p, style: TextStyle(color: c, fontWeight: FontWeight.bold)), Text(" . $te", style: const TextStyle(color: Colors.grey, fontSize: 12))]),
-          ]),
-        ),
-        const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.black26), // سهم لليسار في RTL
-      ]),
-    );
-  }
-
-  Widget _buildSubjectResultCard(String title, String teacher, String grade, String status, Color col, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), border: Border.all(color: Colors.black12)),
-      child: Row(children: [
-        CircleAvatar(backgroundColor: col.withOpacity(0.1), child: Icon(icon, color: col, size: 20)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold)), Text(teacher, style: const TextStyle(color: Colors.grey, fontSize: 11))])),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(grade, style: TextStyle(color: col, fontWeight: FontWeight.bold, fontSize: 20)), Text(status, style: const TextStyle(color: Colors.green, fontSize: 10))]),
-      ]),
-    );
-  }
-
-  // الواجهات الثابتة الأخرى تبقى كما هي مع التأكد من محاذاة نصوصها داخلياً
-  Widget _buildGpaCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), border: Border.all(color: Colors.black12)),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(35)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text("(GPA) المعدل الفصلي", style: TextStyle(color: Colors.grey)),
-            const Text("3.85", style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(15)), child: const Text("+ 0.2 عن الفصل الماضي", style: TextStyle(color: Colors.green, fontSize: 10))),
-          ]),
-          const Stack(alignment: Alignment.center, children: [
-            SizedBox(width: 80, height: 80, child: CircularProgressIndicator(value: 0.85, strokeWidth: 8, color: Color(0xFFEFFF00), backgroundColor: Color(0xFFF5F5F5))),
-            Column(children: [Text("A", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), Text("ممتاز", style: TextStyle(fontSize: 10, color: Colors.grey))]),
-          ]),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("المعدل الفصلي", style: TextStyle(color: textColor.withValues(alpha: 0.5))),
+              Text("3.85", style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: textColor)),
+            ],
+          ),
+          CircularProgressIndicator(value: 0.85, strokeWidth: 8, color: const Color(0xFFEFFF00), backgroundColor: textColor.withValues(alpha: 0.05)),
         ],
       ),
     );
   }
 
-  Widget _buildDetailsGroupCard(List<Widget> children) => Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), border: Border.all(color: Colors.black.withOpacity(0.05))), child: Column(children: children));
-  Widget _buildAttendanceCircleCard(String val, String label, Color col, IconData icon) => Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(40), border: Border.all(color: Colors.black12)), child: Column(children: [Icon(icon, color: col, size: 30), const SizedBox(height: 10), Text(val, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)), Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12))]));
-  Widget _buildSmallStatCard(String t, String v, IconData i, Color c) => Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), border: Border.all(color: Colors.black12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Align(alignment: Alignment.topRight, child: CircleAvatar(radius: 18, backgroundColor: c.withOpacity(0.1), child: Icon(i, color: c, size: 18))), const SizedBox(height: 10), Text(t, style: const TextStyle(color: Colors.grey, fontSize: 12)), Text(v, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))]));
-  Widget _buildDistributionSection() => Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(35), border: Border.all(color: Colors.black12)), child: Column(children: [const Row(children: [Icon(Icons.pie_chart_outline, size: 20), SizedBox(width: 10), Text("توزيع الغياب", style: TextStyle(fontWeight: FontWeight.bold))]), const SizedBox(height: 20), _buildProgressRow("غياب مبرر", "3 محاضرات", 0.7, Colors.blue), const SizedBox(height: 15), _buildProgressRow("غياب غير مبرر", "1 محاضرة", 0.2, Colors.red)]));
-  Widget _buildProgressRow(String label, String count, double val, Color col) => Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFF9F9F9), borderRadius: BorderRadius.circular(10)), child: Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))), Row(children: [Text(label, style: const TextStyle(fontSize: 12)), const SizedBox(width: 8), Icon(Icons.circle, color: col, size: 10)])]), const SizedBox(height: 8), LinearProgressIndicator(value: val, backgroundColor: Colors.grey[100], color: col, minHeight: 8)]);
-  Widget _buildAdvisorNote() => Container(margin: const EdgeInsets.only(top: 20), padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: const Color(0xFFEEF5FF), borderRadius: BorderRadius.circular(35)), child: const Row(children: [Icon(Icons.chat_bubble_outline, color: Colors.blue), SizedBox(width: 15), Expanded(child: Text("أداء سارة متميز هذا الفصل، خاصة في المواد العملية.", style: TextStyle(color: Colors.blue, fontSize: 12)))]));
-  Widget _buildCircleBtn(IconData icon) => Container(margin: const EdgeInsets.all(8), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.black12)), child: Icon(icon, color: Colors.black, size: 20));
+  Widget _buildSmallStatCard(String t, String v, IconData i, Color c, Color textColor, Color cardColor) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(i, color: c, size: 20),
+          const SizedBox(height: 10),
+          Text(t, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12)),
+          Text(v, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+        ],
+      ),
+    );
+  }
 
-
-  Widget _buildBottomNav(BuildContext context) {
-    return BottomAppBar(
-      height: 70,
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      child: Directionality(
-        textDirection: TextDirection.rtl,
+  Widget _buildGradeDetailCard(String title, String percent, Color col, Color textColor, Color cardColor, bool isFirst) {
+    return GestureDetector(
+      onTap: isFirst ? () => setState(() => _showSubjectDetails = true) : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _navItem(context, Icons.home_outlined, "الرئيسية", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ParentsHomeScreen()
-            ))
-            ),
-            _navItem(context, Icons.person_outline, "الملف", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen()))),
-            const SizedBox(width: 40),
-            _navItem(context, Icons.notifications_none, "الإشعارات", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen()))),
-            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen()))),
+            CircleAvatar(backgroundColor: col.withValues(alpha: 0.1), child: Icon(Icons.book, color: col, size: 18)),
+            const SizedBox(width: 15),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+            const Spacer(),
+            Text(percent, style: TextStyle(color: col, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 10),
+            Icon(Icons.arrow_back_ios_new, size: 12, color: textColor.withValues(alpha: 0.3)),
           ],
         ),
       ),
     );
   }
 
-  Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildLectureRow(String day, String month, String subject, String status, Color col, Color textColor, Color cardColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
+      child: Row(
         children: [
-          Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
-          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey)),
+          Column(children: [Text(day, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)), Text(month, style: const TextStyle(fontSize: 10, color: Colors.blue))]),
+          const SizedBox(width: 15),
+          Text(subject, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(15)),
+            child: Text(status, style: TextStyle(color: col, fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
   }
 
+  Widget _buildSectionHeader(String title, IconData icon, Color col, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: col, size: 20),
+          const SizedBox(width: 10),
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: textColor)),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildDetailsGroupCard(Color cardColor, List<Widget> children) => Container(
+    decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
+    child: Column(children: children),
+  );
 
+  Widget _buildDetailRow(String title, String score, Color col, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+          Text(score, style: TextStyle(color: col, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildAttendanceCircleCard(String val, String label, Color col, Color textColor, Color cardColor) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
+      child: Column(
+        children: [
+          Text(val, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: col)),
+          Text(label, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12)),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildSubjectResultCard(String title, String grade, Color col, Color cardColor, Color textColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
+      child: Row(
+        children: [
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+          const Spacer(),
+          Text(grade, style: TextStyle(color: col, fontWeight: FontWeight.bold, fontSize: 18)),
+        ],
+      ),
+    );
+  }
 }

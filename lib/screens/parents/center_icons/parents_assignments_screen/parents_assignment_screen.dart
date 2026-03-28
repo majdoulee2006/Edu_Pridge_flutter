@@ -1,109 +1,160 @@
 import 'package:flutter/material.dart';
-
+// استيراد الشاشات والقطع الموحدة
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import '../../../../widgets/parents_center_icon.dart';
-import '../../../teacher/messages_screen.dart';
-import '../../../teacher/notifications_screen.dart';
-import '../../../teacher/profile_screen.dart';
-import '../../../teacher/teacher_home.dart';
-import '../../nav_bar/parent_home.dart';
-import '../../nav_bar/parents_messages_screen.dart';
-import '../../nav_bar/parents_notifications_screen.dart';
-import '../../nav_bar/parents_profile_screen.dart';
 
 class ParentsAssignmentsScreen extends StatelessWidget {
   const ParentsAssignmentsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 ألوان متجاوبة مع الثيم
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return Directionality(
-      textDirection: TextDirection.rtl, // لضمان التنسيق العربي من اليمين
+      textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9),
+        backgroundColor: bgColor,
         extendBody: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: _roundBtn(Icons.settings_outlined),
-          title: const Text("واجبات ومشاريع سارة ...",
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
-          centerTitle: true,
-          actions: [_roundBtn(Icons.arrow_forward), const SizedBox(width: 10)],
-        ),
-        body: Column(
+        appBar: _buildAppBar(context, textColor),
+        body: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  _filterChip("الكل", true),
-                  _filterChip("المكتملة", false),
-                  _filterChip("فائتة", false),
-                ],
-              ),
+            Column(
+              children: [
+                _buildFilterBar(textColor),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    children: [
+                      _taskCard(
+                        context: context,
+                        title: "مشروع تصميم واجهة",
+                        subtitle: "مادة تصميم تجربة المستخدم",
+                        status: "جاري",
+                        progress: 0.6,
+                        date: "25 مايو 2024",
+                        icon: Icons.code,
+                        iconColor: Colors.blue,
+                        hasAttachment: true,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      ),
+                      _taskCard(
+                        context: context,
+                        title: "واجب الإحصاء #3",
+                        subtitle: "مادة الإحصاء والاحتمالات",
+                        status: "مكتملة",
+                        progress: 1.0,
+                        date: "تم التسليم: أمس",
+                        icon: Icons.calculate_outlined,
+                        iconColor: Colors.green,
+                        grade: "10/10",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      ),
+                      _taskCard(
+                        context: context,
+                        title: "بحث التاريخ المعاصر",
+                        subtitle: "مادة التاريخ",
+                        status: "فائتة",
+                        progress: 0.0,
+                        date: "استحق في 15 مايو",
+                        icon: Icons.auto_stories_outlined,
+                        iconColor: Colors.purple,
+                        isOverdue: true,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      ),
+                      const SizedBox(height: 150), // مساحة للناف بار
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                children: [
-                  // بطاقة جاري
-                  _taskCard(
-                    title: "مشروع تصميم واجهة",
-                    subtitle: "مادة تصميم تجربة المستخدم",
-                    status: "جاري",
-                    progress: 0.6,
-                    date: "May 2024 25",
-                    icon: Icons.code,
-                    iconColor: Colors.blue,
-                    hasAttachment: true,
-                  ),
-                  // بطاقة مكتملة
-                  _taskCard(
-                    title: "واجب الإحصاء #3",
-                    subtitle: "مادة الإحصاء والاحتمالات",
-                    status: "مكتملة",
-                    progress: 1.0,
-                    date: "تم التسليم: أمس",
-                    icon: Icons.calculate_outlined,
-                    iconColor: Colors.green,
-                    grade: "10/10",
-                  ),
-                  // بطاقة فائتة
-                  _taskCard(
-                    title: "بحث التاريخ المعاصر",
-                    subtitle: "مادة التاريخ",
-                    status: "فائتة",
-                    progress: 0.0,
-                    date: "استحق في May 15",
-                    icon: Icons.auto_stories_outlined,
-                    iconColor: Colors.purple,
-                    isOverdue: true,
-                  ),
-                  const SizedBox(height: 120),
-                ],
-              ),
+
+            // الشريط السفلي الموحد المستخدم في Edu_Bridge
+            CustomBottomNav(
+              currentIndex: 0, // تتبع للرئيسية أو اتركها بدون تظليل حسب التصميم
+              centerButton: const Parents_Center_Icon(),
+              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
             ),
           ],
         ),
-        floatingActionButton: const Parents_Center_Icon(),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: _buildBottomNav(context),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      title: Text(
+        "واجبات ومشاريع الطالبة",
+        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+      ),
+      leading: IconButton(
+        icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.arrow_forward, color: textColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterBar(Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _filterChip("الكل", true, textColor),
+            _filterChip("المكتملة", false, textColor),
+            _filterChip("فائتة", false, textColor),
+          ],
+        ),
       ),
     );
   }
 
   Widget _taskCard({
-    required String title, required String subtitle, required String status,
-    required double progress, required String date, required IconData icon,
-    required Color iconColor, bool hasAttachment = false, String? grade, bool isOverdue = false,
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required String status,
+    required double progress,
+    required String date,
+    required IconData icon,
+    required Color iconColor,
+    required Color cardColor,
+    required Color textColor,
+    bool hasAttachment = false,
+    String? grade,
+    bool isOverdue = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: isOverdue ? Colors.red.withOpacity(0.1) : Colors.black12),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: isOverdue ? Colors.red.withValues(alpha: 0.2) : textColor.withValues(alpha: 0.05)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
       ),
       child: Column(
         children: [
@@ -111,7 +162,7 @@ class ParentsAssignmentsScreen extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), shape: BoxShape.circle),
                 child: Icon(icon, color: iconColor, size: 22),
               ),
               const SizedBox(width: 12),
@@ -119,7 +170,7 @@ class ParentsAssignmentsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
                     Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 ),
@@ -131,18 +182,20 @@ class ParentsAssignmentsScreen extends StatelessWidget {
           if (progress > 0 && progress < 1.0) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(value: progress, color: Colors.blue, backgroundColor: Colors.grey[100], minHeight: 6),
+              child: LinearProgressIndicator(
+                  value: progress,
+                  color: Colors.blue,
+                  backgroundColor: textColor.withValues(alpha: 0.05),
+                  minHeight: 6
+              ),
             ),
             const SizedBox(height: 15),
           ],
-          const Divider(height: 1, color: Colors.black12),
+          Divider(height: 1, color: textColor.withValues(alpha: 0.1)),
           const SizedBox(height: 12),
-
-          // --- التعديل المطلوب: عكس العناصر في السطر السفلي ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // 1. النصوص الوصفية تظهر الآن أولاً (على اليمين في RTL)
               Text(
                 date,
                 style: TextStyle(
@@ -150,21 +203,19 @@ class ParentsAssignmentsScreen extends StatelessWidget {
                   fontSize: 12,
                 ),
               ),
-
-              // 2. المرفقات أو الدرجات تظهر ثانياً (على اليسار في RTL)
               if (hasAttachment)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: textColor.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(10)),
                   child: Row(
-                    children: const [
-                      Icon(Icons.attach_file, size: 14),
-                      Text(" 3 مرفقات", style: TextStyle(fontSize: 11)),
+                    children: [
+                      Icon(Icons.attach_file, size: 14, color: textColor.withValues(alpha: 0.6)),
+                      const Text(" 3 مرفقات", style: TextStyle(fontSize: 11)),
                     ],
                   ),
                 ),
               if (grade != null)
-                Text(grade, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(grade, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
               if (isOverdue)
                 const Text("طلب تمديد ←", style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
@@ -175,73 +226,39 @@ class ParentsAssignmentsScreen extends StatelessWidget {
   }
 
   Widget _statusBadge(String label) {
-    Color bg = Colors.yellow[50]!;
-    if (label == "مكتملة") bg = Colors.green[50]!;
-    if (label == "فائتة") bg = Colors.red[50]!;
+    Color bg = Colors.yellow.withValues(alpha: 0.1);
+    Color txtColor = Colors.orange;
+    if (label == "مكتملة") {
+      bg = Colors.green.withValues(alpha: 0.1);
+      txtColor = Colors.green;
+    }
+    if (label == "فائتة") {
+      bg = Colors.red.withValues(alpha: 0.1);
+      txtColor = Colors.red;
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(15)),
-      child: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+      child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: txtColor)),
     );
   }
 
-  Widget _filterChip(String label, bool isSel) {
+  Widget _filterChip(String label, bool isSel, Color textColor) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 5),
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
       decoration: BoxDecoration(
-        color: isSel ? const Color(0xFFEFFF00) : Colors.white,
+        color: isSel ? const Color(0xFFEFFF00) : Colors.transparent,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(color: isSel ? Colors.transparent : textColor.withValues(alpha: 0.1)),
       ),
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Widget _roundBtn(IconData icon) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.black12)),
-      child: Icon(icon, color: Colors.black, size: 18),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return BottomAppBar(
-      height: 70,
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(context, Icons.home_outlined, "الرئيسية", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ParentsHomeScreen()
-            ))
-            ),
-            _navItem(context, Icons.person_outline, "الملف", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen()))),
-            const SizedBox(width: 40),
-            _navItem(context, Icons.notifications_none, "الإشعارات", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen()))),
-            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen()))),
-          ],
-        ),
+      child: Text(
+          label,
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isSel ? Colors.black : textColor.withValues(alpha: 0.6)
+          )
       ),
     );
   }
-
-  Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
-          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey)),
-        ],
-      ),
-    );
-  }
-
-
-
 }

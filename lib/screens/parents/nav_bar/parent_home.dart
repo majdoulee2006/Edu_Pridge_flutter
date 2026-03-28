@@ -1,10 +1,12 @@
+import 'package:flutter/material.dart';
+// استيراد الشاشات والقطع اللازمة
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../widgets/parents_center_icon.dart';
 
-// تحويل الواجهة إلى StatefulWidget للتحكم في حالة الأيقونة النشطة
 class ParentsHomeScreen extends StatefulWidget {
   const ParentsHomeScreen({super.key});
 
@@ -13,86 +15,68 @@ class ParentsHomeScreen extends StatefulWidget {
 }
 
 class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
-  // متغير لتحديد الأيقونة النشطة حالياً (0 تعني الرئيسية)
-  int _selectedIndex = 0;
-
   @override
   Widget build(BuildContext context) {
+    // 🎨 جلب الألوان من الثيم الحالي (فاتح أو غامق)
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final cardColor = Theme.of(context).cardColor;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFDF2),
-      extendBody: true,
+      backgroundColor: bgColor,
+      // ألغينا الـ bottomNavigationBar القديم لأننا سنستخدم CustomBottomNav داخل Stack
 
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Stack(
           children: [
+            // 1. المحتوى الأساسي للواجهة
             SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 50),
-                  _buildHeader(),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle("الأبناء"),
-                  _buildStudentsList(),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle("أخبار المعهد والفعاليات"),
+                  const SizedBox(height: 60),
+                  _buildHeader(context, textColor, cardColor),
+                  const SizedBox(height: 25),
+                  _buildSectionTitle("الأبناء", textColor),
+                  _buildStudentsList(cardColor, textColor),
+                  const SizedBox(height: 25),
+                  _buildSectionTitle("أخبار المعهد والفعاليات", textColor),
                   _buildNewsCard(),
-                  const SizedBox(height: 120),
+                  const SizedBox(height: 120), // مساحة لكي لا يغطي البار على المحتوى
                 ],
+              ),
+            ),
+
+            // 2. الشريط السفلي الموحد (CustomBottomNav)
+            CustomBottomNav(
+              currentIndex: 0, // الصفحة الرئيسية
+              centerButton: const Parents_Center_Icon(), // الزر المركزي الخاص بالأهل
+              onHomeTap: () {
+                // نحن بالفعل في الرئيسية
+              },
+              onProfileTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ParentsProfileScreen()),
+              ),
+              onNotificationsTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen()),
+              ),
+              onMessagesTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ParentsMessagesScreen()),
               ),
             ),
           ],
         ),
       ),
-
-      floatingActionButton: const Parents_Center_Icon(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      // تمرير السياق لبناء الناف بار
-      bottomNavigationBar: _buildBottomNav(context),
-
     );
   }
 
-  Widget _buildBottomNav(BuildContext context) {
-    return BottomAppBar(
-      height: 70,
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(context, Icons.home_outlined, "الرئيسية", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ParentsHomeScreen()
-            ))
-            ),
-            _navItem(context, Icons.person_outline, "الملف", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen()))),
-            const SizedBox(width: 40),
-            _navItem(context, Icons.notifications_none, "الإشعارات", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen()))),
-            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen()))),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
-          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey)),
-        ],
-      ),
-    );
-  }
-
-  // --- بقية الويدجت (بدون تغيير) ---
-  Widget _buildHeader() {
+  // --- الهيدر العلوي المعدل ---
+  Widget _buildHeader(BuildContext context, Color textColor, Color cardColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -101,40 +85,53 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Edu-Bridge", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              const Text.rich(
+              Text("Edu-Bridge",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
+              const SizedBox(height: 8),
+              Text.rich(
                 TextSpan(
                   text: "مرحباً، ",
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                  children: [
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
+                  children: const [
                     TextSpan(text: "محمد", style: TextStyle(color: Color(0xFFD4E000))),
                   ],
                 ),
               ),
-              const Text("تابع آخر أخبار المعهد والأنشطة", style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const Text("تابع آخر أخبار المعهد والأنشطة",
+                  style: TextStyle(color: Colors.grey, fontSize: 13)),
             ],
           ),
-          _buildCircleBtn(Icons.settings_outlined),
+          // زر الإعدادات
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen(userName: "محمد", userRole: "ولي أمر")),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle),
+              child: const Icon(Icons.settings_outlined, color: Color(0xFFF1C40F), size: 26),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, Color textColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const Text("عرض الكل >", style: TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+          const Text("عرض الكل", style: TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
     );
   }
 
-  Widget _buildStudentsList() {
+  Widget _buildStudentsList(Color cardColor, Color textColor) {
     return SizedBox(
       height: 240,
       child: ListView(
@@ -142,44 +139,44 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 15),
         children: [
-          _buildStudentCard("سارة محمد", "السنة الثالثة - هندسة حاسب", "3.8", "نشط"),
-          _buildStudentCard("أحمد محمد", "السنة الأولى - إدارة أعمال", "--", "إجازة"),
-          _buildAddButton(),
+          _buildStudentCard("سارة محمد", "السنة الثالثة - هندسة حاسب", "3.8", "نشط", cardColor, textColor),
+          _buildStudentCard("أحمد محمد", "السنة الأولى - إدارة أعمال", "--", "إجازة", cardColor, textColor),
+          _buildAddButton(cardColor),
         ],
       ),
     );
   }
 
-  Widget _buildStudentCard(String name, String major, String gpa, String status) {
+  Widget _buildStudentCard(String name, String major, String gpa, String status, Color cardColor, Color textColor) {
     return Container(
-      width: 240,
+      width: 220,
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: const Color(0xFFE8F200).withOpacity(0.5), width: 2),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(35),
+        border: Border.all(color: const Color(0xFFE8F200).withValues(alpha: 0.3), width: 1.5),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircleAvatar(radius: 40, backgroundColor: Color(0xFFE0E7FF)),
-          const SizedBox(height: 10),
-          Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          Text(major, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          const CircleAvatar(radius: 35, backgroundColor: Color(0xFFE0E7FF), child: Icon(Icons.person, size: 40, color: Colors.indigo)),
+          const SizedBox(height: 12),
+          Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+          Text(major, style: const TextStyle(color: Colors.grey, fontSize: 11)),
           const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: status == "نشط" ? const Color(0xFFE8FCE3) : Colors.blue[50],
-                  borderRadius: BorderRadius.circular(15),
+                  color: status == "نشط" ? Colors.green.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(status, style: TextStyle(color: status == "نشط" ? Colors.green : Colors.blue, fontSize: 12)),
+                child: Text(status, style: TextStyle(color: status == "نشط" ? Colors.green : Colors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
               ),
-              const SizedBox(width: 10),
-              Text("معدل: $gpa", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              const SizedBox(width: 8),
+              Text("معدل: $gpa", style: const TextStyle(color: Colors.grey, fontSize: 11)),
             ],
           )
         ],
@@ -187,18 +184,18 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     );
   }
 
-  Widget _buildAddButton() {
+  Widget _buildAddButton(Color cardColor) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          width: 70, height: 70,
+          width: 65, height: 65,
           margin: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: const BoxDecoration(color: Color(0xFFE8F200), shape: BoxShape.circle),
-          child: const Icon(Icons.add, size: 35),
+          decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
+          child: const Icon(Icons.add, size: 30, color: Colors.black),
         ),
         const SizedBox(height: 8),
-        const Text("إضافة", style: TextStyle(color: Colors.grey)),
+        const Text("إضافة", style: TextStyle(color: Colors.grey, fontSize: 12)),
       ],
     );
   }
@@ -206,35 +203,33 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   Widget _buildNewsCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      height: 200,
+      height: 180,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF3B67D1),
-        borderRadius: BorderRadius.circular(35),
+        gradient: const LinearGradient(colors: [Color(0xFF3B67D1), Color(0xFF2A4B9A)]),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Stack(
         children: [
           const Positioned(
-            bottom: 20, right: 20,
-            child: Text("انطلاق فعاليات الأسبوع الثقافي...", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            bottom: 25, right: 25,
+            child: Text("انطلاق فعاليات الأسبوع الثقافي...",
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           ),
           Positioned(
-            top: 15, left: 15,
+            top: 20, left: 20,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-              child: const Row(children: [Text("هام", style: TextStyle(fontSize: 10)), SizedBox(width: 5), CircleAvatar(radius: 3, backgroundColor: Colors.red)]),
+              child: const Row(children: [
+                Text("هام", style: TextStyle(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold)),
+                SizedBox(width: 5),
+                CircleAvatar(radius: 3, backgroundColor: Colors.red)
+              ]),
             ),
           )
         ],
       ),
-    );
-  }
-
-  Widget _buildCircleBtn(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-      child: Icon(icon, color: Colors.grey[700]),
     );
   }
 }

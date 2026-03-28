@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// ✅ تم إضافة استدعاء واجهة التحقق (تأكدي من المسار الصحيح بملفاتك)
 import 'otp_screen.dart';
 
 class EditEmailScreen extends StatefulWidget {
@@ -10,34 +9,42 @@ class EditEmailScreen extends StatefulWidget {
 }
 
 class _EditEmailScreenState extends State<EditEmailScreen> {
-  // معرفات للتحكم بالنصوص في الحقول
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 استخراج الألوان من الثيم الحالي (فاتح أو داكن)
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // ألوان مخصصة للوضع الداكن والفاتح
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final cardColor = theme.cardColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final primaryYellow = const Color(0xFFEFFF00);
+
     return Directionality(
-      textDirection: TextDirection.rtl, // لضمان ظهور العناصر من اليمين لليسار
+      textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFFAFAFA), // خلفية فاتحة جداً
+        backgroundColor: scaffoldBg,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          title: const Text(
+          title: Text(
             "تعديل البريد الإلكتروني",
             style: TextStyle(
-              color: Colors.black,
+              color: textColor,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
           ),
-          // سهم الرجوع
           leading: IconButton(
-            icon: const Icon(
-              Icons
-                  .arrow_back, // ✅ تم تعديل السهم ليتناسب مع الواجهة العربية بشكل صحيح
-              color: Colors.black,
+            icon: Icon(
+              Icons.arrow_back,
+              color: textColor,
             ),
             onPressed: () => Navigator.pop(context),
           ),
@@ -46,70 +53,71 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             children: [
-              const SizedBox(height: 60),
+              const SizedBox(height: 40),
 
-              // أيقونة الظرف المركزية مع الخلفية الدائرية الفاتحة
+              // أيقونة الظرف المركزية
               Center(
                 child: Container(
-                  width: 150,
-                  height: 150,
+                  width: 130,
+                  height: 130,
                   decoration: BoxDecoration(
-                    color: const Color(
-                      0xFFEFFF00,
-                    ).withOpacity(0.1), // أصفر شفاف جداً
+                    color: primaryYellow.withValues(alpha: 0.1), // شفافية متوافقة مع التحديثات
                     shape: BoxShape.circle,
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       Icons.email_rounded,
-                      color: Color(0xFFEFFF00), // اللون الأصفر المعتمد
-                      size: 80,
+                      color: primaryYellow,
+                      size: 70,
                     ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
 
-              // النصوص التوضيحية
-              const Text(
+              Text(
                 "البريد الإلكتروني الجديد",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: textColor,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 "يرجى إدخال عنوان البريد الإلكتروني الجديد.\nسنرسل لك رمز تحقق لتأكيد التغيير.",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
+                style: TextStyle(fontSize: 14, color: subTextColor, height: 1.5),
               ),
 
-              const SizedBox(height: 45),
+              const SizedBox(height: 40),
 
               // حقل البريد الإلكتروني
-              _buildInputLabel("البريد الإلكتروني"),
+              _buildInputLabel("البريد الإلكتروني", textColor),
               _buildTextField(
                 controller: _emailController,
                 hintText: "user@example.com",
                 icon: Icons.alternate_email_rounded,
                 isEmail: true,
+                cardColor: cardColor,
+                textColor: textColor,
               ),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 20),
 
               // حقل كلمة المرور
-              _buildInputLabel("كلمة المرور"),
+              _buildInputLabel("كلمة المرور", textColor),
               _buildTextField(
                 controller: _passwordController,
                 hintText: "........",
                 icon: Icons.lock_outline_rounded,
                 isPassword: true,
+                cardColor: cardColor,
+                textColor: textColor,
               ),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 40),
 
               // زر إرسال رمز التحقق
               SizedBox(
@@ -117,22 +125,16 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    // ✅ تم ربط الزر مع تمرير دالة الرجوع المزدوج (Double Pop) ورسالة النجاح
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => OTPScreen(
                           appBarTitle: "تأكيد البريد الإلكتروني",
-                          message:
-                              "تم إرسال رمز التحقق المكون من 4 أرقام إلى\nبريدك الإلكتروني الجديد",
-                          // 🌟 أمر الرجوع خطوتين للوراء مع إظهار رسالة النجاح 🌟
+                          message: "تم إرسال رمز التحقق المكون من 4 أرقام إلى\nبريدك الإلكتروني الجديد",
                           onConfirm: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                  "تم تغيير البريد الإلكتروني بنجاح! ✅",
-                                  textAlign: TextAlign.center,
-                                ),
+                                content: Text("تم تغيير البريد الإلكتروني بنجاح! ✅", textAlign: TextAlign.center),
                                 backgroundColor: Colors.green,
                                 duration: Duration(seconds: 2),
                               ),
@@ -145,8 +147,8 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEFFF00),
-                    foregroundColor: Colors.black,
+                    backgroundColor: primaryYellow,
+                    foregroundColor: Colors.black, // النص دائماً أسود على الأصفر لتباين أفضل
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
@@ -157,10 +159,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                     children: [
                       Text(
                         "إرسال رمز التحقق",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(width: 10),
                       Icon(Icons.arrow_forward_rounded, size: 20),
@@ -168,7 +167,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -176,38 +175,38 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
     );
   }
 
-  // ويدجت لبناء عنوان الحقل (Label)
-  Widget _buildInputLabel(String label) {
+  Widget _buildInputLabel(String label, Color textColor) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(right: 15, bottom: 8),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 14,
-          color: Colors.black,
+          color: textColor,
         ),
       ),
     );
   }
 
-  // ويدجت لبناء حقل الإدخال المخصص
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
     required IconData icon,
+    required Color cardColor,
+    required Color textColor,
     bool isPassword = false,
     bool isEmail = false,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // يتغير حسب الثيم (أبيض في الفاتح، رمادي غامق في الداكن)
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: textColor.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -216,23 +215,15 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
       child: TextField(
         controller: controller,
         obscureText: isPassword,
-        textAlign: isEmail
-            ? TextAlign.left
-            : TextAlign.right, // الإيميل يبدأ من اليسار
+        style: TextStyle(color: textColor),
+        textAlign: isEmail ? TextAlign.left : TextAlign.right,
         keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
+          hintStyle: TextStyle(color: textColor.withValues(alpha: 0.4), fontSize: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           border: InputBorder.none,
-          // وضع الأيقونة في نهاية الحقل (جهة اليسار في RTL)
-          suffixIcon: Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Icon(icon, color: Colors.grey.shade600, size: 22),
-          ),
+          suffixIcon: Icon(icon, color: textColor.withValues(alpha: 0.5), size: 22),
         ),
       ),
     );

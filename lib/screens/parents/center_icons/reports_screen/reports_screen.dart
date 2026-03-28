@@ -1,14 +1,11 @@
-import 'package:edu_pridge_flutter/widgets/parents_center_icon.dart';
 import 'package:flutter/material.dart';
-
-import '../../../teacher/messages_screen.dart';
-import '../../../teacher/notifications_screen.dart';
-import '../../../teacher/profile_screen.dart';
-import '../../../teacher/teacher_home.dart';
-import '../../nav_bar/parent_home.dart';
-import '../../nav_bar/parents_messages_screen.dart';
-import '../../nav_bar/parents_notifications_screen.dart';
-import '../../nav_bar/parents_profile_screen.dart';
+import 'package:edu_pridge_flutter/widgets/parents_center_icon.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart'; // سطر الاستيراد الجديد
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -23,257 +20,226 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        leading: _buildRoundBtn(Icons.settings_outlined),
-        title: const Text(
-          "تقارير الأبناء",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22),
-        ),
-        actions: [
-          _buildRoundBtn(Icons.arrow_forward),
-          const SizedBox(width: 10),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: _buildAppBar(context, textColor),
+        body: Stack(
           children: [
-            const Text("اختر الابن", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-
-            // قائمة الأبناء
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildStudentItem("أحمد", "assets/images/boy.png", false),
-                const SizedBox(width: 20),
-                _buildStudentItem("سارة", "assets/images/girl.png", true),
-              ],
-            ),
-
-            const SizedBox(height: 30),
-            const Text("نوع التقرير", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-
-            // بطاقة تقرير أكاديمي
-            _buildReportCard(
-              title: "تقرير أكاديمي",
-              subtitle: "يشمل الدرجات، الحضور، والملاحظات الأكاديمية",
-              icon: Icons.school,
-              color: Colors.blueAccent,
-              isSelected: selectedReport == "أكاديمي",
-              onTap: () => setState(() => selectedReport = "أكاديمي"),
-            ),
-
-            // بطاقة تقرير سلوك
-            _buildReportCard(
-              title: "تقرير سلوك",
-              subtitle: "يشمل الالتزام، المشاركة، والتقييم السلوكي",
-              icon: Icons.psychology_outlined,
-              color: Colors.purpleAccent,
-              isSelected: selectedReport == "سلوك",
-              onTap: () => setState(() => selectedReport = "سلوك"),
-            ),
-
-            const SizedBox(height: 20),
-
-            // صندوق سياسة الطلب
-            Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEFEE7),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: Colors.yellow.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.yellowAccent, size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: const [
-                        Text("سياسة الطلب", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                          "يمكنك طلب تقرير جديد لكل طالب مرة واحدة كل 15 يومًا لضمان تحديث البيانات بشكل دقيق.",
-                          textAlign: TextAlign.right,
-                          style: TextStyle(fontSize: 12, color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            // زر طلب التقرير الكبير
-            Container(
-              width: double.infinity,
-              height: 100,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFFF00),
-                borderRadius: BorderRadius.circular(50),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
-                ],
-              ),
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text("طلب التقرير", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  Text("يتم التحديث كل 15 يومًا", style: TextStyle(fontSize: 12, color: Colors.black54)),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("اختر الابن", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+                  const SizedBox(height: 15),
+                  Row(
+                    children: [
+                      _buildStudentItem("سارة", Icons.girl, true, textColor),
+                      const SizedBox(width: 20),
+                      _buildStudentItem("أحمد", Icons.boy, false, textColor),
+                    ],
+                  ),
+                  const SizedBox(height: 35),
+                  Text("نوع التقرير", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+                  const SizedBox(height: 15),
+                  _buildReportCard(
+                    title: "تقرير أكاديمي",
+                    subtitle: "يشمل الدرجات، الحضور، والملاحظات الأكاديمية",
+                    icon: Icons.school_rounded,
+                    color: Colors.blueAccent,
+                    isSelected: selectedReport == "أكاديمي",
+                    onTap: () => setState(() => selectedReport = "أكاديمي"),
+                    cardColor: cardColor,
+                    textColor: textColor,
+                  ),
+                  _buildReportCard(
+                    title: "تقرير سلوك",
+                    subtitle: "يشمل الالتزام، المشاركة، والتقييم السلوكي",
+                    icon: Icons.psychology_outlined,
+                    color: Colors.purpleAccent,
+                    isSelected: selectedReport == "سلوك",
+                    onTap: () => setState(() => selectedReport = "سلوك"),
+                    cardColor: cardColor,
+                    textColor: textColor,
+                  ),
+                  const SizedBox(height: 25),
+                  _buildPolicyBox(textColor),
+                  const SizedBox(height: 40),
+                  _buildRequestButton(textColor),
+                  const SizedBox(height: 150),
                 ],
               ),
             ),
-            const SizedBox(height: 100), // مساحة للشريط السفلي
-          ],
-        ),
-      ),
-
-      floatingActionButton: const Parents_Center_Icon(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _buildBottomNav(context),
-
-    );
-  }
-
-  // ويدجت أيقونات الـ AppBar الدائرية
-  Widget _buildRoundBtn(IconData icon) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
-      ),
-      child: Icon(icon, color: Colors.black54, size: 20),
-    );
-  }
-
-  // ويدجت اختيار الابن
-  Widget _buildStudentItem(String name, String imgPath, bool isSelected) {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: isSelected ? const Color(0xFFEFFF00) : Colors.transparent, width: 2),
-              ),
-              child: const CircleAvatar(
-                radius: 35,
-                backgroundColor: Color(0xFFE0E0E0),
-                child: Icon(Icons.person, size: 40, color: Colors.white), // استبدلها بصورة لاحقاً
-              ),
+            CustomBottomNav(
+              currentIndex: 0,
+              centerButton: const Parents_Center_Icon(),
+              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
             ),
-            if (isSelected)
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
-                  child: const Icon(Icons.check, size: 18, color: Colors.black),
-                ),
-              ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      title: Text("تقارير الأبناء", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+      leading: IconButton(
+        icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)), // تحديث: withValues
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SettingsScreen()),
+          );
+        },
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.arrow_forward, color: textColor),
+          onPressed: () => Navigator.pop(context),
+        ),
       ],
     );
   }
 
-  // ويدجت بطاقات التقارير
-  Widget _buildReportCard({required String title, required String subtitle, required IconData icon, required Color color, required bool isSelected, required VoidCallback onTap}) {
+  Widget _buildStudentItem(String name, IconData icon, bool isSelected, Color textColor) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(40),
-          border: Border.all(color: isSelected ? const Color(0xFFEFFF00) : Colors.grey.withOpacity(0.2), width: 2),
-        ),
-        child: Row(
-          children: [
-            // أيقونة الاختيار الدائرية
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: isSelected ? const Color(0xFFEFFF00) : Colors.grey.withOpacity(0.3), width: 2),
-              ),
-              child: isSelected ? Center(child: Container(width: 12, height: 12, decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle))) : null,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(subtitle, textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 15),
-            // أيقونة التقرير الملونة
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildBottomNav(BuildContext context) {
-    return BottomAppBar(
-      height: 70,
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(context, Icons.home_outlined, "الرئيسية", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ParentsHomeScreen()
-            ))
-            ),
-            _navItem(context, Icons.person_outline, "الملف", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen()))),
-            const SizedBox(width: 40),
-            _navItem(context, Icons.notifications_none, "الإشعارات", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen()))),
-            _navItem(context, Icons.chat_bubble_outline, "الرسائل", false, onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen()))),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(BuildContext context, IconData icon, String label, bool active, {VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
+      onTap: () => setState(() => selectedStudent = name),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: active ? const Color(0xFFEFFF00) : Colors.grey),
-          Text(label, style: TextStyle(fontSize: 10, color: active ? const Color(0xFFEFFF00) : Colors.grey)),
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: isSelected ? const Color(0xFFEFFF00) : Colors.transparent, width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 35,
+                  backgroundColor: isSelected ? const Color(0xFFEFFF00).withValues(alpha: 0.1) : textColor.withValues(alpha: 0.05), // تحديث: withValues
+                  child: Icon(icon, size: 40, color: isSelected ? const Color(0xFFEFFF00) : textColor.withValues(alpha: 0.3)), // تحديث: withValues
+                ),
+              ),
+              if (isSelected)
+                const Positioned(
+                  bottom: 2,
+                  right: 2,
+                  child: CircleAvatar(
+                    radius: 10,
+                    backgroundColor: Color(0xFFEFFF00),
+                    child: Icon(Icons.check, size: 14, color: Colors.black),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: textColor)),
         ],
       ),
     );
   }
 
+  Widget _buildReportCard({
+    required String title, required String subtitle, required IconData icon,
+    required Color color, required bool isSelected, required VoidCallback onTap,
+    required Color cardColor, required Color textColor
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(35),
+          border: Border.all(color: isSelected ? const Color(0xFFEFFF00) : textColor.withValues(alpha: 0.05), width: 2), // تحديث: withValues
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle), // تحديث: withValues
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5))), // تحديث: withValues
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: Color(0xFFEFFF00), size: 24),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildPolicyBox(Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEFEE7).withValues(alpha: 0.1), // تحديث: withValues
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.yellow.withValues(alpha: 0.2)), // تحديث: withValues
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded, color: Colors.orangeAccent, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "يمكنك طلب تقرير جديد لكل طالب مرة واحدة كل 15 يومًا لضمان دقة البيانات.",
+              style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.6), height: 1.4), // تحديث: withValues
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestButton(Color textColor) {
+    return InkWell(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("تم إرسال طلب التقرير بنجاح"))
+        );
+      },
+      borderRadius: BorderRadius.circular(40),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFFF00),
+          borderRadius: BorderRadius.circular(40),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFFEFFF00).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5)) // تحديث: withValues
+          ],
+        ),
+        child: Column(
+          children: [
+            const Text("طلب التقرير الآن", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
+            Text("سيصلك إشعار عند جاهزية الملف", style: TextStyle(fontSize: 12, color: Colors.black.withValues(alpha: 0.6))), // تحديث: withValues
+          ],
+        ),
+      ),
+    );
+  }
 }
