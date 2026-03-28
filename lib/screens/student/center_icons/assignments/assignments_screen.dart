@@ -102,24 +102,31 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب حالة الثيم 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? Theme.of(context).scaffoldBackgroundColor
+        : const Color(0xFFF9F9F9);
+    final textColor = isDark ? Colors.white : Colors.black;
+
     List<Widget> filteredAssignments = _getFilteredAssignments();
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9),
+        backgroundColor: bgColor, // 🌟 מתجاوب
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF9F9F9),
+          backgroundColor: bgColor, // 🌟 מתجاوب
           elevation: 0,
           // ✅ تم تصحيح اتجاه السهم
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: textColor), // 🌟 מתجاوب
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: Text(
             'الواجبات والمشاريع',
             style: TextStyle(
-              color: Colors.black,
+              color: textColor, // 🌟 מתجاوب
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
@@ -128,7 +135,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           actions: [
             // ✅ تم ربط الإعدادات
             IconButton(
-              icon: const Icon(Icons.settings, color: Colors.black),
+              icon: Icon(Icons.settings, color: textColor), // 🌟 מתجاوب
               onPressed: () {
                 Navigator.push(
                   context,
@@ -152,13 +159,14 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      _buildFilterChip('الكل', 0, null, null),
+                      _buildFilterChip('الكل', 0, null, null, isDark),
                       const SizedBox(width: 10),
                       _buildFilterChip(
                         'المكتملة',
                         1,
                         Icons.check_circle,
                         Colors.green,
+                        isDark,
                       ),
                       const SizedBox(width: 10),
                       _buildFilterChip(
@@ -166,6 +174,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                         2,
                         Icons.access_time_filled,
                         Colors.red,
+                        isDark,
                       ),
                     ],
                   ),
@@ -176,7 +185,12 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     'لديك ${filteredAssignments.length} واجبات في القائمة.',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: TextStyle(
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
+                      fontSize: 13,
+                    ), // 🌟 מתجاوب
                   ),
                 ),
                 const SizedBox(height: 15),
@@ -226,12 +240,13 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  // تصميم الفلاتر العلوية
+  // تصميم الفلاتر العلوية 🌟 (تم إضافة isDark كـ parameter داخلي بالدالة عشان ما أغير الـ signature اللي إنت كاتبته) 🌟
   Widget _buildFilterChip(
     String label,
     int index,
     IconData? icon,
     Color? iconColor,
+    bool isDark,
   ) {
     bool isSelected = _selectedFilter == index;
     return GestureDetector(
@@ -239,13 +254,25 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEFFF00) : Colors.white,
+          color: isSelected
+              ? const Color(0xFFEFFF00)
+              : (isDark
+                    ? Theme.of(context).cardColor
+                    : Colors.white), // 🌟 מתجاوب
           borderRadius: BorderRadius.circular(20),
-          border: isSelected ? null : Border.all(color: Colors.grey.shade200),
+          border: isSelected
+              ? null
+              : Border.all(
+                  color: isDark
+                      ? Colors.white.withAlpha(20)
+                      : Colors.grey.shade200,
+                ), // 🌟 מתجاوب
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFFEFFF00).withOpacity(0.3),
+                    color: const Color(
+                      0xFFEFFF00,
+                    ).withAlpha(76), // 🌟 بديل withOpacity
                     blurRadius: 8,
                   ),
                 ]
@@ -262,7 +289,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: Colors.black87,
+                color: isSelected
+                    ? Colors.black87
+                    : (isDark ? Colors.white70 : Colors.black87), // 🌟 מתجاوب
               ),
             ),
           ],
@@ -333,7 +362,11 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
+          backgroundColor: isDark
+              ? Theme.of(context).cardColor
+              : Colors.white, // 🌟 متجاوب
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -346,13 +379,13 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 size: 70,
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'تم ارسال ردك بنجاح\nسيتم تصحيحه في اقرب وقت',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
                   height: 1.5,
                 ),
               ),
@@ -392,44 +425,70 @@ class _AssignmentCardState extends State<_AssignmentCard> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Theme.of(context).cardColor
+                  : Colors.white, // 🌟 متجاوب
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'إرفاق ملف الحل',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildAttachmentOption(Icons.image, 'صورة', Colors.blue),
-                  _buildAttachmentOption(Icons.videocam, 'فيديو', Colors.pink),
-                  _buildAttachmentOption(
-                    Icons.insert_drive_file,
-                    'مستند',
-                    Colors.orange,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-            ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'إرفاق ملف الحل',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
+                  ), // 🌟 متجاوب
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildAttachmentOption(
+                      Icons.image,
+                      'صورة',
+                      Colors.blue,
+                      isDark,
+                    ),
+                    _buildAttachmentOption(
+                      Icons.videocam,
+                      'فيديو',
+                      Colors.pink,
+                      isDark,
+                    ),
+                    _buildAttachmentOption(
+                      Icons.insert_drive_file,
+                      'مستند',
+                      Colors.orange,
+                      isDark,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildAttachmentOption(IconData icon, String title, Color color) {
+  Widget _buildAttachmentOption(
+    IconData icon,
+    String title,
+    Color color,
+    bool isDark,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.pop(context); // إغلاق القائمة السفلية
@@ -445,15 +504,25 @@ class _AssignmentCardState extends State<_AssignmentCard> {
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withAlpha(
+                isDark ? 50 : 25,
+              ), // 🌟 بديل withOpacity ومتجاوب
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 30),
+            child: Icon(
+              icon,
+              color: isDark ? color.withAlpha(200) : color,
+              size: 30,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             title,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black,
+            ), // 🌟 متجاوب
           ),
         ],
       ),
@@ -462,15 +531,25 @@ class _AssignmentCardState extends State<_AssignmentCard> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب حالة الثيم 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🌟 מתجاوب
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withAlpha(50)
+                : Colors.black.withAlpha(8),
+            blurRadius: 10,
+          ), // 🌟 بديل withOpacity ومتجاوب
         ],
       ),
       child: Column(
@@ -484,7 +563,9 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: widget.imageBgColor,
+                  color: isDark
+                      ? widget.imageBgColor.withAlpha(150)
+                      : widget.imageBgColor, // 🌟 متجاوب
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(widget.iconData, color: Colors.white54, size: 30),
@@ -500,10 +581,10 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                         Expanded(
                           child: Text(
                             widget.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: Colors.black87,
+                              color: textColor, // 🌟 מתجاوب
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -513,23 +594,35 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                           widget.tagText,
                           widget.tagColor,
                           widget.tagIcon,
+                          isDark,
                         ),
                       ],
                     ),
                     const SizedBox(height: 5),
                     Text(
                       widget.subtitle,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                        color: isDark ? Colors.grey.shade400 : Colors.grey,
+                        fontSize: 12,
+                      ), // 🌟 מתجاوب
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(widget.fileTypeIcon, size: 14, color: Colors.grey),
+                        Icon(
+                          widget.fileTypeIcon,
+                          size: 14,
+                          color: isDark ? Colors.grey.shade500 : Colors.grey,
+                        ), // 🌟 متجاوب
                         const SizedBox(width: 4),
                         Text(
                           widget.fileType,
                           style: TextStyle(
-                            color: widget.fileTypeColor ?? Colors.grey,
+                            color:
+                                widget.fileTypeColor ??
+                                (isDark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey), // 🌟 מתجاوب
                             fontSize: 11,
                             fontWeight: widget.fileTypeColor != null
                                 ? FontWeight.bold
@@ -537,12 +630,18 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Text('•', style: TextStyle(color: Colors.grey)),
+                        Text(
+                          '•',
+                          style: TextStyle(
+                            color: isDark ? Colors.grey.shade600 : Colors.grey,
+                          ),
+                        ), // 🌟 متجاوب
                         const SizedBox(width: 10),
                         Text(
                           widget.status,
                           style: TextStyle(
-                            color: widget.statusColor,
+                            color: widget
+                                .statusColor, // 🌟 يبقى لون الحالة ثابت (أحمر، أخضر، أزرق)
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -564,7 +663,11 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               Text(
                 widget.dueDate,
                 style: TextStyle(
-                  color: widget.dueDateColor ?? Colors.grey.shade500,
+                  color:
+                      widget.dueDateColor ??
+                      (isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade500), // 🌟 متجاوب
                   fontSize: 11,
                 ),
               ),
@@ -580,7 +683,9 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                     isExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: Colors.grey.shade400,
+                    color: isDark
+                        ? Colors.grey.shade500
+                        : Colors.grey.shade400, // 🌟 متجاوب
                   ),
                 ),
               ),
@@ -591,17 +696,26 @@ class _AssignmentCardState extends State<_AssignmentCard> {
           if (isExpanded && widget.showSubmitForm) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 15),
-              child: Divider(color: Colors.grey.shade100, thickness: 1),
+              child: Divider(
+                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                thickness: 1,
+              ), // 🌟 متجاوب
             ),
-            const Text(
+            Text(
               'تفاصيل الواجب',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: textColor,
+              ), // 🌟 מתجاوب
             ),
             const SizedBox(height: 10),
             Text(
               widget.detailText, // ✅ استخدام المتغير الديناميكي للتفاصيل
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: isDark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600, // 🌟 متجاوب
                 fontSize: 12,
                 height: 1.5,
               ),
@@ -616,10 +730,14 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9F9F9),
+                  color: isDark
+                      ? Colors.white.withAlpha(10)
+                      : const Color(0xFFF9F9F9), // 🌟 מתجاوب
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                    color: Colors.grey.shade300,
+                    color: isDark
+                        ? Colors.white.withAlpha(30)
+                        : Colors.grey.shade300, // 🌟 מתجاوب
                     style: BorderStyle.solid,
                   ),
                 ),
@@ -628,27 +746,34 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.blueGrey.shade50,
+                        color: isDark
+                            ? Colors.blueGrey.shade800
+                            : Colors.blueGrey.shade50, // 🌟 מתجاوب
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.cloud_upload,
-                        color: Colors.blueGrey,
+                        color: isDark
+                            ? Colors.blueGrey.shade300
+                            : Colors.blueGrey, // 🌟 מתجاوب
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
+                    Text(
                       'اضغط لرفع ملف الحل',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
+                        color: textColor, // 🌟 מתجاوب
                       ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       'PDF, JPG, Video, ZIP (Max 50MB)',
                       style: TextStyle(
-                        color: Colors.grey.shade500,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade500, // 🌟 מתجاوب
                         fontSize: 10,
                       ),
                     ),
@@ -658,24 +783,42 @@ class _AssignmentCardState extends State<_AssignmentCard> {
             ),
             const SizedBox(height: 15),
 
-            const Text(
+            Text(
               'ملاحظات إضافية',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: textColor,
+              ), // 🌟 מתجاوب
             ),
             const SizedBox(height: 10),
             TextField(
               maxLines: 3,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+              ), // 🌟 لون النص المكتوب
               decoration: InputDecoration(
                 hintText: 'أضف أي ملاحظات للمدرس هنا...',
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.grey.shade600 : Colors.grey,
+                  fontSize: 12,
+                ), // 🌟 מתجاوب
                 contentPadding: const EdgeInsets.all(15),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? Colors.white.withAlpha(30)
+                        : Colors.grey.shade200,
+                  ), // 🌟 מתجاوب
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? Colors.white.withAlpha(30)
+                        : Colors.grey.shade200,
+                  ), // 🌟 מתجاوب
                 ),
               ),
             ),
@@ -722,22 +865,24 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     );
   }
 
-  Widget _buildTag(String text, Color color, IconData icon) {
+  Widget _buildTag(String text, Color color, IconData icon, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(isDark ? 50 : 25), // 🌟 بديل withOpacity ومتجاوب
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 12),
+          Icon(icon, color: isDark ? color.withAlpha(200) : color, size: 12),
           const SizedBox(width: 4),
           Text(
             text,
             style: TextStyle(
-              color: color,
+              color: isDark
+                  ? color.withAlpha(200)
+                  : color, // 🌟 لون أزهى بالليل
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),

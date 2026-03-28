@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-// 🌟 مسارات شاشات المعلم (نفسها اللي بكودك ما انحذف منها شي) 🌟
-import '../screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
-import '../screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
-import '../screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
-import '../screens/teacher/center_icons/scedual_screen/scedual_screen.dart';
+import '../screens/student/center_icons/assignments/assignments_screen.dart';
+import '../screens/student/center_icons/attendance/attendance_screen.dart';
+import '../screens/student/center_icons/lectures/lectures_screen.dart';
+import '../screens/student/center_icons/schedule/schedule_screen.dart';
 
 class CustomSpeedDialEduBridge extends StatefulWidget {
   const CustomSpeedDialEduBridge({super.key});
 
   @override
-  State<CustomSpeedDialEduBridge> createState() => _CustomSpeedDialEduBridgeState();
+  State<CustomSpeedDialEduBridge> createState() =>
+      _CustomSpeedDialEduBridgeState();
 }
 
 class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
@@ -50,13 +50,17 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
   Widget build(BuildContext context) {
     // 🌟 التحقق من الثيم لتحديد ألوان القائمة المنبثقة 🌟
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // تحديد لون خلفية نصف الدائرة
-    final Color menuBgColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final Color menuBgColor = isDark
+        ? Theme.of(context).cardColor
+        : Colors.white;
     // تحديد لون نصوص الأزرار
     final Color itemTextColor = isDark ? Colors.white : Colors.black87;
     // تحديد لون الخطوط الفاصلة
-    final Color separatorColor = isDark ? Colors.grey.shade800 : Colors.grey.shade200;
+    final Color separatorColor = isDark
+        ? Colors.grey.shade800
+        : Colors.grey.shade200;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -80,7 +84,9 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                     onTap: _toggleMenu,
                     child: Opacity(
                       opacity: _animationController.value,
-                      child: Container(color: Colors.black.withAlpha(125)), // 125 تعادل 0.5 opacity تقريباً
+                      child: Container(
+                        color: Colors.black.withAlpha(125),
+                      ), // 125 تعادل 0.5 opacity تقريباً
                     ),
                   ),
 
@@ -113,7 +119,7 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const TeacherScheduleScreen(),
+                                        const ScheduleScreen(),
                                   ),
                                 );
                               },
@@ -272,7 +278,7 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
 // ==========================================
 class MenuBackgroundPainter extends CustomPainter {
   final double progress; // قيمة الحركة
-  final Color bgColor;   // 🌟 لون الخلفية الذكي
+  final Color bgColor; // 🌟 لون الخلفية الذكي
   final Color lineColor; // 🌟 لون الخط الذكي
 
   MenuBackgroundPainter({
@@ -284,7 +290,8 @@ class MenuBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     Paint fillPaint = Paint()
-      ..color = bgColor // 🌟 استخدام لون الخلفية المتجاوب
+      ..color =
+          bgColor // 🌟 استخدام لون الخلفية المتجاوب
       ..style = PaintingStyle.fill;
 
     // رسم نصف الدائرة بشكل تدريجي من اليمين إلى اليسار
@@ -302,7 +309,8 @@ class MenuBackgroundPainter extends CustomPainter {
     // 🌟 استخدام withAlpha بدلاً من withOpacity لتجنب التحذيرات
     int alphaValue = (255 * progress).toInt();
     Paint linePaintPaint = Paint()
-      ..color = lineColor.withAlpha(alphaValue) // شفافة في البداية وتوضح تدريجياً
+      ..color = lineColor
+          .withAlpha(alphaValue) // شفافة في البداية وتوضح تدريجياً
       ..strokeWidth = 1.5;
 
     Offset center = Offset(size.width / 2, size.height);
@@ -322,7 +330,7 @@ class MenuBackgroundPainter extends CustomPainter {
   bool shouldRepaint(covariant MenuBackgroundPainter oldDelegate) {
     // يجب إعادة الرسم في كل إطار من الحركة أو عند تغير الثيم
     return oldDelegate.progress != progress ||
-           oldDelegate.bgColor != bgColor ||
-           oldDelegate.lineColor != lineColor;
+        oldDelegate.bgColor != bgColor ||
+        oldDelegate.lineColor != lineColor;
   }
 }

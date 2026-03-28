@@ -150,6 +150,13 @@ class _LecturesScreenState extends State<LecturesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب حالة الوضع الليلي 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? Theme.of(context).scaffoldBackgroundColor
+        : const Color(0xFFF9F9F9);
+    final textColor = isDark ? Colors.white : Colors.black;
+
     // منطق البحث
     List<Map<String, dynamic>> filteredSubjects = _allSubjects.where((subject) {
       return subject['title'].toLowerCase().contains(
@@ -160,18 +167,18 @@ class _LecturesScreenState extends State<LecturesScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9),
+        backgroundColor: bgColor, // 🌟 متجاوب
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF9F9F9),
+          backgroundColor: bgColor, // 🌟 متجاوب
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: textColor), // 🌟 متجاوب
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: Text(
             'المحاضرات',
             style: TextStyle(
-              color: Colors.black,
+              color: textColor, // 🌟 متجاوب
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
@@ -179,7 +186,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
           centerTitle: true,
           actions: [
             IconButton(
-              icon: const Icon(Icons.settings, color: Colors.black),
+              icon: Icon(Icons.settings, color: textColor), // 🌟 متجاوب
               onPressed: () {
                 Navigator.push(
                   context,
@@ -198,10 +205,14 @@ class _LecturesScreenState extends State<LecturesScreen> {
                 _buildSearchBar(),
                 Expanded(
                   child: filteredSubjects.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
                             'لا توجد مواد مطابقة لبحثك',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey,
+                            ), // 🌟 متجاوب
                           ),
                         )
                       : ListView.builder(
@@ -262,16 +273,31 @@ class _LecturesScreenState extends State<LecturesScreen> {
   }
 
   Widget _buildSearchBar() {
+    // 🌟 جلب الثيم لدالة البحث 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🌟 متجاوب
         borderRadius: BorderRadius.circular(20),
+        border: isDark
+            ? Border.all(color: Colors.white.withAlpha(20))
+            : null, // إضافة حدود خفيفة بالليل
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withAlpha(40)
+                : Colors.black.withAlpha(8),
+            blurRadius: 10,
+          ), // 🌟 بديل withOpacity ومتجاوب
         ],
       ),
       child: TextField(
+        style: TextStyle(
+          color: isDark ? Colors.white : Colors.black,
+        ), // 🌟 لون النص المكتوب
         onChanged: (value) {
           setState(() {
             _searchQuery = value;
@@ -279,8 +305,14 @@ class _LecturesScreenState extends State<LecturesScreen> {
         },
         decoration: InputDecoration(
           hintText: 'ابحث عن مادة...',
-          hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          hintStyle: TextStyle(
+            color: isDark ? Colors.grey.shade500 : Colors.grey,
+            fontSize: 13,
+          ), // 🌟 متجاوب
+          prefixIcon: Icon(
+            Icons.search,
+            color: isDark ? Colors.grey.shade400 : Colors.grey,
+          ), // 🌟 متجاوب
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide.none,
@@ -342,6 +374,11 @@ class _SubjectCardState extends State<_SubjectCard> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب الثيم لكارت المادة 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     List<Map<String, dynamic>> filteredFiles = widget.files.where((file) {
       if (selectedFilter == 0) return true;
       if (selectedFilter == 1) return file['type'] == 'pdf';
@@ -354,10 +391,15 @@ class _SubjectCardState extends State<_SubjectCard> {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🌟 متجاوب
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withAlpha(50)
+                : Colors.black.withAlpha(8),
+            blurRadius: 10,
+          ), // 🌟 بديل withOpacity ومتجاوب
         ],
       ),
       child: Column(
@@ -370,7 +412,9 @@ class _SubjectCardState extends State<_SubjectCard> {
                   width: 45,
                   height: 45,
                   decoration: BoxDecoration(
-                    color: widget.iconBgColor,
+                    color: isDark
+                        ? widget.iconBgColor.withAlpha(20)
+                        : widget.iconBgColor, // 🌟 جعل الخلفية أغمق بالليل
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(widget.icon, color: widget.iconColor, size: 24),
@@ -382,17 +426,19 @@ class _SubjectCardState extends State<_SubjectCard> {
                     children: [
                       Text(
                         widget.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: Colors.black87,
+                          color: textColor, // 🌟 متجاوب
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         widget.subtitle,
-                        style: const TextStyle(
-                          color: Colors.grey,
+                        style: TextStyle(
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey, // 🌟 متجاوب
                           fontSize: 11,
                         ),
                       ),
@@ -403,7 +449,9 @@ class _SubjectCardState extends State<_SubjectCard> {
                   isExpanded
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_down,
-                  color: Colors.grey,
+                  color: isDark
+                      ? Colors.grey.shade400
+                      : Colors.grey, // 🌟 متجاوب
                 ),
               ],
             ),
@@ -413,21 +461,24 @@ class _SubjectCardState extends State<_SubjectCard> {
             const SizedBox(height: 15),
             Row(
               children: [
-                _buildFilterChip('الكل', 0, null),
+                _buildFilterChip('الكل', 0, null, isDark),
                 const SizedBox(width: 8),
-                _buildFilterChip('محاضرات', 1, Icons.picture_as_pdf),
+                _buildFilterChip('محاضرات', 1, Icons.picture_as_pdf, isDark),
                 const SizedBox(width: 8),
-                _buildFilterChip('فيديو', 2, Icons.play_circle_fill),
+                _buildFilterChip('فيديو', 2, Icons.play_circle_fill, isDark),
               ],
             ),
             const SizedBox(height: 15),
 
             if (filteredFiles.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
                   'لا توجد ملفات من هذا النوع',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(
+                    color: isDark ? Colors.grey.shade500 : Colors.grey,
+                    fontSize: 12,
+                  ), // 🌟 متجاوب
                 ),
               )
             else
@@ -440,10 +491,13 @@ class _SubjectCardState extends State<_SubjectCard> {
                       _buildFileItem(
                         title: file['title'],
                         subtitle: file['subtitle'],
-                        iconBgColor: file['bgColor'],
+                        iconBgColor: isDark
+                            ? file['bgColor'].withAlpha(20)
+                            : file['bgColor'], // 🌟 خلفية الأيقونات تتجاوب بالليل
                         iconColor: file['color'],
                         icon: file['icon'],
                         actionIcon: file['actionIcon'],
+                        isDark: isDark, // 🌟 تمرير الثيم للعنصر الداخلي
                         // 🌟 تفعيل الضغط على الأيقونة اللي ع اليسار 🌟
                         onActionTap: () {
                           if (file['type'] == 'link') {
@@ -460,7 +514,12 @@ class _SubjectCardState extends State<_SubjectCard> {
                         },
                       ),
                       if (index < filteredFiles.length - 1)
-                        Divider(color: Colors.grey.shade100, height: 1),
+                        Divider(
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade100,
+                          height: 1,
+                        ), // 🌟 فاصل متجاوب
                     ],
                   );
                 }).toList(),
@@ -471,7 +530,13 @@ class _SubjectCardState extends State<_SubjectCard> {
     );
   }
 
-  Widget _buildFilterChip(String label, int index, IconData? icon) {
+  // 🌟 تعديل دالة الشيب لتقبل الثيم 🌟
+  Widget _buildFilterChip(
+    String label,
+    int index,
+    IconData? icon,
+    bool isDark,
+  ) {
     bool isSelected = selectedFilter == index;
     return GestureDetector(
       onTap: () => setState(() => selectedFilter = index),
@@ -479,14 +544,28 @@ class _SubjectCardState extends State<_SubjectCard> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEFFF00) : Colors.white,
+          color: isSelected
+              ? const Color(0xFFEFFF00)
+              : (isDark
+                    ? Theme.of(context).scaffoldBackgroundColor
+                    : Colors.white), // 🌟 متجاوب
           borderRadius: BorderRadius.circular(20),
-          border: isSelected ? null : Border.all(color: Colors.grey.shade200),
+          border: isSelected
+              ? null
+              : Border.all(
+                  color: isDark
+                      ? Colors.white.withAlpha(20)
+                      : Colors.grey.shade200,
+                ), // 🌟 متجاوب
         ),
         child: Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 14, color: Colors.grey.shade700),
+              Icon(
+                icon,
+                size: 14,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              ), // 🌟 متجاوب
               const SizedBox(width: 5),
             ],
             Text(
@@ -494,7 +573,9 @@ class _SubjectCardState extends State<_SubjectCard> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: Colors.black87,
+                color: isSelected
+                    ? Colors.black87
+                    : (isDark ? Colors.white70 : Colors.black87), // 🌟 متجاوب
               ),
             ),
           ],
@@ -503,7 +584,7 @@ class _SubjectCardState extends State<_SubjectCard> {
     );
   }
 
-  // ✅ تم تحديث الدالة لتدعم خاصية الضغط على أيقونة الإجراء (actionIcon)
+  // ✅ تم تحديث الدالة لتدعم खासية الضغط وتقبل الثيم
   Widget _buildFileItem({
     required String title,
     required String subtitle,
@@ -512,6 +593,7 @@ class _SubjectCardState extends State<_SubjectCard> {
     required IconData icon,
     required IconData actionIcon,
     required VoidCallback onActionTap,
+    required bool isDark, // 🌟 استقبال حالة الثيم
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -536,23 +618,30 @@ class _SubjectCardState extends State<_SubjectCard> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: Colors.black87,
+                    color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: TextStyle(
+                    color: isDark ? Colors.grey.shade500 : Colors.grey,
+                    fontSize: 11,
+                  ), // 🌟 متجاوب
                 ),
               ],
             ),
           ),
           // 🌟 زر الإجراء (التحميل، التشغيل، أو فتح الرابط) 🌟
           IconButton(
-            icon: Icon(actionIcon, color: Colors.grey, size: 22),
+            icon: Icon(
+              actionIcon,
+              color: isDark ? Colors.grey.shade400 : Colors.grey,
+              size: 22,
+            ), // 🌟 متجاوب
             onPressed: onActionTap, // استدعاء الدالة عند الضغط
             splashRadius: 24, // تأثير الموجة عند الضغط
           ),

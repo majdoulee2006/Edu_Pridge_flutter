@@ -20,12 +20,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   int _leaveType = 0; // 0 = يوم كامل، 1 = ساعية
   bool _isExcuseExpanded = true; // للتحكم بفتح وإغلاق كرت تقديم العذر
 
-  // 🌟 متحكم حقل التاريخ 🌟
+  // 🌟 متحكمات حقول التاريخ والوقت 🌟
   final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _timeController =
+      TextEditingController(); // ✅ تمت إضافة متحكم الوقت
 
   @override
   void dispose() {
     _dateController.dispose();
+    _timeController.dispose(); // ✅ تنظيف متحكم الوقت
     super.dispose();
   }
 
@@ -37,13 +40,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       firstDate: DateTime.now(), // لا يمكن اختيار تاريخ ماضي للإجازة
       lastDate: DateTime(2030),
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFFEFFF00), // لون رأس التقويم
-              onPrimary: Colors.black, // لون النص في رأس التقويم
-              onSurface: Colors.black, // لون الأيام
-            ),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFFEFFF00),
+                    onPrimary: Colors.black,
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFFEFFF00),
+                    onPrimary: Colors.black,
+                    onSurface: Colors.black,
+                  ),
           ),
           child: child!,
         );
@@ -57,12 +67,49 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
+  // 🌟 دالة لفتح ساعة اختيار الوقت (للإجازة الساعية) 🌟
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFFEFFF00),
+                    onPrimary: Colors.black,
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFFEFFF00),
+                    onPrimary: Colors.black,
+                    onSurface: Colors.black,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _timeController.text = picked.format(context);
+      });
+    }
+  }
+
   // 🌟 دالة لعرض النافذة المنبثقة (Pop-up) للنجاح 🌟
   void _showSuccessDialog(String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
+          backgroundColor: isDark
+              ? Theme.of(context).cardColor
+              : Colors.white, // 🌟 متجاوب
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -78,10 +125,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
                   height: 1.5,
                 ),
               ),
@@ -121,45 +168,55 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Theme.of(context).cardColor
+                  : Colors.white, // 🌟 متجاوب
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'إرفاق مستند',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildAttachmentOption(
-                    Icons.camera_alt,
-                    'الكاميرا',
-                    Colors.blue,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'إرفاق مستند',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
                   ),
-                  _buildAttachmentOption(
-                    Icons.photo_library,
-                    'المعرض',
-                    Colors.purple,
-                  ),
-                  _buildAttachmentOption(
-                    Icons.insert_drive_file,
-                    'ملف',
-                    Colors.orange,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-            ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildAttachmentOption(
+                      Icons.camera_alt,
+                      'الكاميرا',
+                      Colors.blue,
+                    ),
+                    _buildAttachmentOption(
+                      Icons.photo_library,
+                      'المعرض',
+                      Colors.purple,
+                    ),
+                    _buildAttachmentOption(
+                      Icons.insert_drive_file,
+                      'ملف',
+                      Colors.orange,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         );
       },
@@ -167,53 +224,71 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildAttachmentOption(IconData icon, String title, Color color) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم اختيار $title بنجاح'),
-            backgroundColor: Colors.green,
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('تم اختيار $title بنجاح'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          },
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: color.withAlpha(isDark ? 50 : 25), // 🌟 متجاوب
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: isDark ? color.withAlpha(200) : color,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                ),
+              ),
+            ],
           ),
         );
       },
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 30),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? Theme.of(context).scaffoldBackgroundColor
+        : const Color(0xFFF8F9FA);
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA), // لون خلفية أوف-وايت مريح
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF8F9FA),
+          backgroundColor: bgColor,
           elevation: 0,
-          // ✅ تم تعديل السهم ليؤشر للاتجاه الصحيح
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: Text(
             'الحضور والغياب',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
         ),
@@ -233,7 +308,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ],
             ),
 
-            // 🌟 استدعاء الشريط الموحد هنا (-1 لأنها واجهة فرعية) 🌟
             CustomBottomNav(
               currentIndex: -1,
               centerButton: const CustomSpeedDialEduBridge(),
@@ -264,15 +338,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  // 1. التاب العلوي (تم التعديل ليصبح ملون بالأصفر)
   Widget _buildCustomTabBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Theme.of(context).cardColor : Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withAlpha(50)
+                : Colors.black.withAlpha(8),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Row(
@@ -285,6 +364,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildTabItem({required String title, required int index}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isActive = _selectedTab == index;
     return Expanded(
       child: GestureDetector(
@@ -301,7 +381,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               title,
               style: TextStyle(
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? Colors.black : Colors.grey.shade600,
+                color: isActive
+                    ? Colors.black
+                    : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                 fontSize: 14,
               ),
             ),
@@ -311,59 +393,71 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  // ----------------------------------------------------------------
-  // 2. واجهة "سجل الحضور والغياب"
-  // ----------------------------------------------------------------
   Widget _buildAttendanceRecord() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
       children: [
-        _buildUnexcusedAbsenceCard(), // الكرت القابل للتوسيع (الأحمر)
+        _buildUnexcusedAbsenceCard(),
         _buildRecordCard(
           date: '22 أكتوبر، الأحد',
           subject: 'فيزياء عامة',
           statusText: 'غائب بعذر',
-          statusColor: const Color(0xFFFBC02D),
-          bgColor: const Color(0xFFFFF9C4),
+          statusColor: isDark ? Colors.amber.shade300 : const Color(0xFFFBC02D),
+          bgColor: isDark
+              ? Colors.amber.withAlpha(30)
+              : const Color(0xFFFFF9C4),
           icon: Icons.warning_amber_rounded,
         ),
         _buildRecordCard(
           date: '20 أكتوبر، الجمعة',
           subject: 'برمجة متقدمة',
           statusText: 'حاضر',
-          statusColor: const Color(0xFF4CAF50),
-          bgColor: const Color(0xFFE8F5E9),
+          statusColor: isDark ? Colors.green.shade400 : const Color(0xFF4CAF50),
+          bgColor: isDark
+              ? Colors.green.withAlpha(30)
+              : const Color(0xFFE8F5E9),
           icon: Icons.check,
         ),
         _buildRecordCard(
           date: '19 أكتوبر، الخميس',
           subject: 'تاريخ العلوم',
           statusText: 'حاضر',
-          statusColor: const Color(0xFF4CAF50),
-          bgColor: const Color(0xFFE8F5E9),
+          statusColor: isDark ? Colors.green.shade400 : const Color(0xFF4CAF50),
+          bgColor: isDark
+              ? Colors.green.withAlpha(30)
+              : const Color(0xFFE8F5E9),
           icon: Icons.check,
         ),
       ],
     );
   }
 
-  // كرت الغياب غير المبرر (قابل للتوسيع وفيه فورم)
   Widget _buildUnexcusedAbsenceCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Theme.of(context).cardColor : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.shade100, width: 1.5),
+        border: Border.all(
+          color: isDark ? Colors.red.withAlpha(50) : Colors.red.shade100,
+          width: 1.5,
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.red.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withAlpha(50)
+                : Colors.red.withAlpha(13),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
         children: [
-          // الهيدر (عند الضغط عليه يفتح/يغلق)
           GestureDetector(
             onTap: () => setState(() => _isExcuseExpanded = !_isExcuseExpanded),
             child: Row(
@@ -373,18 +467,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   _isExcuseExpanded
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_down,
-                  color: Colors.grey,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         '24 أكتوبر، الثلاثاء',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -401,13 +496,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFFEBEE),
+                              color: isDark
+                                  ? Colors.red.withAlpha(30)
+                                  : const Color(0xFFFFEBEE),
                               borderRadius: BorderRadius.circular(5),
                             ),
-                            child: const Text(
+                            child: Text(
                               'غائب غير مبرر',
                               style: TextStyle(
-                                color: Colors.red,
+                                color: isDark
+                                    ? Colors.red.shade300
+                                    : Colors.red,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -420,34 +519,43 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFEBEE),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.red.withAlpha(30)
+                        : const Color(0xFFFFEBEE),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.close, color: Colors.red, size: 20),
+                  child: Icon(
+                    Icons.close,
+                    color: isDark ? Colors.red.shade300 : Colors.red,
+                    size: 20,
+                  ),
                 ),
               ],
             ),
           ),
 
-          // المحتوى الداخلي (الفورم)
           if (_isExcuseExpanded) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 15),
               child: Divider(
-                color: Colors.red.shade100,
+                color: isDark ? Colors.red.withAlpha(50) : Colors.red.shade100,
                 thickness: 1,
                 height: 1,
               ),
             ),
             Row(
               children: [
-                const Icon(Icons.edit_note, color: Colors.red, size: 18),
+                Icon(
+                  Icons.edit_note,
+                  color: isDark ? Colors.red.shade300 : Colors.red,
+                  size: 18,
+                ),
                 const SizedBox(width: 5),
                 Text(
                   'تقديم عذر للغياب',
                   style: TextStyle(
-                    color: Colors.red.shade700,
+                    color: isDark ? Colors.red.shade300 : Colors.red.shade700,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
@@ -457,23 +565,34 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             const SizedBox(height: 10),
             TextField(
               maxLines: 3,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
               decoration: InputDecoration(
                 hintText: 'يرجى كتابة سبب الغياب هنا...',
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.grey.shade600 : Colors.grey,
+                  fontSize: 12,
+                ),
                 contentPadding: const EdgeInsets.all(12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? Colors.white.withAlpha(30)
+                        : Colors.grey.shade200,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? Colors.white.withAlpha(30)
+                        : Colors.grey.shade200,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 15),
 
-            // صندوق إرفاق مستند (تفاعلي)
             InkWell(
               onTap: _showAttachmentOptions,
               borderRadius: BorderRadius.circular(15),
@@ -482,23 +601,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                    color: Colors.grey.shade300,
+                    color: isDark
+                        ? Colors.white.withAlpha(30)
+                        : Colors.grey.shade300,
                     style: BorderStyle.solid,
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.camera_alt_outlined,
-                      color: Colors.blueGrey,
+                      color: isDark ? Colors.grey.shade400 : Colors.blueGrey,
                       size: 20,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
                       'إرفاق مستند (اختياري)',
                       style: TextStyle(
-                        color: Colors.blueGrey,
+                        color: isDark ? Colors.grey.shade400 : Colors.blueGrey,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -509,7 +630,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
             const SizedBox(height: 15),
 
-            // زر الإرسال مع الـ Pop-up
             SizedBox(
               width: double.infinity,
               height: 45,
@@ -523,9 +643,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 onPressed: () {
                   _showSuccessDialog('تم إرسال التبرير بنجاح\nشاكرين تعاونكم');
-                  setState(
-                    () => _isExcuseExpanded = false,
-                  ); // إغلاق الكرت بعد الإرسال
+                  setState(() => _isExcuseExpanded = false);
                 },
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -550,7 +668,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  // كرت الحضور أو الغياب العادي
   Widget _buildRecordCard({
     required String date,
     required String subject,
@@ -559,68 +676,82 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     required Color bgColor,
     required IconData icon,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  subject,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: statusColor, size: 20),
-              ),
-              const SizedBox(height: 5),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  statusText,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 15),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? Theme.of(context).cardColor : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withAlpha(50)
+                    : Colors.black.withAlpha(8),
+                blurRadius: 10,
               ),
             ],
           ),
-        ],
-      ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      date,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subject,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: statusColor, size: 20),
+                  ),
+                  const SizedBox(height: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -628,21 +759,29 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   // 3. واجهة "طلب إجازة"
   // ----------------------------------------------------------------
   Widget _buildLeaveRequest() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ListView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
       children: [
         // بانر طلب قيد المراجعة
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFEDF4FC),
+            color: isDark ? Colors.blue.withAlpha(25) : const Color(0xFFEDF4FC),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.blue.shade100),
+            border: Border.all(
+              color: isDark ? Colors.blue.withAlpha(50) : Colors.blue.shade100,
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline, color: Colors.blue),
+              Icon(
+                Icons.info_outline,
+                color: isDark ? Colors.blue.shade300 : Colors.blue,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -650,10 +789,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   children: [
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'طلب قيد المراجعة',
                           style: TextStyle(
-                            color: Colors.blue,
+                            color: isDark ? Colors.blue.shade300 : Colors.blue,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -662,18 +801,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE53935),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.red.shade400
+                                : const Color(0xFFE53935),
                             shape: BoxShape.circle,
                           ),
-                        ), // النقطة الحمراء
+                        ),
                       ],
                     ),
                     const SizedBox(height: 5),
-                    const Text(
+                    Text(
                       'لديك طلب إجازة معلق بتاريخ 25 أكتوبر. سيتم إشعارك فور اتخاذ القرار.',
                       style: TextStyle(
-                        color: Colors.blue,
+                        color: isDark ? Colors.blue.shade200 : Colors.blue,
                         fontSize: 11,
                         height: 1.4,
                       ),
@@ -690,27 +831,34 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? Theme.of(context).cardColor : Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withAlpha(50)
+                    : Colors.black.withAlpha(8),
+                blurRadius: 10,
+              ),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'نوع الإجازة',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black54,
+                  color: isDark ? Colors.grey.shade400 : Colors.black54,
                 ),
               ),
               const SizedBox(height: 10),
               // أزرار التبديل
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F6F8),
+                  color: isDark
+                      ? Colors.white.withAlpha(15)
+                      : const Color(0xFFF5F6F8),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Row(
@@ -722,53 +870,94 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               const SizedBox(height: 20),
 
-              const Text(
-                'التاريخ والوقت',
+              // 🌟 تبديل النص بين التاريخ والوقت بذكاء 🌟
+              Text(
+                _leaveType == 0 ? 'التاريخ' : 'الوقت',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black54,
+                  color: isDark ? Colors.grey.shade400 : Colors.black54,
                 ),
               ),
               const SizedBox(height: 10),
 
-              // حقل التاريخ (يفتح التقويم)
-              TextField(
-                controller: _dateController,
-                readOnly: true, // يمنع الكتابة اليدوية
-                onTap: () => _selectDate(context),
-                decoration: InputDecoration(
-                  hintText: 'اختر التاريخ...',
-                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                  filled: true,
-                  fillColor: const Color(0xFFF5F6F8),
-                  suffixIcon: const Icon(
-                    Icons.calendar_today_outlined,
-                    color: Colors.grey,
-                    size: 20,
+              // 🌟 حقل التاريخ (لليوم الكامل) أو حقل الوقت (للساعية) 🌟
+              if (_leaveType == 0)
+                TextField(
+                  controller: _dateController,
+                  readOnly: true,
+                  onTap: () => _selectDate(context),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    hintText: 'اختر التاريخ...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.grey.shade600 : Colors.grey,
+                      fontSize: 13,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? Colors.white.withAlpha(15)
+                        : const Color(0xFFF5F6F8),
+                    suffixIcon: Icon(
+                      Icons.calendar_today_outlined,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey,
+                      size: 20,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
+                )
+              else
+                TextField(
+                  controller: _timeController,
+                  readOnly: true,
+                  onTap: () => _selectTime(context),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    hintText: 'اختر الوقت...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.grey.shade600 : Colors.grey,
+                      fontSize: 13,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? Colors.white.withAlpha(15)
+                        : const Color(0xFFF5F6F8),
+                    suffixIcon: Icon(
+                      Icons.access_time_outlined,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey,
+                      size: 20,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(height: 20),
 
-              const Text(
+              Text(
                 'سبب الإجازة',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black54,
+                  color: isDark ? Colors.grey.shade400 : Colors.black54,
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
                 maxLines: 4,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 decoration: InputDecoration(
                   hintText: 'اذكر سبب طلب الإجازة...',
-                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.grey.shade600 : Colors.grey,
+                    fontSize: 13,
+                  ),
                   filled: true,
-                  fillColor: const Color(0xFFF5F6F8),
+                  fillColor: isDark
+                      ? Colors.white.withAlpha(15)
+                      : const Color(0xFFF5F6F8),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
                     borderSide: BorderSide.none,
@@ -777,7 +966,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               const SizedBox(height: 20),
 
-              // زر الإرسال مع الـ Pop-up
+              // زر الإرسال
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -818,9 +1007,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  // تم التعديل ليصبح لون التاب المختار أصفر
   Widget _buildToggleBtn(String label, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isActive = _leaveType == index;
+
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _leaveType = index),
@@ -828,17 +1018,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive
-                ? const Color(0xFFEFFF00)
-                : Colors.transparent, // اللون الأصفر بدل الأبيض
+            color: isActive ? const Color(0xFFEFFF00) : Colors.transparent,
             borderRadius: BorderRadius.circular(15),
             boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 5,
-                    ),
-                  ]
+                ? [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 5)]
                 : [],
           ),
           child: Center(
@@ -847,7 +1030,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               style: TextStyle(
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
-                color: isActive ? Colors.black : Colors.grey,
+                color: isActive
+                    ? Colors.black
+                    : (isDark ? Colors.grey.shade400 : Colors.grey),
               ),
             ),
           ),

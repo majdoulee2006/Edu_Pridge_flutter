@@ -1,7 +1,9 @@
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart'; // ✅ للربط مع الباكيند
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ لحفظ البيانات
 import '../teacher/teacher_home.dart';
 import '../student/nav_bar/student_home_screen.dart';
-import '../parents/nav_bar/parent_home.dart';
 import 'forgot_password_screen.dart';
 import 'create_account_screen.dart';
 
@@ -14,21 +16,75 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
+  bool _isLoading = false; // ✅ حالة التحميل
+
+  // ✅ تعريف المتحكمات (Controllers) لسحب النصوص من الحقول
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  // ✅ دالة تسجيل الدخول والربط مع API
+  Future<void> _handleLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showError("يرجى إدخال البريد وكلمة المرور");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // نستخدم 127.0.0.1 لأنكِ تعملين على الويب
+      var response = await Dio().post(
+        "http://127.0.0.1:8000/api/login",
+        data: {
+          "email": _emailController.text.trim(),
+          "password": _passwordController.text,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final prefs = await SharedPreferences.getInstance();
+        // حفظ التوكن والاسم
+        await prefs.setString('token', response.data['access_token']);
+        await prefs.setString('user_name', response.data['user']['full_name']);
+
+        String role = response.data['user']['role'];
+
+        if (!mounted) return;
+
+        // التوجيه التلقائي حسب الرول القادم من قاعدة البيانات
+        if (role == 'parent') {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen()));
+        } else if (role == 'teacher') {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()));
+        } else {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentHomeScreen()));
+        }
+      }
+    } on DioException catch (e) {
+      String msg = e.response?.data['message'] ?? "فشل الاتصال بالسيرفر";
+      _showError(msg);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message, textAlign: TextAlign.center)));
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 🎨 استخراج ألوان الثيم
+    // 🎨 دعم الـ Dark Mode بجلب ألوان الثيم
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final scaffoldBg = theme.scaffoldBackgroundColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey;
     final primaryYellow = const Color(0xFFEFFF00);
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final textColor = isDark ? Colors.white : Colors.black87;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: scaffoldBg,
+        backgroundColor: scaffoldBg, // ✅ يتغير حسب المود
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -36,14 +92,12 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 50),
 
-                // 1. الشعار (الأيقونة العلوية)
+                // 1. الشعار
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(25),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.amber.withValues(alpha: 0.1)
-                          : const Color(0xFFFEF9E7),
+                      color: isDark ? Colors.amber.withOpacity(0.1) : const Color(0xFFFEF9E7),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -59,42 +113,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 // 2. نصوص الترحيب
                 Text(
                   "مرحباً بك مجدداً",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   "بوابة المعهد الجامعي للطلاب والمعلمين",
-                  style: TextStyle(fontSize: 14, color: subTextColor),
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
 
                 const SizedBox(height: 40),
 
-                // 3. حقول الإدخال
+                // 3. حقول الإدخال (تم ربط الـ Controllers)
                 _buildTextField(
-                  context,
-                  label: "اسم المستخدم",
-                  hint: "أدخل اسم المستخدم",
-                  icon: Icons.person_outline,
+                  label: "البريد الإلكتروني", // الباكيند يعتمد الإيميل
+                  hint: "example@test.com",
+                  icon: Icons.email_outlined,
+                  controller: _emailController,
+                  isDark: isDark,
                 ),
                 const SizedBox(height: 20),
                 _buildTextField(
-                  context,
-                  label: "رقم الهاتف",
-                  hint: "05x xxx xxxx",
-                  icon: Icons.phone_iphone_outlined,
-                ),
-                const SizedBox(height: 20),
-                _buildTextField(
-                  context,
                   label: "كلمة المرور",
                   hint: "........",
                   icon: Icons.lock_outline,
                   isPassword: true,
+                  controller: _passwordController,
+                  isDark: isDark,
                 ),
 
                 const SizedBox(height: 10),
@@ -103,34 +148,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
-                      );
-                    },
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordScreen())),
                     child: Text(
                       "هل نسيت كلمة المرور؟",
-                      style: TextStyle(
-                        color: isDark ? primaryYellow : const Color(0xFFA4A000),
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(color: isDark ? primaryYellow : const Color(0xFFA4A000), fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                // 5. زر تسجيل الدخول الأساسي
+                // 5. زر تسجيل الدخول الأساسي (تم ربط الدالة البرمجية)
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
-                          (route) => false,
-                    );
-                  },
+                  onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryYellow,
                     foregroundColor: Colors.black,
@@ -138,10 +168,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
-                  child: const Row(
+                  child: _isLoading
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                      : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.login_rounded, size: 22),
+                      Icon(Icons.login, size: 22, color: Colors.black),
                       SizedBox(width: 10),
                       Text("تسجيل الدخول", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ],
@@ -150,15 +182,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 30),
 
-                // 6. الفاصل (أو / OR)
+                // 6. الفاصل
                 Row(
                   children: [
-                    Expanded(child: Divider(color: isDark ? Colors.white12 : Colors.grey.shade300, thickness: 1)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      child: Text("أو", style: TextStyle(color: subTextColor, fontWeight: FontWeight.bold)),
-                    ),
-                    Expanded(child: Divider(color: isDark ? Colors.white12 : Colors.grey.shade300, thickness: 1)),
+                    Expanded(child: Divider(color: Colors.grey.withOpacity(0.3), thickness: 1)),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 15), child: Text("أو", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+                    Expanded(child: Divider(color: Colors.grey.withOpacity(0.3), thickness: 1)),
                   ],
                 ),
 
@@ -166,36 +195,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // 7. زر إنشاء حساب جديد
                 OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CreateAccountScreen()),
-                    );
-                  },
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateAccountScreen())),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 55),
-                    side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300, width: 1.5),
+                    side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, width: 1.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
                   child: Text(
                     "إنشاء حساب جديد",
                     style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                ),
-
-                const SizedBox(height: 40),
-                Divider(color: isDark ? Colors.white10 : Colors.grey.shade200),
-                Text("اختصارات للمطورين (للتجربة فقط):", style: TextStyle(color: subTextColor, fontSize: 12)),
-                const SizedBox(height: 10),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _devButton("دخول كطالب", Colors.green, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentHomeScreen()))),
-                    _devButton("دخول كمدرب", Colors.blue, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()))),
-                    _devButton("دخول كولي أمر", Colors.orange, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen()))),
-                  ],
                 ),
                 const SizedBox(height: 30),
               ],
@@ -206,24 +215,15 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _devButton(String title, Color color, VoidCallback onPressed) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: color, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-      onPressed: onPressed,
-      child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 11)),
-    );
-  }
-
-  Widget _buildTextField(
-      BuildContext context, {
-        required String label,
-        required String hint,
-        required IconData icon,
-        bool isPassword = false,
-      }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
-
+  // ✅ تعديل الويجت ليدعم الـ Dark Mode والـ Controller
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required TextEditingController controller,
+    required bool isDark,
+    bool isPassword = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -231,29 +231,30 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.only(right: 15, bottom: 8),
           child: Text(
             label,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+            color: isDark ? Colors.grey[900] : Colors.white,
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.3)),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withOpacity(0.3)),
           ),
           child: TextField(
+            controller: controller,
             obscureText: isPassword ? _obscurePassword : false,
-            style: TextStyle(color: textColor),
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               border: InputBorder.none,
-              suffixIcon: Icon(icon, color: Colors.grey.shade500, size: 22),
+              suffixIcon: Icon(icon, color: Colors.grey.shade600, size: 22),
               prefixIcon: isPassword
                   ? IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: Colors.grey.shade500,
+                  color: Colors.grey.shade400,
                   size: 20,
                 ),
                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),

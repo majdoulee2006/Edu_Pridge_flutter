@@ -27,8 +27,10 @@ class EduBridgeApp extends StatelessWidget {
               debugShowCheckedModeBanner: false, // لإخفاء شريط الـ Debug المزعج
               title: 'Edu-Bridge',
 
-              // 🌟 تحديد أي وضع رح يشتغل (فاتح ولا داكن) حسب اختيار المستخدم 🌟
-              themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+              // 🌟 التعديل السحري: إذا المستخدم ما غير الإعدادات يدوياً من التطبيق،
+              // رح ياخد التطبيق ثيم الموبايل تلقائياً (ThemeMode.system) 🌟
+              // ملاحظة: لو كنتِ حاطة كود مسبق للإعدادات، استبدليه بهذا ليدعم النظام كافتراضي
+              themeMode: isDark ? ThemeMode.dark : ThemeMode.system,
 
               // 🎨 تصميم الوضع الفاتح (Light Theme)
               theme: ThemeData(

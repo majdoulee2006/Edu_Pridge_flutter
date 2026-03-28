@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 // استيراد الشاشات والقطع اللازمة
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
@@ -15,17 +16,32 @@ class ParentsHomeScreen extends StatefulWidget {
 }
 
 class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
+  // متغير لتخزين اسم ولي الأمر القادم من الباكيند
+  String _parentName = "جارِ التحميل...";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // استدعاء دالة جلب البيانات عند تشغيل الشاشة
+  }
+
+  // دالة لجلب الاسم المخزن في SharedPreferences
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // 'user_name' هو المفتاح الذي استخدمناه في كود الـ Login
+      _parentName = prefs.getString('user_name') ?? "ولي أمر";
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 🎨 جلب الألوان من الثيم الحالي (فاتح أو غامق)
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
 
     return Scaffold(
       backgroundColor: bgColor,
-      // ألغينا الـ bottomNavigationBar القديم لأننا سنستخدم CustomBottomNav داخل Stack
-
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Stack(
@@ -44,18 +60,16 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                   const SizedBox(height: 25),
                   _buildSectionTitle("أخبار المعهد والفعاليات", textColor),
                   _buildNewsCard(),
-                  const SizedBox(height: 120), // مساحة لكي لا يغطي البار على المحتوى
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
 
-            // 2. الشريط السفلي الموحد (CustomBottomNav)
+            // 2. الشريط السفلي الموحد
             CustomBottomNav(
-              currentIndex: 0, // الصفحة الرئيسية
-              centerButton: const Parents_Center_Icon(), // الزر المركزي الخاص بالأهل
-              onHomeTap: () {
-                // نحن بالفعل في الرئيسية
-              },
+              currentIndex: 0,
+              centerButton: const Parents_Center_Icon(),
+              onHomeTap: () {},
               onProfileTap: () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const ParentsProfileScreen()),
@@ -92,8 +106,9 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                 TextSpan(
                   text: "مرحباً، ",
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
-                  children: const [
-                    TextSpan(text: "محمد", style: TextStyle(color: Color(0xFFD4E000))),
+                  children: [
+                    // تم استبدال "محمد" بالمتغير _parentName
+                    TextSpan(text: _parentName, style: const TextStyle(color: Color(0xFFD4E000))),
                   ],
                 ),
               ),
@@ -101,11 +116,10 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                   style: TextStyle(color: Colors.grey, fontSize: 13)),
             ],
           ),
-          // زر الإعدادات
           GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen(userName: "محمد", userRole: "ولي أمر")),
+              MaterialPageRoute(builder: (context) => SettingsScreen(userName: _parentName, userRole: "ولي أمر")),
             ),
             child: Container(
               padding: const EdgeInsets.all(10),
@@ -154,7 +168,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: const Color(0xFFE8F200).withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(color: const Color(0xFFE8F200).withOpacity(0.3), width: 1.5),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -170,7 +184,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: status == "نشط" ? Colors.green.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
+                  color: status == "نشط" ? Colors.green.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(status, style: TextStyle(color: status == "نشط" ? Colors.green : Colors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
