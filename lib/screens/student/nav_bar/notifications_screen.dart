@@ -1,7 +1,6 @@
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:flutter/material.dart';
-//import '../../../core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 
 import 'student_home_screen.dart';
@@ -13,18 +12,27 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return DefaultTabController(
       length: 2,
       child: Directionality(
         textDirection: TextDirection.rtl, // دعم الواجهة العربية
         child: Scaffold(
-          backgroundColor: const Color(0xFFFAFAFA), // خلفية فاتحة جداً
+          backgroundColor: isDark
+              ? Theme.of(context).scaffoldBackgroundColor
+              : const Color(0xFFFAFAFA), // متجاوب
           appBar: AppBar(
-            backgroundColor: const Color(0xFFFAFAFA),
+            backgroundColor: isDark
+                ? Theme.of(context).scaffoldBackgroundColor
+                : const Color(0xFFFAFAFA),
             elevation: 0,
             // ✅ تم تعديل سهم الرجوع ليؤشر لليمين بشكل صحيح
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              icon: Icon(
+                Icons.arrow_back,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               onPressed: () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -32,10 +40,10 @@ class NotificationsScreen extends StatelessWidget {
                 ),
               ),
             ),
-            title: const Text(
+            title: Text(
               'الإشعارات',
               style: TextStyle(
-                color: Colors.black,
+                color: isDark ? Colors.white : Colors.black,
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
               ),
@@ -44,9 +52,9 @@ class NotificationsScreen extends StatelessWidget {
             // أيقونة الإعدادات على اليسار
             actions: [
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.settings_outlined,
-                  color: Colors.black,
+                  color: isDark ? Colors.white : Colors.black,
                   size: 26,
                 ),
                 onPressed: () {
@@ -106,39 +114,52 @@ class NotificationsScreen extends StatelessWidget {
   }
 
   Widget _buildCustomTabBar() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      height: 50,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2), // لون رمادي فاتح لخلفية الشريط
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: TabBar(
-        indicator: BoxDecoration(
-          color: const Color(0xFFEFFF00), // اللون الأصفر المعتمد
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
+    return Builder(
+      // 🌟 استخدمنا Builder لجلب الثيم بدون تغيير الدالة 🌟
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          height: 50,
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withAlpha(20)
+                : const Color(0xFFF2F2F2), // متجاوب
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: TabBar(
+            indicator: BoxDecoration(
+              color: const Color(0xFFEFFF00), // اللون الأصفر المعتمد
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(12), // متجاوب وآمن
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        labelColor: Colors.black,
-        unselectedLabelColor: Colors.grey.shade600,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent, // إخفاء الخط السفلي الافتراضي
-        tabs: const [
-          Tab(text: 'رسائل أكاديمية'),
-          Tab(text: 'رسائل إدارية'),
-        ],
-      ),
+            labelColor: Colors.black,
+            unselectedLabelColor: isDark
+                ? Colors.grey.shade400
+                : Colors.grey.shade600,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent, // إخفاء الخط السفلي الافتراضي
+            tabs: const [
+              Tab(text: 'رسائل أكاديمية'),
+              Tab(text: 'رسائل إدارية'),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -177,7 +198,7 @@ class _AcademicNotificationsView extends StatelessWidget {
           time: 'منذ 5 ساعات',
           icon: Icons.calendar_month_outlined,
           iconColor: Colors.indigo,
-          iconBgColor: Colors.indigo.withOpacity(0.1),
+          iconBgColor: Colors.indigo.withAlpha(25), // متجاوب وآمن
         ),
         const SizedBox(height: 10),
         _buildDateHeader('أمس'),
@@ -218,7 +239,7 @@ class _AdministrativeNotificationsView extends StatelessWidget {
           time: 'اليوم',
           icon: Icons.celebration_outlined,
           iconColor: Colors.purple,
-          iconBgColor: Colors.purple.withOpacity(0.08),
+          iconBgColor: Colors.purple.withAlpha(20), // متجاوب وآمن
         ),
         _buildNotificationCard(
           title: 'تمديد ساعات الدوام',
@@ -227,7 +248,7 @@ class _AdministrativeNotificationsView extends StatelessWidget {
           time: 'أمس',
           icon: Icons.access_time_rounded,
           iconColor: Colors.deepOrange,
-          iconBgColor: Colors.deepOrange.withOpacity(0.08),
+          iconBgColor: Colors.deepOrange.withAlpha(20), // متجاوب وآمن
         ),
         const SizedBox(height: 10),
         _buildDateHeader('الأسبوع الماضي'),
@@ -238,7 +259,7 @@ class _AdministrativeNotificationsView extends StatelessWidget {
           time: 'الخميس',
           icon: Icons.payments_outlined,
           iconColor: Colors.redAccent,
-          iconBgColor: Colors.redAccent.withOpacity(0.08),
+          iconBgColor: Colors.redAccent.withAlpha(20), // متجاوب وآمن
         ),
       ],
     );
@@ -250,16 +271,24 @@ class _AdministrativeNotificationsView extends StatelessWidget {
 // ==========================================
 
 Widget _buildDateHeader(String date) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 15, right: 5),
-    child: Text(
-      date,
-      style: TextStyle(
-        color: Colors.grey.shade700,
-        fontWeight: FontWeight.bold,
-        fontSize: 13,
-      ),
-    ),
+  return Builder(
+    // 🌟 استخدمنا Builder لجلب الثيم بدون تغيير الدالة 🌟
+    builder: (context) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 15, right: 5),
+        child: Text(
+          date,
+          style: TextStyle(
+            color: isDark
+                ? Colors.grey.shade400
+                : Colors.grey.shade700, // متجاوب
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      );
+    },
   );
 }
 
@@ -275,109 +304,133 @@ Widget _buildNotificationCard({
   IconData? badgeIcon,
   Color? badgeColor,
 }) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 15),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.02),
-          blurRadius: 15,
-          offset: const Offset(0, 5),
-        ),
-      ],
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // الأيقونة أو الصورة الشخصية
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            if (avatarUrl != null)
-              CircleAvatar(
-                radius: 25,
-                backgroundImage: NetworkImage(avatarUrl),
-                backgroundColor: Colors.grey.shade200,
-              )
-            else if (icon != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: iconBgColor ?? Colors.grey.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 26),
-              ),
+  return Builder(
+    // 🌟 استخدمنا Builder لجلب الثيم بدون تغيير الدالة 🌟
+    builder: (context) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
 
-            // الشارة (Badge) الصغيرة التي تظهر فوق الصورة
-            if (badgeIcon != null)
-              Positioned(
-                bottom: -2,
-                left:
-                    -2, // في الواجهة العربية، اليسار هو الزاوية السفلية المعاكسة
-                child: Container(
-                  padding: const EdgeInsets.all(2), // إطار أبيض للشارة
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: badgeColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(badgeIcon, color: Colors.white, size: 12),
-                  ),
-                ),
-              ),
+      return Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? Theme.of(context).cardColor : Colors.white, // متجاوب
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withAlpha(50)
+                  : Colors.black.withAlpha(5), // متجاوب
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
           ],
         ),
-        const SizedBox(width: 15),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // الأيقونة أو الصورة الشخصية
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                if (avatarUrl != null)
+                  CircleAvatar(
+                    radius: 25,
+                    backgroundImage: NetworkImage(avatarUrl),
+                    backgroundColor: isDark
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade200,
+                  )
+                else if (icon != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          iconBgColor ??
+                          (isDark
+                              ? Colors.white.withAlpha(15)
+                              : Colors.grey.shade100),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: iconColor, size: 26),
+                  ),
 
-        // النصوص (العنوان، التفاصيل، والوقت)
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Colors.black87,
+                // الشارة (Badge) الصغيرة التي تظهر فوق الصورة
+                if (badgeIcon != null)
+                  Positioned(
+                    bottom: -2,
+                    left:
+                        -2, // في الواجهة العربية، اليسار هو الزاوية السفلية المعاكسة
+                    child: Container(
+                      padding: const EdgeInsets.all(2), // إطار أبيض للشارة
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Theme.of(context).cardColor
+                            : Colors.white, // إطار يطابق الكرت
+                        shape: BoxShape.circle,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(badgeIcon, color: Colors.white, size: 12),
                       ),
                     ),
                   ),
+              ],
+            ),
+            const SizedBox(width: 15),
+
+            // النصوص (العنوان، التفاصيل، والوقت)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: isDark
+                                ? Colors.white
+                                : Colors.black87, // متجاوب
+                          ),
+                        ),
+                      ),
+                      Text(
+                        time,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Text(
-                    time,
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                    subtitle,
+                    style: TextStyle(
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600, // متجاوب
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
-    ),
+      );
+    },
   );
 }

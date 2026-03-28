@@ -1,10 +1,12 @@
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
+
 // استدعاء ملف الزر المنبثق (السبيد ديال)
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 // 🌟 استدعاء الشريط السفلي الموحد الجديد 🌟
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+
 // استدعاء باقي الواجهات لضمان عمل التنقل
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
@@ -15,10 +17,18 @@ class StudentHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب حالة الوضع الليلي والألوان المتجاوبة 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? Theme.of(context).scaffoldBackgroundColor
+        : AppColors.background;
+    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.textDark;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: bgColor, // 🌟 لون متجاوب
         body: Stack(
           children: [
             // المحتوى الأساسي (الأخبار)
@@ -30,10 +40,10 @@ class StudentHomeScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    // تمرير الـ context هنا لتمكين الانتقال من شريط العناوين
-                    _buildAppBar(context),
+                    // تمرير الألوان لتتجاوب مع الوضع
+                    _buildAppBar(context, isDark, textColor),
                     const SizedBox(height: 24),
-                    _buildSectionTitle(),
+                    _buildSectionTitle(textColor),
                     const SizedBox(height: 16),
                     Expanded(
                       child: ListView(
@@ -49,10 +59,15 @@ class StudentHomeScreen extends StatelessWidget {
                             description:
                                 'يرجى من جميع الطلاب مراجعة الجدول الدراسي والتأكد من توقيت الامتحانات والقاعات المخصصة.',
                             time: 'منذ ساعتين',
-                            gradientColors: [
-                              Colors.amber.shade300,
-                              Colors.amber.shade700,
-                            ],
+                            gradientColors: isDark
+                                ? [Colors.amber.shade700, Colors.amber.shade900]
+                                : [
+                                    Colors.amber.shade300,
+                                    Colors.amber.shade700,
+                                  ],
+                            cardColor: cardColor,
+                            textColor: textColor,
+                            isDark: isDark,
                           ),
                           _buildNewsCard(
                             tag: 'نشاط طلابي',
@@ -60,10 +75,12 @@ class StudentHomeScreen extends StatelessWidget {
                             description:
                                 'ندعو جميع الطلاب المهتمين للتسجيل في ورشة العمل التي ستقام في قاعة المؤتمرات يوم الخميس القادم.',
                             time: 'منذ 4 ساعات',
-                            gradientColors: [
-                              Colors.teal.shade200,
-                              Colors.teal.shade800,
-                            ],
+                            gradientColors: isDark
+                                ? [Colors.teal.shade700, Colors.teal.shade900]
+                                : [Colors.teal.shade200, Colors.teal.shade800],
+                            cardColor: cardColor,
+                            textColor: textColor,
+                            isDark: isDark,
                           ),
                         ],
                       ),
@@ -112,11 +129,11 @@ class StudentHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, bool isDark, Color textColor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -124,12 +141,12 @@ class StudentHomeScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
+                color: textColor, // 🌟 لون متجاوب
               ),
             ),
             Row(
               children: [
-                Text(
+                const Text(
                   'مرحباً، ',
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
@@ -138,7 +155,7 @@ class StudentHomeScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+                    color: textColor, // 🌟 لون متجاوب
                   ),
                 ),
               ],
@@ -172,8 +189,13 @@ class StudentHomeScreen extends StatelessWidget {
               },
               child: CircleAvatar(
                 radius: 22,
-                backgroundColor: Colors.orange.shade100,
-                child: const Icon(Icons.person, color: Colors.orange),
+                backgroundColor: isDark
+                    ? Colors.grey.shade800
+                    : Colors.orange.shade100,
+                child: Icon(
+                  Icons.person,
+                  color: isDark ? Colors.grey.shade400 : Colors.orange,
+                ),
               ),
             ),
           ],
@@ -182,7 +204,7 @@ class StudentHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle() {
+  Widget _buildSectionTitle(Color textColor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -197,12 +219,12 @@ class StudentHomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Text(
+            Text(
               'آخر الأخبار',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
+                color: textColor, // 🌟 لون متجاوب
               ),
             ),
           ],
@@ -221,15 +243,21 @@ class StudentHomeScreen extends StatelessWidget {
     required String description,
     required String time,
     required List<Color> gradientColors,
+    required Color cardColor,
+    required Color textColor,
+    required bool isDark,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🌟 لون متجاوب
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            // 🌟 استخدام withAlpha بدلاً من withOpacity للابتعاد عن التحذيرات
+            color: isDark
+                ? Colors.black.withAlpha(50)
+                : Colors.black.withAlpha(10),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -261,15 +289,19 @@ class StudentHomeScreen extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark
+                        ? Colors.black.withAlpha(150)
+                        : Colors.white, // 🌟 لون متجاوب للـ Tag
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     tag,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
+                      color: isDark
+                          ? Colors.white
+                          : AppColors.textDark, // 🌟 لون متجاوب
                     ),
                   ),
                 ),
@@ -283,10 +315,10 @@ class StudentHomeScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+                    color: textColor, // 🌟 لون متجاوب
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -306,15 +338,16 @@ class StudentHomeScreen extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: AppColors.background,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.grey.shade800
+                            : AppColors.background, // 🌟 لون متجاوب
                         shape: BoxShape.circle,
                       ),
-                      // تم تغيير السهم ليؤشر لليسار بشكل صحيح في الواجهة العربية
-                      child: const Icon(
+                      child: Icon(
                         Icons.keyboard_arrow_left,
                         size: 20,
-                        color: AppColors.textDark,
+                        color: textColor, // 🌟 لون متجاوب
                       ),
                     ),
                     Text(

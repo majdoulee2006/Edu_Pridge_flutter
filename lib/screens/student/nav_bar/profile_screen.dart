@@ -55,8 +55,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ✅ دالة لإظهار القائمة السفلية لاختيار مصدر الصورة
   void _showImageSourceBottomSheet(BuildContext context) {
+    // 🌟 جلب الثيم للقائمة السفلية
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.textDark;
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: cardColor, // 🌟 لون متجاوب
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
@@ -68,11 +74,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
                   'تغيير الصورة الشخصية',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
                 ),
               ),
               ListTile(
@@ -80,7 +90,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Icons.photo_library,
                   color: AppColors.primary,
                 ),
-                title: const Text('اختيار من المعرض'),
+                title: Text(
+                  'اختيار من المعرض',
+                  style: TextStyle(color: textColor),
+                ),
                 onTap: () {
                   Navigator.pop(context); // إغلاق القائمة
                   _pickImage(ImageSource.gallery); // اختيار من المعرض
@@ -88,7 +101,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-                title: const Text('التقاط صورة بالكاميرا'),
+                title: Text(
+                  'التقاط صورة بالكاميرا',
+                  style: TextStyle(color: textColor),
+                ),
                 onTap: () {
                   Navigator.pop(context); // إغلاق القائمة
                   _pickImage(ImageSource.camera); // التقاط بالكاميرا
@@ -137,15 +153,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب حالة الوضع الليلي والألوان المتجاوبة 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? Theme.of(context).scaffoldBackgroundColor
+        : AppColors.background;
+    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.textDark;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: bgColor, // 🌟 متجاوب
         appBar: AppBar(
-          backgroundColor: AppColors.background,
+          backgroundColor: bgColor, // 🌟 متجاوب
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+            icon: Icon(Icons.arrow_back, color: textColor), // 🌟 متجاوب
             onPressed: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -153,10 +177,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          title: const Text(
+          title: Text(
             'الملف الشخصي',
             style: TextStyle(
-              color: AppColors.textDark,
+              color: textColor, // 🌟 متجاوب
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -170,7 +194,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   barrierDismissible:
                       false, // يمنع الإغلاق عند الضغط خارج النافذة
                   builder: (BuildContext context) {
+                    final dialogBgColor = isDark
+                        ? Theme.of(context).cardColor
+                        : Colors.white;
+                    final dialogTextColor = isDark
+                        ? Colors.white
+                        : Colors.black;
+
                     return AlertDialog(
+                      backgroundColor: dialogBgColor, // 🌟 متجاوب
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -183,12 +215,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             size: 70,
                           ),
                           const SizedBox(height: 20),
-                          const Text(
+                          Text(
                             "تم الحفظ بنجاح!",
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: dialogTextColor, // 🌟 متجاوب
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -224,7 +256,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: const Text(
                                 "حسناً",
                                 style: TextStyle(
-                                  color: Colors.black,
+                                  color: Colors
+                                      .black, // النص أسود دائماً للتباين مع الأصفر
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -237,10 +270,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 );
               },
-              child: const Text(
+              child: Text(
                 'حفظ',
                 style: TextStyle(
-                  color: AppColors.textDark,
+                  color: textColor, // 🌟 متجاوب
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -255,78 +288,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  _buildProfileHeader(),
+                  _buildProfileHeader(bgColor, textColor, isDark),
                   const SizedBox(height: 30),
 
                   _buildSectionTitle('معلومات التواصل'),
-                  _buildInfoCard([
-                    // الانتقال لواجهة تعديل الهاتف
-                    _InfoRow(
-                      title: 'رقم الهاتف',
-                      value: '4567 123 050',
-                      icon: Icons.phone_android,
-                      isEditable: true,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const EditPhoneScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    // ✅ تم تفعيل الضغط للانتقال لواجهة تعديل الإيميل
-                    _InfoRow(
-                      title: 'بريد الإلكتروني',
-                      value: 'ahmed.ali@institute.edu',
-                      icon: Icons.email,
-                      isEditable: true,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const EditEmailScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ]),
+                  _buildInfoCard(
+                    [
+                      // الانتقال لواجهة تعديل الهاتف
+                      _InfoRow(
+                        title: 'رقم الهاتف',
+                        value: '4567 123 050',
+                        icon: Icons.phone_android,
+                        isEditable: true,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EditPhoneScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      // ✅ تم تفعيل الضغط للانتقال لواجهة تعديل الإيميل
+                      _InfoRow(
+                        title: 'بريد الإلكتروني',
+                        value: 'ahmed.ali@institute.edu',
+                        icon: Icons.email,
+                        isEditable: true,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EditEmailScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    cardColor,
+                    textColor,
+                    isDark,
+                  ),
 
                   _buildSectionTitle('البيانات الأكاديمية'),
-                  _buildInfoCard([
-                    _InfoRow(
-                      title: 'القسم',
-                      value: 'هندسة الحاسوب',
-                      icon: Icons.school,
-                      isEditable: false,
-                    ),
-                    _InfoRow(
-                      title: 'السنة الدراسية / الفرع',
-                      value: 'السنة الثالثة',
-                      icon: Icons.account_tree_outlined,
-                      isEditable: false,
-                    ),
-                  ]),
+                  _buildInfoCard(
+                    [
+                      _InfoRow(
+                        title: 'القسم',
+                        value: 'هندسة الحاسوب',
+                        icon: Icons.school,
+                        isEditable: false,
+                      ),
+                      _InfoRow(
+                        title: 'السنة الدراسية / الفرع',
+                        value: 'السنة الثالثة',
+                        icon: Icons.account_tree_outlined,
+                        isEditable: false,
+                      ),
+                    ],
+                    cardColor,
+                    textColor,
+                    isDark,
+                  ),
 
                   _buildSectionTitle('تفاصيل شخصية'),
-                  _buildInfoCard([
-                    _InfoRow(
-                      title: 'تاريخ الميلاد',
-                      value: dob,
-                      icon: Icons.cake_outlined,
-                      isEditable: false, // 🔒 تم التغيير لـ false لمنع التعديل
-                      onTap: null, // 🔒 إزالة حدث الضغط
-                    ),
-                    _InfoRow(
-                      title: 'الجنس',
-                      value: 'ذكر',
-                      icon: Icons.people_outline,
-                      isEditable: false,
-                    ),
-                  ]),
+                  _buildInfoCard(
+                    [
+                      _InfoRow(
+                        title: 'تاريخ الميلاد',
+                        value: dob,
+                        icon: Icons.cake_outlined,
+                        isEditable:
+                            false, // 🔒 تم التغيير لـ false لمنع التعديل
+                        onTap: null, // 🔒 إزالة حدث الضغط
+                      ),
+                      _InfoRow(
+                        title: 'الجنس',
+                        value: 'ذكر',
+                        icon: Icons.people_outline,
+                        isEditable: false,
+                      ),
+                    ],
+                    cardColor,
+                    textColor,
+                    isDark,
+                  ),
 
                   _buildSectionTitle('الإعدادات'),
-                  _buildSettingsItem(),
+                  _buildSettingsItem(cardColor, textColor, isDark),
                 ],
               ),
             ),
@@ -359,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(Color bgColor, Color textColor, bool isDark) {
     return Column(
       children: [
         Stack(
@@ -367,8 +416,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(3),
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: bgColor, // 🌟 لون متجاوب للحدود
                 shape: BoxShape.circle,
               ),
               child: CircleAvatar(
@@ -396,12 +445,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.accent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(
+                      color: bgColor,
+                      width: 2,
+                    ), // 🌟 لون الإطار متجاوب
                   ),
                   child: const Icon(
                     Icons.camera_alt,
                     size: 18,
-                    color: Colors.black,
+                    color: Colors
+                        .black, // الأيقونة سوداء دائماً لتباينها مع الأصفر
                   ),
                 ),
               ),
@@ -409,24 +462,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         const SizedBox(height: 15),
-        const Text(
+        Text(
           'أحمد محمد علي',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppColors.textDark,
+            color: textColor, // 🌟 متجاوب
           ),
         ),
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildChip('طالب', Colors.grey.shade100, AppColors.textGrey),
+            _buildChip(
+              'طالب',
+              isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+              isDark ? Colors.grey.shade300 : AppColors.textGrey,
+            ),
             const SizedBox(width: 8),
             _buildChip(
               'ID: 202300159',
-              const Color(0xFFFCF9D1),
-              AppColors.textDark,
+              isDark ? const Color(0xFF555000) : const Color(0xFFFCF9D1),
+              isDark ? Colors.white : AppColors.textDark,
             ),
           ],
         ),
@@ -452,14 +509,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoCard(List<_InfoRow> rows) {
+  Widget _buildInfoCard(
+    List<_InfoRow> rows,
+    Color cardColor,
+    Color textColor,
+    bool isDark,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🌟 متجاوب
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
+          // 🌟 استخدام withAlpha لتجنب التحذيرات 🌟
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withAlpha(50)
+                : Colors.black.withAlpha(10),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
@@ -477,12 +545,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark
+                              ? Colors.white.withAlpha(15)
+                              : Colors.grey.shade50, // 🌟 متجاوب
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           entry.value.icon,
-                          color: Colors.black87,
+                          color: isDark
+                              ? Colors.white70
+                              : Colors.black87, // 🌟 متجاوب
                           size: 22,
                         ),
                       ),
@@ -501,9 +573,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 2),
                             Text(
                               entry.value.value,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
+                                color: textColor, // 🌟 متجاوب
                               ),
                             ),
                           ],
@@ -515,7 +588,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             : Icons.lock_outline,
                         color: entry.value.isEditable
                             ? AppColors.accent
-                            : Colors.grey.shade400,
+                            : (isDark
+                                  ? Colors.grey.shade600
+                                  : Colors.grey.shade400),
                         size: 20,
                       ),
                     ],
@@ -524,7 +599,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (!isLast)
                   Divider(
                     height: 1,
-                    color: Colors.grey.shade100,
+                    color: isDark
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade100, // 🌟 متجاوب
                     indent: 20,
                     endIndent: 20,
                   ),
@@ -536,7 +613,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSettingsItem() {
+  Widget _buildSettingsItem(Color cardColor, Color textColor, bool isDark) {
     return InkWell(
       // ✅ تم إضافة InkWell لتفعيل الضغط والانتقال للواجهة
       onTap: () {
@@ -549,10 +626,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor, // 🌟 متجاوب
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withAlpha(50)
+                  : Colors.black.withAlpha(10),
+              blurRadius: 10,
+            ),
           ],
         ),
         child: Row(
@@ -560,15 +642,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: isDark
+                    ? Colors.white.withAlpha(15)
+                    : Colors.grey.shade50, // 🌟 متجاوب
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.history, color: Colors.black87, size: 22),
+              child: Icon(
+                Icons.history,
+                color: isDark ? Colors.white70 : Colors.black87,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 15),
-            const Text(
+            Text(
               'تغيير كلمة المرور',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ), // 🌟 متجاوب
             ),
             const Spacer(),
             const Icon(Icons.arrow_back_ios, size: 16, color: Colors.grey),

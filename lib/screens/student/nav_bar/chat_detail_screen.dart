@@ -32,15 +32,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   // دالة لإظهار قائمة المرفقات
   void _showAttachmentOptions(BuildContext context) {
+    // 🌟 جلب الثيم للقائمة السفلية
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
+          decoration: BoxDecoration(
+            color: cardColor, // 🌟 خلفية متجاوبة
+            borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(30),
               topRight: Radius.circular(30),
             ),
@@ -48,20 +53,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'إرفاق ملف',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ), // 🌟 نص متجاوب
               ),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildAttachmentOption(Icons.image, 'صورة', Colors.purple),
-                  _buildAttachmentOption(Icons.videocam, 'فيديو', Colors.pink),
+                  _buildAttachmentOption(
+                    Icons.image,
+                    'صورة',
+                    Colors.purple,
+                    isDark,
+                    textColor,
+                  ),
+                  _buildAttachmentOption(
+                    Icons.videocam,
+                    'فيديو',
+                    Colors.pink,
+                    isDark,
+                    textColor,
+                  ),
                   _buildAttachmentOption(
                     Icons.insert_drive_file,
                     'مستند',
                     Colors.blue,
+                    isDark,
+                    textColor,
                   ),
                 ],
               ),
@@ -73,7 +96,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildAttachmentOption(IconData icon, String title, Color color) {
+  Widget _buildAttachmentOption(
+    IconData icon,
+    String title,
+    Color color,
+    bool isDark,
+    Color textColor,
+  ) {
     return GestureDetector(
       onTap: () => Navigator.pop(context),
       child: Column(
@@ -81,15 +110,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              // 🌟 استخدام withAlpha لتجنب التحذيرات
+              color: color.withAlpha(isDark ? 50 : 25),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 30),
+            child: Icon(
+              icon,
+              color: isDark ? color.withAlpha(200) : color,
+              size: 30,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             title,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ), // 🌟 نص متجاوب
           ),
         ],
       ),
@@ -98,21 +136,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب حالة الوضع الليلي والألوان 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? Theme.of(context).scaffoldBackgroundColor
+        : const Color(0xFFF7F9FC);
+    final appBarColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F9FC),
+        backgroundColor: bgColor, // 🌟 خلفية متجاوبة
         appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 1,
+          backgroundColor: appBarColor, // 🌟 لون الأب بار متجاوب
+          elevation: isDark ? 0 : 1,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: textColor), // 🌟 أيقونة متجاوبة
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
             children: [
               CircleAvatar(
                 radius: 20,
+                backgroundColor: isDark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade200,
                 backgroundImage: NetworkImage(widget.imageUrl),
               ),
               const SizedBox(width: 12),
@@ -121,8 +170,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 children: [
                   Text(
                     widget.name,
-                    style: const TextStyle(
-                      color: Colors.black,
+                    style: TextStyle(
+                      color: textColor, // 🌟 نص متجاوب
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -149,23 +198,42 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   final msg = messages[index];
                   // إذا كانت مجموعة، نعتبر كل الرسائل مستلمة (isMe: false) لغرض العرض
                   bool isMe = widget.isGroup ? false : msg['isMe'];
-                  return _buildMessageBubble(msg['text'], isMe, msg['time']);
+                  return _buildMessageBubble(
+                    msg['text'],
+                    isMe,
+                    msg['time'],
+                    isDark,
+                  );
                 },
               ),
             ),
 
             // 🌟 السحر هنا: إذا كانت جروب، نعرض رسالة للقراءة فقط، وإلا نعرض حقل الكتابة 🌟
             if (widget.isGroup)
-              _buildReadOnlyBanner()
+              _buildReadOnlyBanner(isDark)
             else
-              _buildMessageInput(),
+              _buildMessageInput(isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMessageBubble(String text, bool isMe, String time) {
+  Widget _buildMessageBubble(String text, bool isMe, String time, bool isDark) {
+    // 🌟 تحديد لون الفقاعات المتجاوب
+    Color bubbleColor;
+    Color messageTextColor;
+
+    if (isMe) {
+      bubbleColor = const Color(0xFFEFFF00); // رسائلي دائماً صفراء
+      messageTextColor = Colors.black87; // النص داخل الأصفر دائماً داكن
+    } else {
+      bubbleColor = isDark
+          ? Theme.of(context).cardColor
+          : Colors.white; // رسائل الطرف الآخر متجاوبة
+      messageTextColor = isDark ? Colors.white : Colors.black87;
+    }
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -175,7 +243,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: isMe ? const Color(0xFFEFFF00) : Colors.white,
+          color: bubbleColor,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(20),
             topRight: const Radius.circular(20),
@@ -188,7 +256,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: isDark
+                  ? Colors.black.withAlpha(50)
+                  : Colors.black.withAlpha(12), // 🌟 ظل متجاوب مع withAlpha
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
@@ -201,16 +271,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           children: [
             Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Colors.black87,
+                color: messageTextColor, // 🌟 لون نص الرسالة
                 height: 1.4,
               ),
             ),
             const SizedBox(height: 5),
             Text(
               time,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 10,
+                color: isMe ? Colors.black54 : Colors.grey,
+              ), // لون الوقت
             ),
           ],
         ),
@@ -219,19 +292,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   // 🌟 رسالة الجروبات 🌟
-  Widget _buildReadOnlyBanner() {
+  Widget _buildReadOnlyBanner(bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+      decoration: BoxDecoration(
+        color: isDark
+            ? Theme.of(context).cardColor
+            : Colors.white, // 🌟 خلفية متجاوبة
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black45 : Colors.black12,
+            blurRadius: 10,
+          ),
+        ],
       ),
-      child: const Text(
+      child: Text(
         'هذه المجموعة مخصصة للإعلانات، يقتصر الإرسال على المدرب.',
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: Colors.grey,
+          color: isDark ? Colors.grey.shade400 : Colors.grey, // 🌟 نص متجاوب
           fontSize: 13,
           fontWeight: FontWeight.bold,
         ),
@@ -240,19 +320,34 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   // 🌟 حقل الكتابة للمحادثات الفردية 🌟
-  Widget _buildMessageInput() {
+  Widget _buildMessageInput(bool isDark) {
+    final bgColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final inputBgColor = isDark
+        ? Colors.grey.shade800
+        : const Color(0xFFF2F2F2);
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+      decoration: BoxDecoration(
+        color: bgColor, // 🌟 متجاوب
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black45 : Colors.black12,
+            blurRadius: 10,
+          ),
+        ],
       ),
       child: SafeArea(
         child: Row(
           children: [
             // زر المرفقات يفتح قائمة الرفع
             IconButton(
-              icon: const Icon(Icons.attach_file, color: Colors.grey, size: 26),
+              icon: Icon(
+                Icons.attach_file,
+                color: isDark ? Colors.grey.shade400 : Colors.grey,
+                size: 26,
+              ),
               onPressed: () => _showAttachmentOptions(context),
             ),
 
@@ -260,16 +355,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF2F2F2),
+                  color: inputBgColor, // 🌟 متجاوب
                   borderRadius: BorderRadius.circular(25),
                 ),
                 child: TextField(
                   controller: _messageController,
-                  autofocus:
-                      false, // إذا حابة الكيبورد يفتح تلقائي أول ما تفوتي عالشات، اعمليها true
-                  decoration: const InputDecoration(
+                  autofocus: false,
+                  style: TextStyle(color: textColor), // 🌟 لون النص المكتوب
+                  decoration: InputDecoration(
                     hintText: 'اكتب رسالتك...',
-                    hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey.shade500 : Colors.grey,
+                    ),
                     border: InputBorder.none,
                   ),
                 ),
@@ -300,7 +398,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
                 child: const Icon(
                   Icons.send_rounded,
-                  color: Colors.black,
+                  color: Colors.black, // الأيقونة سوداء لتباينها مع الأصفر
                   size: 24,
                 ),
               ),

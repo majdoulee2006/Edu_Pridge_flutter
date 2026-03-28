@@ -3,7 +3,6 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/select_teacher_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:flutter/material.dart';
-//import '../../../core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
@@ -21,7 +20,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
   String selectedCategory = 'الكل';
   // 🌟 متغير لتخزين نص البحث 🌟
   String searchQuery = '';
-
   // ✅ إضافة محادثات متنوعة (جروبات + مدربين)
   final List<Map<String, dynamic>> allChats = [
     {
@@ -83,6 +81,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // 🌟 منطق الفلترة (حسب التصنيف + حسب شريط البحث) 🌟
     List<Map<String, dynamic>> filteredChats = allChats.where((chat) {
       // 1. فحص التصنيف
@@ -106,12 +106,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F9FC),
+        backgroundColor: isDark
+            ? Theme.of(context).scaffoldBackgroundColor
+            : const Color(0xFFF7F9FC),
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF7F9FC),
+          backgroundColor: isDark
+              ? Theme.of(context).scaffoldBackgroundColor
+              : const Color(0xFFF7F9FC),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(
+              Icons.arrow_back,
+              color: isDark ? Colors.white : Colors.black,
+            ),
             onPressed: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -119,10 +126,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
               ),
             ),
           ),
-          title: const Text(
+          title: Text(
             'الرسائل',
             style: TextStyle(
-              color: Colors.black,
+              color: isDark ? Colors.white : Colors.black,
               fontWeight: FontWeight.bold,
               fontSize: 22,
             ),
@@ -130,7 +137,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
           centerTitle: true,
           actions: [
             IconButton(
-              icon: const Icon(Icons.settings_outlined, color: Colors.black),
+              icon: Icon(
+                Icons.settings_outlined,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
@@ -151,8 +161,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 // قائمة المحادثات
                 Expanded(
                   child: filteredChats.isEmpty
-                      ? const Center(
-                          child: Text('لا توجد رسائل مطابقة للبحث أو الفلتر'),
+                      ? Center(
+                          child: Text(
+                            'لا توجد رسائل مطابقة للبحث أو الفلتر',
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
                         )
                       : ListView.builder(
                           padding: const EdgeInsets.only(bottom: 120, top: 10),
@@ -164,7 +181,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ),
               ],
             ),
-
             Positioned(
               bottom: 110,
               right: 25,
@@ -213,26 +229,40 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _buildSearchBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Theme.of(context).cardColor : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade300,
+        ),
       ),
       child: TextField(
+        style: TextStyle(color: isDark ? Colors.white : Colors.black),
         // 🌟 تفعيل البحث الفوري عند الكتابة 🌟
         onChanged: (value) {
           setState(() {
             searchQuery = value;
           });
         },
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'ابحث عن مادة أو مدرس...',
-          hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-          suffixIcon: Icon(Icons.search, color: Colors.grey),
+          hintStyle: TextStyle(
+            color: isDark ? Colors.grey.shade500 : Colors.grey,
+            fontSize: 14,
+          ),
+          suffixIcon: Icon(
+            Icons.search,
+            color: isDark ? Colors.grey.shade500 : Colors.grey,
+          ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 15,
+            vertical: 14,
+          ),
         ),
       ),
     );
@@ -256,7 +286,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _buildCategoryChip(String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isSelected = selectedCategory == label;
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -267,7 +299,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
         margin: const EdgeInsets.only(left: 10),
         padding: const EdgeInsets.symmetric(horizontal: 25),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEFFF00) : const Color(0xFFEFEFEF),
+          color: isSelected
+              ? const Color(0xFFEFFF00)
+              : (isDark ? Colors.white.withAlpha(20) : const Color(0xFFEFEFEF)),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Center(
@@ -276,7 +310,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.black : Colors.grey.shade600,
+              color: isSelected
+                  ? Colors.black
+                  : (isDark ? Colors.grey.shade300 : Colors.grey.shade600),
             ),
           ),
         ),
@@ -285,18 +321,23 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _buildChatItem(Map<String, dynamic> chat) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool hasUnread = chat['unread'] > 0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: hasUnread ? Colors.white : Colors.transparent,
+        color: hasUnread
+            ? (isDark ? Theme.of(context).cardColor : Colors.white)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(15),
         boxShadow: hasUnread
             ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: isDark
+                      ? Colors.black.withAlpha(40)
+                      : Colors.black.withAlpha(12),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -308,6 +349,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
           children: [
             CircleAvatar(
               radius: 28,
+              backgroundColor: isDark
+                  ? Colors.grey.shade800
+                  : Colors.grey.shade200,
               backgroundImage: NetworkImage(chat['image']),
             ),
             if (chat['isOnline'])
@@ -320,7 +364,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF25D366),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2.5),
+                    border: Border.all(
+                      color: hasUnread
+                          ? (isDark
+                                ? Theme.of(context).cardColor
+                                : Colors.white)
+                          : (isDark
+                                ? Theme.of(context).scaffoldBackgroundColor
+                                : const Color(0xFFF7F9FC)),
+                      width: 2.5,
+                    ),
                   ),
                 ),
               ),
@@ -328,7 +381,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
         ),
         title: Text(
           chat['name'],
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: isDark ? Colors.white : Colors.black,
+          ),
         ),
         subtitle: Row(
           children: [
@@ -343,7 +400,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: hasUnread ? Colors.black87 : Colors.grey.shade600,
+                  color: hasUnread
+                      ? (isDark ? Colors.white : Colors.black87)
+                      : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                   fontSize: 13,
                   fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
                 ),
@@ -360,7 +419,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               style: TextStyle(
                 fontSize: 11,
                 color: hasUnread
-                    ? const Color(0xFFD4AC0D)
+                    ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D))
                     : Colors.grey.shade500,
                 fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
               ),

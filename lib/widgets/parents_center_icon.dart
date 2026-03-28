@@ -1,6 +1,5 @@
 import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_screen/permissions_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/reports_screen/reports_screen.dart';
-import 'package:edu_pridge_flutter/widgets/teacher_speed_dial.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
@@ -50,13 +49,17 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
   Widget build(BuildContext context) {
     // 🌟 التحقق من الثيم لتحديد الألوان بدقة 🌟
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // تحديد لون خلفية المروحة
-    final Color menuBgColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final Color menuBgColor = isDark
+        ? Theme.of(context).cardColor
+        : Colors.white;
     // تحديد لون النصوص
     final Color itemTextColor = isDark ? Colors.white : Colors.black87;
     // تحديد لون الخطوط الفاصلة
-    final Color separatorColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    final Color separatorColor = isDark
+        ? Colors.grey.shade800
+        : Colors.grey.shade300;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -79,7 +82,9 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                     onTap: _toggleMenu,
                     child: Opacity(
                       opacity: _animationController.value,
-                      child: Container(color: Colors.black.withAlpha(125)), // 125 تعادل 0.5 تقريباً
+                      child: Container(
+                        color: Colors.black.withAlpha(125),
+                      ), // 125 تعادل 0.5 تقريباً
                     ),
                   ),
 
@@ -91,7 +96,8 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                       painter: MenuBackgroundPainter(
                         progress: _animationController.value,
                         bgColor: menuBgColor, // 🌟 نمرر اللون الذكي للخلفية
-                        lineColor: separatorColor, // 🌟 نمرر لون الخط الفاصل الذكي
+                        lineColor:
+                            separatorColor, // 🌟 نمرر لون الخط الفاصل الذكي
                       ),
                       child: SizedBox(
                         width: 320,
@@ -196,7 +202,8 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                 child: Icon(
                   _isOpen ? Icons.close : Icons.grid_view_rounded,
                   size: 28,
-                  color: Colors.black, // الأيقونة دائماً سوداء لتباينها مع الأصفر
+                  color:
+                      Colors.black, // الأيقونة دائماً سوداء لتباينها مع الأصفر
                 ),
               ),
             ),
@@ -274,8 +281,8 @@ class MenuBackgroundPainter extends CustomPainter {
   final Color lineColor; // 🌟 لون الخط الذكي
 
   MenuBackgroundPainter({
-    required this.progress, 
-    required this.bgColor, 
+    required this.progress,
+    required this.bgColor,
     required this.lineColor,
   });
 
@@ -300,7 +307,8 @@ class MenuBackgroundPainter extends CustomPainter {
     // 🌟 حساب قيمة ألفا للخطوط بدلاً من Opacity لتجنب التحذيرات 🌟
     int alphaValue = (255 * 0.2 * progress).toInt();
     Paint linePaintPaint = Paint()
-      ..color = lineColor.withAlpha(alphaValue) // خطوط فاصلة أنيقة وذكية
+      ..color = lineColor
+          .withAlpha(alphaValue) // خطوط فاصلة أنيقة وذكية
       ..strokeWidth = 1.5;
 
     Offset center = Offset(size.width / 2, size.height);
@@ -319,8 +327,8 @@ class MenuBackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant MenuBackgroundPainter oldDelegate) {
     // يجب إعادة الرسم في كل إطار من الحركة أو عند تغير اللون
-    return oldDelegate.progress != progress || 
-           oldDelegate.bgColor != bgColor || 
-           oldDelegate.lineColor != lineColor;
+    return oldDelegate.progress != progress ||
+        oldDelegate.bgColor != bgColor ||
+        oldDelegate.lineColor != lineColor;
   }
 }

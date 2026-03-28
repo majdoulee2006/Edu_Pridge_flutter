@@ -41,21 +41,29 @@ class SelectTeacherScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب حالة الوضع الليلي والألوان 🌟
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? Theme.of(context).scaffoldBackgroundColor
+        : const Color(0xFFFAFAFA);
+    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFFAFAFA),
+        backgroundColor: bgColor, // 🌟 خلفية متجاوبة
         appBar: AppBar(
-          backgroundColor: const Color(0xFFFAFAFA),
+          backgroundColor: bgColor, // 🌟 متجاوبة
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: textColor), // 🌟 أيقونة متجاوبة
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: Text(
             'بدء محادثة جديدة',
             style: TextStyle(
-              color: Colors.black,
+              color: textColor, // 🌟 نص متجاوب
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
@@ -65,16 +73,18 @@ class SelectTeacherScreen extends StatelessWidget {
         body: Column(
           children: [
             // شريط البحث
-            _buildSearchBar(),
+            _buildSearchBar(isDark, cardColor, textColor),
 
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text(
                   'اختر مدرساً للمراسلة:',
                   style: TextStyle(
-                    color: Colors.grey,
+                    color: isDark
+                        ? Colors.grey.shade400
+                        : Colors.grey, // 🌟 متجاوب
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -84,11 +94,22 @@ class SelectTeacherScreen extends StatelessWidget {
             // قائمة المدرسين
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                physics:
+                    const BouncingScrollPhysics(), // لمسة جمالية عند التمرير
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 itemCount: teachers.length,
                 itemBuilder: (context, index) {
                   final teacher = teachers[index];
-                  return _buildTeacherCard(context, teacher);
+                  return _buildTeacherCard(
+                    context,
+                    teacher,
+                    isDark,
+                    cardColor,
+                    textColor,
+                  );
                 },
               ),
             ),
@@ -98,39 +119,56 @@ class SelectTeacherScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(bool isDark, Color cardColor, Color textColor) {
     return Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🌟 متجاوب
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: isDark
+                ? Colors.black.withAlpha(40)
+                : Colors.black.withAlpha(8), // 🌟 ظل متجاوب بـ withAlpha
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: const TextField(
+      child: TextField(
+        style: TextStyle(color: textColor), // 🌟 لون النص المكتوب
         decoration: InputDecoration(
           hintText: 'ابحث عن مدرس...',
-          hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-          prefixIcon: Icon(Icons.search, color: Colors.grey),
+          hintStyle: TextStyle(
+            color: isDark ? Colors.grey.shade500 : Colors.grey,
+            fontSize: 14,
+          ), // 🌟 متجاوب
+          prefixIcon: Icon(
+            Icons.search,
+            color: isDark ? Colors.grey.shade500 : Colors.grey,
+          ), // 🌟 متجاوب
           border: InputBorder.none,
         ),
       ),
     );
   }
 
-  Widget _buildTeacherCard(BuildContext context, Map<String, dynamic> teacher) {
+  Widget _buildTeacherCard(
+    BuildContext context,
+    Map<String, dynamic> teacher,
+    bool isDark,
+    Color cardColor,
+    Color textColor,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🌟 متجاوب
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(
+          color: isDark ? Colors.white.withAlpha(15) : Colors.grey.shade100,
+        ), // 🌟 حد متجاوب
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -138,6 +176,9 @@ class SelectTeacherScreen extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 28,
+              backgroundColor: isDark
+                  ? Colors.grey.shade800
+                  : Colors.grey.shade200,
               backgroundImage: NetworkImage(teacher['image']),
             ),
             if (teacher['isOnline'])
@@ -150,7 +191,10 @@ class SelectTeacherScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.green,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2.5),
+                    border: Border.all(
+                      color: cardColor,
+                      width: 2.5,
+                    ), // 🌟 إطار يطابق لون الكارت الحالي
                   ),
                 ),
               ),
@@ -158,16 +202,23 @@ class SelectTeacherScreen extends StatelessWidget {
         ),
         title: Text(
           teacher['name'],
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: textColor,
+          ), // 🌟 متجاوب
         ),
         subtitle: Text(
           teacher['subject'],
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          style: TextStyle(
+            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            fontSize: 12,
+          ), // 🌟 متجاوب
         ),
-        trailing: const Icon(
+        trailing: Icon(
           Icons.arrow_forward_ios,
           size: 16,
-          color: Colors.grey,
+          color: isDark ? Colors.grey.shade600 : Colors.grey, // 🌟 متجاوب
         ),
         onTap: () {
           // ✅ تم حل المشكلة هنا: استخدمنا teacher بدل chat ومسحنا سطر الـ type
