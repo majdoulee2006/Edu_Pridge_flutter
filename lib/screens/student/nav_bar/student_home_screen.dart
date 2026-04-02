@@ -5,7 +5,6 @@ import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-// استيراد الموديل الذي أنشأناه سابقاً
 import 'package:edu_pridge_flutter/models/student_data_model.dart';
 
 import 'profile_screen.dart';
@@ -20,45 +19,66 @@ class StudentHomeScreen extends StatefulWidget {
 }
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
-  // متغير لحمل بيانات الطالب القادمة من السيرفر
   StudentDashboardModel? studentData;
   bool isLoading = true;
+  String offlineName = "طالب";
 
   @override
   void initState() {
     super.initState();
-    _loadDashboardData(); // جلب البيانات عند فتح الشاشة
+    _loadDashboardData();
   }
 
-  // دالة الربط مع الباكيند
   Future<void> _loadDashboardData() async {
+    setState(() => isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
-      var response = await Dio().get(
-        "http://127.0.0.1:8000/api/student/dashboard",
-        options: Options(headers: {"Authorization": "Bearer $token"}),
+      setState(() {
+        offlineName = prefs.getString('user_name') ?? "طالب";
+      });
+
+      Dio dio = Dio();
+      // ملاحظة: تأكد من أن الـ IP صحيح ويصل للسيرفر المحلي
+      String url = "http://10.119.244.82:8000/api/student/dashboard";
+
+      var response = await dio.get(
+        url,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          },
+        ),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data != null) {
         setState(() {
           studentData = StudentDashboardModel.fromJson(response.data);
           isLoading = false;
         });
       }
     } catch (e) {
-      print("خطأ في جلب بيانات الطالب: $e");
-      setState(() => isLoading = false);
+      debugPrint("❌ خطأ في جلب بيانات الطالب: $e");
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("تعذر الاتصال بالسيرفر، يتم عرض البيانات المحفوظة")),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? Theme.of(context).scaffoldBackgroundColor : AppColors.background;
-    final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDark ? theme.scaffoldBackgroundColor : AppColors.background;
+    final cardColor = isDark ? theme.cardColor : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.textDark;
+
+    String displayName = studentData?.name ?? offlineName;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -71,48 +91,49 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 child: Column(
                   children: [
-                    // تم تمرير بيانات الطالب للهيدر
-                    _buildAppBar(context, isDark, textColor, studentData?.name ?? "جاري التحميل..."),
+                    _buildAppBar(context, isDark, textColor, displayName),
                     const SizedBox(height: 24),
-
-                    // إذا كانت البيانات تحمل، نظهر مؤشر تحميل، وإلا نظهر المحتوى
                     isLoading
                         ? const Expanded(child: Center(child: CircularProgressIndicator(color: Colors.amber)))
                         : Expanded(
-                      child: ListView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.only(bottom: 100),
-                        children: [
-                          // كرت يعرض المحاضرة القادمة من الباكيند (اختياري)
-                          if (studentData != null) _buildUpcomingLectureCard(studentData!, isDark),
-
-                          const SizedBox(height: 20),
-                          _buildSectionTitle(textColor),
-                          const SizedBox(height: 16),
-
-                          // الأخبار الثابتة كما هي في ديزاينك
-                          _buildNewsCard(
-                            tag: 'إعلان هام',
-                            title: 'تم إصدار جدول الامتحانات النهائية',
-                            description: 'يرجى مراجعة الجدول الدراسي والتأكد من التوقيت.',
-                            time: 'منذ ساعتين',
-                            gradientColors: isDark ? [Colors.amber.shade700, Colors.amber.shade900] : [Colors.amber.shade300, Colors.amber.shade700],
-                            cardColor: cardColor,
-                            textColor: textColor,
-                            isDark: isDark,
-                          ),
-                        ],
+                      child: RefreshIndicator(
+                        onRefresh: _loadDashboardData,
+                        color: Colors.amber,
+                        child: ListView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.only(bottom: 100),
+                          children: [
+                            if (studentData != null && studentData!.upcomingLecture.isNotEmpty)
+                              _buildUpcomingLectureCard(studentData!, isDark)
+                            else
+                              _buildNoLecturesCard(isDark),
+                            const SizedBox(height: 20),
+                            _buildSectionTitle(textColor),
+                            const SizedBox(height: 16),
+                            _buildNewsCard(
+                              tag: 'إعلان هام',
+                              title: 'تم إصدار جدول الامتحانات النهائية',
+                              description: 'يرجى مراجعة الجدول الدراسي والتأكد من التوقيت والمكان.',
+                              time: 'منذ ساعتين',
+                              gradientColors: isDark
+                                  ? [Colors.amber.shade900, Colors.black87]
+                                  : [Colors.amber.shade300, Colors.amber.shade700],
+                              cardColor: cardColor,
+                              textColor: textColor,
+                              isDark: isDark,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-
             CustomBottomNav(
               currentIndex: 0,
               centerButton: const CustomSpeedDialEduBridge(),
-              onHomeTap: () => _loadDashboardData(), // ريفريش عند الضغط
+              onHomeTap: () => _loadDashboardData(),
               onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen())),
               onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
               onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen())),
@@ -123,29 +144,44 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  // إضافة كرت المحاضرة القادمة (Data from Laravel)
+  // --- دوال البناء المعدلة ---
+
   Widget _buildUpcomingLectureCard(StudentDashboardModel data, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-          color: isDark ? Colors.blueGrey.withAlpha(50) : Colors.blue.shade50,
+          color: isDark ? Colors.blueGrey.withOpacity(0.2) : Colors.blue.shade50,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.blue.withAlpha(50))
-      ),
+          border: Border.all(color: Colors.blue.withOpacity(0.2))),
       child: Row(
         children: [
-          const Icon(Icons.class_outlined, color: Colors.blue, size: 30),
+          const Icon(Icons.access_time_filled, color: Colors.blue, size: 35),
           const SizedBox(width: 15),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("المحاضرة القادمة", style: TextStyle(fontSize: 12, color: Colors.grey)),
-              Text(data.upcomingLecture['subject'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text("القاعة: ${data.upcomingLecture['room']} | الساعة: ${data.upcomingLecture['time']}", style: const TextStyle(fontSize: 12)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("المحاضرة القادمة", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(data.upcomingLecture['subject'] ?? "غير محدد", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text("القاعة: ${data.upcomingLecture['room'] ?? '-'} | الساعة: ${data.upcomingLecture['time'] ?? '-'}",
+                    style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87)),
+              ],
+            ),
           )
         ],
       ),
+    );
+  }
+
+  Widget _buildNoLecturesCard(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.withOpacity(0.1) : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Center(child: Text("لا توجد محاضرات مجدولة اليوم", style: TextStyle(color: Colors.grey, fontSize: 13))),
     );
   }
 
@@ -156,7 +192,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Edu-Bridge', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+            Text('Edu-Bridge', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? Colors.amber : AppColors.accent)),
             Row(
               children: [
                 const Text('مرحباً، ', style: TextStyle(fontSize: 14, color: Colors.grey)),
@@ -167,17 +203,17 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         ),
         Row(
           children: [
-            GestureDetector(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
-              child: const Icon(Icons.settings, color: Colors.amber, size: 28),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined, color: Colors.amber),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 4),
             GestureDetector(
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen())),
               child: CircleAvatar(
                 radius: 22,
-                backgroundColor: isDark ? Colors.grey.shade800 : Colors.orange.shade100,
-                child: Icon(Icons.person, color: isDark ? Colors.grey.shade400 : Colors.orange),
+                backgroundColor: isDark ? Colors.amber.withOpacity(0.2) : Colors.amber.shade100,
+                child: const Icon(Icons.person, color: Colors.amber),
               ),
             ),
           ],
@@ -186,52 +222,64 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  // ... باقي الميثودز (NewsCard, SectionTitle) تبقى كما هي تماماً من كودك الأصلي ...
   Widget _buildSectionTitle(Color textColor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            Container(width: 4, height: 24, decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(2))),
+            Container(width: 4, height: 24, decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(2))),
             const SizedBox(width: 8),
             Text('آخر الأخبار', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
           ],
         ),
-        const Text('عرض الكل', style: TextStyle(fontSize: 14, color: Colors.grey)),
+        TextButton(onPressed: () {}, child: const Text('عرض الكل', style: TextStyle(color: Colors.grey))),
       ],
     );
   }
 
   Widget _buildNewsCard({
-    required String tag, required String title, required String description,
-    required String time, required List<Color> gradientColors,
-    required Color cardColor, required Color textColor, required bool isDark,
+    required String tag,
+    required String title,
+    required String description,
+    required String time,
+    required List<Color> gradientColors,
+    required Color cardColor,
+    required Color textColor,
+    required bool isDark,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: isDark ? Colors.black.withAlpha(50) : Colors.black.withAlpha(10), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
           Stack(
             children: [
               Container(
-                height: 130,
+                height: 140,
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  gradient: LinearGradient(colors: gradientColors, begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                  gradient: LinearGradient(colors: gradientColors, begin: Alignment.topRight, end: Alignment.bottomLeft),
                 ),
               ),
               Positioned(
-                top: 12, right: 12,
+                top: 12,
+                right: 12,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: isDark ? Colors.black.withAlpha(150) : Colors.white, borderRadius: BorderRadius.circular(8)),
-                  child: Text(tag, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  // تم حذف كلمة const من هنا لأن tag متغير
+                  child: Text(
+                    tag,
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
+                  ),
                 ),
               ),
             ],
@@ -241,15 +289,28 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+                // تم حذف كلمة const من هنا لأن title متغير
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+                ),
                 const SizedBox(height: 8),
-                Text(description, style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.5), maxLines: 2, overflow: TextOverflow.ellipsis),
+                // تم حذف كلمة const من هنا لأن description متغير
+                Text(
+                  description,
+                  style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+                  maxLines: 2,
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : AppColors.background, shape: BoxShape.circle), child: Icon(Icons.keyboard_arrow_left, size: 20, color: textColor)),
-                    Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    // تم حذف كلمة const من هنا لأن time متغير
+                    Text(
+                      time,
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 14, color: Colors.amber.shade800),
                   ],
                 ),
               ],

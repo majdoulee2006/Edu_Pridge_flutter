@@ -1,10 +1,9 @@
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart'; // ✅ للربط مع الباكيند
-import 'package:shared_preferences/shared_preferences.dart'; // ✅ لحفظ البيانات
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../teacher/teacher_home.dart';
 import '../student/nav_bar/student_home_screen.dart';
-import 'forgot_password_screen.dart';
 import 'create_account_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,83 +15,131 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
-  bool _isLoading = false; // ✅ حالة التحميل
+  bool _isLoading = false;
 
-  // ✅ تعريف المتحكمات (Controllers) لسحب النصوص من الحقول
-  final TextEditingController _emailController = TextEditingController();
+  // المتحكمات بالحقول
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // ✅ دالة تسجيل الدخول والربط مع API
+  // دالة تسجيل الدخول والربط مع Laravel
   Future<void> _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showError("يرجى إدخال البريد وكلمة المرور");
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showError("يرجى إدخال اسم المستخدم وكلمة المرور");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // نستخدم 127.0.0.1 لأنكِ تعملين على الويب
-      var response = await Dio().post(
-        "http://127.0.0.1:8000/api/login",
+      Dio dio = Dio();
+
+      // 🌟 التعديل هنا: استخدام الـ IP الفعلي للجهاز بناءً على ipconfig
+      String url = "http://10.119.244.82:8000/api/login";
+
+      var response = await dio.post(
+        url,
         data: {
-          "email": _emailController.text.trim(),
+          "username": _usernameController.text.trim(),
           "password": _passwordController.text,
         },
+        options: Options(
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          connectTimeout: const Duration(seconds: 10), // مهلة زمنية للاتصال
+        ),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data != null) {
         final prefs = await SharedPreferences.getInstance();
-        // حفظ التوكن والاسم
-        await prefs.setString('token', response.data['access_token']);
-        await prefs.setString('user_name', response.data['user']['full_name']);
 
-        String role = response.data['user']['role'];
+        // استخراج البيانات القادمة من Laravel Sanctum
+        String token = response.data['access_token']?.toString() ?? "";
+        var userData = response.data['user'];
+        String displayName = userData != null ? userData['name']?.toString() ?? "مستخدم" : "مستخدم";
+        String role = userData != null ? userData['role']?.toString() ?? "student" : "student";
+
+        // تخزين البيانات محلياً (Persistent Storage)
+        await prefs.setString('token', token);
+        await prefs.setString('user_name', displayName);
+        await prefs.setString('user_role', role);
 
         if (!mounted) return;
 
-        // التوجيه التلقائي حسب الرول القادم من قاعدة البيانات
-        if (role == 'parent') {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen()));
-        } else if (role == 'teacher') {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()));
-        } else {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentHomeScreen()));
-        }
+        // التوجيه الذكي بناءً على الدور (Role-based Routing)
+        _navigateToDashboard(role);
       }
     } on DioException catch (e) {
-      String msg = e.response?.data['message'] ?? "فشل الاتصال بالسيرفر";
+      // معالجة الأخطاء القادمة من السيرفر
+      String msg = "حدث خطأ في الاتصال";
+      if (e.type == DioExceptionType.connectionTimeout) {
+        msg = "انتهت مهلة الاتصال، تأكد من تشغيل السيرفر";
+      } else if (e.response != null) {
+        msg = e.response?.data['message']?.toString() ?? "تأكد من صحة البيانات";
+      }
       _showError(msg);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // دالة موحدة للتنقل بين شاشات الأدوار المختلفة
+  void _navigateToDashboard(String role) {
+    Widget nextScreen;
+    String r = role.toLowerCase();
+
+    if (r == 'parent') {
+      nextScreen = const ParentsHomeScreen();
+    } else if (r == 'teacher') {
+      nextScreen = const TeacherHomeScreen();
+    } else {
+      nextScreen = const StudentHomeScreen();
+    }
+
+    // استخدام pushReplacement لعدم السماح بالرجوع لشاشة الدخول
+    Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => nextScreen)
+    );
+  }
+
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message, textAlign: TextAlign.center)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Cairo')),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🎨 دعم الـ Dark Mode بجلب ألوان الثيم
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final primaryYellow = const Color(0xFFEFFF00);
-    final scaffoldBg = theme.scaffoldBackgroundColor;
+    const primaryYellow = Color(0xFFEFFF00);
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: scaffoldBg, // ✅ يتغير حسب المود
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Column(
               children: [
-                const SizedBox(height: 50),
-
-                // 1. الشعار
+                const SizedBox(height: 60),
+                // الشعار (Logo)
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(25),
@@ -100,113 +147,75 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: isDark ? Colors.amber.withOpacity(0.1) : const Color(0xFFFEF9E7),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.school_outlined,
-                      size: 50,
-                      color: isDark ? primaryYellow : const Color(0xFFD4AC0D),
-                    ),
+                    child: Icon(Icons.school_outlined, size: 60, color: isDark ? primaryYellow : const Color(0xFFD4AC0D)),
                   ),
                 ),
-
                 const SizedBox(height: 30),
-
-                // 2. نصوص الترحيب
-                Text(
-                  "مرحباً بك مجدداً",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "بوابة المعهد الجامعي للطلاب والمعلمين",
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-
+                Text("مرحباً بك مجدداً",
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo')),
+                const Text("سجل دخولك للمتابعة في Edu_Pridge",
+                    style: TextStyle(color: Colors.grey, fontFamily: 'Cairo')),
                 const SizedBox(height: 40),
 
-                // 3. حقول الإدخال (تم ربط الـ Controllers)
+                // حقل اسم المستخدم
                 _buildTextField(
-                  label: "البريد الإلكتروني", // الباكيند يعتمد الإيميل
-                  hint: "example@test.com",
-                  icon: Icons.email_outlined,
-                  controller: _emailController,
+                  label: "اسم المستخدم",
+                  hint: "الرقم الجامعي أو رقم الهاتف",
+                  icon: Icons.person_outline,
+                  controller: _usernameController,
                   isDark: isDark,
                 ),
                 const SizedBox(height: 20),
+
+                // حقل كلمة المرور
                 _buildTextField(
                   label: "كلمة المرور",
-                  hint: "........",
+                  hint: "********",
                   icon: Icons.lock_outline,
                   isPassword: true,
                   controller: _passwordController,
                   isDark: isDark,
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 40),
 
-                // 4. زر هل نسيت كلمة المرور
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordScreen())),
-                    child: Text(
-                      "هل نسيت كلمة المرور؟",
-                      style: TextStyle(color: isDark ? primaryYellow : const Color(0xFFA4A000), fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // 5. زر تسجيل الدخول الأساسي (تم ربط الدالة البرمجية)
+                // زر تسجيل الدخول
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryYellow,
                     foregroundColor: Colors.black,
                     minimumSize: const Size(double.infinity, 55),
-                    elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    elevation: 0,
                   ),
                   child: _isLoading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                      : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.login, size: 22, color: Colors.black),
-                      SizedBox(width: 10),
-                      Text("تسجيل الدخول", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+                      : const Text("تسجيل الدخول", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
 
-                // 6. الفاصل
+                TextButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateAccountScreen())),
+                  child: Text("ليس لديك حساب؟ إنشاء حساب جديد",
+                      style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontFamily: 'Cairo')),
+                ),
+
+                // ================== قسم المطورين (للمناقشة) ==================
+                const SizedBox(height: 50),
+                const Divider(),
+                const Text("أدوات العرض - دخول سريع", style: TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Cairo')),
+                const SizedBox(height: 15),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Expanded(child: Divider(color: Colors.grey.withOpacity(0.3), thickness: 1)),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 15), child: Text("أو", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
-                    Expanded(child: Divider(color: Colors.grey.withOpacity(0.3), thickness: 1)),
+                    _buildDevButton("معلم", Icons.person_pin, () => _navigateToDashboard('teacher')),
+                    _buildDevButton("طالب", Icons.school, () => _navigateToDashboard('student')),
+                    _buildDevButton("أهل", Icons.family_restroom, () => _navigateToDashboard('parent')),
                   ],
                 ),
-
-                const SizedBox(height: 30),
-
-                // 7. زر إنشاء حساب جديد
-                OutlinedButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateAccountScreen())),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 55),
-                    side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  ),
-                  child: Text(
-                    "إنشاء حساب جديد",
-                    style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -215,30 +224,45 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ✅ تعديل الويجت ليدعم الـ Dark Mode والـ Controller
+  // ويجت زر المطور (Developer Shortcut)
+  Widget _buildDevButton(String title, IconData icon, VoidCallback onTap) {
+    return Column(
+      children: [
+        IconButton(
+          onPressed: onTap,
+          icon: Icon(icon, color: Colors.orangeAccent),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.orangeAccent.withOpacity(0.1),
+            padding: const EdgeInsets.all(12),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey, fontFamily: 'Cairo')),
+      ],
+    );
+  }
+
+  // بناء حقول الإدخال بشكل موحد
   Widget _buildTextField({
     required String label,
     required String hint,
     required IconData icon,
     required TextEditingController controller,
     required bool isDark,
-    bool isPassword = false,
+    bool isPassword = false
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(right: 15, bottom: 8),
-          child: Text(
-            label,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
-          ),
+            padding: const EdgeInsets.only(right: 15, bottom: 8),
+            child: Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white70 : Colors.black87, fontFamily: 'Cairo'))
         ),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.grey[900] : Colors.white,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withOpacity(0.3)),
+              color: isDark ? Colors.grey[900] : Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withOpacity(0.3))
           ),
           child: TextField(
             controller: controller,
@@ -246,18 +270,14 @@ class _LoginScreenState extends State<LoginScreen> {
             style: TextStyle(color: isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               border: InputBorder.none,
-              suffixIcon: Icon(icon, color: Colors.grey.shade600, size: 22),
-              prefixIcon: isPassword
+              prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 22),
+              suffixIcon: isPassword
                   ? IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: Colors.grey.shade400,
-                  size: 20,
-                ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword)
               )
                   : null,
             ),
