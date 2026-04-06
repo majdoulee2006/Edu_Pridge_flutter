@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-// ملاحظة: استبدل هذه المسارات بمسارات الشاشات الحقيقية في مشروعك لاحقاً
-// import '../screens/head_of_department/management/teachers_manage_screen.dart';
-// import '../screens/head_of_department/reports/department_reports_screen.dart';
+// 🚀 1. استيراد شاشة طلبات الإجازة (تأكدي من صحة المسار في مشروعك)
+import '../screens/Head of department/center_icons/leave_requests_screen.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
 
 class Boss_Center_Icon extends StatefulWidget {
   const Boss_Center_Icon({super.key});
@@ -84,23 +84,26 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                         height: 160,
                         child: Stack(
                           children: [
-                            // 1. زر المدرسين (إدارة الكادر)
+                            // 🚀 2. تفعيل زر الإجازات للانتقال للشاشة الجديدة
                             _buildMenuItem(
-                              'المدرسين',
-                              Icons.groups_outlined,
+                              'الإجازات',
+                              Icons.event_note_rounded,
                               Colors.blueAccent,
                               22.5,
                               0.0,
                               0.4,
                               itemTextColor,
                                   () {
-                                // Navigator.push(...)
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const LeaveRequestsScreen()),
+                                );
                               },
                             ),
-                            // 2. زر الجداول (تنظيم الوقت)
+                            // 2. زر الحسابات
                             _buildMenuItem(
-                              'الجداول',
-                              Icons.calendar_month_outlined,
+                              'الحسابات',
+                              Icons.account_balance_wallet_outlined,
                               Colors.orangeAccent,
                               67.5,
                               0.2,
@@ -110,10 +113,10 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                                 // Navigator.push(...)
                               },
                             ),
-                            // 3. زر الإحصائيات (تقارير القسم)
+                            // 3. زر التنظيم
                             _buildMenuItem(
-                              'تقارير',
-                              Icons.bar_chart_rounded,
+                              'التنظيم',
+                              Icons.auto_fix_high_rounded,
                               Colors.greenAccent,
                               112.5,
                               0.4,
@@ -123,10 +126,10 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                                 // Navigator.push(...)
                               },
                             ),
-                            // 4. زر الإعدادات/القرارات (إدارة القسم)
+                            // 4. زر طلب التقارير
                             _buildMenuItem(
-                              'القرارات',
-                              Icons.gavel_rounded,
+                              'طلب التقارير',
+                              Icons.analytics_outlined,
                               Colors.redAccent,
                               157.5,
                               0.6,
@@ -215,7 +218,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: textColor,
-                    fontFamily: 'Cairo', // تأكد من استخدام خطك المعتمد
+                    fontFamily: 'Cairo',
                   ),
                 ),
               ],
@@ -227,7 +230,6 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
   }
 }
 
-// --- الرسام المخصص (نفسه تماماً لضمان التطابق) ---
 class MenuBackgroundPainter extends CustomPainter {
   final double progress;
   final Color bgColor;
