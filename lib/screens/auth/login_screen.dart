@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// استيراد الشاشات - تأكدي من صحة المسارات في مشروعك
+// استيراد الشاشات
 import '../teacher/teacher_home.dart';
 import '../student/nav_bar/student_home_screen.dart';
 import '../parents/nav_bar/parent_home.dart';
 import 'create_account_screen.dart';
-
-// 🚀 تأكدي أن هذا المسار هو المسار الصحيح لملف رئيس القسم في مشروعك
 import '../Head of department/nav_bar/boss_home.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -26,7 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-// 🚀 دالة تسجيل الدخول (كما هي عندك)
   Future<void> _handleLogin() async {
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
       _showSnackBar("يرجى إدخال البيانات المطلوبة", isError: true);
@@ -37,12 +34,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       Dio dio = Dio();
+      // 💡 إذا كنتِ تستخدمين Emulator استخدمي 10.0.2.2 بدلاً من 127.0.0.1
       String url = "http://127.0.0.1:8000/api/login";
 
       var response = await dio.post(
         url,
         data: {
-          "username": _usernameController.text.trim(),
+          "login": _usernameController.text.trim(), // 👈 تم التعديل من username إلى login
           "password": _passwordController.text,
         },
       );
@@ -58,10 +56,13 @@ class _LoginScreenState extends State<LoginScreen> {
           throw Exception("بيانات المستخدم مفقودة");
         }
 
+        // 💡 استخدام المعرف الجديد user_id لضمان عدم حدوث أخطاء
+        String userId = userData['user_id']?.toString() ?? "";
         String displayName = userData['full_name']?.toString() ?? "مستخدم";
         String role = userData['role']?.toString() ?? "student";
 
         await prefs.setString('token', token);
+        await prefs.setString('user_id', userId); // 👈 حفظ المعرف الصحيح
         await prefs.setString('user_name', displayName);
         await prefs.setString('user_role', role);
 
@@ -71,17 +72,17 @@ class _LoginScreenState extends State<LoginScreen> {
         _navigateToDashboard(role);
       }
     } on DioException catch (e) {
-      String msg = e.response?.data['message']?.toString() ?? "تأكد من السيرفر";
+      // إظهار رسالة الخطأ القادمة من الباك-إند (مثل: بيانات الدخول غير صحيحة)
+      String msg = e.response?.data['message']?.toString() ?? "تأكد من اتصال السيرفر";
       _showSnackBar(msg, isError: true);
     } catch (e) {
       debugPrint("🚨 Error: $e");
-      _showSnackBar("حدث خطأ تقني", isError: true);
+      _showSnackBar("حدث خطأ تقني في الاتصال", isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-// 🔄 دالة التوجيه (تم استخدام اسم الكلاس الصحيح DeptHeadHomeScreen)
   void _navigateToDashboard(String role) {
     Widget nextScreen;
     String r = role.toLowerCase();
@@ -90,8 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
       nextScreen = const ParentsHomeScreen();
     } else if (r == 'teacher') {
       nextScreen = const TeacherHomeScreen();
-    } else if (r == 'boss' || r == 'department_head') {
-      // ✅ تم استخدام الكلاس الذي أرسلتيه لي
+    } else if (r == 'boss' || r == 'head' || r == 'department_head') { // 👈 أضفنا 'head' لتطابق السيدر
       nextScreen = DeptHeadHomeScreen();
     } else {
       nextScreen = const StudentHomeScreen();
@@ -235,38 +235,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 30),
-
-                  // 🛠️ قسم المطورين المضاف
-                  const Divider(),
-                  const Text("أدوات المطور", style: TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Cairo')),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _devIcon("معلم", Icons.person, 'teacher'),
-                      _devIcon("طالب", Icons.school, 'student'),
-                      _devIcon("أهل", Icons.family_restroom, 'parent'),
-                      _devIcon("رئيس قسم", Icons.admin_panel_settings, 'boss'),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
                 ],
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _devIcon(String label, IconData icon, String role) {
-    return InkWell(
-      onTap: () => _navigateToDashboard(role),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.orangeAccent, size: 28),
-          Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey, fontFamily: 'Cairo')),
-        ],
       ),
     );
   }
