@@ -15,6 +15,8 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/a
 // 🚀 استدعاء الـ Widget الخاصة بالأيقونة الوسطى
 import '../../../widgets/boss_center_icon.dart';
 
+// ... (نفس الاستيرادات السابقة)
+
 class DeptHeadHomeScreen extends StatefulWidget {
   const DeptHeadHomeScreen({super.key});
 
@@ -53,7 +55,6 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
           bottom: false,
           child: Stack(
             children: [
-              // المحتوى القابل للتمرير
               Positioned.fill(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -67,27 +68,17 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                       const SizedBox(height: 25),
                       _buildSectionTitle("آخر الأخبار", textColor, primaryYellow),
                       _buildMainNewsCard(cardColor, textColor),
-                      const SizedBox(height: 150), // مساحة للـ Nav Bar
+                      const SizedBox(height: 150),
                     ],
                   ),
                 ),
               ),
 
-              // 🚀 شريط التنقل السفلي المربوط بالكامل
+              // 🚀 شريط التنقل السفلي - التعديل هنا
               CustomBottomNav(
-                currentIndex: 0, // الصفحة الرئيسية
-                centerButton: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AccountsManagementScreen()),
-                    );
-                  },
-                  child: const Boss_Center_Icon(),
-                ),
-                onHomeTap: () {
-                  // نحن في الصفحة الرئيسية بالفعل
-                },
+                currentIndex: 0,
+                centerButton: const Boss_Center_Icon(), // أزلنا الـ GestureDetector من هنا
+                onHomeTap: () {},
                 onProfileTap: () {
                   Navigator.pushReplacement(
                       context, MaterialPageRoute(builder: (context) => const BossProfileScreen()));
@@ -108,7 +99,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     );
   }
 
-  // --- Header: الترحيب وزر الإعدادات ---
+  // (بقية الدوال _buildHeader و _buildNotificationBanner تبقى كما هي في كودك الأصلي)
   Widget _buildHeader(BuildContext context, Color textColor, Color cardColor, Color primaryYellow) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -157,7 +148,6 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     );
   }
 
-  // --- Banner: تنبيه الإجازات ---
   Widget _buildNotificationBanner(BuildContext context, Color cardColor) {
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LeaveRequestsScreen())),
@@ -183,7 +173,6 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     );
   }
 
-  // --- News Card: الكرت الرئيسي للأخبار ---
   Widget _buildMainNewsCard(Color cardColor, Color textColor) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),

@@ -25,7 +25,7 @@ class BossMessageScreen extends StatelessWidget {
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: SafeArea(
-          bottom: false, // لضمان عدم وجود فراغ تحت الـ Nav Bar
+          bottom: false,
           child: Stack(
             children: [
               // 1. محتوى الرسائل (Header + Search + List)
@@ -44,6 +44,7 @@ class BossMessageScreen extends StatelessWidget {
 
                           // قائمة المحادثات
                           _buildChatTile(
+                            context,
                             cardColor, isDark,
                             name: "د. محمد العمري",
                             subject: "بخصوص تقرير الأداء الشهري للمدربين",
@@ -55,6 +56,7 @@ class BossMessageScreen extends StatelessWidget {
                           ),
 
                           _buildChatTile(
+                            context,
                             cardColor, isDark,
                             name: "أ. سارة خالد",
                             subject: "طلب إجازة اضطرارية ليوم الخميس",
@@ -64,6 +66,7 @@ class BossMessageScreen extends StatelessWidget {
                           ),
 
                           _buildChatTile(
+                            context,
                             cardColor, isDark,
                             name: "أ. خالد ناصر",
                             subject: "تحديث محتوى مادة الرياضيات 101",
@@ -74,6 +77,7 @@ class BossMessageScreen extends StatelessWidget {
                           ),
 
                           _buildChatTile(
+                            context,
                             cardColor, isDark,
                             name: "د. يوسف العلي",
                             subject: "استفسار بخصوص الميزانية",
@@ -90,9 +94,9 @@ class BossMessageScreen extends StatelessWidget {
                 ],
               ),
 
-              // 2. 🚀 شريط التنقل السفلي الموحد
+              // 2. 🚀 شريط التنقل السفلي الموحد (تم ضبط currentIndex على 3)
               CustomBottomNav(
-                currentIndex: 3, // تبويب الرسائل
+                currentIndex: 3,
                 centerButton: const Boss_Center_Icon(),
                 onHomeTap: () => Navigator.pushReplacement(
                     context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
@@ -111,7 +115,6 @@ class BossMessageScreen extends StatelessWidget {
     );
   }
 
-  // --- الهيدر العلوي المحدث ---
   Widget _buildHeader(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
@@ -125,7 +128,6 @@ class BossMessageScreen extends StatelessWidget {
           ),
           const Text("الرسائل", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
 
-          // ⚙️ استدعاء الإعدادات
           GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -147,7 +149,6 @@ class BossMessageScreen extends StatelessWidget {
     );
   }
 
-  // --- شريط البحث ---
   Widget _buildSearchBar(Color cardColor, bool isDark) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -182,69 +183,73 @@ class BossMessageScreen extends StatelessWidget {
     );
   }
 
-  // --- بطاقة المحادثة الفردية ---
-  Widget _buildChatTile(Color cardColor, bool isDark,
+  Widget _buildChatTile(BuildContext context, Color cardColor, bool isDark,
       {required String name, required String subject, required String lastMsg,
         required String time, String? image, String? initials, Color? initialsBg,
         bool isOnline = false, bool hasTimeHighlight = false}) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
-      ),
-      child: Row(
-        children: [
-          Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: initialsBg ?? Colors.grey[200],
-                backgroundImage: image != null ? NetworkImage(image) : null,
-                child: initials != null ? Text(initials, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange)) : null,
-              ),
-              if (isOnline)
-                Container(
-                  width: 14, height: 14,
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: cardColor, width: 2),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: () {
+        // يمكنك هنا مستقبلاً التوجه لصفحة الدردشة التفصيلية
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
+        ),
+        child: Row(
+          children: [
+            Stack(
+              alignment: Alignment.bottomRight,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(time, style: TextStyle(
-                        color: hasTimeHighlight ? const Color(0xFFD4E000) : Colors.grey,
-                        fontSize: 12,
-                        fontWeight: hasTimeHighlight ? FontWeight.bold : FontWeight.normal
-                    )),
-                  ],
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: initialsBg ?? Colors.grey[200],
+                  backgroundImage: image != null ? NetworkImage(image) : null,
+                  child: initials != null ? Text(initials, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange)) : null,
                 ),
-                const SizedBox(height: 4),
-                Text(subject, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text(lastMsg,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
+                if (isOnline)
+                  Container(
+                    width: 14, height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: cardColor, width: 2),
+                    ),
+                  ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(time, style: TextStyle(
+                          color: hasTimeHighlight ? const Color(0xFFD4E000) : Colors.grey,
+                          fontSize: 12,
+                          fontWeight: hasTimeHighlight ? FontWeight.bold : FontWeight.normal
+                      )),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(subject, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(lastMsg,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

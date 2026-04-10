@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/boss_center_icon.dart';
 
-// استيراد واجهات الإضافة بناءً على تسلسل ملفاتك الجديد
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_profile.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+
 import 'add_trainer_screen.dart';
 import 'add_student_screen.dart';
 import 'add_parent_screen.dart';
@@ -15,15 +20,14 @@ class AccountsManagementScreen extends StatefulWidget {
 }
 
 class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
-  // 0: مدرب/معلم، 1: طالب، 2: أهل
   int selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = Theme.of(context).cardColor;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    const primaryYellow = Color(0xFFEFFF00);
+    final Color cardColor = Theme.of(context).cardColor;
+    final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    const Color primaryYellow = Color(0xFFEFFF00);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -35,36 +39,36 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
             children: [
               Column(
                 children: [
-                  _buildHeader(textColor),
+                  _buildHeader(context, isDark, textColor),
                   const SizedBox(height: 10),
-
-                  // التبويبات (مدرب - طالب - أهل)
-                  _buildProfessionalTabs(isDark, primaryYellow),
-
+                  _buildProfessionalTabs(isDark, primaryYellow, cardColor),
                   const SizedBox(height: 25),
-
-                  // زر الإضافة الذي ينقلك للواجهة المناسبة
                   _buildAddButton(cardColor, textColor, primaryYellow),
-
                   const Expanded(
                     child: Center(
                       child: Opacity(
                         opacity: 0.5,
-                        child: Text("قائمة الحسابات ستظهر هنا..."),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.person_search_outlined, size: 80),
+                            SizedBox(height: 10),
+                            Text("قائمة الحسابات ستظهر هنا..."),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
 
-              // شريط التنقل السفلي الموحد
               CustomBottomNav(
                 currentIndex: 0,
                 centerButton: const Boss_Center_Icon(),
-                onHomeTap: () => Navigator.pop(context),
-                onProfileTap: () {},
-                onNotificationsTap: () {},
-                onMessagesTap: () {},
+                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossNotificationScreen())),
+                onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossMessageScreen())),
               ),
             ],
           ),
@@ -73,7 +77,6 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
     );
   }
 
-  // دالة زر الإضافة مع منطق الانتقال (Navigation Logic)
   Widget _buildAddButton(Color cardColor, Color textColor, Color primary) {
     List<String> labels = ["إضافة حساب مدرب جديد", "إضافة حساب طالب جديد", "إضافة حساب ولي أمر"];
 
@@ -81,7 +84,6 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: InkWell(
         onTap: () {
-          // تحديد الواجهة الهدف بناءً على التبويب المختار
           Widget targetScreen;
           if (selectedIndex == 0) {
             targetScreen = const AddTrainerScreen();
@@ -90,12 +92,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
           } else {
             targetScreen = const AddParentScreen();
           }
-
-          // الانتقال للواجهة المختارة
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => targetScreen),
-          );
+          Navigator.push(context, MaterialPageRoute(builder: (context) => targetScreen));
         },
         borderRadius: BorderRadius.circular(20),
         child: Container(
@@ -110,8 +107,8 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(color: primary, shape: BoxShape.circle),
-                child: const Icon(Icons.add, color: Colors.black, size: 20),
+                decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+                child: Icon(Icons.add, color: primary, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -125,13 +122,15 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
     );
   }
 
-  Widget _buildProfessionalTabs(bool isDark, Color primary) {
+  Widget _buildProfessionalTabs(bool isDark, Color primary, Color cardColor) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      height: 50,
+      height: 55,
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+        color: cardColor,
         borderRadius: BorderRadius.circular(15),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -150,7 +149,6 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
         onTap: () => setState(() => selectedIndex = index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: isActive ? primary : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
@@ -161,7 +159,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
-                color: isActive ? Colors.black : (isDark ? Colors.white60 : Colors.black54),
+                color: isActive ? Colors.black : Colors.grey,
               ),
             ),
           ),
@@ -170,15 +168,26 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
     );
   }
 
-  Widget _buildHeader(Color textColor) {
+  Widget _buildHeader(BuildContext context, bool isDark, Color textColor) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 20, 20, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Icon(Icons.settings_outlined, size: 26),
-          Text("إدارة الحسابات", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
-          IconButton(icon: const Icon(Icons.arrow_forward_ios, size: 20), onPressed: () => Navigator.pop(context)),
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen(userName: "رئيس القسم", userRole: "إدارة النظام"))
+              );
+            },
+          ),
+          Text("إدارة الحسابات", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+          IconButton(
+            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
         ],
       ),
     );
