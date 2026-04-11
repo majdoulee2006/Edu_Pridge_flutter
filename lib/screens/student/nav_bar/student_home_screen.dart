@@ -20,6 +20,7 @@ class StudentHomeScreen extends StatefulWidget {
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   StudentDashboardModel? studentData;
+  List<dynamic> latestNews = []; // 🌟 مصفوفة لاستقبال الأخبار من السيرفر
   bool isLoading = true;
   String offlineName = "طالب";
 
@@ -41,7 +42,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
       Dio dio = Dio();
       // ملاحظة: تأكد من أن الـ IP صحيح ويصل للسيرفر المحلي
-      String url = "http://10.119.244.82:8000/api/student/dashboard";
+      String url = "http://127.0.0.1:8000/api/student/dashboard";
 
       var response = await dio.get(
         url,
@@ -55,7 +56,20 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
       if (response.statusCode == 200 && response.data != null) {
         setState(() {
-          studentData = StudentDashboardModel.fromJson(response.data);
+          // 🌟 الحل السحري: استخراج الـ data أولاً ليتناسب مع الربط
+          var responseData = response.data['data'] ?? response.data;
+
+          if (responseData != null) {
+            // جلب الأخبار الديناميكية
+            latestNews = responseData['latest_news'] ?? [];
+
+            // محاولة تمرير البيانات لمودل فريقك داخل حماية
+            try {
+              studentData = StudentDashboardModel.fromJson(responseData);
+            } catch (modelError) {
+              debugPrint("⚠️ تحذير: خطأ في قراءة مودل الطالب: $modelError");
+            }
+          }
           isLoading = false;
         });
       }
@@ -110,18 +124,41 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                             const SizedBox(height: 20),
                             _buildSectionTitle(textColor),
                             const SizedBox(height: 16),
-                            _buildNewsCard(
-                              tag: 'إعلان هام',
-                              title: 'تم إصدار جدول الامتحانات النهائية',
-                              description: 'يرجى مراجعة الجدول الدراسي والتأكد من التوقيت والمكان.',
-                              time: 'منذ ساعتين',
-                              gradientColors: isDark
-                                  ? [Colors.amber.shade900, Colors.black87]
-                                  : [Colors.amber.shade300, Colors.amber.shade700],
-                              cardColor: cardColor,
-                              textColor: textColor,
-                              isDark: isDark,
-                            ),
+
+                            // 🌟 توليد الكروت ديناميكياً من السيرفر
+                            if (latestNews.isEmpty)
+                              const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(20.0),
+                                  child: Text("لا توجد أخبار حالياً", style: TextStyle(color: Colors.grey)),
+                                ),
+                              )
+                            else
+                              ...latestNews.map((news) {
+                                // 1. قراءة الكلمة الإنجليزية من السيرفر
+                                String rawType = news['type'] ?? 'general';
+
+                                // 2. الترجمة للعربي وتحديد هل هو "إعلان مقرر" أو "إعلان عام"
+                                String displayTag = rawType == 'course_specific' ? 'إعلان مقرر' : 'إعلان عام';
+                                bool isUrgent = rawType == 'course_specific'; // إعلان المقرر رح ياخد اللون الذهبي
+
+                                return _buildNewsCard(
+                                  tag: displayTag,
+                                  title: news['title'] ?? 'بدون عنوان',
+                                  description: news['content'] ?? '',
+                                  time: news['time_ago'] ?? '',
+                                  gradientColors: isDark
+                                      ? (isUrgent
+                                      ? [Colors.amber.shade900, Colors.black87]
+                                      : [Colors.teal.shade900, Colors.black87])
+                                      : (isUrgent
+                                      ? [Colors.amber.shade300, Colors.amber.shade700]
+                                      : [Colors.teal.shade300, Colors.teal.shade700]),
+                                  cardColor: cardColor,
+                                  textColor: textColor,
+                                  isDark: isDark,
+                                );
+                              }).toList(),
                           ],
                         ),
                       ),
@@ -275,10 +312,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     color: Colors.white.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  // تم حذف كلمة const من هنا لأن tag متغير
                   child: Text(
                     tag,
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      // تم تعديل اللون ليتناسب مع النص المترجم الجديد
+                      color: tag == 'إعلان مقرر' ? Colors.orange.shade900 : Colors.teal.shade900,
+                    ),
                   ),
                 ),
               ),
@@ -289,28 +330,31 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // تم حذف كلمة const من هنا لأن title متغير
                 Text(
                   title,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
                 ),
                 const SizedBox(height: 8),
-                // تم حذف كلمة const من هنا لأن description متغير
                 Text(
                   description,
                   style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
                   maxLines: 2,
+                  overflow: TextOverflow.ellipsis, // تمت إضافة هذه لضمان عدم تجاوز النص لسطرين
                 ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // تم حذف كلمة const من هنا لأن time متغير
                     Text(
                       time,
                       style: const TextStyle(fontSize: 11, color: Colors.grey),
                     ),
-                    Icon(Icons.arrow_forward_ios, size: 14, color: Colors.amber.shade800),
+                    Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        // لون السهم يتغير حسب نوع الخبر مثل التاج
+                        color: tag == 'إعلان مقرر' ? Colors.amber.shade800 : Colors.teal.shade800
+                    ),
                   ],
                 ),
               ],
