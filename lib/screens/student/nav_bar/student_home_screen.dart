@@ -119,7 +119,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                           padding: const EdgeInsets.only(bottom: 100),
                           children: [
                             if (hasLecture)
-                              _buildUpcomingLectureCard(upcoming!, isDark)
+                              _buildUpcomingLectureCard(upcoming, isDark)
                             else
                               _buildNoLecturesCard(isDark),
                             const SizedBox(height: 20),
@@ -155,7 +155,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                   textColor: textColor,
                                   isDark: isDark,
                                 );
-                              }).toList(),
+                              }),
                           ],
                         ),
                       ),

@@ -22,7 +22,7 @@ class BossProfileScreen extends StatefulWidget {
 
 class _BossProfileScreenState extends State<BossProfileScreen> {
   String _userName = "أحمد عبدالله";
-  String _userRole = "رئيس القسم الأكاديمي";
+  final String _userRole = "رئيس القسم الأكاديمي";
   final String _email = "ahmed.abd@edubridge.com";
   final String _phone = "+966 50 123 4567";
   final String _department = "علوم الحاسب الآلي";

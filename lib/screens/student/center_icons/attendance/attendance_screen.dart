@@ -1,6 +1,5 @@
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../widgets/student_speed_dial.dart';
 // مسارات شاشات الـ nav_bar بعد التعديل
 import '../../nav_bar/student_home_screen.dart';

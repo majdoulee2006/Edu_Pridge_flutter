@@ -308,7 +308,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withOpacity(0.1))),
             child: isDropdown
                 ? DropdownButtonFormField<String>(
-              value: value,
+              initialValue: value,
               items: (dropdownItems ?? []).map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13, fontFamily: 'Cairo')))).toList(),
               onChanged: onChanged,
               decoration: InputDecoration(prefixIcon: Icon(icon, size: 18), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 10)),

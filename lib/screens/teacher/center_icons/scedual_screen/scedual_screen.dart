@@ -104,7 +104,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                     reverse: true,
                     physics: const BouncingScrollPhysics(),
                     itemCount: days.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       final isSelected = index == selectedDayIndex;
                       final item = days[index];

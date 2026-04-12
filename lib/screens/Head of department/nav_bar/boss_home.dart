@@ -10,7 +10,6 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_m
 
 // 🚀 استيراد الشاشات الفرعية (الأيقونة الوسطى والبانر)
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/leave_requests_screen.dart';
-import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
 
 // 🚀 استدعاء الـ Widget الخاصة بالأيقونة الوسطى
 import '../../../widgets/boss_center_icon.dart';

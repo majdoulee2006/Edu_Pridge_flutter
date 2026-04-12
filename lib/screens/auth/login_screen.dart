@@ -169,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             scale: 0.8,
                             child: Switch(
                               value: _isStudent,
-                              activeColor: primaryYellow,
+                              activeThumbColor: primaryYellow,
                               onChanged: (value) => setState(() => _isStudent = value),
                             ),
                           ),
