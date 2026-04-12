@@ -34,15 +34,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fetchUserProfile();
   }
 
-  // ✅ جلب البيانات مع تصحيح الخطأ في الرابط
   Future<void> _fetchUserProfile() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
-      // تم تصحيح طريقة كتابة الرابط هنا
       var response = await Dio().get(
-        "http://10.119.244.82:8000/api/user/profile",
+        "http://127.0.0.1:8000/api/student/profile",
         options: Options(
           headers: {
             "Authorization": "Bearer $token",
@@ -51,9 +49,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data != null) {
+        debugPrint("Profile Data from Server: ${response.data}");
         setState(() {
-          userData = response.data;
+          userData = response.data['data'];
           _isLoading = false;
         });
       }
@@ -79,8 +78,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       debugPrint('Error picking image: $e');
     }
   }
-
-  // --- Widgets البناء ---
 
   @override
   Widget build(BuildContext context) {
@@ -147,13 +144,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     [
                       _InfoRow(
                         title: 'القسم',
-                        value: userData?['student']?['department'] ?? 'هندسة الحاسوب',
+                        value: userData?['department'] ?? 'غير متوفر',
                         icon: Icons.school,
                         isEditable: false,
                       ),
                       _InfoRow(
                         title: 'السنة الدراسية / الفرع',
-                        value: userData?['student']?['level']?.toString() ?? "غير محدد",
+                        // 🌟 حل مشكلة "غير محدد": التحقق من كلا المسميين الممكنين
+                        value: userData?['academic_year']?.toString() ?? userData?['year']?.toString() ?? "غير محدد",
                         icon: Icons.account_tree_outlined,
                         isEditable: false,
                       ),
@@ -166,13 +164,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     [
                       _InfoRow(
                         title: 'تاريخ الميلاد',
-                        value: userData?['student']?['birth_date'] ?? "00/00/0000",
+                        // 🌟 حل مشكلة تنسيق التاريخ: إزالة الوقت الزائد (T00:00...)
+                        value: userData?['birth_date'] != null
+                            ? userData!['birth_date'].toString().split('T')[0]
+                            : "00/00/0000",
                         icon: Icons.cake_outlined,
                         isEditable: false,
                       ),
                       _InfoRow(
                         title: 'الجنس',
-                        value: userData?['student']?['gender'] ?? 'ذكر',
+                        value: userData?['gender'] ?? 'غير محدد',
                         icon: Icons.people_outline,
                         isEditable: false,
                       ),
@@ -200,7 +201,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ✅ الهيدر مع الاسم و ID الطالب
   Widget _buildProfileHeader(Color bgColor, Color textColor, bool isDark) {
     return Column(
       children: [
@@ -238,14 +238,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             _buildChip('طالب', isDark ? Colors.grey.shade800 : Colors.grey.shade100, isDark ? Colors.grey.shade300 : AppColors.textGrey),
             const SizedBox(width: 8),
-            _buildChip('ID: ${userData?['student']?['student_code'] ?? '0000'}', isDark ? const Color(0xFF555000) : const Color(0xFFFCF9D1), isDark ? Colors.white : AppColors.textDark),
+            _buildChip('ID: ${userData?['university_id'] ?? '0000'}', isDark ? const Color(0xFF555000) : const Color(0xFFFCF9D1), isDark ? Colors.white : AppColors.textDark),
           ],
         ),
       ],
     );
   }
 
-  // دالة عرض خيارات الصورة
   void _showImageSourceBottomSheet(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
@@ -282,7 +281,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ديالوج النجاح
   void _showSuccessDialog(bool isDark) {
     showDialog(
       context: context,

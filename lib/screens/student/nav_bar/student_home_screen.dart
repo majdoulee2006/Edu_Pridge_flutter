@@ -5,7 +5,8 @@ import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-import 'package:edu_pridge_flutter/models/student_data_model.dart';
+// تم إيقاف استخدام المودل هنا لتجنب أخطاء الـ Null
+// import 'package:edu_pridge_flutter/models/student_data_model.dart';
 
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
@@ -19,8 +20,9 @@ class StudentHomeScreen extends StatefulWidget {
 }
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
-  StudentDashboardModel? studentData;
-  List<dynamic> latestNews = []; // 🌟 مصفوفة لاستقبال الأخبار من السيرفر
+  // 🌟 استبدلنا المودل بخريطة بيانات مرنة جداً لمنع الكراش
+  Map<String, dynamic>? dashboardData;
+  List<dynamic> latestNews = [];
   bool isLoading = true;
   String offlineName = "طالب";
 
@@ -41,7 +43,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       });
 
       Dio dio = Dio();
-      // ملاحظة: تأكد من أن الـ IP صحيح ويصل للسيرفر المحلي
       String url = "http://127.0.0.1:8000/api/student/dashboard";
 
       var response = await dio.get(
@@ -56,19 +57,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
       if (response.statusCode == 200 && response.data != null) {
         setState(() {
-          // 🌟 الحل السحري: استخراج الـ data أولاً ليتناسب مع الربط
           var responseData = response.data['data'] ?? response.data;
 
           if (responseData != null) {
-            // جلب الأخبار الديناميكية
-            latestNews = responseData['latest_news'] ?? [];
+            // 🌟 جلب الأخبار باسم announcements أولاً لتجنب اختفائها
+            latestNews = responseData['announcements'] ?? responseData['latest_news'] ?? [];
 
-            // محاولة تمرير البيانات لمودل فريقك داخل حماية
-            try {
-              studentData = StudentDashboardModel.fromJson(responseData);
-            } catch (modelError) {
-              debugPrint("⚠️ تحذير: خطأ في قراءة مودل الطالب: $modelError");
-            }
+            // 🌟 حفظ البيانات بشكل مرن ومباشر
+            dashboardData = responseData;
           }
           isLoading = false;
         });
@@ -92,7 +88,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final cardColor = isDark ? theme.cardColor : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.textDark;
 
-    String displayName = studentData?.name ?? offlineName;
+    // 🌟 استخراج الاسم بذكاء (سواء كان name أو full_name)
+    String displayName = dashboardData?['name'] ?? dashboardData?['full_name'] ?? offlineName;
+
+    // 🌟 تجهيز بيانات المحاضرة القادمة
+    Map<String, dynamic>? upcoming = dashboardData?['upcoming_lecture'];
+    bool hasLecture = upcoming != null && upcoming.isNotEmpty;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -117,15 +118,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.only(bottom: 100),
                           children: [
-                            if (studentData != null && studentData!.upcomingLecture.isNotEmpty)
-                              _buildUpcomingLectureCard(studentData!, isDark)
+                            if (hasLecture)
+                              _buildUpcomingLectureCard(upcoming!, isDark)
                             else
                               _buildNoLecturesCard(isDark),
                             const SizedBox(height: 20),
                             _buildSectionTitle(textColor),
                             const SizedBox(height: 16),
 
-                            // 🌟 توليد الكروت ديناميكياً من السيرفر
                             if (latestNews.isEmpty)
                               const Center(
                                 child: Padding(
@@ -135,12 +135,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                               )
                             else
                               ...latestNews.map((news) {
-                                // 1. قراءة الكلمة الإنجليزية من السيرفر
                                 String rawType = news['type'] ?? 'general';
-
-                                // 2. الترجمة للعربي وتحديد هل هو "إعلان مقرر" أو "إعلان عام"
                                 String displayTag = rawType == 'course_specific' ? 'إعلان مقرر' : 'إعلان عام';
-                                bool isUrgent = rawType == 'course_specific'; // إعلان المقرر رح ياخد اللون الذهبي
+                                bool isUrgent = rawType == 'course_specific';
 
                                 return _buildNewsCard(
                                   tag: displayTag,
@@ -181,9 +178,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  // --- دوال البناء المعدلة ---
-
-  Widget _buildUpcomingLectureCard(StudentDashboardModel data, bool isDark) {
+  Widget _buildUpcomingLectureCard(Map<String, dynamic> data, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -200,8 +195,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               children: [
                 const Text("المحاضرة القادمة", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text(data.upcomingLecture['subject'] ?? "غير محدد", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("القاعة: ${data.upcomingLecture['room'] ?? '-'} | الساعة: ${data.upcomingLecture['time'] ?? '-'}",
+                Text(data['subject'] ?? "غير محدد", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text("القاعة: ${data['room'] ?? '-'} | الساعة: ${data['time'] ?? '-'}",
                     style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87)),
               ],
             ),
@@ -246,7 +241,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
             const SizedBox(width: 4),
             GestureDetector(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen())),
+              onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen())),
               child: CircleAvatar(
                 radius: 22,
                 backgroundColor: isDark ? Colors.amber.withOpacity(0.2) : Colors.amber.shade100,
@@ -317,7 +312,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      // تم تعديل اللون ليتناسب مع النص المترجم الجديد
                       color: tag == 'إعلان مقرر' ? Colors.orange.shade900 : Colors.teal.shade900,
                     ),
                   ),
@@ -339,7 +333,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   description,
                   style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
                   maxLines: 2,
-                  overflow: TextOverflow.ellipsis, // تمت إضافة هذه لضمان عدم تجاوز النص لسطرين
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -352,7 +346,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     Icon(
                         Icons.arrow_forward_ios,
                         size: 14,
-                        // لون السهم يتغير حسب نوع الخبر مثل التاج
                         color: tag == 'إعلان مقرر' ? Colors.amber.shade800 : Colors.teal.shade800
                     ),
                   ],
