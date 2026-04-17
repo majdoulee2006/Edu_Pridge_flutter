@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
       var response = await dio.post(
         url,
         data: {
-          "login": _usernameController.text.trim(), // 👈 تم التعديل من username إلى login
+          "login": _usernameController.text.trim(),
           "password": _passwordController.text,
         },
       );
@@ -56,13 +56,18 @@ class _LoginScreenState extends State<LoginScreen> {
           throw Exception("بيانات المستخدم مفقودة");
         }
 
-        // 💡 استخدام المعرف الجديد user_id لضمان عدم حدوث أخطاء
         String userId = userData['user_id']?.toString() ?? "";
         String displayName = userData['full_name']?.toString() ?? "مستخدم";
         String role = userData['role']?.toString() ?? "student";
 
+        // ✨ التعديل المضاف هنا: استخراج الـ parent_id إذا كان المستخدم ولي أمر
+        if (userData['parent_id'] != null) {
+          await prefs.setInt('parent_id', userData['parent_id']);
+          debugPrint("✅ تم حفظ معرف الأب: ${userData['parent_id']}");
+        }
+
         await prefs.setString('token', token);
-        await prefs.setString('user_id', userId); // 👈 حفظ المعرف الصحيح
+        await prefs.setString('user_id', userId);
         await prefs.setString('user_name', displayName);
         await prefs.setString('user_role', role);
 
@@ -72,7 +77,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _navigateToDashboard(role);
       }
     } on DioException catch (e) {
-      // إظهار رسالة الخطأ القادمة من الباك-إند (مثل: بيانات الدخول غير صحيحة)
       String msg = e.response?.data['message']?.toString() ?? "تأكد من اتصال السيرفر";
       _showSnackBar(msg, isError: true);
     } catch (e) {
@@ -91,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
       nextScreen = const ParentsHomeScreen();
     } else if (r == 'teacher') {
       nextScreen = const TeacherHomeScreen();
-    } else if (r == 'boss' || r == 'head' || r == 'department_head') { // 👈 أضفنا 'head' لتطابق السيدر
+    } else if (r == 'boss' || r == 'head' || r == 'department_head') {
       nextScreen = DeptHeadHomeScreen();
     } else {
       nextScreen = const StudentHomeScreen();

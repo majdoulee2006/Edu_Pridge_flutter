@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-// استيراد الشاشات والقطع اللازمة
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+
+// ✅ استيراد الملفات الخاصة بمشروعك
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
@@ -15,9 +18,47 @@ class ParentsNotificationsScreen extends StatefulWidget {
 }
 
 class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen> {
+
+  // ✅ جلب البيانات كقائمة (List)
+  Future<List<dynamic>> _getNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      dynamic rawId = prefs.get('user_id');
+      int? userId = (rawId is int) ? rawId : int.tryParse(rawId?.toString() ?? "");
+
+      if (userId == null) return [];
+
+      var response = await Dio().get("http://127.0.0.1:8000/api/parent/notifications/$userId");
+
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint("🚨 Error Fetching: $e");
+    }
+    return [];
+  }
+
+  // ✅ دالة ديناميكية لتحديد الستايل بناءً على النوع القادم من الداتا بيز
+  Map<String, dynamic> _getStyleByType(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'attendance':
+        return {'color': Colors.red, 'icon': Icons.person_off, 'label': 'حضور وغياب'};
+      case 'leave_request':
+        return {'color': Colors.blue, 'icon': Icons.description_outlined, 'label': 'طلب إجازة'};
+      case 'marks':
+        return {'color': Colors.amber, 'icon': Icons.grade_rounded, 'label': 'نتائج امتحانات'};
+      case 'holiday':
+        return {'color': Colors.green, 'icon': Icons.beach_access_rounded, 'label': 'عطلة رسمية'};
+      case 'event':
+        return {'color': Colors.purple, 'icon': Icons.event_available, 'label': 'فعالية مدرسية'};
+      default:
+        return {'color': Colors.blueGrey, 'icon': Icons.notifications_active, 'label': 'إشعار'};
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 🎨 تعريف الألوان المتجاوبة
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
@@ -26,71 +67,46 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: bgColor,
-        appBar: _buildAppBar(context, textColor, cardColor),
+        appBar: _buildAppBar(context, textColor),
         body: Stack(
           children: [
-            ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              children: [
-                _buildSectionHeader("اليوم", textColor),
-                _buildNotificationCard(
-                  context: context,
-                  title: "غياب",
-                  time: "08:30 ص",
-                  content: "تم تسجيل غياب للطالب أحمد محمد عن الحصة الأولى.",
-                  footer: "يرجى التواصل مع المشرف",
-                  icon: Icons.close_rounded,
-                  iconColor: Colors.red,
-                  accentColor: Colors.red,
-                  showWarning: true,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                ),
-                _buildEventCard(
-                  context: context,
-                  title: "موعد اختبار",
-                  subtitle: "الفيزياء التطبيقية - سارة محمد",
-                  time: "10:00 ص",
-                  date: "غداً، 15 مايو",
-                  location: "القاعة 4",
-                  icon: Icons.assignment_outlined,
-                  iconColor: Colors.purple,
-                  accentColor: Colors.purple,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                ),
-                const SizedBox(height: 20),
-                _buildSectionHeader("الأمس", textColor),
-                _buildNotificationCard(
-                  context: context,
-                  title: "فعالية جديدة",
-                  time: "02:15 م",
-                  content: "ندوة: الذكاء الاصطناعي في التعليم",
-                  footer: "20 مايو • مسرح المعهد",
-                  icon: Icons.calendar_today_outlined,
-                  iconColor: Colors.blue,
-                  accentColor: Colors.blue,
-                  footerIcon: Icons.location_on_outlined,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                ),
-                const SizedBox(height: 120), // مساحة للشريط السفلي
-              ],
+            FutureBuilder<List<dynamic>>(
+              future: _getNotifications(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFFEFFF00)));
+                }
+
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return Center(child: Text("حدث خطأ في جلب البيانات", style: TextStyle(color: textColor)));
+                }
+
+                final notifications = snapshot.data!;
+
+                if (notifications.isEmpty) {
+                  return Center(child: Text("لا توجد إشعارات حالياً", style: TextStyle(color: textColor.withOpacity(0.5))));
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async => setState(() {}),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                    itemCount: notifications.length,
+                    itemBuilder: (context, index) {
+                      return _buildNotificationCard(context, notifications[index], cardColor, textColor);
+                    },
+                  ),
+                );
+              },
             ),
 
-            // 2. الشريط السفلي الموحد
             CustomBottomNav(
-              currentIndex: 2, // رقم صفحة الإشعارات
+              currentIndex: 2,
               centerButton: const Parents_Center_Icon(),
-              onHomeTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
-              onNotificationsTap: () {
-                // نحن هنا بالفعل
-              },
-              onMessagesTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
+              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+              onNotificationsTap: () {},
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
             ),
           ],
         ),
@@ -98,79 +114,45 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor, Color cardColor) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor) {
     return AppBar(
       backgroundColor: Colors.transparent,
-      elevation: 0,
-      centerTitle: true,
-      title: Text(
-        "الإشعارات",
-        style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-      ),
+      elevation: 0, centerTitle: true,
+      title: Text("الإشعارات", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
       leading: IconButton(
-        icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
+        icon: Icon(Icons.settings_outlined, color: textColor.withOpacity(0.6)),
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
       ),
       actions: [
-        IconButton(
-          icon: Icon(Icons.arrow_forward, color: textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
+        IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pop(context)),
       ],
     );
   }
 
-  Widget _buildSectionHeader(String title, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      child: Row(
-        children: [
-          Text(title, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontWeight: FontWeight.bold)),
-          const SizedBox(width: 10),
-          Expanded(child: Divider(color: textColor.withValues(alpha: 0.1), thickness: 1)),
-        ],
-      ),
-    );
-  }
+  Widget _buildNotificationCard(BuildContext context, dynamic item, Color cardColor, Color textColor) {
+    // جلب الستايل المناسب للنوع من الدالة الديناميكية
+    final style = _getStyleByType(item['type']?.toString());
 
-  Widget _buildNotificationCard({
-    required BuildContext context,
-    required String title,
-    required String time,
-    required String content,
-    required Color cardColor,
-    required Color textColor,
-    String? footer,
-    required IconData icon,
-    required Color iconColor,
-    required Color accentColor,
-    bool showWarning = false,
-    IconData? footerIcon,
-  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
         child: Stack(
           children: [
-            Positioned(
-              right: 0, top: 0, bottom: 0,
-              child: Container(width: 5, color: accentColor),
-            ),
+            Positioned(right: 0, top: 0, bottom: 0, child: Container(width: 5, color: style['color'])),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), shape: BoxShape.circle),
-                    child: Icon(icon, color: iconColor, size: 24),
+                    decoration: BoxDecoration(color: style['color'].withOpacity(0.1), shape: BoxShape.circle),
+                    child: Icon(style['icon'], color: style['color'], size: 24),
                   ),
                   const SizedBox(width: 15),
                   Expanded(
@@ -180,22 +162,18 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
-                            _buildTimeBadge(time, textColor),
+                            Text(item['title']?.toString() ?? "إشعار", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            _buildTimeBadge(item['created_at']?.toString().split('T')[0] ?? "--", textColor),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(content, style: TextStyle(color: textColor.withValues(alpha: 0.7), height: 1.4)),
-                        if (footer != null) ...[
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Icon(footerIcon ?? Icons.info_outline, color: showWarning ? iconColor : Colors.grey, size: 14),
-                              const SizedBox(width: 5),
-                              Text(footer, style: TextStyle(color: showWarning ? iconColor : Colors.grey, fontSize: 12)),
-                            ],
-                          ),
-                        ],
+                        Text(item['message']?.toString() ?? "",
+                            style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 13, height: 1.4)),
+                        const SizedBox(height: 10),
+                        Text(
+                          style['label'],
+                          style: TextStyle(color: style['color'], fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                   ),
@@ -208,39 +186,11 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     );
   }
 
-  Widget _buildEventCard({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required String time,
-    required String date,
-    required String location,
-    required IconData icon,
-    required Color iconColor,
-    required Color accentColor,
-    required Color cardColor,
-    required Color textColor,
-  }) {
-    return _buildNotificationCard(
-      context: context,
-      title: title,
-      time: time,
-      content: subtitle,
-      icon: icon,
-      iconColor: iconColor,
-      accentColor: accentColor,
-      footer: "$date • $location",
-      footerIcon: Icons.calendar_today,
-      cardColor: cardColor,
-      textColor: textColor,
-    );
-  }
-
   Widget _buildTimeBadge(String time, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: textColor.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
-      child: Text(time, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 10)),
+      decoration: BoxDecoration(color: textColor.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+      child: Text(time, style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 10)),
     );
   }
 }
