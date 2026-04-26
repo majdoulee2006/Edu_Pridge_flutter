@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// استيراد الشاشات
+// استيراد الملف الجديد (تأكدي أن اسم الملف forgot_password_screen.dart صحيح في مشروعك)
+import 'forgot_password_screen.dart';
+
 import '../teacher/teacher_home.dart';
 import '../student/nav_bar/student_home_screen.dart';
 import '../parents/nav_bar/parent_home.dart';
@@ -34,7 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       Dio dio = Dio();
-      // 💡 إذا كنتِ تستخدمين Emulator استخدمي 10.0.2.2 بدلاً من 127.0.0.1
       String url = "http://127.0.0.1:8000/api/login";
 
       var response = await dio.post(
@@ -59,12 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
         String userId = userData['user_id']?.toString() ?? "";
         String displayName = userData['full_name']?.toString() ?? "مستخدم";
         String role = userData['role']?.toString() ?? "student";
-
-        // ✨ التعديل المضاف هنا: استخراج الـ parent_id إذا كان المستخدم ولي أمر
-        if (userData['parent_id'] != null) {
-          await prefs.setInt('parent_id', userData['parent_id']);
-          debugPrint("✅ تم حفظ معرف الأب: ${userData['parent_id']}");
-        }
 
         await prefs.setString('token', token);
         await prefs.setString('user_id', userId);
@@ -164,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(_isStudent ? "الرقم الجامعي" : "اسم المستخدم / الإيميل",
+                      Text(_isStudent ? "الرقم الجامعي" : "رقم الهاتف / الإيميل",
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withOpacity(0.7), fontFamily: 'Cairo')),
                       Row(
                         children: [
@@ -173,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             scale: 0.8,
                             child: Switch(
                               value: _isStudent,
-                              activeThumbColor: primaryYellow,
+                              activeColor: primaryYellow,
                               onChanged: (value) => setState(() => _isStudent = value),
                             ),
                           ),
@@ -183,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
 
                   _buildTextField(
-                    hint: _isStudent ? "أدخل رقمك الجامعي" : "أدخل اسم المستخدم أو الإيميل",
+                    hint: _isStudent ? "أدخل رقمك الجامعي" : "أدخل رقم الهاتف أو الإيميل",
                     icon: _isStudent ? Icons.badge_outlined : Icons.alternate_email,
                     controller: _usernameController,
                     isDark: isDark,
@@ -202,13 +197,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     isDark: isDark,
                   ),
                   const SizedBox(height: 15),
+
+                  // ================= تم التعديل هنا =================
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // الانتقال لصفحة استعادة كلمة السر
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                        );
+                      },
                       child: const Text("نسيت كلمة المرور؟", style: TextStyle(color: primaryYellow, fontSize: 12, fontFamily: 'Cairo')),
                     ),
                   ),
+                  // =================================================
+
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,
@@ -238,6 +243,39 @@ class _LoginScreenState extends State<LoginScreen> {
                         )
                     ),
                   ),
+
+                  const SizedBox(height: 40),
+                  const Divider(),
+                  const Center(
+                    child: Text(
+                      "أدوات المطور - دخول سريع",
+                      style: TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo'),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildDevButton("رئيس قسم", Icons.admin_panel_settings, () {
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DeptHeadHomeScreen()));
+                        }),
+                        const SizedBox(width: 15),
+                        _buildDevButton("معلم", Icons.person_pin, () {
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen()));
+                        }),
+                        const SizedBox(width: 15),
+                        _buildDevButton("طالب", Icons.school, () {
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentHomeScreen()));
+                        }),
+                        const SizedBox(width: 15),
+                        _buildDevButton("أهل", Icons.family_restroom, () {
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen()));
+                        }),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 30),
                 ],
               ),
@@ -245,6 +283,23 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDevButton(String title, IconData icon, VoidCallback onTap) {
+    return Column(
+      children: [
+        IconButton(
+          onPressed: onTap,
+          icon: Icon(icon, color: Colors.orangeAccent),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.orangeAccent.withOpacity(0.1),
+            padding: const EdgeInsets.all(12),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey, fontFamily: 'Cairo')),
+      ],
     );
   }
 
