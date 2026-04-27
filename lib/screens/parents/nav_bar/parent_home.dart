@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 class ParentsHomeScreen extends StatefulWidget {
@@ -19,10 +20,19 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   String _parentName = "جارِ التحميل...";
   int? selectedChildId;
 
+  Future<List<dynamic>>? _childrenFuture;
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _refreshChildren();
+  }
+
+  void _refreshChildren() {
+    setState(() {
+      _childrenFuture = _fetchChildrenFromServer();
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -31,6 +41,8 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
       _parentName = prefs.getString('user_name') ??
           prefs.getString('full_name') ??
           "ولي أمر";
+      // استعادة الابن المختار سابقاً من الذاكرة إذا وجد
+      selectedChildId = prefs.getInt('selected_student_id');
     });
   }
 
@@ -38,13 +50,11 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   Future<List<dynamic>> _fetchChildrenFromServer() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // جلب parent_id الفعلي الذي حفظناه في اللوجن
       int? pId = prefs.getInt('parent_id');
 
       if (pId != null && pId != 0) {
         var response = await Dio().get(
-          "http://127.0.0.1:8000/api/parent/children/$pId",
+          "${ApiService().baseUrl}/parent/children/$pId",
           options: Options(headers: {"Accept": "application/json"}),
         );
 
@@ -75,31 +85,32 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
           ElevatedButton(
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
-
-              // ✨ سحب رقم الأب من الذاكرة (سيكون 1 كما في حالتك)
               int? pId = prefs.getInt('parent_id');
+              String? token = prefs.getString('token');
 
-              if (pId == null) {
+              if (pId == null || token == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("خطأ: لم يتم العثور على معرف الأب، يرجى إعادة تسجيل الدخول"))
+                    const SnackBar(content: Text("خطأ: لم يتم العثور على بيانات تسجيل الدخول، يرجى إعادة الدخول"))
                 );
                 return;
               }
 
               try {
                 var response = await Dio().post(
-                  "http://127.0.0.1:8000/api/parent/add-student",
+                  "${ApiService().baseUrl}/parent/add-student",
                   data: {
                     "student_code": codeController.text,
-                    "parent_id": pId // يرسل المعرف المخزن تلقائياً
+                    "parent_id": pId
                   },
-                  options: Options(headers: {"Accept": "application/json"}),
+                  options: Options(headers: {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer $token"
+                  }),
                 );
 
                 if (response.statusCode == 200) {
                   Navigator.pop(context);
-                  // 🔥 تحديث الواجهة لجلب الأبناء مجدداً
-                  setState(() {});
+                  _refreshChildren(); // Refresh the list forcefully
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("✅ تم ربط الابن بنجاح")),
                   );
@@ -139,13 +150,25 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                   _buildSectionTitle("الأبناء", textColor),
 
                   FutureBuilder<List<dynamic>>(
-                    future: _fetchChildrenFromServer(),
+                    future: _childrenFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const SizedBox(height: 240, child: Center(child: CircularProgressIndicator(color: Color(0xFFD4E000))));
                       }
 
                       final children = snapshot.data ?? [];
+
+                      // ✅ التحديد التلقائي لأول ابن إذا لم يكن هناك ابن محدد
+                      if (children.isNotEmpty && selectedChildId == null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                          final prefs = await SharedPreferences.getInstance();
+                          setState(() {
+                            selectedChildId = children[0]['student_id'];
+                          });
+                          await prefs.setInt('selected_student_id', children[0]['student_id']);
+                          await prefs.setString('selected_student_name', children[0]['full_name'] ?? "بدون اسم");
+                        });
+                      }
 
                       return SizedBox(
                         height: 240,
@@ -162,8 +185,18 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                                   setState(() {
                                     selectedChildId = child['student_id'];
                                   });
+
+                                  // ✅ التعديل هنا: حفظ الـ ID والاسم معاً لضمان ظهورهما في صفحة التقارير
                                   final prefs = await SharedPreferences.getInstance();
                                   await prefs.setInt('selected_student_id', child['student_id']);
+                                  await prefs.setString('selected_student_name', child['full_name'] ?? "بدون اسم");
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("تم اختيار الابن: ${child['full_name']}"),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
                                 },
                                 child: Stack(
                                   children: [

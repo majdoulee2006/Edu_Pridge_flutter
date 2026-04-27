@@ -61,6 +61,15 @@ class _LoginScreenState extends State<LoginScreen> {
         String displayName = userData['full_name']?.toString() ?? "مستخدم";
         String role = userData['role']?.toString() ?? "student";
 
+        // ✨ التعديل المضاف هنا: استخراج الـ parent_id إذا كان المستخدم ولي أمر
+        if (userData['parent_id'] != null) {
+          await prefs.setInt('parent_id', userData['parent_id']);
+          debugPrint("✅ تم حفظ معرف الأب: ${userData['parent_id']}");
+        }
+
+        // مسح بيانات الابن المختار سابقاً (لمنع ظهور بيانات ابن من جلسة سابقة)
+        await prefs.remove('selected_student_id');
+        await prefs.remove('selected_student_name');
         await prefs.setString('token', token);
         await prefs.setString('user_id', userId);
         await prefs.setString('user_name', displayName);

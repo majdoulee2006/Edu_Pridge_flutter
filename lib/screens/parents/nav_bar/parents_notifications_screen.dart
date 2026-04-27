@@ -8,6 +8,7 @@ import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_scre
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 class ParentsNotificationsScreen extends StatefulWidget {
@@ -23,25 +24,92 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
   Future<List<dynamic>> _getNotifications() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      dynamic rawId = prefs.get('user_id');
-      int? userId = (rawId is int) ? rawId : int.tryParse(rawId?.toString() ?? "");
 
-      if (userId == null) return [];
+      // 1. جلب الـ ID المخزن
+      String? userId = prefs.getString('user_id');
 
-      var response = await Dio().get("http://127.0.0.1:8000/api/parent/notifications/$userId");
+      if (userId == null) {
+        debugPrint("🚨 لم يتم العثور على user_id في الذاكرة");
+        return [];
+      }
+
+      // 2. إرسال الطلب مع الـ ID في الرابط مباشرة
+      var response = await Dio().get("${ApiService().baseUrl}/parent/notifications/$userId");
 
       if (response.statusCode == 200 && response.data != null) {
+        debugPrint("✅ تم جلب البيانات: ${response.data}");
         return response.data as List<dynamic>;
       }
     } catch (e) {
-      debugPrint("🚨 Error Fetching: $e");
+      debugPrint("🚨 خطأ في الاتصال: $e");
     }
     return [];
   }
 
-  // ✅ دالة ديناميكية لتحديد الستايل بناءً على النوع القادم من الداتا بيز
+  // ✅ دالة لعرض تفاصيل التقرير عند الضغط عليه
+  void _showReportDetails(BuildContext context, dynamic item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        title: const Text("📄 تفاصيل التقرير",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.analytics_rounded, size: 60, color: Colors.orange),
+            const SizedBox(height: 15),
+            Text(item['message'] ?? "",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16)),
+            const Divider(height: 30),
+            // بيانات افتراضية توضح النتيجة للأب
+            _buildReportRow(Icons.check_circle_outline, "حالة الحضور", "ممتاز (95%)", Colors.green),
+            _buildReportRow(Icons.star_border, "المستوى الدراسي", "جيد جداً", Colors.blue),
+            const SizedBox(height: 20),
+            const Text("التوصية: يستمر الطالب في التحسن، ننصح بمتابعة الواجبات اليومية.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("إغلاق", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ودجت مساعد لبناء صفوف التقرير داخل الـ Dialog
+  Widget _buildReportRow(IconData icon, String title, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(fontSize: 14)),
+            ],
+          ),
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+
+  // ✅ دالة ديناميكية لتحديد الستايل بناءً على النوع
   Map<String, dynamic> _getStyleByType(String? type) {
     switch (type?.toLowerCase()) {
+      case 'report':
+        return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': 'تقرير أداء'};
       case 'attendance':
         return {'color': Colors.red, 'icon': Icons.person_off, 'label': 'حضور وغياب'};
       case 'leave_request':
@@ -93,7 +161,16 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
                     itemCount: notifications.length,
                     itemBuilder: (context, index) {
-                      return _buildNotificationCard(context, notifications[index], cardColor, textColor);
+                      // ✅ تم إضافة InkWell هنا لجعل الكارت قابلاً للنقر
+                      return InkWell(
+                        onTap: () {
+                          if (notifications[index]['type'] == 'report') {
+                            _showReportDetails(context, notifications[index]);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(30),
+                        child: _buildNotificationCard(context, notifications[index], cardColor, textColor),
+                      );
                     },
                   ),
                 );
@@ -130,7 +207,6 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
   }
 
   Widget _buildNotificationCard(BuildContext context, dynamic item, Color cardColor, Color textColor) {
-    // جلب الستايل المناسب للنوع من الدالة الديناميكية
     final style = _getStyleByType(item['type']?.toString());
 
     return Container(

@@ -11,6 +11,7 @@ import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_scre
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../widgets/parents_center_icon.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class ParentsProfileScreen extends StatefulWidget {
   const ParentsProfileScreen({super.key});
@@ -21,13 +22,13 @@ class ParentsProfileScreen extends StatefulWidget {
 
 class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   // متغيرات البيانات (لربطها بالعرض)
-  String parentName = "أحمد محمد علي";
-  String parentPhone = "050 123 4567";
-  String parentEmail = "ahmed.ali@institute.edu";
+  String parentName = "جارِ التحميل...";
+  String parentPhone = "غير متوفر";
+  String parentEmail = "غير متوفر";
 
-  String studentName = "عمر الخالد";
-  String studentDept = "هندسة الحاسوب"; // القسم
-  String studentYear = "السنة الثانية"; // السنة الدراسية
+  String studentName = "لم يتم تحديد ابن";
+  String studentDept = "غير متوفر"; 
+  String studentYear = "غير متوفر";
 
   @override
   void initState() {
@@ -44,7 +45,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
 
     if (userId != null) {
       try {
-        var response = await Dio().get("http://127.0.0.1:8000/api/user/profile/$userId");
+        var response = await Dio().get("${ApiService().baseUrl}/user/profile/$userId");
         if (response.statusCode == 200) {
           setState(() {
             parentName = response.data['full_name'] ?? parentName;
@@ -60,7 +61,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
     if (selectedId != null) {
       try {
         // نرسل طلب للسيرفر يجلب البيانات بـ Join بين الجداول
-        var res = await Dio().get("http://127.0.0.1:8000/api/student/info/$selectedId");
+        var res = await Dio().get("${ApiService().baseUrl}/student/info/$selectedId");
         if (res.statusCode == 200 && res.data != null) {
           setState(() {
             studentName = res.data['full_name'] ?? studentName;
@@ -109,7 +110,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
                   ]),
 
                   const SizedBox(height: 25),
-                  _buildSectionTitle("البيانات الأكاديمية (للطالب)", textColor),
+                  _buildSectionTitle("البيانات الأكاديمية لـ $studentName", textColor),
                   _buildInfoCard(cardColor, [
                     _buildStaticRow("القسم", studentDept, Icons.account_balance_rounded, Colors.purple, textColor),
                     Divider(height: 1, color: textColor.withOpacity(0.1), indent: 20, endIndent: 20),
