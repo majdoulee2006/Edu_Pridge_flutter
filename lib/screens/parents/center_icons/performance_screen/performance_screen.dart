@@ -32,19 +32,23 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   }
 
   Future<void> _fetchPerformanceData() async {
-    setState(() => isLoading = true); // نبدأ التحميل عند كل نداء
+    setState(() => isLoading = true); 
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // تأكدي أن هذا المفتاح هو نفسه المستخدم عند اختيار الابن من القائمة
       int? sId = prefs.getInt('selected_student_id');
+      String? token = prefs.getString('token');
       studentName = prefs.getString('selected_student_name') ?? "الطالب";
 
-      print("جلب بيانات الطالب رقم: $sId"); // للتشخيص في الـ Console
+      debugPrint("جلب بيانات الطالب رقم: $sId");
 
-      if (sId != null) {
-        // استخدمي IP جهازك الحقيقي إذا كنتِ تجربين على موبايل
-        var response = await Dio().get("${ApiService().baseUrl}/parent/performance/$sId");
+      if (sId != null && token != null) {
+        var response = await Dio().get(
+          "${ApiService().baseUrl}/parent/performance/$sId",
+          options: Options(headers: {
+            "Accept": "application/json",
+            "Authorization": "Bearer $token"
+          }),
+        );
 
         if (response.statusCode == 200) {
           setState(() {
@@ -52,9 +56,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             isLoading = false;
           });
         }
+      } else {
+        setState(() => isLoading = false);
       }
     } catch (e) {
-      print("خطأ في الاتصال: $e");
+      debugPrint("خطأ في الاتصال: $e");
       setState(() => isLoading = false);
     }
   }
