@@ -1,11 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// استيراد الشاشات والقطع اللازمة
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 class ParentsHomeScreen extends StatefulWidget {
@@ -16,22 +17,114 @@ class ParentsHomeScreen extends StatefulWidget {
 }
 
 class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
-  // متغير لتخزين اسم ولي الأمر القادم من الباكيند
   String _parentName = "جارِ التحميل...";
+  int? selectedChildId;
+
+  Future<List<dynamic>>? _childrenFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // استدعاء دالة جلب البيانات عند تشغيل الشاشة
+    _loadUserData();
+    _refreshChildren();
   }
 
-  // دالة لجلب الاسم المخزن في SharedPreferences
+  void _refreshChildren() {
+    setState(() {
+      _childrenFuture = _fetchChildrenFromServer();
+    });
+  }
+
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      // 'user_name' هو المفتاح الذي استخدمناه في كود الـ Login
-      _parentName = prefs.getString('user_name') ?? "ولي أمر";
+      _parentName = prefs.getString('user_name') ??
+          prefs.getString('full_name') ??
+          "ولي أمر";
+      // استعادة الابن المختار سابقاً من الذاكرة إذا وجد
+      selectedChildId = prefs.getInt('selected_student_id');
     });
+  }
+
+  // دالة جلب الأبناء (تأخذ رقم الأب من الذاكرة تلقائياً)
+  Future<List<dynamic>> _fetchChildrenFromServer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      int? pId = prefs.getInt('parent_id');
+
+      if (pId != null && pId != 0) {
+        var response = await Dio().get(
+          "${ApiService().baseUrl}/parent/children/$pId",
+          options: Options(headers: {"Accept": "application/json"}),
+        );
+
+        if (response.statusCode == 200) {
+          return response.data;
+        }
+      }
+    } catch (e) {
+      debugPrint("⚠️ خطأ في جلب الأبناء: $e");
+    }
+    return [];
+  }
+
+  void _showAddStudentDialog() {
+    TextEditingController codeController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("ربط ابن جديد", textAlign: TextAlign.right),
+        content: TextField(
+          controller: codeController,
+          decoration: const InputDecoration(hintText: "أدخل كود الطالب (مثل: 2026100)"),
+          textAlign: TextAlign.right,
+          keyboardType: TextInputType.number,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+          ElevatedButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              int? pId = prefs.getInt('parent_id');
+              String? token = prefs.getString('token');
+
+              if (pId == null || token == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("خطأ: لم يتم العثور على بيانات تسجيل الدخول، يرجى إعادة الدخول"))
+                );
+                return;
+              }
+
+              try {
+                var response = await Dio().post(
+                  "${ApiService().baseUrl}/parent/add-student",
+                  data: {
+                    "student_code": codeController.text,
+                    "parent_id": pId
+                  },
+                  options: Options(headers: {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer $token"
+                  }),
+                );
+
+                if (response.statusCode == 200) {
+                  Navigator.pop(context);
+                  _refreshChildren(); // Refresh the list forcefully
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("✅ تم ربط الابن بنجاح")),
+                  );
+                }
+              } on DioException catch (e) {
+                String errorMsg = e.response?.data['message'] ?? "فشل الربط: تأكد من الكود";
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+              }
+            },
+            child: const Text("إضافة"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -46,7 +139,6 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
         textDirection: TextDirection.rtl,
         child: Stack(
           children: [
-            // 1. المحتوى الأساسي للواجهة
             SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Column(
@@ -56,7 +148,89 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                   _buildHeader(context, textColor, cardColor),
                   const SizedBox(height: 25),
                   _buildSectionTitle("الأبناء", textColor),
-                  _buildStudentsList(cardColor, textColor),
+
+                  FutureBuilder<List<dynamic>>(
+                    future: _childrenFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox(height: 240, child: Center(child: CircularProgressIndicator(color: Color(0xFFD4E000))));
+                      }
+
+                      final children = snapshot.data ?? [];
+
+                      // ✅ التحديد التلقائي لأول ابن إذا لم يكن هناك ابن محدد
+                      if (children.isNotEmpty && selectedChildId == null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                          final prefs = await SharedPreferences.getInstance();
+                          setState(() {
+                            selectedChildId = children[0]['student_id'];
+                          });
+                          await prefs.setInt('selected_student_id', children[0]['student_id']);
+                          await prefs.setString('selected_student_name', children[0]['full_name'] ?? "بدون اسم");
+                        });
+                      }
+
+                      return SizedBox(
+                        height: 240,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 15),
+                          itemCount: children.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index < children.length) {
+                              final child = children[index];
+                              return GestureDetector(
+                                onTap: () async {
+                                  setState(() {
+                                    selectedChildId = child['student_id'];
+                                  });
+
+                                  // ✅ التعديل هنا: حفظ الـ ID والاسم معاً لضمان ظهورهما في صفحة التقارير
+                                  final prefs = await SharedPreferences.getInstance();
+                                  await prefs.setInt('selected_student_id', child['student_id']);
+                                  await prefs.setString('selected_student_name', child['full_name'] ?? "بدون اسم");
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("تم اختيار الابن: ${child['full_name']}"),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                                child: Stack(
+                                  children: [
+                                    _buildStudentCard(
+                                      child['full_name'] ?? "بدون اسم",
+                                      child['level'] ?? "غير محدد",
+                                      "3.8",
+                                      "نشط",
+                                      cardColor,
+                                      textColor,
+                                      isSelected: selectedChildId == child['student_id'],
+                                    ),
+                                    if (selectedChildId == child['student_id'])
+                                      const Positioned(
+                                        top: 20,
+                                        right: 20,
+                                        child: CircleAvatar(
+                                          radius: 12,
+                                          backgroundColor: Color(0xFFEFFF00),
+                                          child: Icon(Icons.check, size: 16, color: Colors.black),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              return _buildAddButton(cardColor);
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+
                   const SizedBox(height: 25),
                   _buildSectionTitle("أخبار المعهد والفعاليات", textColor),
                   _buildNewsCard(),
@@ -64,24 +238,13 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                 ],
               ),
             ),
-
-            // 2. الشريط السفلي الموحد
             CustomBottomNav(
               currentIndex: 0,
               centerButton: const Parents_Center_Icon(),
               onHomeTap: () {},
-              onProfileTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ParentsProfileScreen()),
-              ),
-              onNotificationsTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen()),
-              ),
-              onMessagesTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ParentsMessagesScreen()),
-              ),
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
             ),
           ],
         ),
@@ -89,7 +252,8 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     );
   }
 
-  // --- الهيدر العلوي المعدل ---
+  // --- المكونات الرسومية ---
+
   Widget _buildHeader(BuildContext context, Color textColor, Color cardColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -99,28 +263,21 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Edu-Bridge",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
+              Text("Edu-Bridge", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
               const SizedBox(height: 8),
               Text.rich(
                 TextSpan(
                   text: "مرحباً، ",
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
                   children: [
-                    // تم استبدال "محمد" بالمتغير _parentName
                     TextSpan(text: _parentName, style: const TextStyle(color: Color(0xFFD4E000))),
                   ],
                 ),
               ),
-              const Text("تابع آخر أخبار المعهد والأنشطة",
-                  style: TextStyle(color: Colors.grey, fontSize: 13)),
             ],
           ),
           GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SettingsScreen(userName: _parentName, userRole: "ولي أمر")),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsScreen(userName: _parentName, userRole: "ولي أمر"))),
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle),
@@ -145,30 +302,17 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     );
   }
 
-  Widget _buildStudentsList(Color cardColor, Color textColor) {
-    return SizedBox(
-      height: 240,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        children: [
-          _buildStudentCard("سارة محمد", "السنة الثالثة - هندسة حاسب", "3.8", "نشط", cardColor, textColor),
-          _buildStudentCard("أحمد محمد", "السنة الأولى - إدارة أعمال", "--", "إجازة", cardColor, textColor),
-          _buildAddButton(cardColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStudentCard(String name, String major, String gpa, String status, Color cardColor, Color textColor) {
+  Widget _buildStudentCard(String name, String major, String gpa, String status, Color cardColor, Color textColor, {bool isSelected = false}) {
     return Container(
       width: 220,
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: const Color(0xFFE8F200).withOpacity(0.3), width: 1.5),
+        border: Border.all(
+          color: isSelected ? const Color(0xFFEFFF00) : const Color(0xFFE8F200).withOpacity(0.3),
+          width: isSelected ? 3 : 1.5,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -199,18 +343,21 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   }
 
   Widget _buildAddButton(Color cardColor) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 65, height: 65,
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
-          child: const Icon(Icons.add, size: 30, color: Colors.black),
-        ),
-        const SizedBox(height: 8),
-        const Text("إضافة", style: TextStyle(color: Colors.grey, fontSize: 12)),
-      ],
+    return GestureDetector(
+      onTap: () => _showAddStudentDialog(),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 65, height: 65,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
+            child: const Icon(Icons.add, size: 30, color: Colors.black),
+          ),
+          const SizedBox(height: 8),
+          const Text("إضافة", style: TextStyle(color: Colors.grey, fontSize: 12)),
+        ],
+      ),
     );
   }
 
@@ -223,25 +370,9 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
         gradient: const LinearGradient(colors: [Color(0xFF3B67D1), Color(0xFF2A4B9A)]),
         borderRadius: BorderRadius.circular(30),
       ),
-      child: Stack(
+      child: const Stack(
         children: [
-          const Positioned(
-            bottom: 25, right: 25,
-            child: Text("انطلاق فعاليات الأسبوع الثقافي...",
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
-          Positioned(
-            top: 20, left: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-              child: const Row(children: [
-                Text("هام", style: TextStyle(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold)),
-                SizedBox(width: 5),
-                CircleAvatar(radius: 3, backgroundColor: Colors.red)
-              ]),
-            ),
-          )
+          Positioned(bottom: 25, right: 25, child: Text("انطلاق فعاليات الأسبوع الثقافي...", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
         ],
       ),
     );

@@ -2,16 +2,63 @@ import 'package:flutter/material.dart';
 // استيراد الشاشات والقطع الموحدة
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import '../../../../widgets/parents_center_icon.dart';
 
-class ParentsAssignmentsScreen extends StatelessWidget {
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class ParentsAssignmentsScreen extends StatefulWidget {
   const ParentsAssignmentsScreen({super.key});
 
   @override
+  State<ParentsAssignmentsScreen> createState() => _ParentsAssignmentsScreenState();
+}
+
+class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
+  List<dynamic> assignments = [];
+  bool isLoading = true;
+  String selectedFilter = "الكل"; // الكل، المكتملة، فائتة
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAssignments();
+  }
+
+  Future<void> _fetchAssignments() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      int? sId = prefs.getInt('selected_student_id');
+      String? token = prefs.getString('token');
+
+      if (sId != null && token != null) {
+        var response = await Dio().get(
+          "${ApiService().baseUrl}/parent/student/$sId/assignments",
+          options: Options(headers: {
+            "Accept": "application/json",
+            "Authorization": "Bearer $token"
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          setState(() {
+            assignments = response.data;
+            isLoading = false;
+          });
+        }
+      } else {
+         setState(() => isLoading = false);
+      }
+    } catch (e) {
+      print("خطأ في جلب الواجبات: $e");
+      setState(() => isLoading = false);
+    }
+  }
   Widget build(BuildContext context) {
     // 🎨 ألوان متجاوبة مع الثيم
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
@@ -30,51 +77,38 @@ class ParentsAssignmentsScreen extends StatelessWidget {
               children: [
                 _buildFilterBar(textColor),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    children: [
-                      _taskCard(
-                        context: context,
-                        title: "مشروع تصميم واجهة",
-                        subtitle: "مادة تصميم تجربة المستخدم",
-                        status: "جاري",
-                        progress: 0.6,
-                        date: "25 مايو 2024",
-                        icon: Icons.code,
-                        iconColor: Colors.blue,
-                        hasAttachment: true,
-                        cardColor: cardColor,
-                        textColor: textColor,
-                      ),
-                      _taskCard(
-                        context: context,
-                        title: "واجب الإحصاء #3",
-                        subtitle: "مادة الإحصاء والاحتمالات",
-                        status: "مكتملة",
-                        progress: 1.0,
-                        date: "تم التسليم: أمس",
-                        icon: Icons.calculate_outlined,
-                        iconColor: Colors.green,
-                        grade: "10/10",
-                        cardColor: cardColor,
-                        textColor: textColor,
-                      ),
-                      _taskCard(
-                        context: context,
-                        title: "بحث التاريخ المعاصر",
-                        subtitle: "مادة التاريخ",
-                        status: "فائتة",
-                        progress: 0.0,
-                        date: "استحق في 15 مايو",
-                        icon: Icons.auto_stories_outlined,
-                        iconColor: Colors.purple,
-                        isOverdue: true,
-                        cardColor: cardColor,
-                        textColor: textColor,
-                      ),
-                      const SizedBox(height: 150), // مساحة للناف بار
-                    ],
-                  ),
+                  child: isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFEFFF00)))
+                      : assignments.isEmpty
+                          ? const Center(child: Text("لا توجد واجبات لعرضها"))
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 15),
+                              itemCount: assignments.length,
+                              itemBuilder: (context, index) {
+                                var item = assignments[index];
+                                // فلترة الواجبات
+                                if (selectedFilter == "المكتملة" && item['status'] != "مكتملة") return const SizedBox.shrink();
+                                if (selectedFilter == "فائتة" && item['status'] != "فائتة") return const SizedBox.shrink();
+
+                                // تحويل نسبة العلامة (مؤقتاً)
+                                double progress = item['status'] == "مكتملة" ? 1.0 : (item['status'] == "فائتة" ? 0.0 : 0.5);
+
+                                return _taskCard(
+                                  context: context,
+                                  title: item['title'] ?? "واجب",
+                                  subtitle: item['course_name'] ?? "مادة",
+                                  status: item['status'] ?? "جاري",
+                                  progress: progress,
+                                  date: item['due_date']?.toString().substring(0, 10) ?? "غير محدد",
+                                  icon: Icons.assignment_outlined,
+                                  iconColor: item['status'] == "مكتملة" ? Colors.green : (item['status'] == "فائتة" ? Colors.red : Colors.blue),
+                                  cardColor: cardColor,
+                                  textColor: textColor,
+                                  grade: item['grade'] != null ? "${item['grade']}/${item['max_points']}" : null,
+                                  isOverdue: item['status'] == "فائتة",
+                                );
+                              },
+                            ),
                 ),
               ],
             ),
@@ -123,9 +157,9 @@ class ParentsAssignmentsScreen extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _filterChip("الكل", true, textColor),
-            _filterChip("المكتملة", false, textColor),
-            _filterChip("فائتة", false, textColor),
+            GestureDetector(onTap: () => setState(() => selectedFilter = "الكل"), child: _filterChip("الكل", selectedFilter == "الكل", textColor)),
+            GestureDetector(onTap: () => setState(() => selectedFilter = "المكتملة"), child: _filterChip("المكتملة", selectedFilter == "المكتملة", textColor)),
+            GestureDetector(onTap: () => setState(() => selectedFilter = "فائتة"), child: _filterChip("فائتة", selectedFilter == "فائتة", textColor)),
           ],
         ),
       ),

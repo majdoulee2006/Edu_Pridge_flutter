@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-// 🚀 1. استيراد شاشة طلبات الإجازة (تأكدي من صحة المسار في مشروعك)
+// 🚀 1. استيراد شاشة طلبات الإجازة
 import '../screens/Head of department/center_icons/leave_requests_screen.dart';
+import '../screens/Head of department/center_icons/accounts/accounts_management_screen.dart';
+import '../screens/Head of department/center_icons/main_organization _interface_screen.dart';
+
+// ✅ تصحيح مسار استدعاء شاشة طلب التقارير
+import '../screens/Head of department/center_icons/request_reports_screen.dart';
 
 class Boss_Center_Icon extends StatefulWidget {
   const Boss_Center_Icon({super.key});
@@ -83,7 +88,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                         height: 160,
                         child: Stack(
                           children: [
-                            // 🚀 2. تفعيل زر الإجازات للانتقال للشاشة الجديدة
+                            // 1. زر الإجازات
                             _buildMenuItem(
                               'الإجازات',
                               Icons.event_note_rounded,
@@ -109,7 +114,12 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                               0.6,
                               itemTextColor,
                                   () {
-                                // Navigator.push(...)
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const AccountsManagementScreen(),
+                                  ),
+                                );
                               },
                             ),
                             // 3. زر التنظيم
@@ -122,7 +132,12 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                               0.8,
                               itemTextColor,
                                   () {
-                                // Navigator.push(...)
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const MainOrganizationInterfaceScreen(),
+                                  ),
+                                );
                               },
                             ),
                             // 4. زر طلب التقارير
@@ -135,7 +150,11 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                               1.0,
                               itemTextColor,
                                   () {
-                                // Navigator.push(...)
+                                // ✅ تصحيح التنقل لزر طلب التقارير
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const ReportRequestScreen()),
+                                );
                               },
                             ),
                           ],
