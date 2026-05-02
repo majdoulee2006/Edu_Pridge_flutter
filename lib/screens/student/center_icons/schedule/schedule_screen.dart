@@ -160,13 +160,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             borderRadius: BorderRadius.circular(25),
             boxShadow: isActive
                 ? [
-                    BoxShadow(
-                      color: const Color(
-                        0xFFEFFF00,
-                      ).withAlpha(100), // 🌟 بديل withOpacity
-                      blurRadius: 10,
-                    ),
-                  ]
+              BoxShadow(
+                color: const Color(
+                  0xFFEFFF00,
+                ).withAlpha(100), // 🌟 بديل withOpacity
+                blurRadius: 10,
+              ),
+            ]
                 : [],
           ),
           child: Center(
@@ -177,8 +177,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 color: isActive
                     ? Colors.black87
                     : (isDark
-                          ? Colors.grey.shade400
-                          : Colors.black87), // 🌟 نص متجاوب
+                    ? Colors.grey.shade400
+                    : Colors.black87), // 🌟 نص متجاوب
                 fontSize: 13,
               ),
             ),
@@ -197,107 +197,112 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     List<Widget> currentSchedule = _selectedDateIndex == 1
         ? [
-            _buildTimelineItem(
-              time: '08:00',
-              amPm: 'ص',
-              isCurrentTime: false,
-              card: _buildClassCard(
-                title: 'الرياضيات المتقدمة',
-                instructor: 'د. أحمد علي',
-                location: 'القاعة A',
-                tagText: '90 دقيقة',
-                icon: Icons.calculate_outlined,
-                iconColor: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-                iconBgColor: isDark
-                    ? Colors.blue.withAlpha(30)
-                    : Colors.blue.shade50,
-                isActive: false,
-              ),
-            ),
-            _buildTimelineItem(
-              time: '09:30',
-              amPm: 'ص',
-              isCurrentTime: true,
-              card: _buildClassCard(
-                title: 'الفيزياء التطبيقية',
-                instructor: 'أ. سارة محمد',
-                location: 'المختبر 2',
-                tagText: 'جاري الآن',
-                tagColor: Colors.black87,
-                tagBgColor: const Color(0xFFEFFF00),
-                icon: Icons.science,
-                iconColor: isDark
-                    ? Colors.purple.shade300
-                    : Colors.purple.shade600,
-                iconBgColor: isDark
-                    ? Colors.purple.withAlpha(30)
-                    : Colors.purple.shade50,
-                isActive: true,
-              ),
-            ),
-            _buildTimelineItem(
-              time: '11:00',
-              amPm: 'ص',
-              isCurrentTime: false,
-              isBreak: true,
-              card: _buildBreakCard(),
-            ),
-            _buildTimelineItem(
-              time: '11:30',
-              amPm: 'ص',
-              isCurrentTime: false,
-              isLast: true,
-              card: _buildClassCard(
-                title: 'علوم الحاسوب',
-                instructor: 'م. خالد يوسف',
-                location: 'معمل الحاسوب',
-                tagText: '90 دقيقة',
-                icon: Icons.computer,
-                iconColor: isDark ? Colors.teal.shade300 : Colors.teal.shade700,
-                iconBgColor: isDark
-                    ? Colors.teal.withAlpha(30)
-                    : Colors.teal.shade50,
-                isActive: false,
-              ),
-            ),
-          ]
+      _buildTimelineItem(
+        time: '08:00',
+        amPm: 'ص',
+        isCurrentTime: false,
+        card: _buildClassCard(
+          title: 'الرياضيات المتقدمة',
+          instructor: 'د. أحمد علي',
+          instructorId: 1, // 🌟 تمت الإضافة
+          location: 'القاعة A',
+          tagText: '90 دقيقة',
+          icon: Icons.calculate_outlined,
+          iconColor: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+          iconBgColor: isDark
+              ? Colors.blue.withAlpha(30)
+              : Colors.blue.shade50,
+          isActive: false,
+        ),
+      ),
+      _buildTimelineItem(
+        time: '09:30',
+        amPm: 'ص',
+        isCurrentTime: true,
+        card: _buildClassCard(
+          title: 'الفيزياء التطبيقية',
+          instructor: 'أ. سارة محمد',
+          instructorId: 2, // 🌟 تمت الإضافة
+          location: 'المختبر 2',
+          tagText: 'جاري الآن',
+          tagColor: Colors.black87,
+          tagBgColor: const Color(0xFFEFFF00),
+          icon: Icons.science,
+          iconColor: isDark
+              ? Colors.purple.shade300
+              : Colors.purple.shade600,
+          iconBgColor: isDark
+              ? Colors.purple.withAlpha(30)
+              : Colors.purple.shade50,
+          isActive: true,
+        ),
+      ),
+      _buildTimelineItem(
+        time: '11:00',
+        amPm: 'ص',
+        isCurrentTime: false,
+        isBreak: true,
+        card: _buildBreakCard(),
+      ),
+      _buildTimelineItem(
+        time: '11:30',
+        amPm: 'ص',
+        isCurrentTime: false,
+        isLast: true,
+        card: _buildClassCard(
+          title: 'علوم الحاسوب',
+          instructor: 'م. خالد يوسف',
+          instructorId: 4, // 🌟 تمت الإضافة
+          location: 'معمل الحاسوب',
+          tagText: '90 دقيقة',
+          icon: Icons.computer,
+          iconColor: isDark ? Colors.teal.shade300 : Colors.teal.shade700,
+          iconBgColor: isDark
+              ? Colors.teal.withAlpha(30)
+              : Colors.teal.shade50,
+          isActive: false,
+        ),
+      ),
+    ]
         : [
-            _buildTimelineItem(
-              time: '10:00',
-              amPm: 'ص',
-              isCurrentTime: false,
-              card: _buildClassCard(
-                title: 'اللغة الإنجليزية',
-                instructor: 'د. ليلى حسن',
-                location: 'القاعة B',
-                tagText: 'ساعتان',
-                icon: Icons.language,
-                iconColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
-                iconBgColor: isDark
-                    ? Colors.red.withAlpha(30)
-                    : Colors.red.shade50,
-                isActive: false,
-              ),
-            ),
-            _buildTimelineItem(
-              time: '12:00',
-              amPm: 'م',
-              isCurrentTime: false,
-              isLast: true,
-              card: _buildClassCard(
-                title: 'أساسيات البرمجة',
-                instructor: 'م. يوسف',
-                location: 'المعمل 1',
-                tagText: '90 دقيقة',
-                icon: Icons.computer,
-                iconColor: isDark ? Colors.teal.shade300 : Colors.teal.shade700,
-                iconBgColor: isDark
-                    ? Colors.teal.withAlpha(30)
-                    : Colors.teal.shade50,
-                isActive: false,
-              ),
-            ),
-          ];
+      _buildTimelineItem(
+        time: '10:00',
+        amPm: 'ص',
+        isCurrentTime: false,
+        card: _buildClassCard(
+          title: 'اللغة الإنجليزية',
+          instructor: 'د. ليلى حسن',
+          instructorId: 3, // 🌟 تمت الإضافة
+          location: 'القاعة B',
+          tagText: 'ساعتان',
+          icon: Icons.language,
+          iconColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+          iconBgColor: isDark
+              ? Colors.red.withAlpha(30)
+              : Colors.red.shade50,
+          isActive: false,
+        ),
+      ),
+      _buildTimelineItem(
+        time: '12:00',
+        amPm: 'م',
+        isCurrentTime: false,
+        isLast: true,
+        card: _buildClassCard(
+          title: 'أساسيات البرمجة',
+          instructor: 'م. يوسف',
+          instructorId: 5, // 🌟 تمت الإضافة
+          location: 'المعمل 1',
+          tagText: '90 دقيقة',
+          icon: Icons.computer,
+          iconColor: isDark ? Colors.teal.shade300 : Colors.teal.shade700,
+          iconBgColor: isDark
+              ? Colors.teal.withAlpha(30)
+              : Colors.teal.shade50,
+          isActive: false,
+        ),
+      ),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,26 +396,26 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           color: isSelected
               ? const Color(0xFFEFFF00)
               : (isDark
-                    ? Theme.of(context).cardColor
-                    : Colors.white), // 🌟 متجاوب
+              ? Theme.of(context).cardColor
+              : Colors.white), // 🌟 متجاوب
           borderRadius: BorderRadius.circular(35),
           border: isSelected
               ? null
               : Border.all(
-                  color: isDark
-                      ? Colors.white.withAlpha(20)
-                      : Colors.grey.shade200,
-                ), // 🌟 متجاوب
+            color: isDark
+                ? Colors.white.withAlpha(20)
+                : Colors.grey.shade200,
+          ), // 🌟 متجاوب
           boxShadow: isSelected
               ? [
-                  BoxShadow(
-                    color: const Color(
-                      0xFFEFFF00,
-                    ).withAlpha(100), // 🌟 بديل withOpacity
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
+            BoxShadow(
+              color: const Color(
+                0xFFEFFF00,
+              ).withAlpha(100), // 🌟 بديل withOpacity
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ]
               : [],
         ),
         child: Column(
@@ -472,9 +477,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: isCurrentTime
                     ? BoxDecoration(
-                        color: const Color(0xFFEFFF00),
-                        borderRadius: BorderRadius.circular(10),
-                      )
+                  color: const Color(0xFFEFFF00),
+                  borderRadius: BorderRadius.circular(10),
+                )
                     : null,
                 child: Text(
                   time,
@@ -518,14 +523,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   // 1. نافذة تفاصيل المادة
   void _showSubjectDetailsDialog(
-    String title,
-    String instructor,
-    String location,
-    String tagText,
-    IconData icon,
-    Color iconColor,
-    Color iconBgColor,
-  ) {
+      String title,
+      String instructor,
+      String location,
+      String tagText,
+      IconData icon,
+      Color iconColor,
+      Color iconBgColor,
+      ) {
     showDialog(
       context: context,
       builder: (context) {
@@ -1021,6 +1026,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget _buildClassCard({
     required String title,
     required String instructor,
+    required int instructorId, // 🌟 تمت الإضافة هنا
     required String location,
     required String tagText,
     Color? tagColor,
@@ -1062,7 +1068,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 decoration: BoxDecoration(
                   color:
-                      tagBgColor ??
+                  tagBgColor ??
                       (isDark
                           ? Colors.white.withAlpha(20)
                           : const Color(0xFFF5F5F5)), // 🌟 متجاوب
@@ -1074,7 +1080,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     color:
-                        tagColor ??
+                    tagColor ??
                         (isDark ? Colors.white70 : Colors.black54), // 🌟 متجاوب
                   ),
                 ),
@@ -1112,14 +1118,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           iconBgColor,
                         );
                       } else if (value == 'مراسلة المدرس') {
-                        // 🌟 الانتقال لواجهة الدردشة 🌟
+                        // 🌟 الانتقال لواجهة الدردشة مع التمرير الصحيح 🌟
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ChatDetailScreen(
+                              receiverId: instructorId, // 🌟 التعديل السحري هنا
                               name: instructor,
                               imageUrl:
-                                  'https://i.pravatar.cc/150?u=${instructor.hashCode}', // صورة افتراضية
+                              'https://i.pravatar.cc/150?u=${instructor.hashCode}', // صورة افتراضية
                               isGroup: false,
                             ),
                           ),
