@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/screens/admin/nav_bar/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -415,6 +416,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ParentsHomeScreen(),
+                            ),
+                          );
+                        }),
+                        const SizedBox(width: 15),
+                        _buildDevButton("إدارة", Icons.admin_panel_settings, () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AdminHomeScreen(),
                             ),
                           );
                         }),
