@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+
+// 🌟 ضفنا الاستدعاء لملف السيرفيس
+import 'package:edu_pridge_flutter/services/student_services.dart';
 
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
@@ -29,91 +31,36 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     _loadDashboardData();
   }
 
+  // 🌟 الدالة الجديدة النظيفة اللي بتعتمد على الـ Service
   Future<void> _loadDashboardData() async {
     setState(() => isLoading = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      debugPrint("🔑 TOKEN = $token");
 
       setState(() {
         offlineName = prefs.getString('user_name') ?? "طالب";
       });
 
-      if (token == null || token.isEmpty) {
-        throw Exception("No token found. User must login again.");
-      }
+      // جلب البيانات بطلب واحد من السيرفيس
+      final data = await StudentServices().getDashboardData();
 
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: "http://127.0.0.1:8000/api", // للويب
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
-          headers: {
-            "Authorization": "Bearer $token",
-            "Accept": "application/json",
-          },
-        ),
-      );
-
-      final responses = await Future.wait([
-        dio.get("/student/dashboard"),
-        dio.get("/student/announcements"),
-      ]);
-
-      final dashboardResponse = responses[0];
-      final announcementsResponse = responses[1];
-
-      debugPrint("📊 Dashboard Status: ${dashboardResponse.statusCode}");
-      debugPrint(
-        "📰 Announcements Status: ${announcementsResponse.statusCode}",
-      );
-
-      if (dashboardResponse.statusCode == 200 &&
-          announcementsResponse.statusCode == 200) {
+      if (data != null) {
         setState(() {
-          dashboardData =
-              dashboardResponse.data['data'] ?? dashboardResponse.data;
-          debugPrint("🔥 DAAATA FROM LARAVEL: $dashboardData");
-
-          latestNews = announcementsResponse.data['data'] ?? [];
-
-          isLoading = false;
+          dashboardData = data;
+          latestNews = data['announcements'] ?? [];
         });
-      } else {
-        throw Exception("Server responded but not 200");
-      }
-    } on DioException catch (e) {
-      debugPrint("❌ DIO ERROR");
-      debugPrint("STATUS: ${e.response?.statusCode}");
-      debugPrint("DATA: ${e.response?.data}");
-      debugPrint("MESSAGE: ${e.message}");
-
-      if (e.response?.statusCode == 401) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً"),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("خطأ في الاتصال بالسيرفر")),
-        );
-      }
-
-      if (mounted) {
-        setState(() => isLoading = false);
       }
     } catch (e) {
-      debugPrint("❌ GENERAL ERROR: $e");
-
+      debugPrint("⛔️ Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("تعذر تحميل البيانات أو انتهت الجلسة")),
+        );
+      }
+    } finally {
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("تعذر تحميل البيانات")));
       }
     }
   }
@@ -128,18 +75,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final cardColor = isDark ? theme.cardColor : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.textDark;
 
-    // 🌟 التعديلات السحرية هون:
-    // اللارافل حاطط بيانات الطالب جوا مفتاح اسمه 'student'
+    // استخراج بيانات الطالب والمحاضرة
     final studentData = dashboardData?['student'];
-
-    // هلق بنسحب الاسم والصورة من جوا الـ studentData
     String displayName =
         studentData?['name'] ?? studentData?['full_name'] ?? offlineName;
     String? avatarUrl = studentData?['avatar'];
 
-    // 🌟 وكمان صلحنا اسم مفتاح المحاضرة القادمة بناءً على اللوج
     Map<String, dynamic>? upcoming = dashboardData?['next_lecture'];
     bool hasLecture = upcoming != null && upcoming.isNotEmpty;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -154,7 +98,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ),
                 child: Column(
                   children: [
-                    // 🌟 تمرير رابط الصورة للآب بار
                     _buildAppBar(
                       context,
                       isDark,
@@ -180,7 +123,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                 padding: const EdgeInsets.only(bottom: 100),
                                 children: [
                                   if (hasLecture)
-                                    _buildUpcomingLectureCard(upcoming, isDark)
+                                    _buildUpcomingLectureCard(upcoming!, isDark)
                                   else
                                     _buildNoLecturesCard(isDark),
                                   const SizedBox(height: 20),
@@ -209,8 +152,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                           rawType == 'course_specific';
 
                                       String authorName =
-                                          news['user']?['full_name'] ??
-                                          'الإدارة';
+                                          news['author_name'] ?? 'الإدارة';
                                       String date = (news['created_at'] ?? '')
                                           .toString()
                                           .split('T')
@@ -220,7 +162,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                         tag: displayTag,
                                         title: news['title'] ?? 'بدون عنوان',
                                         description: news['content'] ?? '',
-                                        time: "$date • $authorName",
+                                        time:
+                                            "${news['time_ago'] ?? date} • $authorName",
                                         gradientColors: isDark
                                             ? (isUrgent
                                                   ? [
@@ -304,14 +247,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  data['subject'] ?? "غير محدد",
+                  data['course_name'] ?? data['subject'] ?? "غير محدد",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
                 ),
                 Text(
-                  "القاعة: ${data['room'] ?? '-'} | الساعة: ${data['time'] ?? '-'}",
+                  "القاعة: ${data['room'] ?? '-'} | الساعة: ${data['start_time'] ?? '-'}",
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? Colors.white70 : Colors.black87,
@@ -341,7 +284,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  // 🌟 استقبلنا رابط الصورة هون كبارامتر جديد avatarUrl
   Widget _buildAppBar(
     BuildContext context,
     bool isDark,
@@ -397,7 +339,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 MaterialPageRoute(builder: (context) => const ProfileScreen()),
               ),
               child: Container(
-                width: 44, // حجم الدائرة بالهوم
+                width: 44,
                 height: 44,
                 decoration: BoxDecoration(
                   color: isDark
@@ -406,7 +348,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: ClipOval(
-                  // 🌟 إذا في صورة رح تنعرض، إذا مافي رح ترجع أيقونة الشخص الصفراء
                   child: (avatarUrl != null && avatarUrl.isNotEmpty)
                       ? Image.network(
                           avatarUrl,

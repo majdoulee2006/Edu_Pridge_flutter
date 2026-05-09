@@ -103,7 +103,7 @@ class _TableViewScreenState extends State<TableViewScreen> {
                       )
                     : ListView.separated(
                         itemCount: _rows.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final row = _rows[index];
                           return Container(

@@ -59,6 +59,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
       setState(() => isLoading = false);
     }
   }
+  @override
   Widget build(BuildContext context) {
     // 🎨 ألوان متجاوبة مع الثيم
     final bgColor = Theme.of(context).scaffoldBackgroundColor;

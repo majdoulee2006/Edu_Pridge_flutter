@@ -1,14 +1,21 @@
-import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
+
 // مسارات شاشات الـ nav_bar
 import '../../nav_bar/student_home_screen.dart';
 import '../../nav_bar/profile_screen.dart';
 import '../../nav_bar/notifications_screen.dart';
 import '../../nav_bar/messages_screen.dart';
+
 // استدعاء واجهة الإعدادات وتفاصيل الدردشة
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
+
+// استدعاء ملف الخدمات
+import 'package:edu_pridge_flutter/services/student_services.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -19,20 +26,137 @@ class ScheduleScreen extends StatefulWidget {
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
   int _selectedTab = 0; // 0 = جدول الحصص، 1 = جدول الامتحانات
-  int _selectedDateIndex = 1; // 1 = الاثنين (افتراضياً كما في الصورة)
+  int _selectedDateIndex = 0; // تبدأ من 0 برمجياً
+  int _selectedLectureIndex =
+      0; // 🌟 متغير جديد: لتحديد الحصة المحددة بالإطار الأصفر
 
-  // قائمة أيام الأسبوع للتواريخ
-  final List<Map<String, String>> _dates = [
-    {'day': 'الأحد', 'date': '12'},
-    {'day': 'الاثنين', 'date': '13'},
-    {'day': 'الثلاثاء', 'date': '14'},
-    {'day': 'الأربعاء', 'date': '15'},
-    {'day': 'الخميس', 'date': '16'},
-  ];
+  bool _isLoadingSchedules = true;
+  bool _isLoadingExams = true;
+
+  List<dynamic> _schedulesData = [];
+  List<dynamic> _examsData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSchedules();
+    _fetchExams();
+  }
+
+  // ----------------------------------------------------------------
+  // دوال الاتصال بالخادم (APIs)
+  // ----------------------------------------------------------------
+
+  Future<void> _fetchSchedules() async {
+    setState(() => _isLoadingSchedules = true);
+    try {
+      final data = await StudentServices().getSchedules();
+      if (data != null) {
+        // ترتيب الأيام منطقياً
+        Map<String, int> daysOrder = {
+          'الأحد': 1,
+          'الاثنين': 2,
+          'الثلاثاء': 3,
+          'الأربعاء': 4,
+          'الخميس': 5,
+          'الجمعة': 6,
+          'السبت': 7,
+        };
+        data.sort(
+          (a, b) =>
+              (daysOrder[a['day']] ?? 8).compareTo(daysOrder[b['day']] ?? 8),
+        );
+
+        setState(() {
+          _schedulesData = data;
+          _isLoadingSchedules = false;
+        });
+      } else {
+        setState(() => _isLoadingSchedules = false);
+      }
+    } catch (e) {
+      setState(() => _isLoadingSchedules = false);
+      debugPrint('Error fetching schedules: $e');
+    }
+  }
+
+  Future<void> _fetchExams() async {
+    setState(() => _isLoadingExams = true);
+    try {
+      final data = await StudentServices().getExams();
+      if (data != null) {
+        setState(() {
+          _examsData = data;
+          _isLoadingExams = false;
+        });
+      } else {
+        setState(() => _isLoadingExams = false);
+      }
+    } catch (e) {
+      setState(() => _isLoadingExams = false);
+      debugPrint('Error fetching exams: $e');
+    }
+  }
+
+  Future<void> _exportFile(String type) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('جاري تجهيز وتنزيل ملف الـ ${type.toUpperCase()}...'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    try {
+      final url = await StudentServices().getExportUrl(type);
+      if (url != null && url.isNotEmpty) {
+        if (await canLaunchUrl(Uri.parse(url))) {
+          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        } else {
+          throw 'لا يمكن فتح الرابط';
+        }
+      } else {
+        throw 'الرابط غير متوفر';
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('حدث خطأ أثناء التنزيل!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // حساب تاريخ اليوم
+  String _getDateForDayName(String dayName) {
+    Map<String, int> dayMap = {
+      'الاثنين': DateTime.monday,
+      'الثلاثاء': DateTime.tuesday,
+      'الأربعاء': DateTime.wednesday,
+      'الخميس': DateTime.thursday,
+      'الجمعة': DateTime.friday,
+      'السبت': DateTime.saturday,
+      'الأحد': DateTime.sunday,
+      'Monday': DateTime.monday,
+      'Tuesday': DateTime.tuesday,
+      'Wednesday': DateTime.wednesday,
+      'Thursday': DateTime.thursday,
+      'Friday': DateTime.friday,
+      'Saturday': DateTime.saturday,
+      'Sunday': DateTime.sunday,
+    };
+
+    DateTime now = DateTime.now();
+    int targetWeekday = dayMap[dayName] ?? now.weekday;
+
+    int difference = targetWeekday - now.weekday;
+    DateTime targetDate = now.add(Duration(days: difference));
+
+    return targetDate.day.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 جلب حالة الوضع الليلي 🌟
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
         ? Theme.of(context).scaffoldBackgroundColor
@@ -42,18 +166,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: bgColor, // 🌟 لون متجاوب
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: bgColor, // 🌟 لون متجاوب
+          backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor), // 🌟 أيقونة متجاوبة
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             'الجداول الدراسية',
             style: TextStyle(
-              color: textColor, // 🌟 نص متجاوب
+              color: textColor,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
@@ -61,7 +185,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           centerTitle: true,
           actions: [
             IconButton(
-              icon: Icon(Icons.settings, color: textColor), // 🌟 أيقونة متجاوبة
+              icon: Icon(Icons.settings, color: textColor),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -89,8 +213,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ],
             ),
-
-            // 🌟 استدعاء الشريط الموحد هنا (-1 لأنها واجهة فرعية) 🌟
             CustomBottomNav(
               currentIndex: -1,
               centerButton: const CustomSpeedDialEduBridge(),
@@ -130,9 +252,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withAlpha(15)
-            : const Color(0xFFF5F5F5), // 🌟 لون متجاوب
+        color: isDark ? Colors.white.withAlpha(15) : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
@@ -154,19 +274,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive
-                ? const Color(0xFFEFFF00)
-                : Colors.transparent, // الأصفر الفاقع للفعال
+            color: isActive ? const Color(0xFFEFFF00) : Colors.transparent,
             borderRadius: BorderRadius.circular(25),
             boxShadow: isActive
                 ? [
-              BoxShadow(
-                color: const Color(
-                  0xFFEFFF00,
-                ).withAlpha(100), // 🌟 بديل withOpacity
-                blurRadius: 10,
-              ),
-            ]
+                    BoxShadow(
+                      color: const Color(0xFFEFFF00).withAlpha(100),
+                      blurRadius: 10,
+                    ),
+                  ]
                 : [],
           ),
           child: Center(
@@ -176,9 +292,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                 color: isActive
                     ? Colors.black87
-                    : (isDark
-                    ? Colors.grey.shade400
-                    : Colors.black87), // 🌟 نص متجاوب
+                    : (isDark ? Colors.grey.shade400 : Colors.black87),
                 fontSize: 13,
               ),
             ),
@@ -193,129 +307,89 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   // ----------------------------------------------------------------
   Widget _buildClassSchedule() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    String selectedDayName = _dates[_selectedDateIndex]['day']!;
 
-    List<Widget> currentSchedule = _selectedDateIndex == 1
-        ? [
-      _buildTimelineItem(
-        time: '08:00',
-        amPm: 'ص',
-        isCurrentTime: false,
-        card: _buildClassCard(
-          title: 'الرياضيات المتقدمة',
-          instructor: 'د. أحمد علي',
-          instructorId: 1, // 🌟 تمت الإضافة
-          location: 'القاعة A',
-          tagText: '90 دقيقة',
-          icon: Icons.calculate_outlined,
-          iconColor: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-          iconBgColor: isDark
-              ? Colors.blue.withAlpha(30)
-              : Colors.blue.shade50,
-          isActive: false,
+    if (_isLoadingSchedules) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFEFFF00)),
+      );
+    }
+
+    if (_schedulesData.isEmpty) {
+      return const Center(
+        child: Text(
+          'لا يوجد حصص دراسية مسجلة',
+          style: TextStyle(color: Colors.grey),
         ),
-      ),
-      _buildTimelineItem(
-        time: '09:30',
-        amPm: 'ص',
-        isCurrentTime: true,
-        card: _buildClassCard(
-          title: 'الفيزياء التطبيقية',
-          instructor: 'أ. سارة محمد',
-          instructorId: 2, // 🌟 تمت الإضافة
-          location: 'المختبر 2',
-          tagText: 'جاري الآن',
-          tagColor: Colors.black87,
-          tagBgColor: const Color(0xFFEFFF00),
-          icon: Icons.science,
-          iconColor: isDark
-              ? Colors.purple.shade300
-              : Colors.purple.shade600,
-          iconBgColor: isDark
-              ? Colors.purple.withAlpha(30)
-              : Colors.purple.shade50,
-          isActive: true,
+      );
+    }
+
+    if (_selectedDateIndex >= _schedulesData.length) {
+      _selectedDateIndex = 0;
+    }
+
+    var selectedDayData = _schedulesData[_selectedDateIndex];
+    String selectedDayName = selectedDayData['day'];
+    List<dynamic> lectures = selectedDayData['lectures'];
+
+    List<Widget> currentSchedule = lectures.asMap().entries.map((entry) {
+      int index = entry.key;
+      var lecture = entry.value;
+      bool isLast = index == lectures.length - 1;
+
+      // 🌟 التحقق هل هذه المحاضرة هي المحددة حالياً؟
+      bool isLectureSelected = index == _selectedLectureIndex;
+
+      List<String> timeParts = lecture['start_time'].toString().split(' ');
+      String timeStr = timeParts[0];
+      String amPmStr = timeParts.length > 1
+          ? (timeParts[1] == 'AM' ? 'ص' : 'م')
+          : '';
+
+      // 🌟 تم تغليف الكرت بـ GestureDetector لتغيير اللون عند الضغط
+      return GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedLectureIndex = index;
+          });
+        },
+        child: _buildTimelineItem(
+          time: timeStr,
+          amPm: amPmStr,
+          isCurrentTime: isLectureSelected, // تفعيل اللون الأصفر للوقت
+          isLast: isLast,
+          card: _buildClassCard(
+            title: lecture['course_name'],
+            instructor: lecture['teacher'],
+            instructorId: lecture['teacher_id'] ?? 1,
+            location: lecture['room'],
+            tagText: lecture['duration'] ?? 'محاضرة',
+            icon: Icons.menu_book,
+            iconColor: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+            iconBgColor: isDark
+                ? Colors.blue.withAlpha(30)
+                : Colors.blue.shade50,
+            isActive: isLectureSelected, // تفعيل الإطار الأصفر للكرت
+          ),
         ),
-      ),
-      _buildTimelineItem(
-        time: '11:00',
-        amPm: 'ص',
-        isCurrentTime: false,
-        isBreak: true,
-        card: _buildBreakCard(),
-      ),
-      _buildTimelineItem(
-        time: '11:30',
-        amPm: 'ص',
-        isCurrentTime: false,
-        isLast: true,
-        card: _buildClassCard(
-          title: 'علوم الحاسوب',
-          instructor: 'م. خالد يوسف',
-          instructorId: 4, // 🌟 تمت الإضافة
-          location: 'معمل الحاسوب',
-          tagText: '90 دقيقة',
-          icon: Icons.computer,
-          iconColor: isDark ? Colors.teal.shade300 : Colors.teal.shade700,
-          iconBgColor: isDark
-              ? Colors.teal.withAlpha(30)
-              : Colors.teal.shade50,
-          isActive: false,
-        ),
-      ),
-    ]
-        : [
-      _buildTimelineItem(
-        time: '10:00',
-        amPm: 'ص',
-        isCurrentTime: false,
-        card: _buildClassCard(
-          title: 'اللغة الإنجليزية',
-          instructor: 'د. ليلى حسن',
-          instructorId: 3, // 🌟 تمت الإضافة
-          location: 'القاعة B',
-          tagText: 'ساعتان',
-          icon: Icons.language,
-          iconColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
-          iconBgColor: isDark
-              ? Colors.red.withAlpha(30)
-              : Colors.red.shade50,
-          isActive: false,
-        ),
-      ),
-      _buildTimelineItem(
-        time: '12:00',
-        amPm: 'م',
-        isCurrentTime: false,
-        isLast: true,
-        card: _buildClassCard(
-          title: 'أساسيات البرمجة',
-          instructor: 'م. يوسف',
-          instructorId: 5, // 🌟 تمت الإضافة
-          location: 'المعمل 1',
-          tagText: '90 دقيقة',
-          icon: Icons.computer,
-          iconColor: isDark ? Colors.teal.shade300 : Colors.teal.shade700,
-          iconBgColor: isDark
-              ? Colors.teal.withAlpha(30)
-              : Colors.teal.shade50,
-          isActive: false,
-        ),
-      ),
-    ];
+      );
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 15),
+
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
-            children: List.generate(_dates.length, (index) {
+            children: List.generate(_schedulesData.length, (index) {
+              String dayName = _schedulesData[index]['day'];
+              String calculatedDate = _getDateForDayName(dayName);
+
               return _buildDateCircle(
-                day: _dates[index]['day']!,
-                date: _dates[index]['date']!,
+                day: dayName,
+                date: calculatedDate,
                 index: index,
               );
             }),
@@ -334,7 +408,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
               Container(
@@ -345,7 +419,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 decoration: BoxDecoration(
                   color: isDark
                       ? Colors.white.withAlpha(25)
-                      : const Color(0xFFEBEBEB), // 🌟 متجاوب
+                      : const Color(0xFFEBEBEB),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
@@ -353,9 +427,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? Colors.grey.shade300
-                        : Colors.black54, // 🌟 متجاوب
+                    color: isDark ? Colors.grey.shade300 : Colors.black54,
                   ),
                 ),
               ),
@@ -377,7 +449,183 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  // دائرة التاريخ
+  // ----------------------------------------------------------------
+  // 3. واجهة "جدول الامتحانات"
+  // ----------------------------------------------------------------
+  Widget _buildExamSchedule() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_isLoadingExams) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFEFFF00)),
+      );
+    }
+
+    if (_examsData.isEmpty) {
+      return const Center(
+        child: Text(
+          'لا يوجد امتحانات مسجلة',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 120),
+      physics: const BouncingScrollPhysics(),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'الامتحانات النهائية',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => _exportFile('pdf'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(25),
+                          blurRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.redAccent,
+                          size: 16,
+                        ),
+                        SizedBox(width: 5),
+                        Text(
+                          'PDF',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _exportFile('excel'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(25),
+                          blurRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.table_chart,
+                          color: Colors.greenAccent,
+                          size: 16,
+                        ),
+                        SizedBox(width: 5),
+                        Text(
+                          'Excel',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        ..._examsData.map((exam) {
+          return _buildExamCard(
+            time: exam['time'],
+            title: exam['subject'],
+            duration: exam['duration'] ?? 'غير محدد',
+            location: exam['room'] ?? 'القاعة الامتحانية',
+            month: exam['month'],
+            dayNumber: exam['day_num'].toString(),
+            dayName: exam['day_name'],
+          );
+        }),
+        const SizedBox(height: 15),
+        Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.orange.withAlpha(20)
+                : const Color(0xFFFFFDF0),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: isDark
+                  ? Colors.orange.withAlpha(50)
+                  : const Color(0xFFFFF59D),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.info_outline,
+                color: Color(0xFFF57C00),
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'يرجى الحضور قبل موعد الامتحان بـ 15 دقيقة على الأقل وإحضار البطاقة الجامعية.',
+                  style: TextStyle(
+                    color: isDark
+                        ? Colors.orange.shade400
+                        : Colors.orange.shade800,
+                    fontSize: 11,
+                    height: 1.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // =======================================================================
+  // دوال الرسم والتصميم المساعدة
+  // =======================================================================
+
   Widget _buildDateCircle({
     required String day,
     required String date,
@@ -386,7 +634,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isSelected = _selectedDateIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedDateIndex = index),
+      onTap: () => setState(() {
+        _selectedDateIndex = index;
+        _selectedLectureIndex =
+            0; // 🌟 إعادة تصفير الإطار الأصفر عند تغيير اليوم
+      }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         margin: const EdgeInsets.only(left: 12),
@@ -395,27 +647,23 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFFEFFF00)
-              : (isDark
-              ? Theme.of(context).cardColor
-              : Colors.white), // 🌟 متجاوب
+              : (isDark ? Theme.of(context).cardColor : Colors.white),
           borderRadius: BorderRadius.circular(35),
           border: isSelected
               ? null
               : Border.all(
-            color: isDark
-                ? Colors.white.withAlpha(20)
-                : Colors.grey.shade200,
-          ), // 🌟 متجاوب
+                  color: isDark
+                      ? Colors.white.withAlpha(20)
+                      : Colors.grey.shade200,
+                ),
           boxShadow: isSelected
               ? [
-            BoxShadow(
-              color: const Color(
-                0xFFEFFF00,
-              ).withAlpha(100), // 🌟 بديل withOpacity
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ]
+                  BoxShadow(
+                    color: const Color(0xFFEFFF00).withAlpha(100),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
               : [],
         ),
         child: Column(
@@ -434,7 +682,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               style: TextStyle(
                 color: isSelected
                     ? Colors.black
-                    : (isDark ? Colors.white : Colors.black), // 🌟 متجاوب
+                    : (isDark ? Colors.white : Colors.black),
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -473,13 +721,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           width: 55,
           child: Column(
             children: [
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: isCurrentTime
                     ? BoxDecoration(
-                  color: const Color(0xFFEFFF00),
-                  borderRadius: BorderRadius.circular(10),
-                )
+                        color: const Color(0xFFEFFF00),
+                        borderRadius: BorderRadius.circular(10),
+                      )
                     : null,
                 child: Text(
                   time,
@@ -488,7 +737,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     fontSize: 14,
                     color: isCurrentTime
                         ? Colors.black
-                        : (isDark ? Colors.white : Colors.black), // 🌟 متجاوب
+                        : (isDark ? Colors.white : Colors.black),
                   ),
                 ),
               ),
@@ -501,9 +750,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 Container(
                   width: 1.5,
                   height: isBreak ? 70 : 130,
-                  color: isDark
-                      ? Colors.grey.shade800
-                      : Colors.grey.shade300, // 🌟 خط زمني متجاوب
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
                 ),
             ],
           ),
@@ -519,18 +766,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  // 🌟 النوافذ المنبثقة (Dialogs) للخيارات 🌟
-
-  // 1. نافذة تفاصيل المادة
   void _showSubjectDetailsDialog(
-      String title,
-      String instructor,
-      String location,
-      String tagText,
-      IconData icon,
-      Color iconColor,
-      Color iconBgColor,
-      ) {
+    String title,
+    String instructor,
+    String location,
+    String tagText,
+    IconData icon,
+    Color iconColor,
+    Color iconBgColor,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
@@ -540,7 +784,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: AlertDialog(
             backgroundColor: isDark
                 ? Theme.of(context).cardColor
-                : Colors.white, // 🌟 خلفية متجاوبة
+                : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
             ),
@@ -561,7 +805,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
@@ -584,7 +828,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
@@ -599,7 +843,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
@@ -614,7 +858,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
@@ -626,7 +870,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 child: Text(
                   'إغلاق',
                   style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                    color: isDark ? Colors.white : Colors.black,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -638,7 +882,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  // 2. نافذة ضبط تذكير (مع DatePicker و TimePicker)
   void _showReminderDialog(String title) {
     DateTime? selectedDate = DateTime.now();
     TimeOfDay? selectedTime = TimeOfDay.now();
@@ -654,7 +897,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               child: AlertDialog(
                 backgroundColor: isDark
                     ? Theme.of(context).cardColor
-                    : Colors.white, // 🌟 متجاوب
+                    : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25),
                 ),
@@ -663,7 +906,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black,
-                  ), // 🌟 متجاوب
+                  ),
                 ),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -674,7 +917,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       style: const TextStyle(color: Colors.grey, fontSize: 13),
                     ),
                     const SizedBox(height: 20),
-                    // زر اختيار التاريخ
                     ListTile(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
@@ -682,7 +924,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           color: isDark
                               ? Colors.white.withAlpha(30)
                               : Colors.grey.shade300,
-                        ), // ✅ تم التعديل هنا لـ side بدلاً من borderSide
+                        ),
                       ),
                       leading: const Icon(
                         Icons.calendar_today,
@@ -693,7 +935,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: isDark ? Colors.white : Colors.black,
-                        ), // 🌟 متجاوب
+                        ),
                       ),
                       onTap: () async {
                         final picked = await showDatePicker(
@@ -708,7 +950,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       },
                     ),
                     const SizedBox(height: 10),
-                    // زر اختيار الوقت
                     ListTile(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
@@ -716,7 +957,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           color: isDark
                               ? Colors.white.withAlpha(30)
                               : Colors.grey.shade300,
-                        ), // ✅ تم التعديل هنا لـ side
+                        ),
                       ),
                       leading: const Icon(
                         Icons.access_time,
@@ -727,7 +968,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: isDark ? Colors.white : Colors.black,
-                        ), // 🌟 متجاوب
+                        ),
                       ),
                       onTap: () async {
                         final picked = await showTimePicker(
@@ -783,7 +1024,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  // 3. نافذة تقديم عذر غياب مع قائمة المرفقات
   void _showAbsenceExcuseDialog(String title) {
     showDialog(
       context: context,
@@ -794,7 +1034,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: AlertDialog(
             backgroundColor: isDark
                 ? Theme.of(context).cardColor
-                : Colors.white, // 🌟 متجاوب
+                : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
             ),
@@ -804,16 +1044,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
                 color: isDark ? Colors.white : Colors.black,
-              ), // 🌟 متجاوب
+              ),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   maxLines: 3,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black,
-                  ), // 🌟 متجاوب
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: 'يرجى كتابة سبب الغياب أو التأخير...',
                     hintStyle: const TextStyle(
@@ -826,7 +1064,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         color: isDark
                             ? Colors.white.withAlpha(30)
                             : Colors.grey.shade300,
-                      ), // 🌟 متجاوب
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -840,7 +1078,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 const SizedBox(height: 15),
                 InkWell(
-                  onTap: _showAttachmentOptions, // فتح قائمة اختيار الملفات
+                  onTap: _showAttachmentOptions,
                   borderRadius: BorderRadius.circular(15),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -850,7 +1088,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         color: isDark
                             ? Colors.white.withAlpha(30)
                             : Colors.grey.shade300,
-                      ), // 🌟 متجاوب
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -859,7 +1097,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           Icons.camera_alt_outlined,
                           color: isDark
                               ? Colors.grey.shade400
-                              : Colors.blueGrey, // 🌟 متجاوب
+                              : Colors.blueGrey,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -868,7 +1106,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           style: TextStyle(
                             color: isDark
                                 ? Colors.grey.shade400
-                                : Colors.blueGrey, // 🌟 متجاوب
+                                : Colors.blueGrey,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -919,7 +1157,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  // قائمة المرفقات السفلية الخاصة بنافذة العذر
   void _showAttachmentOptions() {
     showModalBottomSheet(
       context: context,
@@ -931,9 +1168,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Theme.of(context).cardColor
-                  : Colors.white, // 🌟 متجاوب
+              color: isDark ? Theme.of(context).cardColor : Colors.white,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -948,7 +1183,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black,
-                  ), // 🌟 متجاوب
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -984,7 +1219,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () {
-        Navigator.pop(context); // إغلاق القائمة السفلية
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تم اختيار $title بنجاح'),
@@ -997,9 +1232,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: color.withAlpha(
-                isDark ? 50 : 25,
-              ), // 🌟 بديل withOpacity ومتجاوب
+              color: color.withAlpha(isDark ? 50 : 25),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -1015,18 +1248,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white : Colors.black,
-            ), // 🌟 متجاوب
+            ),
           ),
         ],
       ),
     );
   }
 
-  // تصميم كرت الحصة
   Widget _buildClassCard({
     required String title,
     required String instructor,
-    required int instructorId, // 🌟 تمت الإضافة هنا
+    required int instructorId,
     required String location,
     required String tagText,
     Color? tagColor,
@@ -1037,19 +1269,23 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     required bool isActive,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Theme.of(context).cardColor : Colors.white, // 🌟 متجاوب
+        color: isDark ? Theme.of(context).cardColor : Colors.white,
         borderRadius: BorderRadius.circular(25),
         border: isActive
             ? Border.all(color: const Color(0xFFEFFF00), width: 2)
-            : null,
+            : Border.all(
+                color: Colors.transparent,
+                width: 2,
+              ), // لحل مشكلة اهتزاز التصميم
         boxShadow: [
           BoxShadow(
             color: isDark
                 ? Colors.black.withAlpha(50)
-                : Colors.black.withAlpha(8), // 🌟 بديل withOpacity
+                : Colors.black.withAlpha(8),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -1068,10 +1304,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 decoration: BoxDecoration(
                   color:
-                  tagBgColor ??
+                      tagBgColor ??
                       (isDark
                           ? Colors.white.withAlpha(20)
-                          : const Color(0xFFF5F5F5)), // 🌟 متجاوب
+                          : const Color(0xFFF5F5F5)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1080,8 +1316,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     color:
-                    tagColor ??
-                        (isDark ? Colors.white70 : Colors.black54), // 🌟 متجاوب
+                        tagColor ?? (isDark ? Colors.white70 : Colors.black54),
                   ),
                 ),
               ),
@@ -1096,13 +1331,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     child: Icon(icon, color: iconColor, size: 20),
                   ),
                   const SizedBox(width: 5),
-
-                  // 🌟 قائمة الخيارات المنبثقة (الثلاث نقاط) المبرمجة بالكامل 🌟
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_horiz, color: Colors.grey),
-                    color: isDark
-                        ? Theme.of(context).cardColor
-                        : Colors.white, // 🌟 قائمة متجاوبة
+                    color: isDark ? Theme.of(context).cardColor : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
@@ -1118,15 +1349,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           iconBgColor,
                         );
                       } else if (value == 'مراسلة المدرس') {
-                        // 🌟 الانتقال لواجهة الدردشة مع التمرير الصحيح 🌟
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ChatDetailScreen(
-                              receiverId: instructorId, // 🌟 التعديل السحري هنا
+                              receiverId: instructorId,
                               name: instructor,
                               imageUrl:
-                              'https://i.pravatar.cc/150?u=${instructor.hashCode}', // صورة افتراضية
+                                  'https://i.pravatar.cc/150?u=${instructor.hashCode}',
                               isGroup: false,
                             ),
                           ),
@@ -1226,7 +1456,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
+              color: isDark ? Colors.white : Colors.black87,
             ),
           ),
           const SizedBox(height: 15),
@@ -1256,197 +1486,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  // تصميم كرت الاستراحة
-  Widget _buildBreakCard() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 25),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.grey.shade900
-            : const Color(0xFFF8F8F4), // 🌟 متجاوب
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Column(
-            children: [
-              Text(
-                'استراحة الغداء',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'الكافتيريا الرئيسية',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(width: 25),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey.shade800 : Colors.white, // 🌟 متجاوب
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.coffee, color: Colors.deepOrange, size: 22),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------------
-  // 3. واجهة "جدول الامتحانات"
-  // ----------------------------------------------------------------
-  Widget _buildExamSchedule() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ListView(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 120),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'الامتحانات النهائية',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'جاري تنزيل جدول الامتحانات بصيغة PDF...',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(
-                    0xFF1E1E1E,
-                  ), // أسود دائماً ليبرز فيه الأصفر
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(25), // بديل withOpacity
-                      blurRadius: 5,
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.download_rounded,
-                      color: Color(0xFFEFFF00),
-                      size: 16,
-                    ),
-                    SizedBox(width: 5),
-                    Text(
-                      'PDF',
-                      style: TextStyle(
-                        color: Color(0xFFEFFF00),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-
-        _buildExamCard(
-          time: '09:00 ص',
-          title: 'الرياضيات المتقدمة',
-          duration: 'ساعتان',
-          location: 'القاعة الكبرى (A)',
-          month: 'يونيو',
-          dayNumber: '12',
-          dayName: 'الأحد',
-        ),
-        _buildExamCard(
-          time: '09:00 ص',
-          title: 'الفيزياء التطبيقية',
-          duration: 'ساعتان',
-          location: 'مدرج العلوم 1',
-          month: 'يونيو',
-          dayNumber: '14',
-          dayName: 'الثلاثاء',
-        ),
-        _buildExamCard(
-          time: '11:00 ص',
-          title: 'أساسيات البرمجة',
-          duration: '90 دقيقة',
-          location: 'معمل الحاسوب المركزي',
-          month: 'يونيو',
-          dayNumber: '16',
-          dayName: 'الخميس',
-        ),
-
-        const SizedBox(height: 15),
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.orange.withAlpha(20)
-                : const Color(0xFFFFFDF0), // 🌟 متجاوب
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(
-              color: isDark
-                  ? Colors.orange.withAlpha(50)
-                  : const Color(0xFFFFF59D),
-              width: 1.5,
-            ), // 🌟 متجاوب
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.info_outline,
-                color: Color(0xFFF57C00),
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'يرجى الحضور قبل موعد الامتحان بـ 15 دقيقة على الأقل وإحضار البطاقة الجامعية.',
-                  style: TextStyle(
-                    color: isDark
-                        ? Colors.orange.shade400
-                        : Colors.orange.shade800, // 🌟 متجاوب
-                    fontSize: 11,
-                    height: 1.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildExamCard({
     required String time,
     required String title,
@@ -1461,7 +1500,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
       decoration: BoxDecoration(
-        color: isDark ? Theme.of(context).cardColor : Colors.white, // 🌟 متجاوب
+        color: isDark ? Theme.of(context).cardColor : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -1469,7 +1508,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ? Colors.black.withAlpha(50)
                 : Colors.black.withAlpha(8),
             blurRadius: 10,
-          ), // 🌟 بديل withOpacity
+          ),
         ],
       ),
       child: Row(
@@ -1495,15 +1534,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.red.withAlpha(30)
-                        : const Color(0xFFFFEBEE), // 🌟 متجاوب
+                        : const Color(0xFFFFEBEE),
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
                     'نهائي',
                     style: TextStyle(
-                      color: isDark
-                          ? Colors.red.shade300
-                          : Colors.red, // 🌟 متجاوب
+                      color: isDark ? Colors.red.shade300 : Colors.red,
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1515,7 +1552,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1548,7 +1585,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             decoration: BoxDecoration(
               color: isDark
                   ? Colors.white.withAlpha(15)
-                  : const Color(0xFFF9F9F9), // 🌟 متجاوب
+                  : const Color(0xFFF9F9F9),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Column(
@@ -1561,7 +1598,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 Text(
                   dayNumber,
                   style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                    color: isDark ? Colors.white : Colors.black,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),

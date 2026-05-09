@@ -5,7 +5,7 @@ class AppNotification {
   final String title;
   final String message;
   final String type;
-  final bool isRead;
+  bool isRead;
   final String timeAgo;
 
   AppNotification({
@@ -31,9 +31,11 @@ class AppNotification {
   // 🌟 الدالة اللي كانت ناقصة وعاملة مشكلة getIcon
   IconData getIcon() {
     if (title.contains('وظيفة')) return Icons.assignment_outlined;
-    if (title.contains('برنامج') || title.contains('جدول')) return Icons.calendar_month_outlined;
+    if (title.contains('برنامج') || title.contains('جدول'))
+      return Icons.calendar_month_outlined;
     if (title.contains('عطلة')) return Icons.celebration_outlined;
-    if (title.contains('قسط') || title.contains('اشتراك')) return Icons.payments_outlined;
+    if (title.contains('قسط') || title.contains('اشتراك'))
+      return Icons.payments_outlined;
     return Icons.notifications_none_outlined;
   }
 

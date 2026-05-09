@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       var response = await dio.post(
         url,
         data: {
-          "login": _usernameController.text
+          "username": _usernameController.text
               .trim(), // 👈 تم التعديل من username إلى login
           "password": _passwordController.text,
         },
@@ -239,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             scale: 0.8,
                             child: Switch(
                               value: _isStudent,
-                              activeColor: primaryYellow,
+                              activeThumbColor: primaryYellow,
                               onChanged: (value) =>
                                   setState(() => _isStudent = value),
                             ),

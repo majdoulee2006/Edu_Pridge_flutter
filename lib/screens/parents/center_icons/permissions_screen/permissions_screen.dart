@@ -81,6 +81,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       print("Error responding to permission: $e");
     }
   }
+  @override
   Widget build(BuildContext context) {
     // 🎨 تعريف الألوان المتجاوبة مع الثيم
     final bgColor = Theme.of(context).scaffoldBackgroundColor;

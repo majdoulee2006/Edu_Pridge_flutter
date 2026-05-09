@@ -1,5 +1,6 @@
-import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
+//import 'package:file_picker/file_picker.dart';
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
 // مسارات شاشات الـ nav_bar
 import '../../nav_bar/student_home_screen.dart';
@@ -8,6 +9,9 @@ import '../../nav_bar/notifications_screen.dart';
 import '../../nav_bar/messages_screen.dart';
 // 🌟 استدعاء واجهة الإعدادات 🌟
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+
+// 🌟 استدعاء ملف الخدمات 🌟
+import 'package:edu_pridge_flutter/services/student_services.dart';
 
 class AssignmentsScreen extends StatefulWidget {
   const AssignmentsScreen({super.key});
@@ -19,123 +23,168 @@ class AssignmentsScreen extends StatefulWidget {
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
   int _selectedFilter = 0; // 0=الكل, 1=المكتملة, 2=فائتة
 
-  // دالة لجلب الكروت المفلترة
+  // 🌟 متغيرات السيرفر 🌟
+  bool _isLoading = true;
+  List<dynamic> _assignmentsList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAssignments();
+  }
+
+  // 🌟 دالة جلب الواجبات من الباك إند
+  Future<void> _fetchAssignments() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await StudentServices().getAssignments();
+      if (data != null) {
+        setState(() {
+          _assignmentsList = data;
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      debugPrint("Error fetching assignments: $e");
+    }
+  }
+
+  // 🌟 دالة ذكية لتحويل بيانات السيرفر إلى كروت وتطبيق الفلاتر 🌟
   List<Widget> _getFilteredAssignments() {
-    final pendingCard = const _AssignmentCard(
-      title: 'تقرير مختبر الفيزياء',
-      subtitle: 'فيزياء 101 • أ. أحمد علي',
-      dueDate: 'آخر موعد: 10 أكتوبر، 11:59 م',
-      status: 'قيد الانتظار',
-      statusColor: Colors.red,
-      tagText: 'غداً',
-      tagColor: Colors.orange,
-      tagIcon: Icons.access_time,
-      fileType: 'ملف PDF',
-      iconData: Icons.science,
-      imageBgColor: Color(0xFF263238), // Colors.blueGrey.shade900
-      initiallyExpanded: true,
-      showSubmitForm: true, // ✅ مفعلة
-      detailText:
-          'يجب إعداد تقرير شامل عن تجربة الانكسار الضوئي، متضمناً الرسوم البيانية للنتائج وجداول البيانات الخام. يرجى التأكد من اتباع معايير التنسيق الموضحة في المحاضرة.',
-    );
+    // تصفية المصفوفة الأساسية بناءً على التاب المحدد
+    List<dynamic> filteredData = _assignmentsList.where((assignment) {
+      String status =
+          assignment['status'] ?? 'pending'; // pending, completed, missed
+      if (_selectedFilter == 1) return status == 'completed';
+      if (_selectedFilter == 2) return status == 'missed';
+      return true; // 0 = الكل
+    }).toList();
 
-    final newCard = const _AssignmentCard(
-      title: 'بحث التاريخ المعاصر',
-      subtitle: 'تاريخ العمارة • د. سارة حسن',
-      dueDate: 'آخر موعد: 24 أكتوبر',
-      status: 'متبقي أسبوعين',
-      statusColor: Colors.blue,
-      tagText: 'جديد',
-      tagColor: Colors.blue,
-      tagIcon: Icons.verified,
-      fileType: 'مشروع',
-      fileTypeIcon: Icons.folder,
-      iconData: Icons.menu_book,
-      imageBgColor: Color(0xFFA1887F), // Colors.brown.shade300
-      showSubmitForm: true, // ✅ مفعلة لتفتح مثل الأولى
-      detailText:
-          'يرجى كتابة بحث لا يقل عن 5 صفحات يتحدث عن تطور العمارة في العصر الحديث مع إرفاق صور للمباني التاريخية المهمة.',
-    );
+    // قائمة الألوان والأيقونات العشوائية/المرتبة لإعطاء جمالية للتصميم (نفس ألوانك)
+    List<Color> bgColors = [
+      const Color(0xFF263238), // أزرق رمادي غامق
+      const Color(0xFFA1887F), // بني
+      const Color(0xFFBDBDBD), // رمادي
+      const Color(0xFF37474F), // كحلي غامق
+    ];
+    List<IconData> icons = [
+      Icons.science,
+      Icons.menu_book,
+      Icons.calculate,
+      Icons.computer,
+    ];
 
-    final completedCard = const _AssignmentCard(
-      title: 'مسائل الرياضيات - ف4',
-      subtitle: 'رياضيات متقدمة • أ. يوسف',
-      dueDate: 'تم التسليم',
-      status: 'تم التسليم',
-      statusColor: Colors.grey,
-      tagText: 'مكتمل',
-      tagColor: Colors.green,
-      tagIcon: Icons.check_circle,
-      fileType: '95 / 100',
-      fileTypeColor: Colors.green,
-      iconData: Icons.calculate,
-      imageBgColor: Color(0xFFBDBDBD), // Colors.grey.shade400
-      showSubmitForm: true, // ✅ مفعلة
-      detailText:
-          'لقد قمت بتسليم هذا الواجب وحصلت على تقييم 95/100. يمكنك مراجعة ملاحظات المدرس في الملف المرفق.',
-    );
+    return filteredData.asMap().entries.map((entry) {
+      int index = entry.key;
+      var assignment = entry.value;
 
-    final missedCard = const _AssignmentCard(
-      title: 'واجب خوارزميات الترتيب',
-      subtitle: 'علوم حاسوب • د. منى',
-      dueDate: 'انتهى الموعد: الأحد الماضي',
-      dueDateColor: Colors.red,
-      status: 'انتهى الوقت',
-      statusColor: Colors.red,
-      tagText: 'فائتة',
-      tagColor: Colors.red,
-      tagIcon: Icons.error,
-      fileType: 'كود',
-      fileTypeIcon: Icons.code,
-      iconData: Icons.computer,
-      imageBgColor: Color(0xFF37474F), // Colors.blueGrey.shade800
-      showSubmitForm: true, // ✅ مفعلة
-      detailText:
-          'لقد انتهى الوقت المخصص لتسليم هذا الواجب. يرجى التواصل مع مدرس المادة لمعرفة إمكانية التسليم المتأخر.',
-    );
+      String status = assignment['status'] ?? 'pending';
 
-    // فلترة بناءً على التاب المحدد
-    if (_selectedFilter == 1) return [completedCard];
-    if (_selectedFilter == 2) return [missedCard];
-    return [pendingCard, newCard, completedCard, missedCard]; // 0 = الكل
+      // متغيرات الكرت الافتراضية
+      Color statusColor = Colors.blue;
+      String statusText = 'قيد الانتظار';
+      String tagText = 'جديد';
+      Color tagColor = Colors.blue;
+      IconData tagIcon = Icons.access_time;
+      bool showSubmitForm = true;
+      String fileTypeStr = assignment['type'] == 'project'
+          ? 'مشروع'
+          : 'ملف PDF';
+      IconData fileTypeIcon = assignment['type'] == 'project'
+          ? Icons.folder
+          : Icons.description_outlined;
+      Color? fileTypeColor;
+
+      // تخصيص الكرت بناءً على الحالة
+      if (status == 'completed') {
+        statusText = 'تم التسليم';
+        statusColor = Colors.grey;
+        tagText = 'مكتمل';
+        tagColor = Colors.green;
+        tagIcon = Icons.check_circle;
+        showSubmitForm = false; // لا حاجة لنموذج التسليم إذا كان مكتملاً
+        if (assignment['mark'] != null) {
+          fileTypeStr = '${assignment['mark']} / 100';
+          fileTypeColor = Colors.green;
+          fileTypeIcon = Icons.grade;
+        }
+      } else if (status == 'missed') {
+        statusText = 'انتهى الوقت';
+        statusColor = Colors.red;
+        tagText = 'فائتة';
+        tagColor = Colors.red;
+        tagIcon = Icons.error;
+        showSubmitForm = false;
+      } else {
+        // Pending
+        statusText = 'متبقي وقت';
+        statusColor = Colors.orange;
+        tagText = 'مطلوب';
+        tagColor = Colors.orange;
+        tagIcon = Icons.access_time;
+        showSubmitForm = true;
+      }
+
+      return _AssignmentCard(
+        title: assignment['title'] ?? 'بدون عنوان',
+        subtitle:
+            '${assignment['course_name']} • ${assignment['teacher_name']}',
+        dueDate: 'آخر موعد: ${assignment['due_date']}',
+        dueDateColor: status == 'missed' ? Colors.red : null,
+        status: statusText,
+        statusColor: statusColor,
+        tagText: tagText,
+        tagColor: tagColor,
+        tagIcon: tagIcon,
+        fileType: fileTypeStr,
+        fileTypeIcon: fileTypeIcon,
+        fileTypeColor: fileTypeColor,
+        iconData: icons[index % icons.length],
+        imageBgColor: bgColors[index % bgColors.length],
+        initiallyExpanded:
+            index == 0 && status == 'pending', // نفتح أول واجب مطلوب تلقائياً
+        showSubmitForm: showSubmitForm,
+        detailText:
+            assignment['description'] ??
+            'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
+      );
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 جلب حالة الثيم 🌟
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
         ? Theme.of(context).scaffoldBackgroundColor
         : const Color(0xFFF9F9F9);
     final textColor = isDark ? Colors.white : Colors.black;
 
-    List<Widget> filteredAssignments = _getFilteredAssignments();
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: bgColor, // 🌟 מתجاوب
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: bgColor, // 🌟 מתجاوب
+          backgroundColor: bgColor,
           elevation: 0,
-          // ✅ تم تصحيح اتجاه السهم
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor), // 🌟 מתجاوب
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             'الواجبات والمشاريع',
             style: TextStyle(
-              color: textColor, // 🌟 מתجاوب
+              color: textColor,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
           ),
           centerTitle: true,
           actions: [
-            // ✅ تم ربط الإعدادات
             IconButton(
-              icon: Icon(Icons.settings, color: textColor), // 🌟 מתجاوب
+              icon: Icon(Icons.settings, color: textColor),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -180,36 +229,72 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                // 2. عدد الواجبات المحدث تلقائياً
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'لديك ${filteredAssignments.length} واجبات في القائمة.',
-                    style: TextStyle(
-                      color: isDark
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade600,
-                      fontSize: 13,
-                    ), // 🌟 מתجاوب
-                  ),
-                ),
-                const SizedBox(height: 15),
-                // 3. قائمة الواجبات المفلترة
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.only(
-                      left: 20,
-                      right: 20,
-                      bottom: 120,
+
+                // 🌟 عرض دائرة التحميل أو البيانات 🌟
+                if (_isLoading)
+                  const Expanded(
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFEFFF00),
+                      ),
                     ),
-                    physics: const BouncingScrollPhysics(),
-                    children: filteredAssignments,
+                  )
+                else ...[
+                  // 2. عدد الواجبات المحدث تلقائياً
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'لديك ${_getFilteredAssignments().length} واجبات في القائمة.',
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 15),
+                  // 3. قائمة الواجبات المفلترة
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _fetchAssignments,
+                      color: const Color(0xFFEFFF00),
+                      child: _getFilteredAssignments().isEmpty
+                          ? ListView(
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.3,
+                                ),
+                                Center(
+                                  child: Text(
+                                    'لا يوجد واجبات حالياً',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView(
+                              padding: const EdgeInsets.only(
+                                left: 20,
+                                right: 20,
+                                bottom: 120,
+                              ),
+                              physics: const AlwaysScrollableScrollPhysics(
+                                parent: BouncingScrollPhysics(),
+                              ),
+                              children: _getFilteredAssignments(),
+                            ),
+                    ),
+                  ),
+                ],
               ],
             ),
 
-            // 🌟 استدعاء الشريط الموحد هنا (-1 لأنها واجهة فرعية) 🌟
             CustomBottomNav(
               currentIndex: -1,
               centerButton: const CustomSpeedDialEduBridge(),
@@ -240,7 +325,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  // تصميم الفلاتر العلوية 🌟 (تم إضافة isDark كـ parameter داخلي بالدالة عشان ما أغير الـ signature اللي إنت كاتبته) 🌟
+  // تصميم الفلاتر العلوية
   Widget _buildFilterChip(
     String label,
     int index,
@@ -256,9 +341,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFFEFFF00)
-              : (isDark
-                    ? Theme.of(context).cardColor
-                    : Colors.white), // 🌟 מתجاوب
+              : (isDark ? Theme.of(context).cardColor : Colors.white),
           borderRadius: BorderRadius.circular(20),
           border: isSelected
               ? null
@@ -266,13 +349,11 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   color: isDark
                       ? Colors.white.withAlpha(20)
                       : Colors.grey.shade200,
-                ), // 🌟 מתجاوب
+                ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(
-                      0xFFEFFF00,
-                    ).withAlpha(76), // 🌟 بديل withOpacity
+                    color: const Color(0xFFEFFF00).withAlpha(76),
                     blurRadius: 8,
                   ),
                 ]
@@ -291,7 +372,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 color: isSelected
                     ? Colors.black87
-                    : (isDark ? Colors.white70 : Colors.black87), // 🌟 מתجاوب
+                    : (isDark ? Colors.white70 : Colors.black87),
               ),
             ),
           ],
@@ -321,7 +402,7 @@ class _AssignmentCard extends StatefulWidget {
   final Color imageBgColor;
   final bool initiallyExpanded;
   final bool showSubmitForm;
-  final String detailText; // 🌟 إضافة متغير لتفاصيل الواجب
+  final String detailText;
 
   const _AssignmentCard({
     required this.title,
@@ -357,16 +438,13 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     isExpanded = widget.initiallyExpanded;
   }
 
-  // 🌟 دالة لعرض النافذة المنبثقة (Pop-up) للنجاح 🌟
   void _showSuccessDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: isDark
-              ? Theme.of(context).cardColor
-              : Colors.white, // 🌟 متجاوب
+          backgroundColor: isDark ? Theme.of(context).cardColor : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -385,7 +463,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
+                  color: isDark ? Colors.white : Colors.black87,
                   height: 1.5,
                 ),
               ),
@@ -419,7 +497,6 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     );
   }
 
-  // 🌟 دالة لفتح خيارات إرفاق الملف 🌟
   void _showAttachmentOptions() {
     showModalBottomSheet(
       context: context,
@@ -431,9 +508,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Theme.of(context).cardColor
-                  : Colors.white, // 🌟 متجاوب
+              color: isDark ? Theme.of(context).cardColor : Colors.white,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -448,7 +523,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black,
-                  ), // 🌟 متجاوب
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -491,7 +566,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
   ) {
     return GestureDetector(
       onTap: () {
-        Navigator.pop(context); // إغلاق القائمة السفلية
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تم إرفاق $title بنجاح'),
@@ -504,9 +579,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: color.withAlpha(
-                isDark ? 50 : 25,
-              ), // 🌟 بديل withOpacity ومتجاوب
+              color: color.withAlpha(isDark ? 50 : 25),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -522,7 +595,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white : Colors.black,
-            ), // 🌟 متجاوب
+            ),
           ),
         ],
       ),
@@ -531,7 +604,6 @@ class _AssignmentCardState extends State<_AssignmentCard> {
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 جلب حالة الثيم 🌟
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -541,7 +613,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardColor, // 🌟 מתجاوب
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -549,13 +621,12 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 ? Colors.black.withAlpha(50)
                 : Colors.black.withAlpha(8),
             blurRadius: 10,
-          ), // 🌟 بديل withOpacity ومتجاوب
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // الهيدر
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -565,7 +636,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 decoration: BoxDecoration(
                   color: isDark
                       ? widget.imageBgColor.withAlpha(150)
-                      : widget.imageBgColor, // 🌟 متجاوب
+                      : widget.imageBgColor,
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(widget.iconData, color: Colors.white54, size: 30),
@@ -584,7 +655,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: textColor, // 🌟 מתجاوب
+                              color: textColor,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -604,7 +675,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                       style: TextStyle(
                         color: isDark ? Colors.grey.shade400 : Colors.grey,
                         fontSize: 12,
-                      ), // 🌟 מתجاوب
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -613,16 +684,14 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                           widget.fileTypeIcon,
                           size: 14,
                           color: isDark ? Colors.grey.shade500 : Colors.grey,
-                        ), // 🌟 متجاوب
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           widget.fileType,
                           style: TextStyle(
                             color:
                                 widget.fileTypeColor ??
-                                (isDark
-                                    ? Colors.grey.shade400
-                                    : Colors.grey), // 🌟 מתجاوب
+                                (isDark ? Colors.grey.shade400 : Colors.grey),
                             fontSize: 11,
                             fontWeight: widget.fileTypeColor != null
                                 ? FontWeight.bold
@@ -635,13 +704,12 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                           style: TextStyle(
                             color: isDark ? Colors.grey.shade600 : Colors.grey,
                           ),
-                        ), // 🌟 متجاوب
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           widget.status,
                           style: TextStyle(
-                            color: widget
-                                .statusColor, // 🌟 يبقى لون الحالة ثابت (أحمر، أخضر، أزرق)
+                            color: widget.statusColor,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -656,7 +724,6 @@ class _AssignmentCardState extends State<_AssignmentCard> {
 
           const SizedBox(height: 15),
 
-          // التاريخ ع اليمين والسهم ع اليسار (والسهم فقط هو القابل للضغط)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -665,9 +732,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 style: TextStyle(
                   color:
                       widget.dueDateColor ??
-                      (isDark
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade500), // 🌟 متجاوب
+                      (isDark ? Colors.grey.shade400 : Colors.grey.shade500),
                   fontSize: 11,
                 ),
               ),
@@ -678,28 +743,25 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                     horizontal: 10,
                     vertical: 5,
                   ),
-                  color: Colors.transparent, // مساحة شفافة لتسهيل النقر
+                  color: Colors.transparent,
                   child: Icon(
                     isExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: isDark
-                        ? Colors.grey.shade500
-                        : Colors.grey.shade400, // 🌟 متجاوب
+                    color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
                   ),
                 ),
               ),
             ],
           ),
 
-          // المحتوى الموسع (فورم التسليم)
           if (isExpanded && widget.showSubmitForm) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 15),
               child: Divider(
                 color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                 thickness: 1,
-              ), // 🌟 متجاوب
+              ),
             ),
             Text(
               'تفاصيل الواجب',
@@ -707,22 +769,19 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
                 color: textColor,
-              ), // 🌟 מתجاوب
+              ),
             ),
             const SizedBox(height: 10),
             Text(
-              widget.detailText, // ✅ استخدام المتغير الديناميكي للتفاصيل
+              widget.detailText,
               style: TextStyle(
-                color: isDark
-                    ? Colors.grey.shade400
-                    : Colors.grey.shade600, // 🌟 متجاوب
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                 fontSize: 12,
                 height: 1.5,
               ),
             ),
             const SizedBox(height: 15),
 
-            // ✅ مربع رفع الملف صار تفاعلي ويفتح الـ Bottom Sheet
             InkWell(
               onTap: _showAttachmentOptions,
               borderRadius: BorderRadius.circular(15),
@@ -732,12 +791,12 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 decoration: BoxDecoration(
                   color: isDark
                       ? Colors.white.withAlpha(10)
-                      : const Color(0xFFF9F9F9), // 🌟 מתجاوب
+                      : const Color(0xFFF9F9F9),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: isDark
                         ? Colors.white.withAlpha(30)
-                        : Colors.grey.shade300, // 🌟 מתجاوب
+                        : Colors.grey.shade300,
                     style: BorderStyle.solid,
                   ),
                 ),
@@ -748,14 +807,14 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                       decoration: BoxDecoration(
                         color: isDark
                             ? Colors.blueGrey.shade800
-                            : Colors.blueGrey.shade50, // 🌟 מתجاوب
+                            : Colors.blueGrey.shade50,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.cloud_upload,
                         color: isDark
                             ? Colors.blueGrey.shade300
-                            : Colors.blueGrey, // 🌟 מתجاوب
+                            : Colors.blueGrey,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -764,7 +823,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: textColor, // 🌟 מתجاوب
+                        color: textColor,
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -773,7 +832,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                       style: TextStyle(
                         color: isDark
                             ? Colors.grey.shade400
-                            : Colors.grey.shade500, // 🌟 מתجاوب
+                            : Colors.grey.shade500,
                         fontSize: 10,
                       ),
                     ),
@@ -789,20 +848,18 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
                 color: textColor,
-              ), // 🌟 מתجاوب
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               maxLines: 3,
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-              ), // 🌟 لون النص المكتوب
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
               decoration: InputDecoration(
                 hintText: 'أضف أي ملاحظات للمدرس هنا...',
                 hintStyle: TextStyle(
                   color: isDark ? Colors.grey.shade600 : Colors.grey,
                   fontSize: 12,
-                ), // 🌟 מתجاوب
+                ),
                 contentPadding: const EdgeInsets.all(15),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
@@ -810,7 +867,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                     color: isDark
                         ? Colors.white.withAlpha(30)
                         : Colors.grey.shade200,
-                  ), // 🌟 מתجاوب
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
@@ -818,13 +875,12 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                     color: isDark
                         ? Colors.white.withAlpha(30)
                         : Colors.grey.shade200,
-                  ), // 🌟 מתجاوب
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 15),
 
-            // ✅ زر الإرسال مع الـ Pop-up
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -837,10 +893,8 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                   elevation: 0,
                 ),
                 onPressed: () {
-                  _showSuccessDialog(); // عرض رسالة النجاح
-                  setState(
-                    () => isExpanded = false,
-                  ); // اختياري: إغلاق الكرت بعد الإرسال
+                  _showSuccessDialog();
+                  setState(() => isExpanded = false);
                 },
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -869,7 +923,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withAlpha(isDark ? 50 : 25), // 🌟 بديل withOpacity ومتجاوب
+        color: color.withAlpha(isDark ? 50 : 25),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -880,9 +934,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
           Text(
             text,
             style: TextStyle(
-              color: isDark
-                  ? color.withAlpha(200)
-                  : color, // 🌟 لون أزهى بالليل
+              color: isDark ? color.withAlpha(200) : color,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),

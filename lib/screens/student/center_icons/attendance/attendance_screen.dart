@@ -1,11 +1,16 @@
-import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart'; // 🌟 استدعاء مكتبة الملفات
+
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
-// مسارات شاشات الـ nav_bar بعد التعديل
+// مسارات شاشات الـ nav_bar
 import '../../nav_bar/student_home_screen.dart';
 import '../../nav_bar/profile_screen.dart';
 import '../../nav_bar/notifications_screen.dart';
 import '../../nav_bar/messages_screen.dart';
+
+// استدعاء السيرفيس
+import 'package:edu_pridge_flutter/services/student_services.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -17,26 +22,81 @@ class AttendanceScreen extends StatefulWidget {
 class _AttendanceScreenState extends State<AttendanceScreen> {
   int _selectedTab = 0; // 0 = سجل الحضور، 1 = طلب إجازة
   int _leaveType = 0; // 0 = يوم كامل، 1 = ساعية
-  bool _isExcuseExpanded = true; // للتحكم بفتح وإغلاق كرت تقديم العذر
+  
+  bool _isLoading = true;
+  List<dynamic> _attendanceList = [];
+  
+  Map<int, bool> _expandedExcuses = {};
+  Set<int> _submittedExcuses = {}; // 🌟 لحفظ الكروت اللي تم تقديم عذر لها محلياً
 
-  // 🌟 متحكمات حقول التاريخ والوقت 🌟
   final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _timeController =
-      TextEditingController(); // ✅ تمت إضافة متحكم الوقت
+  final TextEditingController _timeController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAttendance(); 
+  }
 
   @override
   void dispose() {
     _dateController.dispose();
-    _timeController.dispose(); // ✅ تنظيف متحكم الوقت
+    _timeController.dispose();
     super.dispose();
   }
 
-  // 🌟 دالة لفتح التقويم 🌟
+  Future<void> _fetchAttendance() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await StudentServices().getAttendance();
+      if (data != null) {
+        List<dynamic> uniqueData = [];
+        Set<String> seen = {}; 
+        
+        for (var record in data) {
+          String key = '${record['date']}_${record['course_name']}';
+          if (!seen.contains(key)) {
+            seen.add(key);
+            uniqueData.add(record); 
+          }
+        }
+
+        setState(() {
+          _attendanceList = uniqueData; 
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      debugPrint("Error fetching attendance: $e");
+    }
+  }
+
+  String _translateDate(String dateStr) {
+    Map<String, String> translations = {
+      'January': 'يناير', 'February': 'فبراير', 'March': 'مارس',
+      'April': 'أبريل', 'May': 'مايو', 'June': 'يونيو',
+      'July': 'يوليو', 'August': 'أغسطس', 'September': 'سبتمبر',
+      'October': 'أكتوبر', 'November': 'نوفمبر', 'December': 'ديسمبر',
+      'Saturday': 'السبت', 'Sunday': 'الأحد', 'Monday': 'الاثنين',
+      'Tuesday': 'الثلاثاء', 'Wednesday': 'الأربعاء', 'Thursday': 'الخميس',
+      'Friday': 'الجمعة',
+    };
+
+    String translated = dateStr;
+    translations.forEach((english, arabic) {
+      translated = translated.replaceAll(english, arabic);
+    });
+    return translated;
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime.now(), // لا يمكن اختيار تاريخ ماضي للإجازة
+      firstDate: DateTime.now(),
       lastDate: DateTime(2030),
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -66,7 +126,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
-  // 🌟 دالة لفتح ساعة اختيار الوقت (للإجازة الساعية) 🌟
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -99,16 +158,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
-  // 🌟 دالة لعرض النافذة المنبثقة (Pop-up) للنجاح 🌟
   void _showSuccessDialog(String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: isDark
-              ? Theme.of(context).cardColor
-              : Colors.white, // 🌟 متجاوب
+          backgroundColor: isDark ? Theme.of(context).cardColor : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -127,7 +183,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87, // 🌟 متجاوب
+                  color: isDark ? Colors.white : Colors.black87,
                   height: 1.5,
                 ),
               ),
@@ -161,7 +217,51 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  // 🌟 دالة لفتح خيارات إرفاق الملف 🌟
+  // 🌟 دالة اختيار الملفات الحقيقية من الموبايل 🌟
+  Future<void> _pickFile(String type) async {
+    Navigator.pop(context); // إغلاق القائمة السفلية أولاً
+
+    try {
+      FilePickerResult? result;
+
+      if (type == 'مستند' || type == 'ملف') {
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf', 'doc', 'docx', 'zip'], 
+        );
+      } else if (type == 'صورة') {
+        result = await FilePicker.platform.pickFiles(type: FileType.image);
+      } else if (type == 'فيديو') {
+        result = await FilePicker.platform.pickFiles(type: FileType.video);
+      }
+
+      if (result != null) {
+        String fileName = result.files.single.name;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم إرفاق الملف: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إلغاء اختيار الملف'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error picking file: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('حدث خطأ أو تم رفض الصلاحيات'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _showAttachmentOptions() {
     showModalBottomSheet(
       context: context,
@@ -173,9 +273,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Theme.of(context).cardColor
-                  : Colors.white, // 🌟 متجاوب
+              color: isDark ? Theme.of(context).cardColor : Colors.white,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -189,28 +287,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildAttachmentOption(
-                      Icons.camera_alt,
-                      'الكاميرا',
-                      Colors.blue,
-                    ),
-                    _buildAttachmentOption(
-                      Icons.photo_library,
-                      'المعرض',
-                      Colors.purple,
-                    ),
-                    _buildAttachmentOption(
-                      Icons.insert_drive_file,
-                      'ملف',
-                      Colors.orange,
-                    ),
+                    _buildAttachmentOption(Icons.camera_alt, 'الكاميرا', Colors.blue),
+                    _buildAttachmentOption(Icons.photo_library, 'صورة', Colors.purple),
+                    _buildAttachmentOption(Icons.insert_drive_file, 'ملف', Colors.orange),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -227,21 +313,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       builder: (context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return GestureDetector(
-          onTap: () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('تم اختيار $title بنجاح'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          },
+          onTap: () => _pickFile(title), // 🌟 ربط الزر بمدير الملفات
           child: Column(
             children: [
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: color.withAlpha(isDark ? 50 : 25), // 🌟 متجاوب
+                  color: color.withAlpha(isDark ? 50 : 25),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -256,7 +334,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black, // 🌟 متجاوب
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
             ],
@@ -306,7 +384,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               ],
             ),
-
             CustomBottomNav(
               currentIndex: -1,
               centerButton: const CustomSpeedDialEduBridge(),
@@ -394,47 +471,90 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Widget _buildAttendanceRecord() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
-      children: [
-        _buildUnexcusedAbsenceCard(),
-        _buildRecordCard(
-          date: '22 أكتوبر، الأحد',
-          subject: 'فيزياء عامة',
-          statusText: 'غائب بعذر',
-          statusColor: isDark ? Colors.amber.shade300 : const Color(0xFFFBC02D),
-          bgColor: isDark
-              ? Colors.amber.withAlpha(30)
-              : const Color(0xFFFFF9C4),
-          icon: Icons.warning_amber_rounded,
+
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFEFFF00)),
+      );
+    }
+
+    if (_attendanceList.isEmpty) {
+      return Center(
+        child: Text(
+          "لا يوجد سجلات حضور وغياب",
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
         ),
-        _buildRecordCard(
-          date: '20 أكتوبر، الجمعة',
-          subject: 'برمجة متقدمة',
-          statusText: 'حاضر',
-          statusColor: isDark ? Colors.green.shade400 : const Color(0xFF4CAF50),
-          bgColor: isDark
-              ? Colors.green.withAlpha(30)
-              : const Color(0xFFE8F5E9),
-          icon: Icons.check,
-        ),
-        _buildRecordCard(
-          date: '19 أكتوبر، الخميس',
-          subject: 'تاريخ العلوم',
-          statusText: 'حاضر',
-          statusColor: isDark ? Colors.green.shade400 : const Color(0xFF4CAF50),
-          bgColor: isDark
-              ? Colors.green.withAlpha(30)
-              : const Color(0xFFE8F5E9),
-          icon: Icons.check,
-        ),
-      ],
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchAttendance,
+      color: const Color(0xFFEFFF00),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
+        itemCount: _attendanceList.length,
+        itemBuilder: (context, index) {
+          final record = _attendanceList[index];
+          String status = record['status'] ?? 'present'; 
+          String subject = record['course_name'] ?? '';
+          
+          String date = _translateDate(record['date'] ?? '');
+
+          if (status == 'absent') {
+            // 🌟 إذا الطالب قدم عذر لهاد الغياب محلياً، نقلبه لبرتقالي 🌟
+            if (_submittedExcuses.contains(index)) {
+              return _buildRecordCard(
+                date: date,
+                subject: subject,
+                statusText: 'عذر قيد المراجعة',
+                statusColor: Colors.orange,
+                bgColor: isDark ? Colors.orange.withAlpha(30) : const Color(0xFFFFF3E0),
+                icon: Icons.hourglass_empty,
+              );
+            }
+            return _buildUnexcusedAbsenceCard(index, date, subject);
+          }
+
+          Color statusColor;
+          Color bgColor;
+          IconData icon;
+          String statusText;
+
+          if (status == 'present') {
+            statusText = 'حاضر';
+            statusColor = isDark ? Colors.green.shade400 : const Color(0xFF4CAF50);
+            bgColor = isDark ? Colors.green.withAlpha(30) : const Color(0xFFE8F5E9);
+            icon = Icons.check;
+          } else if (status == 'late') {
+            statusText = 'متأخر';
+            statusColor = isDark ? Colors.amber.shade300 : const Color(0xFFFBC02D);
+            bgColor = isDark ? Colors.amber.withAlpha(30) : const Color(0xFFFFF9C4);
+            icon = Icons.warning_amber_rounded;
+          } else {
+            statusText = 'غير معروف';
+            statusColor = Colors.grey;
+            bgColor = Colors.grey.shade200;
+            icon = Icons.help_outline;
+          }
+
+          return _buildRecordCard(
+            date: date,
+            subject: subject,
+            statusText: statusText,
+            statusColor: statusColor,
+            bgColor: bgColor,
+            icon: icon,
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildUnexcusedAbsenceCard() {
+  Widget _buildUnexcusedAbsenceCard(int index, String date, String subject) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    bool isExpanded = _expandedExcuses[index] ?? false;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(bottom: 15),
@@ -458,14 +578,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => setState(() => _isExcuseExpanded = !_isExcuseExpanded),
+            onTap: () {
+              setState(() {
+                _expandedExcuses[index] = !isExpanded;
+              });
+            },
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  _isExcuseExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
+                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                   color: isDark ? Colors.grey.shade400 : Colors.grey,
                 ),
                 const SizedBox(width: 10),
@@ -474,7 +596,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '24 أكتوبر، الثلاثاء',
+                        date,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
@@ -484,9 +606,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       const SizedBox(height: 5),
                       Row(
                         children: [
-                          const Text(
-                            'رياضيات 101',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          Text(
+                            subject,
+                            style: const TextStyle(color: Colors.grey, fontSize: 12),
                           ),
                           const SizedBox(width: 10),
                           Container(
@@ -501,11 +623,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: Text(
-                              'غائب غير مبرر',
+                              'غائب',
                               style: TextStyle(
-                                color: isDark
-                                    ? Colors.red.shade300
-                                    : Colors.red,
+                                color: isDark ? Colors.red.shade300 : Colors.red,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -534,7 +654,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
           ),
 
-          if (_isExcuseExpanded) ...[
+          if (isExpanded) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 15),
               child: Divider(
@@ -591,7 +711,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
             ),
             const SizedBox(height: 15),
-
             InkWell(
               onTap: _showAttachmentOptions,
               borderRadius: BorderRadius.circular(15),
@@ -628,7 +747,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
             ),
             const SizedBox(height: 15),
-
             SizedBox(
               width: double.infinity,
               height: 45,
@@ -642,7 +760,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 onPressed: () {
                   _showSuccessDialog('تم إرسال التبرير بنجاح\nشاكرين تعاونكم');
-                  setState(() => _isExcuseExpanded = false);
+                  setState(() {
+                    _expandedExcuses[index] = false;
+                    _submittedExcuses.add(index); // 🌟 إخفاء الكرت وتحويله لقيد المراجعة 🌟
+                  });
                 },
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -754,9 +875,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  // ----------------------------------------------------------------
-  // 3. واجهة "طلب إجازة"
-  // ----------------------------------------------------------------
   Widget _buildLeaveRequest() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -764,7 +882,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
       children: [
-        // بانر طلب قيد المراجعة
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -826,7 +943,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ),
         const SizedBox(height: 25),
 
-        // فورم تقديم الإجازة
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -852,7 +968,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              // أزرار التبديل
               Container(
                 decoration: BoxDecoration(
                   color: isDark
@@ -869,7 +984,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 🌟 تبديل النص بين التاريخ والوقت بذكاء 🌟
               Text(
                 _leaveType == 0 ? 'التاريخ' : 'الوقت',
                 style: TextStyle(
@@ -879,7 +993,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               const SizedBox(height: 10),
 
-              // 🌟 حقل التاريخ (لليوم الكامل) أو حقل الوقت (للساعية) 🌟
               if (_leaveType == 0)
                 TextField(
                   controller: _dateController,
@@ -965,7 +1078,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               const SizedBox(height: 20),
 
-              // زر الإرسال
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -981,6 +1093,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     _showSuccessDialog(
                       'تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً',
                     );
+                    // 🌟 مسح الحقول بعد تقديم الطلب
+                    setState(() {
+                      _dateController.clear();
+                      _timeController.clear();
+                    });
                   },
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,

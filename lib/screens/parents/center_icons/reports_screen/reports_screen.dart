@@ -51,9 +51,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       studentId = prefs.getInt('selected_student_id');
 
       // قيمة افتراضية في حال عدم وجود بيانات
-      if (studentName == null) {
-        studentName = "لم يتم اختيار طالب";
-      }
+      studentName ??= "لم يتم اختيار طالب";
     });
   }
 

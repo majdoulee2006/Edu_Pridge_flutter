@@ -1,16 +1,18 @@
 import 'dart:io';
-import 'dart:typed_data'; // 🌟 ضرورية جداً للويب
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../../core/constants/app_colors.dart';
+
+// 🌟 استدعاء ملف الخدمات
+import 'package:edu_pridge_flutter/services/student_services.dart';
 
 import 'student_home_screen.dart';
 import 'notifications_screen.dart';
@@ -30,7 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSaving = false;
 
   File? _pickedImage;
-  Uint8List? _webImage; // 🌟 لتخزين الصورة كـ Bytes لتدعم الويب
+  Uint8List? _webImage;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -39,80 +41,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fetchUserProfile();
   }
 
+  // 🌟 الدالة بعد التنظيف (تعتمد على Service)
   Future<void> _fetchUserProfile() async {
+    setState(() => _isLoading = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
-
-      var response = await Dio().get(
-        "http://127.0.0.1:8000/api/student/profile",
-        options: Options(
-          headers: {
-            "Authorization": "Bearer $token",
-            "Accept": "application/json",
-          },
-        ),
-      );
-
-      if (response.statusCode == 200 && response.data != null) {
+      final data = await StudentServices().getProfileData();
+      if (data != null) {
         setState(() {
-          userData = response.data['data'];
+          userData = data;
           _isLoading = false;
           _hasChanges = false;
           _pickedImage = null;
-          _webImage =
-              null; // 🌟 تصفير الصورة المؤقتة لحتى يقرأ الصورة الجديدة من السيرفر
+          _webImage = null;
         });
       }
     } catch (e) {
       debugPrint("خطأ في جلب بيانات البروفايل: $e");
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // 🌟 الدالة بعد التنظيف (تعتمد على Service)
   Future<void> _updateProfile() async {
     if (!_hasChanges) return;
     setState(() => _isSaving = true);
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
-
-      FormData formData = FormData();
-
       if (_webImage != null || _pickedImage != null) {
+        // تحديد الصورة سواء ويب أو موبايل
         List<int> imageBytes = _webImage ?? await _pickedImage!.readAsBytes();
 
-        formData.files.add(
-          MapEntry(
-            'avatar',
-            MultipartFile.fromBytes(imageBytes, filename: 'avatar.jpg'),
-          ),
+        // إرسال الصورة للسيرفيس لرفعها
+        bool success = await StudentServices().updateProfileImage(
+          imageBytes,
+          'avatar.jpg',
         );
-      }
 
-      var response = await Dio().post(
-        "http://127.0.0.1:8000/api/student/profile/update",
-        data: formData,
-        options: Options(
-          headers: {
-            "Authorization": "Bearer $token",
-            "Accept": "application/json",
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _isSaving = false;
-          _hasChanges = false;
-        });
-        _fetchUserProfile();
-        _showSuccessDialog(Theme.of(context).brightness == Brightness.dark);
+        if (success) {
+          setState(() {
+            _isSaving = false;
+            _hasChanges = false;
+          });
+          _fetchUserProfile(); // جلب البيانات الجديدة بعد الرفع
+          _showSuccessDialog(Theme.of(context).brightness == Brightness.dark);
+        } else {
+          throw Exception("فشل في تحديث الصورة");
+        }
       }
     } catch (e) {
       debugPrint("خطأ في تحديث البيانات: $e");
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("فشل تحديث الصورة، حاول مجدداً")),
+        );
+      }
     }
   }
 
@@ -130,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (!kIsWeb) {
             _pickedImage = File(image.path);
           }
-          _hasChanges = true; // 🌟 تفعيل زر الحفظ
+          _hasChanges = true; // تفعيل زر الحفظ
         });
       }
     } catch (e) {
@@ -343,7 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
               child: Container(
-                width: 130, // 🌟 حجم الدائرة ثابت ومناسب
+                width: 130,
                 height: 130,
                 decoration: const BoxDecoration(
                   color: Color(0xFFFF7043),
@@ -357,7 +340,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? Image.network(
                           userData!['avatar'],
                           fit: BoxFit.cover,
-                          // 🌟 حماية ضد شاشة بيضاء أو أعطال الروابط (CORS)
                           errorBuilder: (context, error, stackTrace) {
                             debugPrint("خطأ في عرض الصورة من السيرفر: $error");
                             return const Icon(
@@ -752,17 +734,3 @@ class _InfoRow {
     this.onTap,
   });
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
