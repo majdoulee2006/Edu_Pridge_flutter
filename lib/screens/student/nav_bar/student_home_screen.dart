@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
@@ -121,10 +122,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                 physics: const BouncingScrollPhysics(),
                                 padding: const EdgeInsets.only(bottom: 100),
                                 children: [
-                                  if (hasLecture)
-                                    _buildUpcomingLectureCard(upcoming!, isDark)
-                                  else
-                                    _buildNoLecturesCard(isDark),
+                                                  if (hasLecture)
+                                    _buildUpcomingLectureCard(upcoming!, isDark),
                                   const SizedBox(height: 20),
                                   _buildSectionTitle(textColor),
                                   const SizedBox(height: 16),
@@ -158,6 +157,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                           .first;
 
                                       return _buildNewsCard(
+                                        announcementData: Map<String, dynamic>.from(news as Map),
                                         tag: displayTag,
                                         title: news['title'] ?? 'بدون عنوان',
                                         description: news['content'] ?? '',
@@ -295,21 +295,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  Widget _buildNoLecturesCard(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.withValues(alpha: 0.1) : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Center(
-        child: Text(
-          "لا توجد محاضرات مجدولة اليوم",
-          style: TextStyle(color: Colors.grey, fontSize: 13),
-        ),
-      ),
-    );
-  }
 
   Widget _buildAppBar(
     BuildContext context,
@@ -324,30 +309,20 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Edu-Bridge',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.amber : AppColors.accent,
+            Text.rich(
+              TextSpan(
+                text: 'أهلاً، ',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
+                children: [
+                  TextSpan(
+                    text: name,
+                    style: TextStyle(color: isDark ? Colors.amber : AppColors.accent),
+                  ),
+                ],
               ),
             ),
-            Row(
-              children: [
-                const Text(
-                  'مرحباً، ',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-              ],
-            ),
+            const Text('لوحة تحكم الطالب',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         Row(
@@ -357,37 +332,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              ),
-            ),
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              ),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.amber.withValues(alpha: 0.2)
-                      : Colors.amber.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: ClipOval(
-                  child: (avatarUrl != null && avatarUrl.isNotEmpty)
-                      ? Image.network(
-                          avatarUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.person,
-                              color: Colors.amber,
-                            );
-                          },
-                        )
-                      : const Icon(Icons.person, color: Colors.amber),
-                ),
               ),
             ),
           ],
@@ -421,15 +365,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
           ],
         ),
-        TextButton(
-          onPressed: () {},
-          child: const Text('عرض الكل', style: TextStyle(color: Colors.grey)),
-        ),
       ],
     );
   }
 
   Widget _buildNewsCard({
+    required Map<String, dynamic> announcementData,
     required String tag,
     required String title,
     required String description,
@@ -439,7 +380,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     required Color textColor,
     required bool isDark,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(
+          builder: (_) => AnnouncementDetailScreen(announcement: announcementData))),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: cardColor,
@@ -541,6 +485,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

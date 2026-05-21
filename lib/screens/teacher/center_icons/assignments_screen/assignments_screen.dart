@@ -188,22 +188,32 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                 ],
               ),
 
-              // زر الإضافة
-              Positioned(
-                bottom: 100,
-                left: 20,
-                child: FloatingActionButton(
-                  heroTag: "add_assignment_btn",
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddAssignmentScreen()),
-                  ).then((refreshed) {
-                    if (refreshed == true) _fetchAssignments();
-                  }),
-                  backgroundColor: yellow,
-                  elevation: 6,
-                  child: const Icon(Icons.add, color: Colors.black, size: 30),
-                ),
+              // زر الإضافة — يظهر فقط في تبويب قائمة الواجبات
+              Builder(
+                builder: (ctx) {
+                  final tabController = DefaultTabController.of(ctx);
+                  return AnimatedBuilder(
+                    animation: tabController,
+                    builder: (_, w) => tabController.index == 0
+                        ? Positioned(
+                            bottom: 100,
+                            left: 20,
+                            child: FloatingActionButton(
+                              heroTag: "add_assignment_btn",
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const AddAssignmentScreen()),
+                              ).then((refreshed) {
+                                if (refreshed == true) _fetchAssignments();
+                              }),
+                              backgroundColor: yellow,
+                              elevation: 6,
+                              child: const Icon(Icons.add, color: Colors.black, size: 30),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  );
+                },
               ),
 
               CustomBottomNav(

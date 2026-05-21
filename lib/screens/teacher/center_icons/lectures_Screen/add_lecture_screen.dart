@@ -4,33 +4,37 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
-class AddAssignmentScreen extends StatefulWidget {
-  final Map<String, dynamic>? assignment;
-  const AddAssignmentScreen({super.key, this.assignment});
+class AddLectureScreen extends StatefulWidget {
+  final Map<String, dynamic>? lecture;
+  const AddLectureScreen({super.key, this.lecture});
 
   @override
-  State<AddAssignmentScreen> createState() => _AddAssignmentScreenState();
+  State<AddLectureScreen> createState() => _AddLectureScreenState();
 }
 
-class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
-  final _titleController     = TextEditingController();
-  final _descController      = TextEditingController();
-  final _maxPointsController = TextEditingController(text: '100');
+class _AddLectureScreenState extends State<AddLectureScreen> {
+  final _titleController = TextEditingController();
+  final _descController  = TextEditingController();
 
-  List<Map<String, dynamic>> _allCourses      = [];
-  List<Map<String, dynamic>> _programs        = [];
-  String?                    _selectedProgramId;
-  int?                       _selectedYear;
+  // كل الكورسات
+  List<Map<String, dynamic>> _allCourses = [];
+
+  // الدورات (programs)
+  List<Map<String, dynamic>> _programs = [];
+  String? _selectedProgramId;
+
+  // السنة: 1 أو 2
+  int? _selectedYear;
+
+  // المادة المفلترة
   List<Map<String, dynamic>> _filteredCourses = [];
-  String?                    _selectedCourseId;
+  String? _selectedCourseId;
 
-  DateTime?     _dueDate;
-  TimeOfDay?    _dueTime;
   PlatformFile? _pickedFile;
   bool _isLoadingData = false;
   bool _isSaving      = false;
 
-  bool get _isEditing => widget.assignment != null;
+  bool get _isEditing => widget.lecture != null;
 
   @override
   void initState() {
@@ -40,28 +44,16 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   }
 
   void _prefill() {
-    final a = widget.assignment!;
-    _titleController.text     = a['title']?.toString() ?? '';
-    _descController.text      = a['description']?.toString() ?? '';
-    _maxPointsController.text = a['max_points']?.toString() ?? '100';
-    _selectedCourseId         = a['course_id']?.toString();
-    final raw = a['due_date']?.toString();
-    if (raw != null) {
-      try {
-        final dt = DateTime.parse(raw.replaceFirst(' ', 'T'));
-        _dueDate = dt;
-        _dueTime = TimeOfDay(hour: dt.hour, minute: dt.minute);
-      } catch (e) {
-        debugPrint('date parse: $e');
-      }
-    }
+    final l = widget.lecture!;
+    _titleController.text = l['title']?.toString() ?? '';
+    _descController.text  = l['description']?.toString() ?? '';
+    _selectedCourseId     = l['course_id']?.toString();
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
-    _maxPointsController.dispose();
     super.dispose();
   }
 
@@ -77,8 +69,11 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
         Dio().get("${ApiService().baseUrl}/teacher/programs", options: Options(headers: headers)),
       ]);
 
-      if (results[0].statusCode == 200 && results[0].data['success'] == true) {
-        _allCourses = (results[0].data['data'] as List? ?? [])
+      final coursesRes  = results[0];
+      final programsRes = results[1];
+
+      if (coursesRes.statusCode == 200 && coursesRes.data['success'] == true) {
+        _allCourses = (coursesRes.data['data'] as List? ?? [])
             .map((c) => <String, dynamic>{
                   'id':         c['id'].toString(),
                   'title':      c['title'].toString(),
@@ -88,8 +83,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
             .toList();
       }
 
-      if (results[1].statusCode == 200 && results[1].data['success'] == true) {
-        _programs = (results[1].data['data'] as List? ?? [])
+      if (programsRes.statusCode == 200 && programsRes.data['success'] == true) {
+        _programs = (programsRes.data['data'] as List? ?? [])
             .map<Map<String, dynamic>>((p) => {
                   'id':   p['id'].toString(),
                   'name': p['name'].toString(),
@@ -97,7 +92,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
             .toList();
       }
 
-      // في التعديل: نستنتج program_id و year من course_id
+      // في وضع التعديل: نحدد program_id و year من الكورس المختار
       if (_isEditing && _selectedCourseId != null) {
         final match = _allCourses.firstWhere(
           (c) => c['id'] == _selectedCourseId,
@@ -136,7 +131,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      allowedExtensions: ['pdf', 'mp4', 'mov', 'avi', 'mkv'],
       withData: true,
     );
     if (result != null && result.files.isNotEmpty) {
@@ -144,97 +139,63 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     }
   }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _dueDate ?? DateTime.now().add(const Duration(days: 7)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (picked != null) setState(() => _dueDate = picked);
-  }
-
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _dueTime ?? const TimeOfDay(hour: 23, minute: 59),
-    );
-    if (picked != null) setState(() => _dueTime = picked);
-  }
-
   Future<void> _submit() async {
-    if (_titleController.text.trim().isEmpty) { _snack('يرجى إدخال عنوان التمرين'); return; }
-    if (_descController.text.trim().isEmpty)  { _snack('يرجى إدخال وصف التمرين');  return; }
-    if (_selectedCourseId == null)            { _snack('يرجى اختيار المادة');       return; }
-    if (_dueDate == null)                     { _snack('يرجى اختيار تاريخ التسليم'); return; }
-
-    final maxPoints  = int.tryParse(_maxPointsController.text.trim()) ?? 100;
-    final time       = _dueTime ?? const TimeOfDay(hour: 23, minute: 59);
-    final dueDateStr =
-        '${_dueDate!.year}-'
-        '${_dueDate!.month.toString().padLeft(2, '0')}-'
-        '${_dueDate!.day.toString().padLeft(2, '0')} '
-        '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}:00';
-
+    if (_titleController.text.trim().isEmpty) { _snack('يرجى إدخال عنوان المحاضرة'); return; }
+    if (_selectedCourseId == null)            { _snack('يرجى اختيار المادة');         return; }
+    if (!_isEditing && (_pickedFile == null || _pickedFile!.bytes == null)) {
+      _snack('يرجى إرفاق ملف المحاضرة');
+      return;
+    }
     setState(() => _isSaving = true);
     try {
-      final prefs   = await SharedPreferences.getInstance();
-      final token   = prefs.getString('token') ?? '';
-      final headers = {"Authorization": "Bearer $token"};
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
 
       if (_isEditing) {
-        final id = widget.assignment!['id'];
+        final id = widget.lecture!['id'];
         if (_pickedFile != null && _pickedFile!.bytes != null) {
           await Dio().post(
-            "${ApiService().baseUrl}/teacher/assignments/$id",
+            "${ApiService().baseUrl}/teacher/lessons/$id",
             data: FormData.fromMap({
-              'course_id':   int.tryParse(_selectedCourseId!),
-              'title':       _titleController.text.trim(),
-              'description': _descController.text.trim(),
-              'due_date':    dueDateStr,
-              'max_points':  maxPoints,
-              '_method':     'PUT',
-              'attachment':  MultipartFile.fromBytes(_pickedFile!.bytes!,
+              'title':        _titleController.text.trim(),
+              'course_id':    _selectedCourseId,
+              'description':  _descController.text.trim(),
+              '_method':      'PUT',
+              'content_file': MultipartFile.fromBytes(_pickedFile!.bytes!,
                   filename: _pickedFile!.name,
                   contentType: DioMediaType.parse(_mime(_pickedFile!.name))),
             }),
-            options: Options(headers: headers),
+            options: Options(headers: {"Authorization": "Bearer $token"}),
           );
         } else {
           await Dio().put(
-            "${ApiService().baseUrl}/teacher/assignments/$id",
+            "${ApiService().baseUrl}/teacher/lessons/$id",
             data: {
-              'course_id':   int.tryParse(_selectedCourseId!),
               'title':       _titleController.text.trim(),
+              'course_id':   _selectedCourseId,
               'description': _descController.text.trim(),
-              'due_date':    dueDateStr,
-              'max_points':  maxPoints,
             },
-            options: Options(headers: {...headers, 'Content-Type': 'application/json'}),
+            options: Options(headers: {"Authorization": "Bearer $token", 'Content-Type': 'application/json'}),
           );
         }
-        if (mounted) { _snack('✅ تم تحديث الواجب'); Navigator.pop(context, true); }
+        if (mounted) { _snack('✅ تم تحديث المحاضرة'); Navigator.pop(context, true); }
       } else {
         await Dio().post(
-          "${ApiService().baseUrl}/teacher/assignments",
+          "${ApiService().baseUrl}/teacher/lessons",
           data: FormData.fromMap({
-            'course_id':   int.tryParse(_selectedCourseId!),
-            'title':       _titleController.text.trim(),
-            'description': _descController.text.trim(),
-            'due_date':    dueDateStr,
-            'max_points':  maxPoints,
-            if (_pickedFile != null && _pickedFile!.bytes != null)
-              'attachment': MultipartFile.fromBytes(_pickedFile!.bytes!,
-                  filename: _pickedFile!.name,
-                  contentType: DioMediaType.parse(_mime(_pickedFile!.name))),
+            'title':        _titleController.text.trim(),
+            'course_id':    _selectedCourseId,
+            'description':  _descController.text.trim(),
+            'content_file': MultipartFile.fromBytes(_pickedFile!.bytes!,
+                filename: _pickedFile!.name,
+                contentType: DioMediaType.parse(_mime(_pickedFile!.name))),
           }),
-          options: Options(headers: headers),
+          options: Options(headers: {"Authorization": "Bearer $token"}),
         );
-        if (mounted) { _snack('✅ تم نشر التمرين'); Navigator.pop(context, true); }
+        if (mounted) { _snack('✅ تم رفع المحاضرة'); Navigator.pop(context, true); }
       }
     } catch (e) {
-      debugPrint('⛔ Assignment Error: $e');
+      debugPrint('⛔ Lesson Error: $e');
       String msg = 'حدث خطأ، حاول مجدداً';
       if (e is DioException && e.response?.data is Map) {
         final d = e.response!.data as Map;
@@ -249,11 +210,12 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   }
 
   String _mime(String name) => switch (name.split('.').last.toLowerCase()) {
-    'pdf'  => 'application/pdf',
-    'jpg'  => 'image/jpeg',
-    'jpeg' => 'image/jpeg',
-    'png'  => 'image/png',
-    _      => 'application/octet-stream',
+    'pdf' => 'application/pdf',
+    'mp4' => 'video/mp4',
+    'mov' => 'video/quicktime',
+    'avi' => 'video/x-msvideo',
+    'mkv' => 'video/x-matroska',
+    _     => 'application/octet-stream',
   };
 
   void _snack(String msg) =>
@@ -279,7 +241,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            _isEditing ? 'تعديل الواجب' : 'إضافة تمرين منزلي',
+            _isEditing ? 'تعديل المحاضرة' : 'إضافة محاضرة',
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
@@ -288,19 +250,14 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
             ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
             : SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // عنوان التمرين
-                    _label("عنوان التمرين", textColor),
-                    _field(controller: _titleController, hint: 'مثال: حل مسائل قوانين نيوتن', cardColor: cardColor, textColor: textColor),
-                    const SizedBox(height: 20),
-
-                    // وصف التمرين
-                    _label("وصف ومعطيات التمرين", textColor),
-                    _field(controller: _descController, hint: 'اكتب تفاصيل الواجب...', maxLines: 5, cardColor: cardColor, textColor: textColor),
-                    const SizedBox(height: 20),
+                    // عنوان المحاضرة
+                    _label('عنوان المحاضرة', textColor),
+                    _field(controller: _titleController, hint: 'أدخل عنوان المحاضرة', cardColor: cardColor, textColor: textColor),
+                    const SizedBox(height: 24),
 
                     // الدورة + السنة جنب بعض
                     Row(
@@ -309,7 +266,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _label("الدورة", textColor),
+                              _label('الدورة', textColor),
                               _dropdown(
                                 hint: 'اختر الدورة',
                                 value: _selectedProgramId,
@@ -331,7 +288,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _label("السنة الدراسية", textColor),
+                              _label('السنة الدراسية', textColor),
                               _dropdown(
                                 hint: 'السنة',
                                 value: _selectedYear?.toString(),
@@ -352,9 +309,9 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // المادة الدراسية (مفلترة)
+                    // المادة الدراسية (تظهر بعد اختيار الدورة والسنة)
                     if (_selectedProgramId != null && _selectedYear != null) ...[
-                      _label("المادة الدراسية", textColor),
+                      _label('المادة الدراسية', textColor),
                       _filteredCourses.isEmpty
                           ? Container(
                               padding: const EdgeInsets.all(14),
@@ -381,48 +338,21 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                       const SizedBox(height: 20),
                     ],
 
-                    // الدرجة القصوى
-                    _label("الدرجة القصوى", textColor),
-                    _field(controller: _maxPointsController, hint: '100', cardColor: cardColor, textColor: textColor, keyboardType: TextInputType.number),
-                    const SizedBox(height: 20),
+                    // الوصف
+                    _label('الوصف (اختياري)', textColor),
+                    _field(controller: _descController, hint: 'أدخل وصفاً للمحاضرة...', maxLines: 3, cardColor: cardColor, textColor: textColor),
+                    const SizedBox(height: 24),
 
-                    // تاريخ ووقت التسليم
-                    Row(
-                      children: [
-                        Expanded(child: _pickerField(
-                          label: 'تاريخ التسليم',
-                          value: _dueDate == null
-                              ? 'اختر تاريخاً'
-                              : '${_dueDate!.year}/${_dueDate!.month.toString().padLeft(2, '0')}/${_dueDate!.day.toString().padLeft(2, '0')}',
-                          icon: Icons.calendar_month_outlined,
-                          onTap: _pickDate,
-                          cardColor: cardColor, textColor: textColor,
-                          isSelected: _dueDate != null,
-                        )),
-                        const SizedBox(width: 15),
-                        Expanded(child: _pickerField(
-                          label: 'وقت التسليم',
-                          value: _dueTime == null ? '11:59 م' : _dueTime!.format(context),
-                          icon: Icons.access_time,
-                          onTap: _pickTime,
-                          cardColor: cardColor, textColor: textColor,
-                          isSelected: _dueTime != null,
-                        )),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // مرفق
-                    _label("مرفق (اختياري)", textColor),
-                    InkWell(
+                    // ملف المحاضرة
+                    _label(_isEditing ? 'ملف جديد (اختياري)' : 'ملف المحاضرة', textColor),
+                    GestureDetector(
                       onTap: _pickFile,
-                      borderRadius: BorderRadius.circular(15),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-                          borderRadius: BorderRadius.circular(15),
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: _pickedFile != null ? Colors.green : yellow.withValues(alpha: 0.5),
                             width: 1.5,
@@ -431,13 +361,13 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                         child: Column(
                           children: [
                             Icon(
-                              _pickedFile != null ? Icons.check_circle_outline : Icons.cloud_upload_outlined,
+                              _pickedFile != null ? Icons.check_circle_outline : Icons.attach_file_rounded,
                               color: _pickedFile != null ? Colors.green : yellow,
                               size: 30,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              _pickedFile != null ? _pickedFile!.name : 'اضغط لرفع ملف (PDF، صورة)',
+                              _pickedFile != null ? _pickedFile!.name : 'اضغط لإرفاق ملف (PDF، فيديو)',
                               textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -469,16 +399,16 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    _isEditing ? 'حفظ التعديلات' : 'نشر التمرين الآن',
+                                    _isEditing ? 'حفظ التعديلات' : 'نشر المحاضرة',
                                     style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
                                   ),
                                   const SizedBox(width: 10),
-                                  Icon(_isEditing ? Icons.save_rounded : Icons.send_rounded, color: Colors.black, size: 20),
+                                  Icon(_isEditing ? Icons.save_rounded : Icons.upload_rounded, color: Colors.black, size: 20),
                                 ],
                               ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30),
                   ],
                 ),
               ),
@@ -497,7 +427,6 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     int maxLines = 1,
     required Color cardColor,
     required Color textColor,
-    TextInputType keyboardType = TextInputType.text,
   }) => Container(
     decoration: BoxDecoration(
       color: cardColor,
@@ -507,7 +436,6 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     child: TextField(
       controller: controller,
       maxLines: maxLines,
-      keyboardType: keyboardType,
       style: TextStyle(color: textColor),
       decoration: InputDecoration(
         hintText: hint,
@@ -543,38 +471,5 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
         onChanged: onChanged,
       ),
     ),
-  );
-
-  Widget _pickerField({
-    required String label,
-    required String value,
-    required IconData icon,
-    required VoidCallback onTap,
-    required Color cardColor,
-    required Color textColor,
-    bool isSelected = false,
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _label(label, textColor),
-      InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, size: 18, color: const Color(0xFFFFCC00)),
-              Text(value, style: TextStyle(fontSize: 13, color: isSelected ? textColor : textColor.withValues(alpha: 0.6))),
-            ],
-          ),
-        ),
-      ),
-    ],
   );
 }

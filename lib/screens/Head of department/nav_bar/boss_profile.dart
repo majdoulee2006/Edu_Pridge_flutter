@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
@@ -23,12 +25,14 @@ class BossProfileScreen extends StatefulWidget {
 }
 
 class _BossProfileScreenState extends State<BossProfileScreen> {
-  String _userName   = "جارِ التحميل...";
-  String _userRole   = "رئيس القسم الأكاديمي";
-  String _email      = "";
-  String _phone      = "";
-  String _department = "";
-  bool   _isLoading  = true;
+  String  _userName        = "جارِ التحميل...";
+  String  _userRole        = "رئيس القسم الأكاديمي";
+  String  _email           = "";
+  String  _phone           = "";
+  String  _department      = "";
+  String? _avatarUrl;
+  bool    _isLoading       = true;
+  bool    _uploadingAvatar = false;
 
   @override
   void initState() {
@@ -53,6 +57,7 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
             _phone      = d['phone']      as String? ?? '';
             _department = d['department'] as String? ?? '';
             _userRole   = d['role_label'] as String? ?? "رئيس القسم الأكاديمي";
+            _avatarUrl  = d['avatar']     as String?;
           });
         }
       }
@@ -62,6 +67,34 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
       if (mounted) setState(() => _userName = prefs.getString('user_name') ?? "رئيس القسم");
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 800);
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploadingAvatar = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().post(
+        "${ApiService().baseUrl}/profile/avatar",
+        data: FormData.fromMap({'avatar': await MultipartFile.fromFile(picked.path, filename: 'avatar.jpg')}),
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true && mounted) {
+        setState(() => _avatarUrl = res.data['avatar'] as String?);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
+          backgroundColor: Color(0xFFCCAA00),
+        ));
+      }
+    } catch (e) {
+      debugPrint('⛔ Avatar upload: $e');
+    } finally {
+      if (mounted) setState(() => _uploadingAvatar = false);
     }
   }
 
@@ -195,20 +228,30 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
         Stack(
           alignment: Alignment.bottomRight,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFCCAA00), width: 3),
-              ),
-              child: const CircleAvatar(
-                radius: 60,
-                backgroundImage: NetworkImage('https://api.dicebear.com/7.x/avataaars/png?seed=Boss123'),
+            GestureDetector(
+              onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFCCAA00), width: 3),
+                ),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey,
+                  backgroundImage: _avatarUrl != null ? NetworkImage(_avatarUrl!) : null,
+                  child: _uploadingAvatar
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : (_avatarUrl == null ? const Icon(Icons.person, size: 60, color: Colors.white) : null),
+                ),
               ),
             ),
-            const CircleAvatar(
-              radius: 18,
-              backgroundColor: Color(0xFFCCAA00),
-              child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
+            GestureDetector(
+              onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: Color(0xFFCCAA00),
+                child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
+              ),
             ),
           ],
         ),

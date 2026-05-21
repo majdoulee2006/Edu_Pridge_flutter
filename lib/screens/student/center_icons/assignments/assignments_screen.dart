@@ -100,12 +100,12 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
       // تخصيص الكرت بناءً على الحالة
       if (status == 'completed') {
-        statusText = 'تم التسليم';
-        statusColor = Colors.grey;
+        statusText = 'تم الحل';
+        statusColor = Colors.green;
         tagText = 'مكتمل';
         tagColor = Colors.green;
         tagIcon = Icons.check_circle;
-        showSubmitForm = false; // لا حاجة لنموذج التسليم إذا كان مكتملاً
+        showSubmitForm = false;
         if (assignment['mark'] != null) {
           fileTypeStr = '${assignment['mark']} / 100';
           fileTypeColor = Colors.green;
@@ -153,7 +153,14 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         detailText:
             assignment['description'] ??
             'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
-        onSubmitSuccess: _fetchAssignments,
+        onSubmitSuccess: () async {
+          await _fetchAssignments();
+          if (mounted) setState(() => _selectedFilter = 1);
+        },
+        grade: assignment['submission']?['grade'] != null
+            ? double.tryParse(assignment['submission']['grade'].toString())
+            : null,
+        feedback: assignment['submission']?['feedback'] as String?,
       );
     }).toList();
   }
@@ -170,6 +177,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: bgColor,
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           backgroundColor: bgColor,
           elevation: 0,
@@ -283,10 +291,10 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                               ],
                             )
                           : ListView(
-                              padding: const EdgeInsets.only(
+                              padding: EdgeInsets.only(
                                 left: 20,
                                 right: 20,
-                                bottom: 120,
+                                bottom: 120 + MediaQuery.of(context).viewInsets.bottom,
                               ),
                               physics: const AlwaysScrollableScrollPhysics(
                                 parent: BouncingScrollPhysics(),
@@ -409,6 +417,8 @@ class _AssignmentCard extends StatefulWidget {
   final bool showSubmitForm;
   final String detailText;
   final VoidCallback? onSubmitSuccess;
+  final double? grade;
+  final String? feedback;
 
   const _AssignmentCard({
     required this.assignmentId,
@@ -431,6 +441,8 @@ class _AssignmentCard extends StatefulWidget {
     this.detailText =
         'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
     this.onSubmitSuccess,
+    this.grade,
+    this.feedback,
   });
 
   @override
@@ -580,14 +592,13 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     try {
       FilePickerResult? result;
       if (type == 'صورة') {
-        result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+        result = await FilePicker.platform.pickFiles(type: FileType.image);
       } else if (type == 'فيديو') {
-        result = await FilePicker.platform.pickFiles(type: FileType.video, withData: true);
+        result = await FilePicker.platform.pickFiles(type: FileType.video);
       } else {
         result = await FilePicker.platform.pickFiles(
           type: FileType.custom,
           allowedExtensions: ['pdf', 'doc', 'docx', 'zip'],
-          withData: true,
         );
       }
       if (result != null && result.files.isNotEmpty) {
@@ -608,7 +619,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
   }
 
   Future<void> _submitAssignment() async {
-    if (_pickedFile == null || _pickedFile!.bytes == null) {
+    if (_pickedFile == null || _pickedFile!.path == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('يرجى إرفاق ملف الحل أولاً'), backgroundColor: Colors.orange),
       );
@@ -618,7 +629,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     try {
       final ok = await StudentServices().submitAssignment(
         widget.assignmentId,
-        _pickedFile!.bytes!,
+        _pickedFile!.path!,
         _pickedFile!.name,
         _notesController.text.trim(),
       );
@@ -832,6 +843,64 @@ class _AssignmentCardState extends State<_AssignmentCard> {
             ],
           ),
 
+          if (isExpanded && !widget.showSubmitForm && (widget.grade != null || (widget.feedback != null && widget.feedback!.isNotEmpty))) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
+            ),
+            Row(
+              children: [
+                Container(width: 4, height: 18, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
+                const SizedBox(width: 8),
+                Text('نتيجة التصحيح', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (widget.grade != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.green.withAlpha(isDark ? 40 : 20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.withAlpha(60)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.grade_rounded, color: Colors.green, size: 22),
+                    const SizedBox(width: 10),
+                    Text('الدرجة:', style: TextStyle(color: textColor, fontSize: 13)),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${widget.grade!.toStringAsFixed(widget.grade! % 1 == 0 ? 0 : 1)} / 100',
+                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            if (widget.feedback != null && widget.feedback!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withAlpha(10) : const Color(0xFFF9F9F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ملاحظات المعلم:', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    Text(widget.feedback!, style: TextStyle(color: textColor, fontSize: 13, height: 1.5)),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 5),
+          ],
+
           if (isExpanded && widget.showSubmitForm) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 15),
@@ -982,12 +1051,15 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                         children: [
                           const Icon(Icons.send_rounded, color: Colors.black, size: 18),
                           const SizedBox(width: 8),
-                          Text(
-                            _pickedFile != null ? 'إرسال: ${_pickedFile!.name}' : 'إرسال الحل',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                          Flexible(
+                            child: Text(
+                              _pickedFile != null ? 'إرسال: ${_pickedFile!.name}' : 'إرسال الحل',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

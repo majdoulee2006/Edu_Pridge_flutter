@@ -17,43 +17,7 @@ class CorrectedResponsesScreen extends StatelessWidget {
       color: bgColor,
       child: Column(
         children: [
-          // 1. قسم التصفية (تصفية / الأحدث أولاً)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildSmallFilterBtn(
-                  context,
-                  Icons.filter_list_rounded,
-                  "تصفية",
-                  cardColor,
-                  textColor,
-                  isDark,
-                ),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.sort_rounded,
-                      size: 16,
-                      color: textColor.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      "الأحدث أولاً",
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: textColor.withValues(alpha: 0.5),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // 2. قائمة الطلاب المصححة أعمالهم
+          // قائمة الطلاب المصححة أعمالهم
           Expanded(
             child: submissions.isEmpty
                 ? const Center(
@@ -231,38 +195,4 @@ class CorrectedResponsesScreen extends StatelessWidget {
     );
   }
 
-  // زر التصفية العلوي
-  Widget _buildSmallFilterBtn(
-    BuildContext context,
-    IconData icon,
-    String text,
-    Color cardColor,
-    Color textColor,
-    bool isDark,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? Colors.white10 : Colors.grey.shade200,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: textColor),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -277,7 +277,7 @@ class StudentServices {
   // ==========================================
   Future<bool> submitAssignment(
     int assignmentId,
-    List<int> fileBytes,
+    String filePath,
     String fileName,
     String notes,
   ) async {
@@ -286,8 +286,8 @@ class StudentServices {
       final token = prefs.getString('token') ?? '';
 
       final formData = FormData.fromMap({
-        'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
-        if (notes.isNotEmpty) 'notes': notes,
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
+        if (notes.isNotEmpty) 'student_notes': notes,
       });
 
       Response response = await _dio.post(
@@ -300,7 +300,13 @@ class StudentServices {
         return true;
       }
     } catch (e) {
+      debugPrint("❌ Submit Assignment Error TYPE: ${e.runtimeType}");
       debugPrint("❌ Submit Assignment Error: $e");
+      if (e is DioException) {
+        debugPrint("❌ DioException status: ${e.response?.statusCode}");
+        debugPrint("❌ DioException data: ${e.response?.data}");
+        debugPrint("❌ DioException message: ${e.message}");
+      }
       rethrow;
     }
     return false;

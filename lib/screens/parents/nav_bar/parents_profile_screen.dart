@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 
@@ -22,9 +23,11 @@ class ParentsProfileScreen extends StatefulWidget {
 
 class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   // متغيرات البيانات (لربطها بالعرض)
-  String parentName = "جارِ التحميل...";
-  String parentPhone = "غير متوفر";
-  String parentEmail = "غير متوفر";
+  String  parentName       = "جارِ التحميل...";
+  String  parentPhone      = "غير متوفر";
+  String  parentEmail      = "غير متوفر";
+  String? _avatarUrl;
+  bool    _uploadingAvatar = false;
 
   String studentName = "لم يتم تحديد ابن";
   String studentDept = "غير متوفر"; 
@@ -52,6 +55,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
             parentName  = response.data['full_name'] ?? parentName;
             parentEmail = response.data['email']     ?? parentEmail;
             parentPhone = response.data['phone']     ?? parentPhone;
+            _avatarUrl  = response.data['avatar']    as String?;
           });
         }
       } catch (e) { debugPrint("فشل جلب بيانات الأب: $e"); }
@@ -76,6 +80,34 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
     }
   }
 
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 800);
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploadingAvatar = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().post(
+        "${ApiService().baseUrl}/profile/avatar",
+        data: FormData.fromMap({'avatar': await MultipartFile.fromFile(picked.path, filename: 'avatar.jpg')}),
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true && mounted) {
+        setState(() => _avatarUrl = res.data['avatar'] as String?);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
+          backgroundColor: Color(0xFFFFCC00),
+        ));
+      }
+    } catch (e) {
+      debugPrint('⛔ Avatar upload: $e');
+    } finally {
+      if (mounted) setState(() => _uploadingAvatar = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -151,13 +183,27 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
         Stack(
           alignment: Alignment.bottomRight,
           children: [
-            Container(
-              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFFCC00), width: 3)),
-              child: const CircleAvatar(radius: 60, backgroundColor: Colors.grey, child: Icon(Icons.person, size: 60, color: Colors.white)),
+            GestureDetector(
+              onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+              child: Container(
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFFCC00), width: 3)),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey,
+                  backgroundImage: _avatarUrl != null ? NetworkImage(_avatarUrl!) : null,
+                  child: _uploadingAvatar
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : (_avatarUrl == null ? const Icon(Icons.person, size: 60, color: Colors.white) : null),
+                ),
+              ),
             ),
-            const CircleAvatar(
-              radius: 18, backgroundColor: Color(0xFFFFCC00),
-              child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
+            GestureDetector(
+              onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: Color(0xFFFFCC00),
+                child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
+              ),
             ),
           ],
         ),
