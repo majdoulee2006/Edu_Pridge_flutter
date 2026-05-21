@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 // 🌟 استيراد الشاشات والقطع اللازمة للربط الكامل
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -18,7 +18,7 @@ class BossMessageScreen extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
     final Color cardColor = Theme.of(context).cardColor;
-    const Color primaryYellow = Color(0xFFD4E000);
+    const Color primaryYellow = Color(0xFFCCAA00);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -231,7 +231,7 @@ class BossMessageScreen extends StatelessWidget {
                     children: [
                       Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       Text(time, style: TextStyle(
-                          color: hasTimeHighlight ? const Color(0xFFD4E000) : Colors.grey,
+                          color: hasTimeHighlight ? const Color(0xFFCCAA00) : Colors.grey,
                           fontSize: 12,
                           fontWeight: hasTimeHighlight ? FontWeight.bold : FontWeight.normal
                       )),

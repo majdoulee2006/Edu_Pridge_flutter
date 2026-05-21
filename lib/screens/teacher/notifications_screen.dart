@@ -1,120 +1,256 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
+
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import '../../widgets/teacher_speed_dial.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
-// استيراد صفحة الإعدادات من المجلد المشترك
-import '../shared/settings_screen.dart';
 
-// 🌟 1. استدعاء الشريط الموحد 🌟
-import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-// 🌟 2. استدعاء زر المعلم الموحد 🌟
-import '../../widgets/teacher_speed_dial.dart';
-
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // 🌟 جلب ألوان الثيم للـ Dark Mode 🌟
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
-    final cardColor = Theme.of(context).cardColor;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      extendBody: true,
-      appBar: AppBar(
-        backgroundColor: cardColor, // 🌟 يتجاوب مع الثيم
-        elevation: 0,
-        // إضافة أيقونة الإعدادات وتفعيل الانتقال لصفحتها
-        leading: IconButton(
-          icon: Icon(
-            Icons.settings_outlined,
-            color: textColor,
-          ), // 🌟 يتجاوب مع الثيم
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            );
-          },
-        ),
-        title: Text(
-          "الإشعارات",
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-          ), // 🌟 يتجاوب مع الثيم
-        ),
-        centerTitle: true,
-        actions: [
-          // زر الرجوع للخلف
-          IconButton(
-            icon: Icon(
-              Icons.arrow_forward,
-              color: textColor,
-            ), // 🌟 يتجاوب مع الثيم
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  bool _isLoading = false;
+  bool _isMarkingAll = false;
+  List<Map<String, dynamic>> _notifications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();
+  }
+
+  Future<String> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token') ?? '';
+  }
+
+  Future<void> _fetchNotifications() async {
+    setState(() => _isLoading = true);
+    try {
+      final token = await _getToken();
+      final response = await Dio().get(
+        "${ApiService().baseUrl}/teacher/notifications",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        setState(() {
+          _notifications = (response.data['data'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Notifications Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _markAsRead(int id, int index) async {
+    if (_notifications[index]['is_read'] == true) return;
+    try {
+      final token = await _getToken();
+      await Dio().put(
+        "${ApiService().baseUrl}/teacher/notifications/$id/read",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (mounted) {
+        setState(() => _notifications[index]['is_read'] = true);
+      }
+    } catch (e) {
+      debugPrint('⛔ Mark Read Error: $e');
+    }
+  }
+
+  Future<void> _markAllAsRead() async {
+    if (_isMarkingAll) return;
+    setState(() => _isMarkingAll = true);
+    try {
+      final token = await _getToken();
+      await Dio().put(
+        "${ApiService().baseUrl}/teacher/notifications/read-all",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (mounted) {
+        setState(() {
+          for (final n in _notifications) {
+            n['is_read'] = true;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Mark All Read Error: $e');
+    } finally {
+      if (mounted) setState(() => _isMarkingAll = false);
+    }
+  }
+
+  int get _unreadCount =>
+      _notifications.where((n) => n['is_read'] != true).length;
+
+  // أيقونة ولون كل نوع إشعار
+  _NotifStyle _styleForType(String? type) {
+    switch (type) {
+      case 'academic':
+        return _NotifStyle(Icons.book_outlined, const Color(0xFFFFCC00), const Color(0xFF3D3A00));
+      case 'attendance':
+        return _NotifStyle(Icons.how_to_reg_outlined, Colors.blue, const Color(0xFF003366));
+      case 'administrative':
+        return _NotifStyle(Icons.admin_panel_settings_outlined, Colors.purple, const Color(0xFF2E0047));
+      case 'leave_request':
+        return _NotifStyle(Icons.event_busy_outlined, Colors.red, const Color(0xFF3D0000));
+      default:
+        return _NotifStyle(Icons.notifications_outlined, Colors.orange, const Color(0xFF3D1A00));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor    = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor  = Theme.of(context).cardColor;
+    final textColor  = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        extendBody: true,
+        appBar: AppBar(
+          backgroundColor: cardColor,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
-        ],
-      ),
-
-      // 🌟 التعديل السحري: تغليف المحتوى بـ Stack والشريط الموحد 🌟
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Stack(
-          children: [
-            // 1. محتوى الشاشة الأساسي (الإشعارات)
-            ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _buildNotifCard(
-                  context, // 🌟 تمرير الـ context ليدعم الثيم
-                  "واجب أكاديمي",
-                  "أحمد محمد (طالب)",
-                  "تم تسليم واجب الرياضيات الجديد.",
-                  "منذ 15 دقيقة",
-                  Icons.book,
-                  const Color(0xFFFEF9E7),
-                  const Color(0xFFD4AC0D),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'الإشعارات',
+                style: TextStyle(
+                    color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              if (_unreadCount > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFCC00),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$_unreadCount',
+                    style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
+                  ),
                 ),
-                _buildNotifCard(
-                  context,
-                  "إشعار إداري",
-                  "قسم الامتحانات",
-                  "تم تحديث جدول الامتحانات.",
-                  "أمس",
-                  Icons.calendar_today,
-                  const Color(0xFFF5EEF8),
-                  const Color(0xFF884EA0),
-                ),
-                const SizedBox(
-                  height: 120,
-                ), // مساحة لتجنب تغطية الشريط السفلي للإشعارات
               ],
+            ],
+          ),
+          centerTitle: true,
+          actions: [
+            if (_unreadCount > 0)
+              _isMarkingAll
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Color(0xFFFFCC00))),
+                    )
+                  : TextButton(
+                      onPressed: _markAllAsRead,
+                      child: const Text('قراءة الكل',
+                          style: TextStyle(
+                              color: Color(0xFFFFCC00), fontSize: 12)),
+                    ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            // force stack to fill screen so Positioned.fill works correctly
+            const SizedBox.expand(),
+
+            // المحتوى
+            RefreshIndicator(
+              onRefresh: _fetchNotifications,
+              color: const Color(0xFFFFCC00),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                          color: Color(0xFFFFCC00)),
+                    )
+                  : _notifications.isEmpty
+                      ? ListView(
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.5,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.notifications_off_outlined,
+                                      size: 64,
+                                      color: Colors.grey.shade600),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'لا توجد إشعارات',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                          itemCount: _notifications.length,
+                          separatorBuilder: (context, i) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final n = _notifications[index];
+                            final style =
+                                _styleForType(n['type'] as String?);
+                            final isRead = n['is_read'] == true;
+                            return _buildNotifCard(
+                              context,
+                              id: n['id'] as int,
+                              index: index,
+                              title: n['title'] as String? ?? '',
+                              message: n['message'] as String? ?? '',
+                              time: n['created_at'] as String? ?? '',
+                              isRead: isRead,
+                              style: style,
+                              cardColor: cardColor,
+                              textColor: textColor,
+                            );
+                          },
+                        ),
             ),
 
-            // 2. الشريط السفلي الموحد
+            // الشريط السفلي
             CustomBottomNav(
-              currentIndex: 2, // 🌟 2 = الإشعارات مفعلة
-              centerButton:
-                  const CustomSpeedDialEduBridge(), // زر المعلم الموحد
-              onHomeTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TeacherHomeScreen(),
-                ),
-              ),
-              onProfileTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              ),
-              onNotificationsTap: () {}, // نحن في الإشعارات أصلاً
-              onMessagesTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const MessagesScreen()),
-              ),
+              currentIndex: 2,
+              centerButton: const CustomSpeedDialEduBridge(),
+              onHomeTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen())),
+              onNotificationsTap: () {},
+              onMessagesTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const MessagesScreen())),
             ),
           ],
         ),
@@ -122,71 +258,111 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  // 🌟 إضافة BuildContext للدالة لتدعم ألوان الثيم 🌟
   Widget _buildNotifCard(
-    BuildContext context,
-    String type,
-    String title,
-    String content,
-    String time,
-    IconData icon,
-    Color bg,
-    Color text,
-  ) {
-    final cardColor = Theme.of(context).cardColor;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: cardColor, // 🌟 لون الكرت من الثيم
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: bg,
-            child: Icon(icon, color: text),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  type,
-                  style: TextStyle(
-                    color: text,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ), // 🌟 لون النص من الثيم
-                Text(
-                  content,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ],
+    BuildContext context, {
+    required int id,
+    required int index,
+    required String title,
+    required String message,
+    required String time,
+    required bool isRead,
+    required _NotifStyle style,
+    required Color cardColor,
+    required Color textColor,
+  }) {
+    return GestureDetector(
+      onTap: () => _markAsRead(id, index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(18),
+          border: isRead
+              ? null
+              : Border.all(
+                  color: style.color.withValues(alpha: 0.4), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: isRead
+                  ? Colors.black.withValues(alpha: 0.04)
+                  : style.color.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 10)),
-        ],
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // أيقونة النوع
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: style.color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(style.icon, color: style.color, size: 22),
+            ),
+            const SizedBox(width: 12),
+
+            // النص
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                      if (!isRead)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: style.color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    time,
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _NotifStyle {
+  final IconData icon;
+  final Color color;
+  final Color bgDark;
+  const _NotifStyle(this.icon, this.color, this.bgDark);
 }

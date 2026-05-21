@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 // استيراد الشاشات والقطع الموحدة
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
@@ -97,7 +97,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         body: Stack(
           children: [
               isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFEFFF00)))
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                   : permissions.isEmpty
                       ? const Center(child: Text("لا توجد أذونات مسجلة"))
                       : ListView.builder(
@@ -176,7 +176,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: const Color(0xFFEFFF00), width: 2),
+        border: Border.all(color: const Color(0xFFFFCC00), width: 2),
         color: cardColor,
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
       ),
@@ -224,7 +224,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
               const SizedBox(width: 12),
               Expanded(child: GestureDetector(
                 onTap: () => _respondToPermission(item['request_id'], 'approved'),
-                child: _actionBtn("موافقة", Colors.black, btnColor: const Color(0xFFEFFF00))
+                child: _actionBtn("موافقة", Colors.black, btnColor: const Color(0xFFFFCC00))
               )),
             ],
           ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -65,7 +65,7 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
     final bgColor = isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1C1E);
-    final primaryYellow = const Color(0xFFEFFF00);
+    final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -127,7 +127,7 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -182,7 +182,7 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.grey.withOpacity(0.1)),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -190,7 +190,7 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
                 Container(
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: type['color'].withOpacity(0.1),
+                    color: type['color'].withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(type['icon'], color: type['color'], size: 35),

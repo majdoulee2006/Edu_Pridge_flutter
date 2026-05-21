@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -23,7 +23,7 @@ class CustomBottomNav extends StatelessWidget {
     // 🌟 جلب حالة الثيم والألوان 🌟
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor = isDark ? Theme.of(context).cardColor : Colors.white;
-    final Color activeColor = isDark ? const Color(0xFFEFFF00) : Colors.black;
+    final Color activeColor = isDark ? const Color(0xFFFFCC00) : Colors.black;
     final Color inactiveColor = isDark
         ? Colors.grey.shade500
         : Colors.grey.shade400;

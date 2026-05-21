@@ -139,7 +139,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark; // تم التعريف هنا
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final cardColor = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
+    final cardColor = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -204,7 +204,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     child: Text.rich(
                         TextSpan(
                             text: 'لديك حساب بالفعل؟ ',
-                            style: TextStyle(color: textColor.withOpacity(0.6), fontFamily: 'Cairo', fontSize: 14),
+                            style: TextStyle(color: textColor.withValues(alpha: 0.6), fontFamily: 'Cairo', fontSize: 14),
                             children: const [
                               TextSpan(text: 'تسجيل الدخول', style: TextStyle(color: primaryYellow, fontWeight: FontWeight.bold, decoration: TextDecoration.underline))
                             ]
@@ -302,10 +302,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withOpacity(0.7), fontFamily: 'Cairo')),
+          Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withValues(alpha: 0.7), fontFamily: 'Cairo')),
           const SizedBox(height: 5),
           Container(
-            decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withOpacity(0.1))),
+            decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withValues(alpha: 0.1))),
             child: isDropdown
                 ? DropdownButtonFormField<String>(
               initialValue: value,

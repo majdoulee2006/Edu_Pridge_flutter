@@ -1,151 +1,223 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'teacher_home.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
-// استيراد صفحة الإعدادات من المجلد المشترك
 import '../shared/settings_screen.dart';
-// 🌟 1. استدعاء الشريط الموحد 🌟
+import '../shared/editing_screens/edit_phone_screen.dart';
+import '../shared/editing_screens/edit_email_screen.dart';
+import '../shared/editing_screens/edit_password_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-// 🌟 2. استدعاء زر المعلم الموحد 🌟
 import '../../widgets/teacher_speed_dial.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // 🌟 جلب ألوان الثيم للـ Dark Mode 🌟
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      extendBody: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        // تم نقل زر الإعدادات ليكون في الجهة المقابلة للسهم في الـ RTL
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: textColor),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isLoading = true;
+
+  String _fullName       = '';
+  String _email          = '';
+  String _phone          = '';
+  String _specialization = '';
+  List<String> _courseNames = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    setState(() => _isLoading = true);
+    await Future.wait([_fetchProfile(), _fetchCourses()]);
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/teacher/profile",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final d = res.data['data'] as Map<String, dynamic>;
+        _fullName       = d['full_name']      as String? ?? '';
+        _email          = d['email']          as String? ?? '';
+        _phone          = d['phone']          as String? ?? '';
+        _specialization = d['specialization'] as String? ?? '';
+      }
+    } catch (e) {
+      debugPrint('⛔ Profile Error: $e');
+    }
+  }
+
+  Future<void> _fetchCourses() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/teacher/courses",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final data = res.data['data'] as List<dynamic>? ?? [];
+        final seen = <String>{};
+        _courseNames = data
+            .where((c) => c['title'] != null)
+            .map((c) => c['title'].toString())
+            .where(seen.add)
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('⛔ Courses Error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor   = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        extendBody: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: Text('الملف الشخصي',
+              style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Cairo')),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: textColor),
+            onPressed: () => Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
           ),
-        ],
-        title: Text(
-          "الملف الشخصي",
-          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.settings_outlined, color: textColor),
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            ),
+          ],
         ),
-        centerTitle: true,
-        // زر الرجوع في التوجيه العربي يكون في الـ leading (جهة اليمين)
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const TeacherHomeScreen(),
-              ),
-            );
-          },
-        ),
-      ),
-      // 🌟 التعديل السحري هنا: استخدمنا Stack داخل الـ body 🌟
-      body: Directionality(
-        textDirection:
-            TextDirection.rtl, // التوجيه العام للصفحة من اليمين لليسار
-        child: Stack(
+        body: Stack(
           children: [
-            // 1. محتوى الشاشة الأساسي
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  _buildAvatarSection(),
-                  const SizedBox(height: 15),
-                  Text(
-                    "أحمد العبدالله",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
+            _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    child: Column(
+                      children: [
+                        _buildProfileHeader(textColor),
+                        const SizedBox(height: 30),
+
+                        // ── معلومات التواصل ──
+                        _buildSectionTitle("معلومات التواصل", textColor),
+                        _buildInfoCard(cardColor, [
+                          _buildClickableRow(
+                            label: "رقم الهاتف",
+                            value: _phone.isNotEmpty ? _phone : 'غير محدد',
+                            icon: Icons.phone_android_rounded,
+                            color: Colors.green,
+                            textColor: textColor,
+                            onTap: () async {
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const EditPhoneScreen()),
+                              );
+                              if (result == true && mounted) _loadAll();
+                            },
+                          ),
+                          _buildDivider(textColor),
+                          _buildClickableRow(
+                            label: "البريد الإلكتروني",
+                            value: _email.isNotEmpty ? _email : 'غير محدد',
+                            icon: Icons.alternate_email_rounded,
+                            color: Colors.blue,
+                            textColor: textColor,
+                            onTap: () async {
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const EditEmailScreen()),
+                              );
+                              if (result == true && mounted) _loadAll();
+                            },
+                          ),
+                        ]),
+
+                        const SizedBox(height: 25),
+
+                        // ── البيانات الأكاديمية (مقفولة) ──
+                        _buildSectionTitle("البيانات الأكاديمية", textColor),
+                        _buildInfoCard(cardColor, [
+                          _buildStaticRow(
+                            label: "التخصص",
+                            value: _specialization.isNotEmpty
+                                ? _specialization
+                                : 'غير محدد',
+                            icon: Icons.school_rounded,
+                            color: Colors.purple,
+                            textColor: textColor,
+                          ),
+                          if (_courseNames.isNotEmpty) ...[
+                            _buildDivider(textColor),
+                            _buildCoursesRow(textColor),
+                          ],
+                        ]),
+
+                        const SizedBox(height: 25),
+
+                        // ── الأمان والإعدادات ──
+                        _buildSectionTitle("الأمان والإعدادات", textColor),
+                        _buildClickableSettingCard(
+                          title: "تغيير كلمة المرور",
+                          icon: Icons.lock_reset_rounded,
+                          color: Colors.redAccent,
+                          cardColor: cardColor,
+                          textColor: textColor,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const EditPasswordScreen()),
+                          ),
+                        ),
+
+                        const SizedBox(height: 150),
+                      ],
                     ),
                   ),
-                  const Text(
-                    "أستاذ مشارك - قسم علوم الحاسب",
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  const SizedBox(height: 30),
-                  _buildSectionTitle("البيانات الشخصية"),
-                  _buildInfoTile(
-                    context,
-                    Icons.phone_outlined,
-                    "رقم الهاتف",
-                    "4567 123 55 966+",
-                    true,
-                  ),
-                  _buildInfoTile(
-                    context,
-                    Icons.email_outlined,
-                    "البريد الإلكتروني",
-                    "ahmed@institute.edu",
-                    true,
-                  ),
-                  const SizedBox(height: 25),
-                  _buildSectionTitle("البيانات الأكاديمية"),
-                  _buildInfoTile(
-                    context,
-                    Icons.apartment,
-                    "القسم",
-                    "كلية علوم الحاسب",
-                    false,
-                    isLocked: true,
-                  ),
-                  _buildSpecialTile(
-                    context,
-                    Icons.menu_book_outlined,
-                    "المواد الدراسية",
-                    "الفصل الحالي",
-                    ["خوارزميات", "هياكل بيانات"],
-                  ),
-                  const SizedBox(height: 30),
-                  _buildChangePasswordButton(context),
-                  const SizedBox(
-                    height: 120,
-                  ), // مساحة إضافية للتمرير فوق البار السفلي
-                ],
-              ),
-            ),
 
-            // 2. الشريط السفلي الموحد (يطفو فوق المحتوى)
             CustomBottomNav(
-              currentIndex: 1, // 1 = الملف مفعل
-              centerButton:
-                  const CustomSpeedDialEduBridge(), // زر المعلم الموحد
-              onHomeTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TeacherHomeScreen(),
-                ),
-              ),
-              onProfileTap: () {}, // نحن في البروفايل أصلاً
-              onNotificationsTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationsScreen(),
-                ),
-              ),
-              onMessagesTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const MessagesScreen()),
-              ),
+              currentIndex: 1,
+              centerButton: const CustomSpeedDialEduBridge(),
+              onHomeTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
+              onProfileTap: () {},
+              onNotificationsTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const MessagesScreen())),
             ),
           ],
         ),
@@ -153,141 +225,221 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatarSection() {
-    return Stack(
-      alignment: Alignment.bottomLeft, // نقل قلم التعديل لجهة اليسار في الـ RTL
+  // ─────────────────────────────────────────────
+  // WIDGETS
+  // ─────────────────────────────────────────────
+
+  Widget _buildProfileHeader(Color textColor) {
+    return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFEFFF00), width: 2),
-          ),
-          child: const CircleAvatar(radius: 55, backgroundColor: Colors.grey),
+        Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFFFCC00), width: 3),
+              ),
+              child: const CircleAvatar(
+                radius: 60,
+                backgroundColor: Colors.grey,
+                child: Icon(Icons.person, size: 60, color: Colors.white),
+              ),
+            ),
+            const CircleAvatar(
+              radius: 18,
+              backgroundColor: Color(0xFFFFCC00),
+              child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
+            ),
+          ],
         ),
-        const CircleAvatar(
-          radius: 14,
-          backgroundColor: Color(0xFFEFFF00),
-          child: Icon(Icons.edit, size: 16, color: Colors.black),
+        const SizedBox(height: 15),
+        Text(
+          _fullName.isNotEmpty ? _fullName : '—',
+          style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+              fontFamily: 'Cairo'),
+        ),
+        Text(
+          _specialization.isNotEmpty ? _specialization : 'مدرس',
+          style: const TextStyle(
+              color: Colors.grey, fontSize: 14, fontFamily: 'Cairo'),
         ),
       ],
     );
   }
 
-  // 🌟 تعديل الـ Widget ليدعم الـ Theme 🌟
-  Widget _buildInfoTile(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String value,
-    bool isEditable, {
-    bool isLocked = false,
-  }) {
-    final cardColor = Theme.of(context).cardColor;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+  Widget _buildSectionTitle(String title, Color textColor) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 5, bottom: 10),
+        child: Text(title,
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+                fontFamily: 'Cairo')),
+      ),
+    );
+  }
 
+  Widget _buildInfoCard(Color cardColor, List<Widget> children) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)
+        ],
       ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildDivider(Color textColor) {
+    return Divider(
+        height: 1,
+        color: textColor.withValues(alpha: 0.1),
+        indent: 20,
+        endIndent: 20);
+  }
+
+  Widget _buildClickableRow({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            _buildIconBubble(icon, color),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontFamily: 'Cairo')),
+                  Text(value,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          fontFamily: 'Cairo')),
+                ],
+              ),
+            ),
+            Icon(Icons.edit_note_rounded,
+                color: color.withValues(alpha: 0.6), size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStaticRow({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required Color textColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
       child: Row(
         children: [
-          const Icon(
-            Icons.info_outline,
-            color: Colors.black54,
-          ), // الأيقونة تبدأ من اليمين
+          _buildIconBubble(icon, color),
           const SizedBox(width: 15),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // المحاذاة لليمين (بداية العمود)
-              Text(
-                title,
-                style: const TextStyle(fontSize: 12, color: Color(0xFFB4B48E)),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontFamily: 'Cairo')),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                        fontFamily: 'Cairo')),
+              ],
+            ),
           ),
-          const Spacer(),
-          if (isEditable)
-            const Icon(Icons.edit_outlined, size: 18, color: Color(0xFFB4B48E)),
-          if (isLocked)
-            const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
+          const Icon(Icons.lock_outline_rounded, size: 16, color: Colors.grey),
         ],
       ),
     );
   }
 
-  // 🌟 تعديل الـ Widget ليدعم الـ Theme 🌟
-  Widget _buildSpecialTile(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String subTitle,
-    List<String> tags,
-  ) {
-    final cardColor = Theme.of(context).cardColor;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
+  Widget _buildCoursesRow(Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start, // لضمان بقاء المحتوى الداخلي لليمين
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.black54),
+              _buildIconBubble(Icons.menu_book_rounded, Colors.orange),
               const SizedBox(width: 15),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFB4B48E),
-                    ),
-                  ),
-                  Text(
-                    subTitle,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("المواد الدراسية",
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontFamily: 'Cairo')),
+                    Text("الفصل الحالي",
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                            fontFamily: 'Cairo')),
+                  ],
+                ),
               ),
-              const Spacer(),
-              const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
+              const Icon(Icons.lock_outline_rounded,
+                  size: 16, color: Colors.grey),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
-            children: tags
-                .map(
-                  (t) => Chip(
-                    label: Text(t, style: const TextStyle(fontSize: 11)),
-                  ),
-                )
+            runSpacing: 6,
+            children: _courseNames
+                .map((name) => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: Colors.orange.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(name,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Cairo')),
+                    ))
                 .toList(),
           ),
         ],
@@ -295,50 +447,48 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // 🌟 تعديل الـ Widget ليدعم الـ Theme 🌟
-  Widget _buildChangePasswordButton(BuildContext context) {
-    final cardColor = Theme.of(context).cardColor;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.lock_reset, color: textColor),
-          const SizedBox(width: 10),
-          Text(
-            "تغيير كلمة المرور",
-            style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-          ),
-        ],
+  Widget _buildClickableSettingCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Color cardColor,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+            color: cardColor, borderRadius: BorderRadius.circular(25)),
+        child: Row(
+          children: [
+            _buildIconBubble(icon, color),
+            const SizedBox(width: 15),
+            Text(title,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: textColor,
+                    fontFamily: 'Cairo')),
+            const Spacer(),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                size: 16, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFB4B48E),
-          ),
-        ),
+  Widget _buildIconBubble(IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
       ),
+      child: Icon(icon, size: 20, color: color),
     );
   }
 }

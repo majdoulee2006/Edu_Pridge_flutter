@@ -1,4 +1,7 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'corrected_responses.dart';
 // استدعاء ملف صفحة التصحيح
 import '../../grading_screen/grading_screen.dart';
@@ -12,6 +15,38 @@ class AllResponsesScreen extends StatefulWidget {
 
 class _AllResponsesScreenState extends State<AllResponsesScreen> {
   String selectedFilter = "جميع الردود";
+  bool _isLoading = false;
+  List<Map<String, dynamic>> _allSubmissions = [];
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubmissions();
+  }
+
+  Future<void> _fetchSubmissions() async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final response = await Dio().get(
+        "${ApiService().baseUrl}/teacher/submissions",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        setState(() {
+          _allSubmissions = (response.data['data'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Submissions Error: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +79,14 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
             duration: const Duration(milliseconds: 300),
             child: selectedFilter == "جميع الردود"
                 ? _buildAllResponsesListView(cardColor, textColor, isDark)
-                : const CorrectedResponsesScreen(),
+                : CorrectedResponsesScreen(
+                    submissions: _allSubmissions
+                        .where((s) => s['is_graded'] == true)
+                        .where((s) => _searchQuery.isEmpty ||
+                            (s['student_name'] as String? ?? '')
+                                .contains(_searchQuery))
+                        .toList(),
+                  ),
           ),
         ),
       ],
@@ -60,10 +102,11 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
           color: cardColor,
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10),
           ],
         ),
         child: TextField(
+          onChanged: (val) => setState(() => _searchQuery = val.trim()),
           decoration: InputDecoration(
             icon: const Icon(Icons.search, color: Colors.grey, size: 20),
             hintText: "ابحث باسم الطالب...",
@@ -84,38 +127,48 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
     Color textColor,
     bool isDark,
   ) {
-    return ListView(
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+      );
+    }
+
+    final filtered = _allSubmissions
+        .where((s) => _searchQuery.isEmpty ||
+            (s['student_name'] as String? ?? '').contains(_searchQuery))
+        .toList();
+
+    if (filtered.isEmpty) {
+      return const Center(
+        child: Text('لا توجد ردود', style: TextStyle(color: Colors.grey)),
+      );
+    }
+    return ListView.builder(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      children: [
-        _buildResponseSlide(
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        final s = filtered[index];
+        final isGraded = s['is_graded'] == true;
+        return _buildResponseSlide(
           context,
-          name: "أحمد محمد علي",
-          task: "واجب الفيزياء: الطاقة",
-          date: "2023-11-21 | 10:30 AM",
-          status: "بانتظار التصحيح",
-          isCorrected: false,
-          cardColor: cardColor,
-          textColor: textColor,
-          isDark: isDark,
-        ),
-        _buildResponseSlide(
-          context,
-          name: "سارة يوسف كمال",
-          task: "مشروع العلوم: الخلايا",
-          date: "2023-11-20 | 09:15 AM",
-          status: "تم التصحيح",
-          isCorrected: true,
-          cardColor: cardColor,
-          textColor: textColor,
-          isDark: isDark,
-        ),
-      ],
+          submission:  s,
+          name:        s['student_name'] as String? ?? '',
+          task:        s['assignment_title'] as String? ?? '',
+          date:        s['submitted_at'] as String? ?? '',
+          status:      isGraded ? 'تم التصحيح' : 'بانتظار التصحيح',
+          isCorrected: isGraded,
+          cardColor:   cardColor,
+          textColor:   textColor,
+          isDark:      isDark,
+        );
+      },
     );
   }
 
   Widget _buildResponseSlide(
     BuildContext context, {
+    required Map<String, dynamic> submission,
     required String name,
     required String task,
     required String date,
@@ -128,7 +181,7 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
     Color statusMainColor = isCorrected
         ? const Color(0xFF4CAF50)
         : const Color(0xFFFF9800);
-    Color statusBgColor = statusMainColor.withOpacity(0.1);
+    Color statusBgColor = statusMainColor.withValues(alpha: 0.1);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -137,7 +190,7 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -150,8 +203,10 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const GradingScreen()),
-            );
+              MaterialPageRoute(
+                builder: (context) => GradingScreen(submission: submission),
+              ),
+            ).then((_) => _fetchSubmissions());
           },
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -189,7 +244,7 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
                           Text(
                             task,
                             style: TextStyle(
-                              color: textColor.withOpacity(0.5),
+                              color: textColor.withValues(alpha: 0.5),
                               fontSize: 12,
                               fontFamily: 'Tajawal',
                             ),
@@ -207,7 +262,7 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
                         color: statusBgColor,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: statusMainColor.withOpacity(0.2),
+                          color: statusMainColor.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Text(
@@ -234,13 +289,13 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
                         Icon(
                           Icons.access_time_rounded,
                           size: 14,
-                          color: textColor.withOpacity(0.4),
+                          color: textColor.withValues(alpha: 0.4),
                         ),
                         const SizedBox(width: 5),
                         Text(
                           date,
                           style: TextStyle(
-                            color: textColor.withOpacity(0.4),
+                            color: textColor.withValues(alpha: 0.4),
                             fontSize: 11,
                             fontFamily: 'Tajawal',
                           ),
@@ -250,7 +305,7 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
                     Icon(
                       Icons.arrow_forward_ios,
                       size: 12,
-                      color: textColor.withOpacity(0.3),
+                      color: textColor.withValues(alpha: 0.3),
                     ),
                   ],
                 ),
@@ -272,13 +327,13 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: isActive
-                ? const Color(0xFFEFFF00)
+                ? const Color(0xFFFFCC00)
                 : (isDark ? Colors.white10 : const Color(0xFFF5F5F5)),
             borderRadius: BorderRadius.circular(30),
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: const Color(0xFFEFFF00).withOpacity(0.3),
+                      color: const Color(0xFFFFCC00).withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),

@@ -1,6 +1,7 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:edu_pridge_flutter/services/api_service.dart'; // تأكدي من مسار ملف الـ ApiService عندك
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class StudentServices {
   final Dio _dio = Dio(
@@ -29,12 +30,12 @@ class StudentServices {
       );
 
       // 🌟 انتبهي: استخدمنا status بدال success لأن الباك إند تبعنا هيك مبرمج
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return response.data['data'];
       }
     } catch (e) {
-      print("❌ Student Dashboard Error: $e");
-      throw e;
+      debugPrint("❌ Student Dashboard Error: $e");
+      rethrow;
     }
     return null;
   }
@@ -52,12 +53,12 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return response.data['data'];
       }
     } catch (e) {
-      print("❌ Profile Fetch Error: $e");
-      throw e;
+      debugPrint("❌ Profile Fetch Error: $e");
+      rethrow;
     }
     return null;
   }
@@ -82,12 +83,12 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return true;
       }
     } catch (e) {
-      print("❌ Profile Update Error: $e");
-      throw e;
+      debugPrint("❌ Profile Update Error: $e");
+      rethrow;
     }
     return false;
   }
@@ -105,12 +106,12 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return response.data['data'];
       }
     } catch (e) {
-      print("❌ Notifications Fetch Error: $e");
-      throw e;
+      debugPrint("❌ Notifications Fetch Error: $e");
+      rethrow;
     }
     return null;
   }
@@ -128,11 +129,11 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return true;
       }
     } catch (e) {
-      print("❌ Mark Notification Read Error: $e");
+      debugPrint("❌ Mark Notification Read Error: $e");
     }
     return false;
   }
@@ -150,11 +151,11 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return response.data['data'];
       }
     } catch (e) {
-      print("❌ Schedules Fetch Error: $e");
+      debugPrint("❌ Schedules Fetch Error: $e");
     }
     return null;
   }
@@ -172,11 +173,11 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return response.data['data'];
       }
     } catch (e) {
-      print("❌ Exams Fetch Error: $e");
+      debugPrint("❌ Exams Fetch Error: $e");
     }
     return null;
   }
@@ -200,7 +201,7 @@ class StudentServices {
         return type == 'pdf' ? data['pdf_url'] : data['excel_url'];
       }
     } catch (e) {
-      print("❌ Export $type Error: $e");
+      debugPrint("❌ Export $type Error: $e");
     }
     return null;
   }
@@ -218,11 +219,11 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return response.data['data'];
       }
     } catch (e) {
-      print("❌ Lectures Fetch Error: $e");
+      debugPrint("❌ Lectures Fetch Error: $e");
     }
     return null;
   }
@@ -240,11 +241,11 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return response.data['data'];
       }
     } catch (e) {
-      print("❌ Attendance Fetch Error: $e");
+      debugPrint("❌ Attendance Fetch Error: $e");
     }
     return null;
   }
@@ -262,12 +263,118 @@ class StudentServices {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200 && response.data['status'] == true) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return response.data['data'];
       }
     } catch (e) {
-      print("❌ Assignments Fetch Error: $e");
+      debugPrint("❌ Assignments Fetch Error: $e");
+    }
+    return null;
+  }
+
+  // ==========================================
+  // 12. تسليم الواجب
+  // ==========================================
+  Future<bool> submitAssignment(
+    int assignmentId,
+    List<int> fileBytes,
+    String fileName,
+    String notes,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
+        if (notes.isNotEmpty) 'notes': notes,
+      });
+
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/student/assignments/$assignmentId/submit",
+        data: formData,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return true;
+      }
+    } catch (e) {
+      debugPrint("❌ Submit Assignment Error: $e");
+      rethrow;
+    }
+    return false;
+  }
+
+  // ==========================================
+  // 13. تقديم عذر غياب
+  // ==========================================
+  Future<bool> submitAttendanceExcuse(int attendanceId, String reason) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/student/attendance/$attendanceId/excuse",
+        data: {'reason': reason},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return true;
+      }
+    } catch (e) {
+      debugPrint("❌ Attendance Excuse Error: $e");
+      rethrow;
+    }
+    return false;
+  }
+
+  // ==========================================
+  // 14. طلب إجازة
+  // ==========================================
+  Future<bool> submitLeaveRequest(String type, String date, String reason) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/student/leave-requests",
+        data: {'type': type, 'date': date, 'reason': reason},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return true;
+      }
+    } catch (e) {
+      debugPrint("❌ Leave Request Error: $e");
+      rethrow;
+    }
+    return false;
+  }
+
+  // ==========================================
+  // 15. جلب العلامات
+  // ==========================================
+  Future<List<dynamic>?> getGrades() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/student/grades",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("❌ Grades Fetch Error: $e");
     }
     return null;
   }
 }
+
+

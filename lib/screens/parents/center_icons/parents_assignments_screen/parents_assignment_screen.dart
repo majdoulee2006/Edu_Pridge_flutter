@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 // استيراد الشاشات والقطع الموحدة
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
@@ -79,7 +79,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
                 _buildFilterBar(textColor),
                 Expanded(
                   child: isLoading
-                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFEFFF00)))
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                       : assignments.isEmpty
                           ? const Center(child: Text("لا توجد واجبات لعرضها"))
                           : ListView.builder(
@@ -283,7 +283,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 5),
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
       decoration: BoxDecoration(
-        color: isSel ? const Color(0xFFEFFF00) : Colors.transparent,
+        color: isSel ? const Color(0xFFFFCC00) : Colors.transparent,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: isSel ? Colors.transparent : textColor.withValues(alpha: 0.1)),
       ),

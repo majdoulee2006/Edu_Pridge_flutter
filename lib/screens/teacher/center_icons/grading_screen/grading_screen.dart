@@ -1,5 +1,8 @@
+﻿import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 // 🌟 استدعاء المكونات الموحدة 🌟
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -11,13 +14,86 @@ import '../../notifications_screen.dart';
 import '../../profile_screen.dart';
 import '../../teacher_home.dart';
 
-class GradingScreen extends StatelessWidget {
-  const GradingScreen({super.key});
+class GradingScreen extends StatefulWidget {
+  final Map<String, dynamic> submission;
+  const GradingScreen({super.key, required this.submission});
+
+  @override
+  State<GradingScreen> createState() => _GradingScreenState();
+}
+
+class _GradingScreenState extends State<GradingScreen> {
+  final TextEditingController _gradeController    = TextEditingController();
+  final TextEditingController _feedbackController = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final grade    = widget.submission['grade'];
+    final feedback = widget.submission['feedback'];
+    if (grade    != null) _gradeController.text    = '$grade';
+    if (feedback != null) _feedbackController.text = '$feedback';
+  }
+
+  @override
+  void dispose() {
+    _gradeController.dispose();
+    _feedbackController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitGrade() async {
+    final gradeVal = double.tryParse(_gradeController.text.trim());
+    if (gradeVal == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أدخل درجة صحيحة')),
+      );
+      return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final submissionId = widget.submission['submission_id'];
+      await Dio().post(
+        "${ApiService().baseUrl}/teacher/assignments/$submissionId/grade",
+        data: {'grade': gradeVal, 'feedback': _feedbackController.text.trim()},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ تم حفظ التصحيح بنجاح')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('⛔ Grade Error: $e');
+      String errorMsg = 'حدث خطأ، حاول مجدداً';
+      try {
+        if (e is DioException && e.response != null) {
+          final status = e.response!.statusCode;
+          final data = e.response!.data;
+          String? msg;
+          if (data is Map) msg = data['message']?.toString();
+          errorMsg = 'خطأ $status: ${msg ?? errorMsg}';
+          debugPrint('⛔ Status: $status | Data type: ${data.runtimeType}');
+        }
+      } catch (_) {}
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     // الألوان
-    const Color primaryYellow = Color(0xFFEFFF00);
+    const Color primaryYellow = Color(0xFFFFCC00);
 
     // جلب ألوان الثيم
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
@@ -35,13 +111,8 @@ class GradingScreen extends StatelessWidget {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.settings_outlined, color: textColor),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
+            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
+            onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             'تفاصيل الرد',
@@ -54,13 +125,19 @@ class GradingScreen extends StatelessWidget {
           centerTitle: true,
           actions: [
             IconButton(
-              icon: Icon(Icons.arrow_forward_ios, color: textColor, size: 20),
-              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.settings_outlined, color: textColor),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                );
+              },
             ),
           ],
         ),
         body: Stack(
           children: [
+            const SizedBox.expand(),
             // 1. المحتوى القابل للتمرير
             SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -76,34 +153,27 @@ class GradingScreen extends StatelessWidget {
                   _buildSectionTitle("إجابة الطالب", textColor),
                   _buildResponseContent(
                     context,
-                    "مرحباً أستاذ، قمت بحل المسائل المطلوبة في الصفحة 45. بالنسبة للسؤال الثالث، استخدمت قانون حفظ الطاقة الميكانيكية للوصول للنتيجة النهائية. أرفقت ملف الحل وصورة للرسم البياني.",
+                    widget.submission['student_notes'] as String? ?? 'لا توجد ملاحظات',
                     cardColor,
                     textColor,
                   ),
                   const SizedBox(height: 20),
 
                   // المرفقات
-                  _buildSectionTitle("المرفقات", textColor),
-                  _buildAttachmentItem(
-                    context,
-                    "حل_واجب_الفيزياء.pdf",
-                    "2.4 MB",
-                    Icons.picture_as_pdf,
-                    Colors.red,
-                    cardColor,
-                    textColor,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildAttachmentItem(
-                    context,
-                    "رسم_بياني.jpg",
-                    "1.1 MB",
-                    Icons.image,
-                    Colors.orange,
-                    cardColor,
-                    textColor,
-                  ),
-                  const SizedBox(height: 25),
+                  if ((widget.submission['file_path'] as String?) != null) ...[
+                    _buildSectionTitle("المرفقات", textColor),
+                    _buildAttachmentItem(
+                      context,
+                      widget.submission['file_path'] as String,
+                      "",
+                      Icons.attach_file,
+                      Colors.blue,
+                      cardColor,
+                      textColor,
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  const SizedBox(height: 15),
 
                   // قسم التصحيح
                   _buildGradingSection(
@@ -120,34 +190,31 @@ class GradingScreen extends StatelessWidget {
             ),
 
             // 2. الشريط السفلي الموحد
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: CustomBottomNav(
-                currentIndex: -1, // شاشة فرعية
-                centerButton: const CustomSpeedDialEduBridge(),
-                onHomeTap: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TeacherHomeScreen(),
-                  ),
+            CustomBottomNav(
+              currentIndex: -1,
+              centerButton: const CustomSpeedDialEduBridge(),
+              onHomeTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TeacherHomeScreen(),
                 ),
-                onProfileTap: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
+              ),
+              onProfileTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
                 ),
-                onNotificationsTap: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen(),
-                  ),
+              ),
+              onNotificationsTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
                 ),
-                onMessagesTap: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MessagesScreen(),
-                  ),
+              ),
+              onMessagesTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MessagesScreen(),
                 ),
               ),
             ),
@@ -170,7 +237,7 @@ class GradingScreen extends StatelessWidget {
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
         ],
         border: const Border(right: BorderSide(color: Colors.orange, width: 5)),
       ),
@@ -184,12 +251,12 @@ class GradingScreen extends StatelessWidget {
               child: Icon(Icons.person, color: Colors.orange),
             ),
             title: Text(
-              "أحمد محمد علي",
+              widget.submission['student_name'] as String? ?? '',
               style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
             ),
-            subtitle: const Text(
-              "طالب - السنة الثانية",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+            subtitle: Text(
+              widget.submission['course_name'] as String? ?? '',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ),
           const Divider(),
@@ -208,7 +275,7 @@ class GradingScreen extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                "واجب الفيزياء: الطاقة الحركية",
+                widget.submission['assignment_title'] as String? ?? '',
                 style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
               ),
             ],
@@ -227,7 +294,7 @@ class GradingScreen extends StatelessWidget {
             width: 4,
             height: 18,
             decoration: BoxDecoration(
-              color: const Color(0xFFEFFF00),
+              color: const Color(0xFFFFCC00),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -257,11 +324,11 @@ class GradingScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
       ),
       child: Text(
         content,
-        style: TextStyle(color: textColor.withOpacity(0.7), height: 1.6),
+        style: TextStyle(color: textColor.withValues(alpha: 0.7), height: 1.6),
       ),
     );
   }
@@ -339,6 +406,7 @@ class GradingScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: _gradeController,
           textAlign: TextAlign.center,
           style: TextStyle(color: textColor),
           keyboardType: TextInputType.number,
@@ -357,6 +425,7 @@ class GradingScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: _feedbackController,
           maxLines: 3,
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
@@ -378,24 +447,26 @@ class GradingScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(30),
               ),
               elevation: 5,
-              shadowColor: btnColor.withOpacity(0.4),
+              shadowColor: btnColor.withValues(alpha: 0.4),
             ),
-            onPressed: () {},
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle_outline, color: Colors.black),
-                SizedBox(width: 10),
-                Text(
-                  "اعتماد وحفظ التصحيح",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+            onPressed: _isSaving ? null : _submitGrade,
+            child: _isSaving
+                ? const CircularProgressIndicator(color: Colors.black)
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline, color: Colors.black),
+                      SizedBox(width: 10),
+                      Text(
+                        "اعتماد وحفظ التصحيح",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ],

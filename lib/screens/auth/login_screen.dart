@@ -1,7 +1,9 @@
-import 'package:edu_pridge_flutter/screens/admin/nav_bar/home_screen.dart';
+﻿import 'package:edu_pridge_flutter/screens/admin/nav_bar/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'dart:math';
 
 // استيراد الملف الجديد (تأكدي أن اسم الملف forgot_password_screen.dart صحيح في مشروعك)
 import 'forgot_password_screen.dart';
@@ -27,6 +29,47 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  Future<String> _getDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? id = prefs.getString('device_id');
+    if (id == null) {
+      final rand = Random.secure();
+      id = List.generate(32, (_) => rand.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+      await prefs.setString('device_id', id);
+    }
+    return id;
+  }
+
+  void _showDeviceConflictDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.devices, color: Colors.orange),
+              SizedBox(width: 10),
+              Text("تنبيه", style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            "هذا الحساب مسجّل دخول من جهاز آخر.\nيُسمح بجهاز واحد فقط لكل حساب.\n\nيرجى تسجيل الخروج من الجهاز الآخر أولاً.",
+            style: TextStyle(fontSize: 14, height: 1.6),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("حسناً", style: TextStyle(color: Color(0xFFCCAA00), fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleLogin() async {
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
       _showSnackBar("يرجى إدخال البيانات المطلوبة", isError: true);
@@ -37,14 +80,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       Dio dio = Dio();
-      String url = "http://127.0.0.1:8000/api/login";
+      final url = "${ApiService().baseUrl}/login";
+      final deviceId = await _getDeviceId();
 
       var response = await dio.post(
         url,
         data: {
-          "username": _usernameController.text
-              .trim(), // 👈 تم التعديل من username إلى login
-          "password": _passwordController.text,
+          "username":     _usernameController.text.trim(),
+          "password":     _passwordController.text,
+          "is_student":   _isStudent,
+          "device_token": deviceId,
         },
       );
 
@@ -109,10 +154,12 @@ class _LoginScreenState extends State<LoginScreen> {
         _navigateToDashboard(role);
       }
     } on DioException catch (e) {
-      // إظهار رسالة الخطأ القادمة من الباك-إند (مثل: بيانات الدخول غير صحيحة)
-      String msg =
-          e.response?.data['message']?.toString() ?? "تأكد من اتصال السيرفر";
-      _showSnackBar(msg, isError: true);
+      if (e.response?.statusCode == 409) {
+        if (mounted) _showDeviceConflictDialog();
+      } else {
+        String msg = e.response?.data['message']?.toString() ?? "تأكد من اتصال السيرفر";
+        _showSnackBar(msg, isError: true);
+      }
     } catch (e) {
       debugPrint("🚨 Error: $e");
       _showSnackBar("حدث خطأ تقني: $e", isError: true);
@@ -130,8 +177,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (r == 'teacher') {
       nextScreen = const TeacherHomeScreen();
     } else if (r == 'boss' || r == 'head' || r == 'department_head') {
-      // 👈 أضفنا 'head' لتطابق السيدر
-      nextScreen = DeptHeadHomeScreen();
+      nextScreen = const DeptHeadHomeScreen();
+    } else if (r == 'admin') {
+      nextScreen = const AdminHomeScreen();
     } else {
       nextScreen = const StudentHomeScreen();
     }
@@ -169,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    const primaryYellow = Color(0xFFEFFF00);
+    const primaryYellow = Color(0xFFFFCC00);
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return Directionality(
@@ -188,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? primaryYellow.withOpacity(0.1)
+                          ? primaryYellow.withValues(alpha: 0.1)
                           : const Color(0xFFFEF9E7),
                       shape: BoxShape.circle,
                     ),
@@ -218,11 +266,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _isStudent ? "الرقم الجامعي" : "اسم المستخدم / الإيميل",
+                        _isStudent ? "الرقم الجامعي" : "رقم الهاتف  / الإيميل",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: textColor.withOpacity(0.7),
+                          color: textColor.withValues(alpha: 0.7),
                           fontFamily: 'Cairo',
                         ),
                       ),
@@ -233,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(
                               fontFamily: 'Cairo',
                               fontSize: 12,
-                              color: textColor.withOpacity(0.5),
+                              color: textColor.withValues(alpha: 0.5),
                             ),
                           ),
                           Transform.scale(
@@ -253,7 +301,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   _buildTextField(
                     hint: _isStudent
                         ? "أدخل رقمك الجامعي"
-                        : "أدخل اسم المستخدم أو الإيميل",
+                        : "أدخل  رقم الهاتف أو الإيميل",
                     icon: _isStudent
                         ? Icons.badge_outlined
                         : Icons.alternate_email,
@@ -268,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: textColor.withOpacity(0.7),
+                        color: textColor.withValues(alpha: 0.7),
                         fontFamily: 'Cairo',
                       ),
                     ),
@@ -346,7 +394,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextSpan(
                         text: "ليس لديك حساب؟ ",
                         style: TextStyle(
-                          color: textColor.withOpacity(0.6),
+                          color: textColor.withValues(alpha: 0.6),
                           fontFamily: 'Cairo',
                         ),
                         children: const [
@@ -387,7 +435,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => DeptHeadHomeScreen(),
+                                builder: (context) => const DeptHeadHomeScreen(),
                               ),
                             );
                           },
@@ -448,7 +496,7 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: onTap,
           icon: Icon(icon, color: Colors.orangeAccent),
           style: IconButton.styleFrom(
-            backgroundColor: Colors.orangeAccent.withOpacity(0.1),
+            backgroundColor: Colors.orangeAccent.withValues(alpha: 0.1),
             padding: const EdgeInsets.all(12),
           ),
         ),
@@ -474,10 +522,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.grey.withOpacity(0.2),
+          color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.2),
         ),
       ),
       child: TextField(

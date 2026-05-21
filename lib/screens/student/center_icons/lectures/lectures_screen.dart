@@ -1,18 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-
+﻿import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../widgets/student_speed_dial.dart';
-
-// مسارات شاشات الـ nav_bar
 import '../../nav_bar/student_home_screen.dart';
 import '../../nav_bar/profile_screen.dart';
 import '../../nav_bar/notifications_screen.dart';
 import '../../nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
-
-// 🌟 استدعاء ملف الخدمات
-import 'package:edu_pridge_flutter/services/student_services.dart';
 
 class LecturesScreen extends StatefulWidget {
   const LecturesScreen({super.key});
@@ -23,8 +20,17 @@ class LecturesScreen extends StatefulWidget {
 
 class _LecturesScreenState extends State<LecturesScreen> {
   String _searchQuery = '';
-  bool _isLoading = true;
+  bool _isLoading = false;
   List<Map<String, dynamic>> _allSubjects = [];
+
+  static const List<Map<String, dynamic>> _subjectStyles = [
+    {'icon': Icons.calculate_outlined,  'iconColor': Color(0xFFFBC02D), 'iconBgColor': Color(0xFFFFF9C4)},
+    {'icon': Icons.science_outlined,    'iconColor': Color(0xFFF57C00), 'iconBgColor': Color(0xFFFFE0B2)},
+    {'icon': Icons.computer_outlined,   'iconColor': Color(0xFF1976D2), 'iconBgColor': Color(0xFFBBDEFB)},
+    {'icon': Icons.language_outlined,   'iconColor': Color(0xFFE53935), 'iconBgColor': Color(0xFFFFCDD2)},
+    {'icon': Icons.menu_book_outlined,  'iconColor': Color(0xFF43A047), 'iconBgColor': Color(0xFFE8F5E9)},
+    {'icon': Icons.history_edu_outlined,'iconColor': Color(0xFF7B1FA2), 'iconBgColor': Color(0xFFE1BEE7)},
+  ];
 
   @override
   void initState() {
@@ -32,86 +38,90 @@ class _LecturesScreenState extends State<LecturesScreen> {
     _fetchLectures();
   }
 
-  // ============================================================================
-  // 🌟 دالة جلب المحاضرات (مع الذكاء بقراءة نوع الملف من الرابط)
-  // ============================================================================
   Future<void> _fetchLectures() async {
     setState(() => _isLoading = true);
-
     try {
-      final data = await StudentServices().getLectures();
-
-      if (data != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final response = await Dio().get(
+        "${ApiService().baseUrl}/student/lectures",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final List<dynamic> data = response.data['data'] ?? [];
         setState(() {
-          _allSubjects = data.map<Map<String, dynamic>>((course) {
+          _allSubjects = data.asMap().entries.map((entry) {
+            final i = entry.key;
+            final course = entry.value as Map<String, dynamic>;
+            final style = _subjectStyles[i % _subjectStyles.length];
+            final lessons = (course['lessons'] as List<dynamic>? ?? [])
+                .map((l) => _mapLesson(l as Map<String, dynamic>))
+                .toList();
             return {
-              'title': course['course_name'],
+              'title': course['course_name'] as String? ?? '',
               'subtitle':
-                  '${course['teacher_name']} • ${course['total_files']} ملفات',
-              'icon': Icons.menu_book_outlined,
-              'iconColor': const Color(0xFF1976D2),
-              'iconBgColor': const Color(0xFFBBDEFB),
-              'initiallyExpanded': false,
-              'files': (course['lessons'] as List).map<Map<String, dynamic>>((
-                lesson,
-              ) {
-                // 🌟 السحر هون: نقرأ الرابط الصحيح من الداتا بيز
-                String fileUrl = lesson['content_url'] ?? lesson['url'] ?? '';
-
-                // القيم الافتراضية (PDF)
-                String type = 'pdf';
-                IconData icon = Icons.picture_as_pdf;
-                IconData actionIcon = Icons.download_outlined;
-                Color color = Colors.red;
-                Color bgColor = const Color(0xFFFFEBEE);
-
-                // 🌟 تحديد النوع ذكياً بناءً على الرابط
-                if (fileUrl.endsWith('.mp4')) {
-                  type = 'video';
-                  icon = Icons.play_arrow_rounded;
-                  actionIcon = Icons.play_arrow_rounded;
-                  color = const Color(0xFFFBC02D);
-                  bgColor = const Color(0xFFFFF9C4);
-                } else if (fileUrl.startsWith('http') &&
-                    !fileUrl.endsWith('.pdf')) {
-                  type = 'link';
-                  icon = Icons.link_rounded;
-                  actionIcon = Icons.open_in_new_rounded;
-                  color = const Color(0xFF4CAF50);
-                  bgColor = const Color(0xFFE8F5E9);
-                }
-
-                // تجهيز النص الفرعي (التاريخ والحجم والمدة)
-                String subtitleStr = lesson['date'] ?? '';
-                if (lesson['file_size'] != null) {
-                  subtitleStr += ' • ${lesson['file_size']}';
-                }
-                if (lesson['duration'] != null) {
-                  subtitleStr += ' • ${lesson['duration']}';
-                }
-
-                return {
-                  'title': lesson['title'],
-                  'subtitle': subtitleStr,
-                  'type': type,
-                  'url': fileUrl.isNotEmpty
-                      ? fileUrl
-                      : null, // 🌟 نمرر الرابط هنا
-                  'icon': icon,
-                  'actionIcon': actionIcon,
-                  'color': color,
-                  'bgColor': bgColor,
-                };
-              }).toList(),
+                  '${course['teacher_name'] ?? ''} • ${course['total_files'] ?? 0} ملفات',
+              'icon': style['icon'],
+              'iconColor': style['iconColor'],
+              'iconBgColor': style['iconBgColor'],
+              'initiallyExpanded': i == 0,
+              'files': lessons,
             };
           }).toList();
         });
       }
     } catch (e) {
-      debugPrint('Error Fetching Lectures: $e');
+      debugPrint('⛔ Lectures Error: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Map<String, dynamic> _mapLesson(Map<String, dynamic> lesson) {
+    final type = lesson['type'] as String? ?? 'pdf';
+    final title = lesson['title'] as String? ?? '';
+    final date = lesson['date'] as String? ?? '';
+    final fileSize = lesson['file_size'] as String?;
+    final duration = lesson['duration'] as String?;
+    String subtitle = date;
+    if (fileSize != null && fileSize.isNotEmpty) {
+      subtitle += ' • $fileSize';
+    } else if (duration != null && duration.isNotEmpty) {
+      subtitle += ' • $duration';
+    }
+
+    return switch (type) {
+      'video' => {
+        'title': title,
+        'subtitle': subtitle,
+        'type': 'video',
+        'url': lesson['url'],
+        'icon': Icons.play_arrow_rounded,
+        'actionIcon': Icons.play_arrow_rounded,
+        'color': const Color(0xFFFBC02D),
+        'bgColor': const Color(0xFFFFF9C4),
+      },
+      'link' => {
+        'title': title,
+        'subtitle': subtitle,
+        'type': 'link',
+        'url': lesson['url'],
+        'icon': Icons.link_rounded,
+        'actionIcon': Icons.open_in_new_rounded,
+        'color': const Color(0xFF4CAF50),
+        'bgColor': const Color(0xFFE8F5E9),
+      },
+      _ => {
+        'title': title,
+        'subtitle': subtitle,
+        'type': 'pdf',
+        'url': lesson['url'],
+        'icon': Icons.picture_as_pdf,
+        'actionIcon': Icons.download_outlined,
+        'color': Colors.red,
+        'bgColor': const Color(0xFFFFEBEE),
+      },
+    };
   }
 
   @override
@@ -122,10 +132,10 @@ class _LecturesScreenState extends State<LecturesScreen> {
         : const Color(0xFFF9F9F9);
     final textColor = isDark ? Colors.white : Colors.black;
 
-    List<Map<String, dynamic>> filteredSubjects = _allSubjects.where((subject) {
-      return subject['title'].toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
+    final filteredSubjects = _allSubjects.where((subject) {
+      return (subject['title'] as String)
+          .toLowerCase()
+          .contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Directionality(
@@ -154,9 +164,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
                 );
               },
             ),
@@ -170,41 +178,51 @@ class _LecturesScreenState extends State<LecturesScreen> {
                 Expanded(
                   child: _isLoading
                       ? const Center(
-                          child: CircularProgressIndicator(color: Colors.amber),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFFFCC00),
+                          ),
                         )
                       : filteredSubjects.isEmpty
-                      ? Center(
-                          child: Text(
-                            'لا توجد مواد مطابقة لبحثك',
-                            style: TextStyle(
-                              color: isDark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey,
+                          ? Center(
+                              child: Text(
+                                _allSubjects.isEmpty
+                                    ? 'لا توجد محاضرات حالياً'
+                                    : 'لا توجد مواد مطابقة لبحثك',
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey,
+                                ),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _fetchLectures,
+                              color: const Color(0xFFFFCC00),
+                              child: ListView.builder(
+                                padding: const EdgeInsets.only(
+                                  left: 20,
+                                  right: 20,
+                                  top: 10,
+                                  bottom: 120,
+                                ),
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: filteredSubjects.length,
+                                itemBuilder: (context, index) {
+                                  final subject = filteredSubjects[index];
+                                  return _SubjectCard(
+                                    title: subject['title'],
+                                    subtitle: subject['subtitle'],
+                                    icon: subject['icon'],
+                                    iconColor: subject['iconColor'],
+                                    iconBgColor: subject['iconBgColor'],
+                                    initiallyExpanded:
+                                        subject['initiallyExpanded'],
+                                    files: List<Map<String, dynamic>>.from(
+                                        subject['files']),
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(
-                            left: 20,
-                            right: 20,
-                            top: 10,
-                            bottom: 120,
-                          ),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: filteredSubjects.length,
-                          itemBuilder: (context, index) {
-                            final subject = filteredSubjects[index];
-                            return _SubjectCard(
-                              title: subject['title'],
-                              subtitle: subject['subtitle'],
-                              icon: subject['icon'],
-                              iconColor: subject['iconColor'],
-                              iconBgColor: subject['iconBgColor'],
-                              initiallyExpanded: subject['initiallyExpanded'],
-                              files: subject['files'],
-                            );
-                          },
-                        ),
                 ),
               ],
             ),
@@ -213,9 +231,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
               centerButton: const CustomSpeedDialEduBridge(),
               onHomeTap: () => Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const StudentHomeScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const StudentHomeScreen()),
               ),
               onProfileTap: () => Navigator.pushReplacement(
                 context,
@@ -223,9 +239,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
               ),
               onNotificationsTap: () => Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationsScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
               ),
               onMessagesTap: () => Navigator.pushReplacement(
                 context,
@@ -259,11 +273,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
       ),
       child: TextField(
         style: TextStyle(color: isDark ? Colors.white : Colors.black),
-        onChanged: (value) {
-          setState(() {
-            _searchQuery = value;
-          });
-        },
+        onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
           hintText: 'ابحث عن مادة...',
           hintStyle: TextStyle(
@@ -338,7 +348,7 @@ class _SubjectCardState extends State<_SubjectCard> {
     final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    List<Map<String, dynamic>> filteredFiles = widget.files.where((file) {
+    final filteredFiles = widget.files.where((file) {
       if (selectedFilter == 0) return true;
       if (selectedFilter == 1) return file['type'] == 'pdf';
       if (selectedFilter == 2) return file['type'] == 'video';
@@ -395,7 +405,9 @@ class _SubjectCardState extends State<_SubjectCard> {
                       Text(
                         widget.subtitle,
                         style: TextStyle(
-                          color: isDark ? Colors.grey.shade400 : Colors.grey,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey,
                           fontSize: 11,
                         ),
                       ),
@@ -439,28 +451,29 @@ class _SubjectCardState extends State<_SubjectCard> {
             else
               Column(
                 children: filteredFiles.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  var file = entry.value;
+                  final index = entry.key;
+                  final file = entry.value;
                   return Column(
                     children: [
                       _buildFileItem(
                         title: file['title'],
                         subtitle: file['subtitle'],
                         iconBgColor: isDark
-                            ? file['bgColor'].withAlpha(20)
+                            ? (file['bgColor'] as Color).withAlpha(20)
                             : file['bgColor'],
                         iconColor: file['color'],
                         icon: file['icon'],
                         actionIcon: file['actionIcon'],
                         isDark: isDark,
                         onActionTap: () {
-                          if (file['url'] != null) {
-                            _launchURL(file['url']);
+                          final url = file['url'] as String?;
+                          if (url != null && url.isNotEmpty) {
+                            _launchURL(url);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('عذراً، لا يوجد رابط لهذا الملف'),
-                                backgroundColor: Colors.redAccent,
+                              SnackBar(
+                                content: Text('جاري فتح ${file['title']}...'),
+                                backgroundColor: Colors.blue,
                               ),
                             );
                           }
@@ -497,7 +510,7 @@ class _SubjectCardState extends State<_SubjectCard> {
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFEFFF00)
+              ? const Color(0xFFFFCC00)
               : (isDark
                     ? Theme.of(context).scaffoldBackgroundColor
                     : Colors.white),

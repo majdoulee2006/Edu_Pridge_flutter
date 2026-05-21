@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 // استيراد الملفات اللازمة
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
@@ -151,7 +151,7 @@ class _ParentsMessagesScreenState extends State<ParentsMessagesScreen> {
             margin: const EdgeInsets.only(bottom: 5, right: 60),
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
-              color: Color(0xFFEFFF00),
+              color: Color(0xFFFFCC00),
               borderRadius: BorderRadius.only(
                 topRight: Radius.circular(25),
                 bottomLeft: Radius.circular(25),
@@ -185,7 +185,7 @@ class _ParentsMessagesScreenState extends State<ParentsMessagesScreen> {
           Container(
             width: 240,
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFEFFF00), borderRadius: BorderRadius.circular(25)),
+            decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(25)),
             child: Row(
               children: [
                 const CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.description, color: Colors.black)),
@@ -221,7 +221,7 @@ class _ParentsMessagesScreenState extends State<ParentsMessagesScreen> {
         child: Row(
           children: [
             const CircleAvatar(
-              backgroundColor: Color(0xFFEFFF00),
+              backgroundColor: Color(0xFFFFCC00),
               child: Icon(Icons.send_rounded, color: Colors.black, size: 20),
             ),
             Expanded(

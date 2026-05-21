@@ -1,4 +1,4 @@
-import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_screen/permissions_screen.dart';
+﻿import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_screen/permissions_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/reports_screen/reports_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
@@ -196,7 +196,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                 height: 60,
                 width: 60,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEFFF00),
+                  color: Color(0xFFFFCC00),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

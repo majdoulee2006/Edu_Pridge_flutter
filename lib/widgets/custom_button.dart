@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -10,7 +10,7 @@ class CustomButton extends StatelessWidget {
     super.key,
     required this.text,
     required this.onPressed,
-    this.color = const Color(0xFFEFFF00), // اللون الأصفر الافتراضي لمشروعك
+    this.color = const Color(0xFFFFCC00), // اللون الأصفر الافتراضي لمشروعك
     this.textColor = Colors.black,
   });
 

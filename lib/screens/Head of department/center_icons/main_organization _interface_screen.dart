@@ -1,5 +1,11 @@
-import 'package:flutter/material.dart';
-
+﻿import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_profile.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
+import 'package:edu_pridge_flutter/widgets/boss_center_icon.dart';
 import 'organization/study_schedule_screen/create_new_schedule.dart';
 import 'organization/study_schedule_screen/edit_of_table.dart';
 import 'organization/study_schedule_screen/table_view.dart';
@@ -19,23 +25,40 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    const primaryYellow = Color(0xFFEFFF00);
+    const primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
-          child: Column(
+          bottom: false,
+          child: Stack(
             children: [
-              _buildHeader(context, textColor, isDark),
-              const SizedBox(height: 8),
-              _buildTabs(cardColor, primaryYellow),
-              const SizedBox(height: 20),
-              Expanded(
-                child: selectedIndex == 0
-                    ? _buildStudyScheduleCards(context, cardColor, textColor, isDark, primaryYellow)
-                    : _buildExamPlaceholder(textColor),
+              Column(
+                children: [
+                  _buildHeader(context, textColor, isDark),
+                  const SizedBox(height: 8),
+                  _buildTabs(cardColor, primaryYellow),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: selectedIndex == 0
+                        ? _buildStudyScheduleCards(context, cardColor, textColor, isDark, primaryYellow)
+                        : _buildExamPlaceholder(textColor),
+                  ),
+                  const SizedBox(height: 100),
+                ],
+              ),
+              CustomBottomNav(
+                currentIndex: 0,
+                centerButton: GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountsManagementScreen())),
+                  child: const Boss_Center_Icon(),
+                ),
+                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossNotificationScreen())),
+                onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossMessageScreen())),
               ),
             ],
           ),
@@ -77,7 +100,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -174,12 +197,12 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: primaryYellow.withOpacity(0.4)),
+            border: Border.all(color: primaryYellow.withValues(alpha: 0.4)),
           ),
           child: Text(
             'اختر الخدمة من البطاقات الثلاث أعلاه للانتقال مباشرة إلى صفحة العرض أو الإنشاء أو التعديل.',
             style: TextStyle(
-              color: textColor.withOpacity(0.85),
+              color: textColor.withValues(alpha: 0.85),
               fontSize: 12.5,
               fontFamily: 'Cairo',
             ),
@@ -209,7 +232,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.18 : 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -220,7 +243,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.12),
+                color: iconColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: iconColor, size: 26),
@@ -265,7 +288,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           'سيتم إضافة واجهات الجدول الامتحاني هنا لاحقاً.',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: textColor.withOpacity(0.65),
+            color: textColor.withValues(alpha: 0.65),
             fontSize: 14,
             fontFamily: 'Cairo',
           ),

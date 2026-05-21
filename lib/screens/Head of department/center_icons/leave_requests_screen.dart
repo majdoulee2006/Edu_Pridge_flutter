@@ -1,4 +1,7 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/boss_center_icon.dart';
@@ -19,43 +22,86 @@ class LeaveRequestsScreen extends StatefulWidget {
 
 class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
   bool isDailyLeave = true;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> allRequests = [];
 
-  // 🛠️ منطق الرجوع الذكي
   void _handleBackNavigation(BuildContext context) {
     if (widget.fromSource == "profile") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const BossProfileScreen()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossProfileScreen()));
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen()));
     }
   }
 
-  // بيانات تجريبية
-  final List<Map<String, dynamic>> allRequests = [
-    {
-      "name": "أحمد محمد",
-      "role": "مدرب | قسم علوم الحاسوب",
-      "date": "12 أكتوبر 2023",
-      "reason": "ظرف عائلي طارئ يتطلب تواجدي خارج المدينة. لقد قمت بترتيب بديل للمحاضرة.",
-      "type": "يوم كامل",
-      "isDaily": true,
-      "image": "https://api.dicebear.com/7.x/avataaars/png?seed=Ahmed"
-    },
-    {
-      "name": "سارة خالد",
-      "role": "طالبة | الرياضيات 101",
-      "date": "14 أكتوبر 2023",
-      "reason": "موعد طبي في المستشفى الجامعي.",
-      "type": "ساعتين",
-      "isDaily": false,
-      "image": "https://api.dicebear.com/7.x/avataaars/png?seed=Sara"
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchLeaveRequests();
+  }
+
+  Future<String> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token') ?? '';
+  }
+
+  Future<void> _fetchLeaveRequests() async {
+    setState(() => _isLoading = true);
+    try {
+      final token = await _getToken();
+      final response = await Dio().get(
+        "${ApiService().baseUrl}/department-head/leave-requests",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = response.data['data'] as List? ?? [];
+        setState(() {
+          allRequests = data.map((r) {
+            final typeVal = (r['type'] ?? '').toString();
+            final isDaily = typeVal == 'full_day' || typeVal == 'daily' || typeVal == 'يوم كامل' || typeVal.isEmpty;
+            return {
+              'id': r['id'],
+              'name': r['requester_name'] ?? r['user_name'] ?? r['name'] ?? 'غير معروف',
+              'role': r['requester_type'] ?? r['role'] ?? '',
+              'date': r['date'] ?? '',
+              'reason': r['reason'] ?? 'لا يوجد سبب',
+              'status': r['status'] ?? 'pending',
+              'type': isDaily ? 'يوم كامل' : 'ساعية',
+              'isDaily': isDaily,
+              'image': r['avatar'] ?? '',
+            };
+          }).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Leave Requests Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _respondToRequest(int requestId, String status) async {
+    try {
+      final token = await _getToken();
+      await Dio().put(
+        "${ApiService().baseUrl}/department-head/leave-requests/$requestId/respond",
+        data: {'status': status},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(status == 'approved' ? '✅ تمت الموافقة' : '❌ تم الرفض')),
+        );
+        _fetchLeaveRequests();
+      }
+    } catch (e) {
+      debugPrint('⛔ Respond Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ، حاول مجدداً')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +111,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     final filteredRequests = allRequests.where((req) => req['isDaily'] == isDailyLeave).toList();
+
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -81,18 +128,24 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
                   _buildToggleTab(cardColor),
                   const SizedBox(height: 20),
                   Expanded(
-                    child: filteredRequests.isEmpty
-                        ? Center(child: Text("لا توجد طلبات حالياً", style: TextStyle(color: textColor)))
-                        : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: filteredRequests.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 15),
-                          child: _buildLeaveCard(isDark, cardColor, textColor, filteredRequests[index]),
-                        );
-                      },
-                    ),
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFCCAA00)))
+                        : filteredRequests.isEmpty
+                            ? Center(child: Text("لا توجد طلبات حالياً", style: TextStyle(color: textColor)))
+                            : RefreshIndicator(
+                                onRefresh: _fetchLeaveRequests,
+                                color: const Color(0xFFCCAA00),
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  itemCount: filteredRequests.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 15),
+                                      child: _buildLeaveCard(isDark, cardColor, textColor, filteredRequests[index]),
+                                    );
+                                  },
+                                ),
+                              ),
                   ),
                   const SizedBox(height: 100),
                 ],
@@ -148,7 +201,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5)],
       ),
       child: Row(
         children: [
@@ -166,7 +219,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFEFFF00) : Colors.transparent,
+            color: isActive ? const Color(0xFFFFCC00) : Colors.transparent,
             borderRadius: BorderRadius.circular(25),
           ),
           child: Center(
@@ -183,14 +236,21 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(radius: 30, backgroundImage: NetworkImage(data['image'])),
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: const Color(0xFFCCAA00),
+                backgroundImage: (data['image'] as String).isNotEmpty ? NetworkImage(data['image'] as String) : null,
+                child: (data['image'] as String).isEmpty
+                    ? Text((data['name'] as String).isNotEmpty ? (data['name'] as String)[0] : '؟', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))
+                    : null,
+              ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,7 +262,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                 child: Text(data['type'], style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ],
@@ -212,7 +272,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
             padding: const EdgeInsets.all(15),
             width: double.infinity,
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8F9FA),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8F9FA),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Text(data['reason'], style: TextStyle(fontSize: 14, height: 1.4, color: textColor)),
@@ -222,9 +282,9 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => _respondToRequest(data['id'] as int, 'approved'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEFFF00),
+                    backgroundColor: const Color(0xFFFFCC00),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -234,7 +294,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
               const SizedBox(width: 15),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => _respondToRequest(data['id'] as int, 'rejected'),
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     padding: const EdgeInsets.symmetric(vertical: 12),

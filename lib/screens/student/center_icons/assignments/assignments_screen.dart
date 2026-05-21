@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-//import 'package:file_picker/file_picker.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
 // مسارات شاشات الـ nav_bar
@@ -129,6 +129,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       }
 
       return _AssignmentCard(
+        assignmentId: assignment['id'] is int
+            ? assignment['id']
+            : int.tryParse(assignment['id'].toString()) ?? 0,
         title: assignment['title'] ?? 'بدون عنوان',
         subtitle:
             '${assignment['course_name']} • ${assignment['teacher_name']}',
@@ -145,11 +148,12 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         iconData: icons[index % icons.length],
         imageBgColor: bgColors[index % bgColors.length],
         initiallyExpanded:
-            index == 0 && status == 'pending', // نفتح أول واجب مطلوب تلقائياً
+            index == 0 && status == 'pending',
         showSubmitForm: showSubmitForm,
         detailText:
             assignment['description'] ??
             'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
+        onSubmitSuccess: _fetchAssignments,
       );
     }).toList();
   }
@@ -235,7 +239,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   const Expanded(
                     child: Center(
                       child: CircularProgressIndicator(
-                        color: Color(0xFFEFFF00),
+                        color: Color(0xFFFFCC00),
                       ),
                     ),
                   )
@@ -258,7 +262,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   Expanded(
                     child: RefreshIndicator(
                       onRefresh: _fetchAssignments,
-                      color: const Color(0xFFEFFF00),
+                      color: const Color(0xFFFFCC00),
                       child: _getFilteredAssignments().isEmpty
                           ? ListView(
                               children: [
@@ -340,7 +344,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFEFFF00)
+              ? const Color(0xFFFFCC00)
               : (isDark ? Theme.of(context).cardColor : Colors.white),
           borderRadius: BorderRadius.circular(20),
           border: isSelected
@@ -353,7 +357,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFFEFFF00).withAlpha(76),
+                    color: const Color(0xFFFFCC00).withAlpha(76),
                     blurRadius: 8,
                   ),
                 ]
@@ -386,6 +390,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 // كلاس خاص لكرت الواجب
 // ============================================================================
 class _AssignmentCard extends StatefulWidget {
+  final int assignmentId;
   final String title;
   final String subtitle;
   final String dueDate;
@@ -403,8 +408,10 @@ class _AssignmentCard extends StatefulWidget {
   final bool initiallyExpanded;
   final bool showSubmitForm;
   final String detailText;
+  final VoidCallback? onSubmitSuccess;
 
   const _AssignmentCard({
+    required this.assignmentId,
     required this.title,
     required this.subtitle,
     required this.dueDate,
@@ -423,6 +430,7 @@ class _AssignmentCard extends StatefulWidget {
     this.showSubmitForm = false,
     this.detailText =
         'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
+    this.onSubmitSuccess,
   });
 
   @override
@@ -431,11 +439,20 @@ class _AssignmentCard extends StatefulWidget {
 
 class _AssignmentCardState extends State<_AssignmentCard> {
   late bool isExpanded;
+  PlatformFile? _pickedFile;
+  final TextEditingController _notesController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     isExpanded = widget.initiallyExpanded;
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
   }
 
   void _showSuccessDialog() {
@@ -474,7 +491,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEFFF00),
+                    backgroundColor: const Color(0xFFFFCC00),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -558,6 +575,74 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     );
   }
 
+  Future<void> _pickFile(String type) async {
+    Navigator.pop(context);
+    try {
+      FilePickerResult? result;
+      if (type == 'صورة') {
+        result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+      } else if (type == 'فيديو') {
+        result = await FilePicker.platform.pickFiles(type: FileType.video, withData: true);
+      } else {
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf', 'doc', 'docx', 'zip'],
+          withData: true,
+        );
+      }
+      if (result != null && result.files.isNotEmpty) {
+        setState(() => _pickedFile = result!.files.first);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تم اختيار: ${_pickedFile!.name}'), backgroundColor: Colors.green),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ أثناء اختيار الملف'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitAssignment() async {
+    if (_pickedFile == null || _pickedFile!.bytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى إرفاق ملف الحل أولاً'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    try {
+      final ok = await StudentServices().submitAssignment(
+        widget.assignmentId,
+        _pickedFile!.bytes!,
+        _pickedFile!.name,
+        _notesController.text.trim(),
+      );
+      if (!mounted) return;
+      if (ok) {
+        _showSuccessDialog();
+        setState(() { isExpanded = false; _pickedFile = null; _notesController.clear(); });
+        widget.onSubmitSuccess?.call();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل الإرسال، حاول مجدداً'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ في الاتصال'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
   Widget _buildAttachmentOption(
     IconData icon,
     String title,
@@ -565,15 +650,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     bool isDark,
   ) {
     return GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم إرفاق $title بنجاح'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      },
+      onTap: () => _pickFile(title),
       child: Column(
         children: [
           Container(
@@ -852,6 +929,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
             ),
             const SizedBox(height: 10),
             TextField(
+              controller: _notesController,
               maxLines: 3,
               style: TextStyle(color: isDark ? Colors.white : Colors.black),
               decoration: InputDecoration(
@@ -886,31 +964,34 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEFFF00),
+                  backgroundColor: const Color(0xFFFFCC00),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
                   elevation: 0,
                 ),
-                onPressed: () {
-                  _showSuccessDialog();
-                  setState(() => isExpanded = false);
-                },
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.send_rounded, color: Colors.black, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'إرسال الحل',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+                onPressed: _isSubmitting ? null : _submitAssignment,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.send_rounded, color: Colors.black, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            _pickedFile != null ? 'إرسال: ${_pickedFile!.name}' : 'إرسال الحل',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],

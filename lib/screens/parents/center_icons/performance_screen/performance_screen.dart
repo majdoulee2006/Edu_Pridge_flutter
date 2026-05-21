@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
@@ -80,17 +80,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               ? _buildDetailsAppBar(context, textColor)
               : _buildMainAppBar(context, textColor, cardColor),
           body: isLoading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFFEFFF00)))
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
               : Stack(
             children: [
-              _showSubjectDetails
-                  ? _buildSubjectDetailsView(textColor, cardColor)
-                  : TabBarView(
-                children: [
-                  _buildResultsTab(textColor, cardColor),
-                  _buildGradesTab(textColor, cardColor),
-                  _buildAttendanceTab(textColor, cardColor),
-                ],
+              Positioned.fill(
+                child: _showSubjectDetails
+                    ? _buildSubjectDetailsView(textColor, cardColor)
+                    : TabBarView(
+                  children: [
+                    _buildResultsTab(textColor, cardColor),
+                    _buildGradesTab(textColor, cardColor),
+                    _buildAttendanceTab(textColor, cardColor),
+                  ],
+                ),
               ),
 
               CustomBottomNav(
@@ -115,7 +117,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       centerTitle: true,
       title: Text("أداء $studentName", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
       leading: IconButton(
-        icon: Icon(Icons.settings_outlined, color: textColor.withOpacity(0.6)),
+        icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
       ),
       actions: [
@@ -127,7 +129,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(35)),
           child: TabBar(
-            indicator: BoxDecoration(color: const Color(0xFFEFFF00), borderRadius: BorderRadius.circular(30)),
+            indicator: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(30)),
             labelColor: Colors.black,
             unselectedLabelColor: Colors.grey,
             indicatorSize: TabBarIndicatorSize.tab,
@@ -229,15 +231,15 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("المعدل التراكمي", style: TextStyle(color: textColor.withOpacity(0.5))),
+              Text("المعدل التراكمي", style: TextStyle(color: textColor.withValues(alpha: 0.5))),
               Text(gpaValue, style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: textColor)),
             ],
           ),
           CircularProgressIndicator(
               value: (double.tryParse(gpaValue) ?? 0) / 4, // افترضنا المعدل من 4
               strokeWidth: 8,
-              color: const Color(0xFFEFFF00),
-              backgroundColor: textColor.withOpacity(0.1)
+              color: const Color(0xFFFFCC00),
+              backgroundColor: textColor.withValues(alpha: 0.1)
           ),
         ],
       ),
@@ -253,7 +255,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         children: [
           Icon(i, color: c, size: 20),
           const SizedBox(height: 10),
-          Text(t, style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 12)),
+          Text(t, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12)),
           Text(v, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
         ],
       ),
@@ -269,13 +271,13 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
         child: Row(
           children: [
-            CircleAvatar(backgroundColor: col.withOpacity(0.1), child: Icon(Icons.book, color: col, size: 18)),
+            CircleAvatar(backgroundColor: col.withValues(alpha: 0.1), child: Icon(Icons.book, color: col, size: 18)),
             const SizedBox(width: 15),
             Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
             const Spacer(),
             Text(percent, style: TextStyle(color: col, fontWeight: FontWeight.bold)),
             const SizedBox(width: 10),
-            Icon(Icons.arrow_back_ios_new, size: 12, color: textColor.withOpacity(0.3)),
+            Icon(Icons.arrow_back_ios_new, size: 12, color: textColor.withValues(alpha: 0.3)),
           ],
         ),
       ),
@@ -295,7 +297,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(color: col.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
+            decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(15)),
             child: Text(status, style: TextStyle(color: col, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -325,7 +327,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       child: Column(
         children: [
           Text(val, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: col)),
-          Text(label, style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 12)),
+          Text(label, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12)),
         ],
       ),
     );

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -45,7 +45,7 @@ class CoursesScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black);
-    final primaryYellow = const Color(0xFFEFFF00);
+    final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -210,11 +210,11 @@ class CoursesScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -264,7 +264,7 @@ class CoursesScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
           ),
         ],

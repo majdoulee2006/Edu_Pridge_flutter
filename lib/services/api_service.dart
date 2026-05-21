@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart'; // 👈 1. ضفنا هالمكتبة المهمة جداً
 
@@ -11,7 +11,7 @@ class ApiService {
     if (kIsWeb) {
       return "http://127.0.0.1:8000/api"; // إذا فتحتيه على متصفح (كروم أو إيدج)
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      return "http://10.0.2.2:8000/api"; // إذا فتحتيه على محاكي أندرويد
+      return "http://localhost:8000/api"; // USB adb reverse
     } else {
       return "http://127.0.0.1:8000/api"; // للآيفون أو أنظمة تانية
     }
@@ -38,7 +38,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        String token = response.data['access_token'];
+        String token = response.data['token'];
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
 
@@ -48,21 +48,20 @@ class ApiService {
         return response.data;
       }
     } on DioException catch (e) {
-      print("Login Error: ${e.response?.data['message'] ?? 'فشل الاتصال'}");
+      debugPrint("Login Error: ${e.response?.data['message'] ?? 'فشل الاتصال'}");
       return null;
     }
     return null;
   }
 
   // ==========================================
-  // 2. دالة جلب بيانات الطالب للداشبورد 🌟
+  // 2. دالة جلب بيانات الطالب للداشبورد
   // ==========================================
   Future<Map<String, dynamic>?> getStudentDashboard() async {
-
-    // 🔑 توكن إسراء (للتجربة المباشرة للواجهات)
-    String token = "1|Pap3d36328M9Hr4HaGflWD1VioZn1fF90no68oAf97ec3d30";
-
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
       Response response = await _dio.get(
         "$baseUrl/student/dashboard",
         options: Options(
@@ -77,7 +76,7 @@ class ApiService {
         return response.data;
       }
     } catch (e) {
-      print("Dashboard Error: $e");
+      debugPrint("Dashboard Error: $e");
     }
     return null;
   }

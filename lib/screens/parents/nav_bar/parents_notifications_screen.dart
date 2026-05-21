@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 
-// ✅ استيراد الملفات الخاصة بمشروعك
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
@@ -20,39 +19,35 @@ class ParentsNotificationsScreen extends StatefulWidget {
 
 class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen> {
 
-  // ✅ جلب البيانات كقائمة (List)
   Future<List<dynamic>> _getNotifications() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return [];
 
-      // 1. جلب الـ ID المخزن
-      String? userId = prefs.getString('user_id');
-
-      if (userId == null) {
-        debugPrint("🚨 لم يتم العثور على user_id في الذاكرة");
-        return [];
-      }
-
-      // 2. إرسال الطلب مع الـ ID في الرابط مباشرة
-      var response = await Dio().get("${ApiService().baseUrl}/parent/notifications/$userId");
+      final response = await Dio().get(
+        "${ApiService().baseUrl}/parent/notifications",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
 
       if (response.statusCode == 200 && response.data != null) {
-        debugPrint("✅ تم جلب البيانات: ${response.data}");
         return response.data as List<dynamic>;
       }
     } catch (e) {
-      debugPrint("🚨 خطأ في الاتصال: $e");
+      debugPrint("خطأ في الاتصال: $e");
     }
     return [];
   }
 
-  // ✅ دالة لعرض تفاصيل التقرير عند الضغط عليه
   void _showReportDetails(BuildContext context, dynamic item) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        title: const Text("📄 تفاصيل التقرير",
+        title: const Text("تفاصيل التقرير",
             textAlign: TextAlign.center,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
         content: Column(
@@ -64,7 +59,6 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16)),
             const Divider(height: 30),
-            // بيانات افتراضية توضح النتيجة للأب
             _buildReportRow(Icons.check_circle_outline, "حالة الحضور", "ممتاز (95%)", Colors.green),
             _buildReportRow(Icons.star_border, "المستوى الدراسي", "جيد جداً", Colors.blue),
             const SizedBox(height: 20),
@@ -85,7 +79,6 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     );
   }
 
-  // ودجت مساعد لبناء صفوف التقرير داخل الـ Dialog
   Widget _buildReportRow(IconData icon, String title, String value, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -105,7 +98,6 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     );
   }
 
-  // ✅ دالة ديناميكية لتحديد الستايل بناءً على النوع
   Map<String, dynamic> _getStyleByType(String? type) {
     switch (type?.toLowerCase()) {
       case 'report':
@@ -142,7 +134,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
               future: _getNotifications(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0xFFEFFF00)));
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)));
                 }
 
                 if (snapshot.hasError || !snapshot.hasData) {
@@ -152,7 +144,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                 final notifications = snapshot.data!;
 
                 if (notifications.isEmpty) {
-                  return Center(child: Text("لا توجد إشعارات حالياً", style: TextStyle(color: textColor.withOpacity(0.5))));
+                  return Center(child: Text("لا توجد إشعارات حالياً", style: TextStyle(color: textColor.withValues(alpha: 0.5))));
                 }
 
                 return RefreshIndicator(
@@ -161,7 +153,6 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
                     itemCount: notifications.length,
                     itemBuilder: (context, index) {
-                      // ✅ تم إضافة InkWell هنا لجعل الكارت قابلاً للنقر
                       return InkWell(
                         onTap: () {
                           if (notifications[index]['type'] == 'report') {
@@ -180,10 +171,10 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
             CustomBottomNav(
               currentIndex: 2,
               centerButton: const Parents_Center_Icon(),
-              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsProfileScreen())),
               onNotificationsTap: () {},
-              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsMessagesScreen())),
             ),
           ],
         ),
@@ -197,8 +188,8 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       elevation: 0, centerTitle: true,
       title: Text("الإشعارات", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
       leading: IconButton(
-        icon: Icon(Icons.settings_outlined, color: textColor.withOpacity(0.6)),
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
+        icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
       ),
       actions: [
         IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pop(context)),
@@ -214,7 +205,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
@@ -227,8 +218,8 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: style['color'].withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(style['icon'], color: style['color'], size: 24),
+                    decoration: BoxDecoration(color: (style['color'] as Color).withValues(alpha: 0.1), shape: BoxShape.circle),
+                    child: Icon(style['icon'] as IconData, color: style['color'] as Color, size: 24),
                   ),
                   const SizedBox(width: 15),
                   Expanded(
@@ -239,16 +230,19 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(item['title']?.toString() ?? "إشعار", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            _buildTimeBadge(item['created_at']?.toString().split('T')[0] ?? "--", textColor),
+                            _buildTimeBadge(
+                              item['created_at']?.toString().split('T')[0] ?? "--",
+                              textColor,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Text(item['message']?.toString() ?? "",
-                            style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 13, height: 1.4)),
+                            style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: 13, height: 1.4)),
                         const SizedBox(height: 10),
                         Text(
-                          style['label'],
-                          style: TextStyle(color: style['color'], fontSize: 12, fontWeight: FontWeight.bold),
+                          style['label'] as String,
+                          style: TextStyle(color: style['color'] as Color, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -265,8 +259,8 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
   Widget _buildTimeBadge(String time, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: textColor.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
-      child: Text(time, style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 10)),
+      decoration: BoxDecoration(color: textColor.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
+      child: Text(time, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 10)),
     );
   }
 }

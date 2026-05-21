@@ -128,7 +128,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           width: 120,
           height: 120,
           decoration: BoxDecoration(
-            color: isDark ? Colors.amber.withOpacity(0.1) : Colors.amber.shade100,
+            color: isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.shade100,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.amber, width: 3),
           ),
@@ -140,7 +140,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
         ),
         const SizedBox(height: 8),
-        _buildChip('لوحة التحكم الكاملة', isDark ? Colors.amber.withOpacity(0.2) : const Color(0xFFFFF8E1), Colors.amber),
+        _buildChip('لوحة التحكم الكاملة', isDark ? Colors.amber.withValues(alpha: 0.2) : const Color(0xFFFFF8E1), Colors.amber),
       ],
     );
   }
@@ -159,7 +159,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 10)],
       ),
       child: Column(
         children: rows.asMap().entries.map((entry) {

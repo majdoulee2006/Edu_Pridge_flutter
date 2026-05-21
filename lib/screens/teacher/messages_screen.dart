@@ -1,14 +1,13 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
-// استيراد صفحة الإعدادات من المجلد المشترك
 import '../shared/settings_screen.dart';
-
-// 🌟 1. استدعاء الشريط الموحد 🌟
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-// 🌟 2. استدعاء زر المعلم الموحد 🌟
-import '../../widgets/teacher_speed_dial.dart'; // تأكدي من وجود هذا الملف ومساره الصحيح
+import '../../widgets/teacher_speed_dial.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -18,18 +17,77 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
-  String selectedFilter = "الكل";
+  String _selectedFilter = "الكل";
+  bool _isLoading = false;
+  String _searchQuery = '';
 
-  final List<Map<String, dynamic>> chats = [
-    {"name": "د. سمير (رئيس القسم)", "message": "يرجى تأكيد موعد اجتماع المجلس اليوم", "time": "الآن", "unreadCount": 1, "isOnline": true, "category": "الإدارة", "type": "individual", "initials": "س"},
-    {"name": "أحمد محمد (سنة 3)", "message": "دكتور، هل يمكن تأجيل تسليم المشروع؟", "time": "10:30 ص", "unreadCount": 0, "isOnline": true, "category": "الطلاب", "initials": "أ", "type": "individual"},
-    {"name": "جروب الفيزياء العامة", "message": "خالد: متى موعد الاختبار؟", "time": "أمس", "unreadCount": 5, "isOnline": false, "category": "الطلاب", "initials": "ف", "type": "group"},
-  ];
+  // المحادثات: مجموعة حسب الطرف الآخر
+  List<Map<String, dynamic>> _conversations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMessages();
+  }
+
+  Future<void> _fetchMessages() async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/teacher/messages",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final messages = (res.data['data'] as List? ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+
+        // تجميع الرسائل حسب الطرف الآخر (آخر رسالة لكل محادثة)
+        final Map<String, Map<String, dynamic>> convMap = {};
+        for (final msg in messages) {
+          final party = msg['other_party'] as String? ?? 'غير معروف';
+          if (!convMap.containsKey(party)) {
+            convMap[party] = {
+              'name':      party,
+              'message':   msg['message'] as String? ?? '',
+              'time':      msg['sent_at'] as String? ?? '',
+              'is_read':   msg['is_read'] == true,
+              'direction': msg['direction'] as String? ?? 'sent',
+            };
+          }
+        }
+
+        setState(() {
+          _conversations = convMap.values.toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Messages Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    var list = _conversations;
+    if (_selectedFilter == 'غير مقروءة') {
+      list = list.where((c) => c['is_read'] != true).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      list = list
+          .where((c) => (c['name'] as String)
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 جلب ألوان الثيم للـ Dark Mode 🌟
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final bgColor   = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
@@ -37,84 +95,105 @@ class _MessagesScreenState extends State<MessagesScreen> {
       backgroundColor: bgColor,
       extendBody: true,
       appBar: AppBar(
-        backgroundColor: cardColor, // 🌟 يتجاوب مع الثيم
+        backgroundColor: cardColor,
         elevation: 0,
-        // تفعيل زر الإعدادات لينقلك لصفحة الإعدادات
         leading: IconButton(
-          icon: Icon(Icons.settings_outlined, color: textColor), // 🌟 يتجاوب مع الثيم
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            );
-          },
+          icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
+          onPressed: () => Navigator.pop(context),
         ),
-        title: Text("الرسائل", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)), // 🌟 يتجاوب مع الثيم
+        title: Text(
+          "الرسائل",
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor), // 🌟 يتجاوب مع الثيم
-            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.settings_outlined, color: textColor),
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
         ],
       ),
-      
-      // 🌟 التعديل السحري: تغليف الـ Stack بـ Directionality لضمان اتجاه الشريط السفلي والمحتوى 🌟
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Stack(
           children: [
-            // 1. محتوى الشاشة الأساسي
             Column(
               children: [
+                // شريط البحث
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                   child: TextField(
+                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
                     textAlign: TextAlign.right,
-                    style: TextStyle(color: textColor), // لون النص المكتوب يتبع الثيم
+                    style: TextStyle(color: textColor),
                     decoration: InputDecoration(
                       hintText: "ابحث في المحادثات...",
                       hintStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
-                      fillColor: cardColor, // 🌟 لون خلفية شريط البحث من الثيم
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                      fillColor: cardColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
-                _buildFilterRow(context), // 🌟 تمرير context ليدعم الثيم
-                const SizedBox(height: 15),
+
+                // أزرار الفلترة
+                _buildFilterRow(cardColor, textColor),
+                const SizedBox(height: 10),
+
+                // القائمة
                 Expanded(
-                  child: ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: chats.length,
-                    itemBuilder: (context, index) {
-                      return _buildChatTile(context, chats[index]); // 🌟 تمرير context ليدعم الثيم
-                    },
-                  ),
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: Color(0xFFFFCC00)),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _fetchMessages,
+                          color: const Color(0xFFFFCC00),
+                          child: _filtered.isEmpty
+                              ? ListView(
+                                  children: const [
+                                    SizedBox(height: 80),
+                                    Center(
+                                      child: Text(
+                                        'لا توجد رسائل',
+                                        style: TextStyle(
+                                            color: Colors.grey, fontSize: 15),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : ListView.builder(
+                                  physics: const BouncingScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(
+                                      20, 8, 20, 120),
+                                  itemCount: _filtered.length,
+                                  itemBuilder: (context, index) =>
+                                      _buildChatTile(
+                                          context, _filtered[index]),
+                                ),
+                        ),
                 ),
-                const SizedBox(height: 100), // مساحة لتجنب تغطية الشريط السفلي للمحادثات
               ],
             ),
 
-            // 2. الشريط السفلي الموحد
+            // الشريط السفلي
             CustomBottomNav(
-              currentIndex: 3, // 🌟 3 = الرسائل مفعلة
-              centerButton: const CustomSpeedDialEduBridge(), // زر المعلم الموحد
-              onHomeTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const TeacherHomeScreen()),
-              ),
-              onProfileTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              ),
-              onNotificationsTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-              ),
-              onMessagesTap: () {}, // نحن في الرسائل أصلاً
+              currentIndex: 3,
+              centerButton: const CustomSpeedDialEduBridge(),
+              onHomeTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen())),
+              onNotificationsTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen())),
+              onMessagesTap: () {},
             ),
           ],
         ),
@@ -122,35 +201,31 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
-  // 🌟 إضافة BuildContext للدعم اللوني 🌟
-  Widget _buildFilterRow(BuildContext context) {
-    final cardColor = Theme.of(context).cardColor;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-
+  Widget _buildFilterRow(Color cardColor, Color textColor) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
-        children: ["الكل", "غير مقروءة", "الجروبات"].map((label) {
-          bool isSelected = selectedFilter == label;
+        children: ["الكل", "غير مقروءة"].map((label) {
+          final isSelected = _selectedFilter == label;
           return GestureDetector(
-            onTap: () => setState(() => selectedFilter = label),
+            onTap: () => setState(() => _selectedFilter = label),
             child: Container(
               margin: const EdgeInsets.only(left: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
               decoration: BoxDecoration(
-                // 🌟 إذا كان محدد يأخذ اللون الأصفر، وإلا يأخذ لون الكرت من الثيم
-                color: isSelected ? const Color(0xFFEFFF00) : cardColor,
+                color: isSelected ? const Color(0xFFFFCC00) : cardColor,
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Text(
-                label, 
+                label,
                 style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  // 🌟 النص أسود إذا كان الزر أصفر ليظهر بوضوح، وإلا يتبع الثيم
+                  fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? Colors.black : textColor,
-                )
+                ),
               ),
             ),
           );
@@ -159,35 +234,62 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
-  // 🌟 إضافة BuildContext للدعم اللوني 🌟
   Widget _buildChatTile(BuildContext context, Map<String, dynamic> chat) {
     final cardColor = Theme.of(context).cardColor;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isUnread  = chat['is_read'] != true;
+    final name      = chat['name'] as String? ?? '';
+    final initial   = name.isNotEmpty ? name[0] : '؟';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: cardColor, // 🌟 لون الكرت من الثيم
+        color: cardColor,
         borderRadius: BorderRadius.circular(15),
+        border: isUnread
+            ? Border.all(
+                color: const Color(0xFFFFCC00).withValues(alpha: 0.4),
+                width: 1)
+            : null,
       ),
       child: ListTile(
         leading: CircleAvatar(
           radius: 28,
-          backgroundColor: const Color(0xFFEBF5FB), // خلفية صورة الشخص
-          child: Text(chat['initials'] ?? "D", style: const TextStyle(color: Color(0xFF2E86C1), fontWeight: FontWeight.bold)),
+          backgroundColor: const Color(0xFFEBF5FB),
+          child: Text(
+            initial,
+            style: const TextStyle(
+                color: Color(0xFF2E86C1), fontWeight: FontWeight.bold),
+          ),
         ),
-        title: Text(chat['name'], style: TextStyle(fontWeight: FontWeight.bold, color: textColor)), // 🌟 لون الاسم من الثيم
-        subtitle: Text(chat['message'], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.grey)),
+        title: Text(
+          name,
+          style: TextStyle(
+              fontWeight: FontWeight.bold, color: textColor),
+        ),
+        subtitle: Text(
+          chat['message'] as String? ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.grey),
+        ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(chat['time'], style: const TextStyle(color: Colors.grey, fontSize: 11)),
-            if (chat['unreadCount'] > 0)
+            Text(
+              chat['time'] as String? ?? '',
+              style: const TextStyle(color: Colors.grey, fontSize: 11),
+            ),
+            if (isUnread)
               Container(
                 margin: const EdgeInsets.only(top: 5),
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
-                child: Text(chat['unreadCount'].toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFCC00),
+                  shape: BoxShape.circle,
+                ),
               ),
           ],
         ),

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.edu_pridge_flutter"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

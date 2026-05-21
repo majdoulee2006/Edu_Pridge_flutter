@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/select_teacher_screen.dart';
@@ -117,7 +117,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               right: 25,
               child: FloatingActionButton(
                 heroTag: "add_msg",
-                backgroundColor: const Color(0xFFEFFF00),
+                backgroundColor: const Color(0xFFFFCC00),
                 elevation: 4,
                 child: const Icon(Icons.add, color: Colors.black, size: 30),
                 onPressed: () {
@@ -188,7 +188,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         margin: const EdgeInsets.only(left: 10),
         padding: const EdgeInsets.symmetric(horizontal: 25),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEFFF00) : (isDark ? Colors.white.withAlpha(20) : const Color(0xFFEFEFEF)),
+          color: isSelected ? const Color(0xFFFFCC00) : (isDark ? Colors.white.withAlpha(20) : const Color(0xFFEFEFEF)),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Center(
@@ -283,7 +283,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             if (hasUnread)
               Container(
                 padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
                 child: Text(
                   '${chat.unreadCount}',
                   style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),

@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class AppColors {
   // 1. اللون الأخضر الأساسي (المستخدم في العناوين والنجاح)
   static const Color primary = Color(0xFF2E7D32);
 
   // 2. اللون الأصفر المميز (المستخدم في الزر العائم)
-  static const Color accent = Color(0xFFEFFF00);
+  static const Color accent = Color(0xFFFFCC00);
 
   // 3. ألوان الخلفية
   static const Color background = Color(0xFFF9F9F7);

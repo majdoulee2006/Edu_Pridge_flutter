@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 
@@ -39,21 +39,22 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   Future<void> _loadAllData() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. جلب ID الأب (ولي الأمر)
-    dynamic rawId = prefs.get('user_id');
-    int? userId = (rawId is int) ? rawId : int.tryParse(rawId?.toString() ?? "");
-
-    if (userId != null) {
+    // 1. جلب بيانات ولي الأمر من الـ endpoint المصادق عليه
+    final token = prefs.getString('token') ?? '';
+    if (token.isNotEmpty) {
       try {
-        var response = await Dio().get("${ApiService().baseUrl}/user/profile/$userId");
+        var response = await Dio().get(
+          "${ApiService().baseUrl}/user/profile",
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
         if (response.statusCode == 200) {
           setState(() {
-            parentName = response.data['full_name'] ?? parentName;
-            parentEmail = response.data['email'] ?? parentEmail;
-            parentPhone = response.data['phone'] ?? parentPhone;
+            parentName  = response.data['full_name'] ?? parentName;
+            parentEmail = response.data['email']     ?? parentEmail;
+            parentPhone = response.data['phone']     ?? parentPhone;
           });
         }
-      } catch (e) { print("فشل جلب بيانات الأب: $e"); }
+      } catch (e) { debugPrint("فشل جلب بيانات الأب: $e"); }
     }
 
     // 2. جلب بيانات الطالب المختار
@@ -71,7 +72,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
             studentYear = res.data['level'] ?? "غير محدد";
           });
         }
-      } catch (e) { print("فشل جلب بيانات الطالب: $e"); }
+      } catch (e) { debugPrint("فشل جلب بيانات الطالب: $e"); }
     }
   }
 
@@ -102,7 +103,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
                       context, "رقم الهاتف", parentPhone, Icons.phone_android_rounded, Colors.green, textColor,
                           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditPhoneScreen())),
                     ),
-                    Divider(height: 1, color: textColor.withOpacity(0.1), indent: 20, endIndent: 20),
+                    Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
                     _buildClickableRow(
                       context, "البريد الإلكتروني", parentEmail, Icons.alternate_email_rounded, Colors.blue, textColor,
                           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditEmailScreen())),
@@ -113,7 +114,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
                   _buildSectionTitle("البيانات الأكاديمية لـ $studentName", textColor),
                   _buildInfoCard(cardColor, [
                     _buildStaticRow("القسم", studentDept, Icons.account_balance_rounded, Colors.purple, textColor),
-                    Divider(height: 1, color: textColor.withOpacity(0.1), indent: 20, endIndent: 20),
+                    Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
                     _buildStaticRow("السنة الدراسية", studentYear, Icons.auto_awesome_mosaic_rounded, Colors.orange, textColor),
                   ]),
 
@@ -151,11 +152,11 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
           alignment: Alignment.bottomRight,
           children: [
             Container(
-              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFEFFF00), width: 3)),
+              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFFCC00), width: 3)),
               child: const CircleAvatar(radius: 60, backgroundColor: Colors.grey, child: Icon(Icons.person, size: 60, color: Colors.white)),
             ),
             const CircleAvatar(
-              radius: 18, backgroundColor: Color(0xFFEFFF00),
+              radius: 18, backgroundColor: Color(0xFFFFCC00),
               child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
             ),
           ],
@@ -171,7 +172,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   Widget _buildInfoCard(Color cardColor, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.02), blurRadius: 10)],
       ),
       child: Column(children: children),
     );
@@ -193,7 +194,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
               ],
             ),
             const Spacer(),
-            Icon(Icons.edit_note_rounded, color: color.withOpacity(0.5)),
+            Icon(Icons.edit_note_rounded, color: color.withValues(alpha:0.5)),
           ],
         ),
       ),
@@ -243,7 +244,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   Widget _buildColoredIcon(IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+      decoration: BoxDecoration(color: color.withValues(alpha:0.1), shape: BoxShape.circle),
       child: Icon(icon, size: 20, color: color),
     );
   }

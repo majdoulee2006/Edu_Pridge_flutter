@@ -1,4 +1,7 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_profile.dart';
@@ -39,35 +42,48 @@ class BossNotificationScreen extends StatefulWidget {
 }
 
 class _BossNotificationScreenState extends State<BossNotificationScreen> {
-  // 🚀 قائمة الحسابات/الإشعارات (محاكاة لجلب البيانات من API أو Database)
-  final List<BossNotification> notifications = [
-    BossNotification(
-      title: "طلب مغادرة ساعية",
-      description: "د. محمد الفهد يطلب مغادرة لمدة ساعتين لظروف خاصة.",
-      time: "منذ 5 د",
-      icon: Icons.access_time_filled,
-      iconColor: const Color(0xFFD4E000),
-      hasButtons: true,
-      isUnread: true,
-      type: 'leave',
-    ),
-    BossNotification(
-      title: "طلب إجازة اعتيادية",
-      description: "أ. سارة العمر • لمدة 3 أيام تبدأ من يوم الأحد القادم",
-      time: "10:30 ص",
-      icon: Icons.calendar_month,
-      iconColor: Colors.purple,
-      isUnread: true,
-      type: 'leave',
-    ),
-    BossNotification(
-      title: "تنبيه إداري عاجل",
-      description: "يرجى الانتهاء من رصد درجات أعمال السنة.",
-      time: "08:00 ص",
-      icon: Icons.warning_amber_rounded,
-      iconColor: Colors.orange,
-    ),
-  ];
+  bool _isLoading = true;
+  List<BossNotification> notifications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();
+  }
+
+  Future<void> _fetchNotifications() async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final response = await Dio().get(
+        "${ApiService().baseUrl}/department-head/notifications",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = response.data['data'] as List? ?? [];
+        setState(() {
+          notifications = data.map((n) {
+            final type = n['type'] ?? 'general';
+            return BossNotification(
+              title: n['title'] ?? '',
+              description: n['body'] ?? n['message'] ?? '',
+              time: n['created_at'] ?? '',
+              icon: type == 'leave_request' ? Icons.event_busy_outlined : Icons.notifications_outlined,
+              iconColor: type == 'leave_request' ? const Color(0xFFCCAA00) : Colors.orange,
+              hasButtons: type == 'leave_request',
+              isUnread: n['is_read'] == false,
+              type: type,
+            );
+          }).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Boss Notifications Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,34 +103,43 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                 children: [
                   _buildHeader(context, isDark),
                   Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle("اليوم", hasAction: true),
-
-                          // 🔄 عرض الإشعارات باستخدام Map لتحويل القائمة إلى Widgets
-                          ...notifications.map((notification) => _handleNotificationClick(
-                            context,
-                            notification,
-                            _buildNotificationCard(
-                              cardColor,
-                              isDark,
-                              notification.iconColor,
-                              icon: notification.icon,
-                              title: notification.title,
-                              description: notification.description,
-                              time: notification.time,
-                              hasButtons: notification.hasButtons,
-                              isUnread: notification.isUnread,
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFCCAA00)))
+                        : RefreshIndicator(
+                            onRefresh: _fetchNotifications,
+                            color: const Color(0xFFCCAA00),
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildSectionTitle("اليوم", hasAction: true),
+                                  if (notifications.isEmpty)
+                                    const Padding(
+                                      padding: EdgeInsets.all(40),
+                                      child: Center(child: Text("لا توجد إشعارات حالياً", style: TextStyle(color: Colors.grey))),
+                                    )
+                                  else
+                                    ...notifications.map((notification) => _handleNotificationClick(
+                                      context,
+                                      notification,
+                                      _buildNotificationCard(
+                                        cardColor,
+                                        isDark,
+                                        notification.iconColor,
+                                        icon: notification.icon,
+                                        title: notification.title,
+                                        description: notification.description,
+                                        time: notification.time,
+                                        hasButtons: notification.hasButtons,
+                                        isUnread: notification.isUnread,
+                                      ),
+                                    )),
+                                  const SizedBox(height: 150),
+                                ],
+                              ),
                             ),
-                          )),
-
-                          const SizedBox(height: 150),
-                        ],
-                      ),
-                    ),
+                          ),
                   ),
                 ],
               ),
@@ -244,7 +269,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildBtn("موافقة", const Color(0xFFD4E000), Colors.black),
+                _buildBtn("موافقة", const Color(0xFFCCAA00), Colors.black),
                 const SizedBox(width: 12),
                 _buildBtn("رفض", Colors.grey.withValues(alpha: 0.1), isDark ? Colors.white : Colors.black),
               ],

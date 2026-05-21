@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ParentService {
@@ -22,7 +23,7 @@ class ParentService {
         return response.data; // قائمة الأبناء
       }
     } catch (e) {
-      print("خطأ في جلب الأبناء: $e");
+      debugPrint("خطأ في جلب الأبناء: $e");
     }
     return [];
   }
@@ -47,7 +48,7 @@ class ParentService {
         return true; // تم الربط بنجاح
       }
     } catch (e) {
-      print("خطأ في ربط الابن: $e");
+      debugPrint("خطأ في ربط الابن: $e");
     }
     return false;
   }

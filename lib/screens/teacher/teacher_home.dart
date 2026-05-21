@@ -1,25 +1,76 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
 import 'notifications_screen.dart';
 import '../shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';
+import 'announcements_screen.dart';
 
-class TeacherHomeScreen extends StatelessWidget {
+class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
 
   @override
+  State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
+}
+
+class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
+  bool _isLoading = true;
+  String _teacherName = '';
+  List<Map<String, dynamic>> _announcements = [];
+
+  static const List<Color> _cardColors = [
+    Color(0xFFFFCC33),
+    Color(0xFF4DB6AC),
+    Color(0xFF7E57C2),
+    Color(0xFFEF5350),
+    Color(0xFF42A5F5),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboard();
+  }
+
+  Future<void> _fetchDashboard() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/teacher/dashboard",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final d = res.data['data'] as Map<String, dynamic>;
+        final announcements = d['recent_announcements'] as List<dynamic>? ?? [];
+        setState(() {
+          _teacherName   = d['teacher']?['name'] as String? ?? '';
+          _announcements = announcements.map((a) => Map<String, dynamic>.from(a as Map)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Dashboard Error: $e');
+      if (e is DioException) {
+        debugPrint('⛔ Status: ${e.response?.statusCode}');
+        debugPrint('⛔ Data: ${e.response?.data}');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final bgColor   = Theme.of(context).scaffoldBackgroundColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
 
     return Scaffold(
       backgroundColor: bgColor,
-
-      // 🌟 التعديل هنا: التغليف صار يضم الـ Stack كاملة (المحتوى + الشريط) 🌟
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Stack(
@@ -63,7 +114,11 @@ class TeacherHomeScreen extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        'أستاذ أحمد',
+                                        _isLoading
+                                            ? '...'
+                                            : (_teacherName.isNotEmpty
+                                                ? 'أستاذ $_teacherName'
+                                                : 'أستاذ'),
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
@@ -124,7 +179,7 @@ class TeacherHomeScreen extends StatelessWidget {
                                     width: 4,
                                     height: 24,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEFFF00),
+                                      color: const Color(0xFFFFCC00),
                                       borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),
@@ -139,11 +194,20 @@ class TeacherHomeScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const Text(
-                                'عرض الكل',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const AnnouncementsScreen(),
+                                  ),
+                                ).then((_) => _fetchDashboard()),
+                                child: const Text(
+                                  'عرض الكل',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFFFFCC00),
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -157,40 +221,47 @@ class TeacherHomeScreen extends StatelessWidget {
 
                 // --- قائمة الأخبار ---
                 Expanded(
-                  child: ListView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 15,
-                    ),
-                    children: [
-                      _buildNewsCard(
-                        context,
-                        tag: 'إعلان هام',
-                        title:
-                            'تم إصدار جدول الامتحانات النهائية للفصل الدراسي الأول',
-                        description:
-                            'يرجى من جميع المعلمين مراجعة الجدول الدراسي والتأكد من توقيت الامتحانات والقاعات.',
-                        time: 'منذ ساعتين',
-                        headerColor: const Color(0xFFFFCC33),
-                      ),
-                      _buildNewsCard(
-                        context,
-                        tag: 'نشاط طلابي',
-                        title: 'ورشة عمل حول مهارات البحث العلمي',
-                        description:
-                            'ندعو جميع الطلاب المهتمين للتسجيل في ورشة العمل التي ستقام في قاعة المؤتمرات.',
-                        time: 'منذ 4 ساعات',
-                        headerColor: const Color(0xFF4DB6AC),
-                      ),
-                      const SizedBox(height: 100),
-                    ],
-                  ),
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: Color(0xFFFFCC00)),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _fetchDashboard,
+                          color: const Color(0xFFFFCC00),
+                          child: _announcements.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'لا توجد إعلانات حالياً',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 15),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  physics: const BouncingScrollPhysics(),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 15,
+                                  ),
+                                  itemCount: _announcements.length,
+                                  itemBuilder: (context, index) {
+                                    final a = _announcements[index];
+                                    return _buildNewsCard(
+                                      context,
+                                      tag: 'إعلان',
+                                      title: a['title'] as String? ?? '',
+                                      description: a['content'] as String? ?? '',
+                                      time: a['created_at'] as String? ?? '',
+                                      headerColor: _cardColors[index % _cardColors.length],
+                                    );
+                                  },
+                                ),
+                        ),
                 ),
               ],
             ),
 
-            // 2. الشريط السفلي الموحد (الآن صار مشمول بـ RTL)
+            // 2. الشريط السفلي الموحد
             CustomBottomNav(
               currentIndex: 0,
               centerButton: const CustomSpeedDialEduBridge(),
@@ -225,8 +296,7 @@ class TeacherHomeScreen extends StatelessWidget {
     required Color headerColor,
   }) {
     final cardColor = Theme.of(context).cardColor;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 25),
@@ -235,7 +305,7 @@ class TeacherHomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -319,7 +389,7 @@ class TeacherHomeScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(

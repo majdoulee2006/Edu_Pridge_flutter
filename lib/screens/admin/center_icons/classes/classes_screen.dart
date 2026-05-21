@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -59,7 +59,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black);
-    final primaryYellow = const Color(0xFFEFFF00);
+    final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -85,7 +85,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: BorderRadius.circular(30),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 10)],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 10)],
                     ),
                     child: Column(
                       children: [
@@ -263,7 +263,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
       ),
       child: Row(
         children: [

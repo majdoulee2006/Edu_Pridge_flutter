@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditPasswordScreen extends StatefulWidget {
   const EditPasswordScreen({super.key});
@@ -8,179 +10,353 @@ class EditPasswordScreen extends StatefulWidget {
 }
 
 class _EditPasswordScreenState extends State<EditPasswordScreen> {
-  // للتحكم بإظهار أو إخفاء كلمات المرور
+  final _currentCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
+
+  static const _base = "http://127.0.0.1:8000/api";
+
+  // ── قوة كلمة المرور ──
+  _PasswordStrength _getStrength(String p) {
+    if (p.isEmpty) return _PasswordStrength.none;
+    if (p.length < 6) return _PasswordStrength.weak;
+    final hasUpper = p.contains(RegExp(r'[A-Z]'));
+    final hasDigit = p.contains(RegExp(r'\d'));
+    final hasSpecial = p.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'));
+    final score = (hasUpper ? 1 : 0) + (hasDigit ? 1 : 0) + (hasSpecial ? 1 : 0);
+    if (p.length >= 10 && score >= 2) return _PasswordStrength.strong;
+    if (p.length >= 8 || score >= 1) return _PasswordStrength.medium;
+    return _PasswordStrength.weak;
+  }
+
+  Future<void> _handleSave() async {
+    final current = _currentCtrl.text;
+    final newPass = _newCtrl.text;
+    final confirm = _confirmCtrl.text;
+
+    if (current.isEmpty) {
+      _showSnack("يرجى إدخال كلمة المرور الحالية", isError: true);
+      return;
+    }
+    if (newPass.isEmpty) {
+      _showSnack("يرجى إدخال كلمة المرور الجديدة", isError: true);
+      return;
+    }
+    if (newPass.length < 6) {
+      _showSnack("كلمة المرور يجب أن تكون 6 أحرف على الأقل", isError: true);
+      return;
+    }
+    if (newPass != confirm) {
+      _showSnack("كلمتا المرور غير متطابقتين", isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      await Dio().post(
+        '$_base/profile/update',
+        data: {'current_password': current, 'password': newPass},
+        options: Options(headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }),
+      );
+
+      if (!mounted) return;
+      _showSuccessDialog();
+    } on DioException catch (e) {
+      final msg = e.response?.data['message']?.toString() ??
+          'حدث خطأ أثناء تحديث كلمة المرور';
+      _showSnack(msg, isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnack(String msg, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'Cairo', fontSize: 14)),
+      backgroundColor: isError ? Colors.redAccent : Colors.green,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      duration: const Duration(seconds: 3),
+    ));
+  }
+
+  void _showSuccessDialog() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final subColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: cardColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.green.withValues(alpha: 0.1),
+                ),
+                child: const Icon(Icons.check_rounded,
+                    color: Colors.green, size: 48),
+              ),
+              const SizedBox(height: 20),
+              Text("تم بنجاح!",
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      fontFamily: 'Cairo')),
+              const SizedBox(height: 10),
+              Text("تم تغيير كلمة المرور بنجاح.\nيمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: subColor,
+                      height: 1.6,
+                      fontFamily: 'Cairo')),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pop(context, true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFCC00),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text("حسناً",
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontFamily: 'Cairo')),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 🎨 تعريف المتغيرات اللونية بناءً على الثيم الحالي
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
-    final scaffoldBg = theme.scaffoldBackgroundColor;
-    final cardColor = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
-    final primaryYellow = const Color(0xFFEFFF00);
+    final subColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    const yellow = Color(0xFFFFCC00);
+
+    final strength = _getStrength(_newCtrl.text);
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: scaffoldBg,
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          title: Text(
-            "تغيير كلمة السر",
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
+          title: Text("تغيير كلمة المرور",
+              style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 26),
           child: Column(
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
-              // 1. الأيقونة المضيئة (تتكيف مع الخلفية)
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(25),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryYellow.withValues(alpha: 0.2),
-                        blurRadius: 40,
-                        spreadRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.sync_lock_rounded,
-                    size: 45,
-                    color: primaryYellow,
-                  ),
+              // ── أيقونة ──
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDark
+                      ? yellow.withValues(alpha: 0.12)
+                      : const Color(0xFFFEF9E7),
+                  boxShadow: [
+                    BoxShadow(
+                      color: yellow.withValues(alpha: isDark ? 0.2 : 0.35),
+                      blurRadius: 32,
+                      spreadRadius: 4,
+                    ),
+                  ],
                 ),
+                child: Icon(Icons.lock_person_rounded,
+                    size: 48,
+                    color: isDark ? yellow : const Color(0xFFD4AC0D)),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
-              // 2. النص التوضيحي
-              Text(
-                "قم بإنشاء كلمة مرور قوية لحماية حسابك الأكاديمي",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: subTextColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // 3. كلمة السر الحالية
-              _buildPasswordField(
-                label: "كلمة السر الحالية",
-                hintText: "********",
-                prefixIcon: Icons.lock_outline_rounded,
-                obscureText: _obscureCurrent,
-                onToggleVisibility: () {
-                  setState(() => _obscureCurrent = !_obscureCurrent);
-                },
-                textColor: textColor,
-                cardColor: cardColor,
-              ),
-
-              const SizedBox(height: 25),
-
-              // 4. كلمة السر الجديدة
-              _buildPasswordField(
-                label: "كلمة السر الجديدة",
-                hintText: "أدخل كلمة السر الجديدة",
-                prefixIcon: Icons.key_outlined,
-                obscureText: _obscureNew,
-                onToggleVisibility: () {
-                  setState(() => _obscureNew = !_obscureNew);
-                },
-                textColor: textColor,
-                cardColor: cardColor,
-              ),
+              Text("تغيير كلمة المرور",
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      fontFamily: 'Cairo')),
               const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 16),
-                  const SizedBox(width: 5),
-                  Text(
-                    "8 أحرف على الأقل",
-                    style: TextStyle(color: subTextColor, fontSize: 12),
-                  ),
-                ],
+              Text("اختر كلمة مرور قوية تحمي حسابك",
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: subColor,
+                      fontFamily: 'Cairo')),
+
+              const SizedBox(height: 36),
+
+              // ── كلمة المرور الحالية ──
+              _buildField(
+                label: "كلمة المرور الحالية",
+                controller: _currentCtrl,
+                hint: "••••••••",
+                icon: Icons.lock_outline_rounded,
+                obscure: _obscureCurrent,
+                onToggle: () =>
+                    setState(() => _obscureCurrent = !_obscureCurrent),
+                textColor: textColor,
+                isDark: isDark,
               ),
 
               const SizedBox(height: 20),
 
-              // 5. تأكيد كلمة السر الجديدة
-              _buildPasswordField(
-                label: "تأكيد كلمة السر الجديدة",
-                hintText: "أعد إدخال كلمة السر",
-                prefixIcon: Icons.shield_outlined,
-                obscureText: _obscureConfirm,
-                onToggleVisibility: () {
-                  setState(() => _obscureConfirm = !_obscureConfirm);
-                },
+              // ── كلمة المرور الجديدة ──
+              _buildField(
+                label: "كلمة المرور الجديدة",
+                controller: _newCtrl,
+                hint: "••••••••",
+                icon: Icons.key_rounded,
+                obscure: _obscureNew,
+                onToggle: () => setState(() => _obscureNew = !_obscureNew),
                 textColor: textColor,
-                cardColor: cardColor,
+                isDark: isDark,
+                onChanged: (_) => setState(() {}),
               ),
 
-              const SizedBox(height: 50),
+              // ── مؤشر القوة ──
+              if (_newCtrl.text.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _buildStrengthBar(strength, isDark),
+              ],
 
-              // 6. زر حفظ التغييرات
+              const SizedBox(height: 20),
+
+              // ── تأكيد كلمة المرور ──
+              _buildField(
+                label: "تأكيد كلمة المرور الجديدة",
+                controller: _confirmCtrl,
+                hint: "••••••••",
+                icon: Icons.shield_rounded,
+                obscure: _obscureConfirm,
+                onToggle: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
+                textColor: textColor,
+                isDark: isDark,
+                trailingIcon: _confirmCtrl.text.isNotEmpty
+                    ? (_confirmCtrl.text == _newCtrl.text
+                        ? Icons.check_circle_rounded
+                        : Icons.cancel_rounded)
+                    : null,
+                trailingColor: _confirmCtrl.text == _newCtrl.text
+                    ? Colors.green
+                    : Colors.redAccent,
+                onChanged: (_) => setState(() {}),
+              ),
+
+              const SizedBox(height: 44),
+
+              // ── زر الحفظ ──
               SizedBox(
                 width: double.infinity,
-                height: 55,
+                height: 58,
                 child: ElevatedButton(
-                  onPressed: () => _showSuccessDialog(context, primaryYellow, cardColor, textColor, subTextColor),
+                  onPressed: _isLoading ? null : _handleSave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryYellow,
+                    backgroundColor: yellow,
+                    disabledBackgroundColor: yellow.withValues(alpha: 0.5),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18)),
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "حفظ التغييرات",
-                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      SizedBox(width: 10),
-                      Icon(Icons.save_outlined, color: Colors.black, size: 22),
-                    ],
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                              color: Colors.black, strokeWidth: 2.5))
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.save_rounded,
+                                color: Colors.black, size: 22),
+                            SizedBox(width: 10),
+                            Text("حفظ التغييرات",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                    fontFamily: 'Cairo')),
+                          ],
+                        ),
                 ),
               ),
 
-              const SizedBox(height: 15),
+              const SizedBox(height: 14),
 
-              // 7. زر الإلغاء
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(
-                  "إلغاء",
-                  style: TextStyle(color: subTextColor, fontSize: 15, fontWeight: FontWeight.bold),
-                ),
+                child: Text("إلغاء",
+                    style: TextStyle(
+                        color: subColor,
+                        fontSize: 15,
+                        fontFamily: 'Cairo')),
               ),
               const SizedBox(height: 30),
             ],
@@ -190,106 +366,118 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
     );
   }
 
-  // دالة إظهار نافذة النجاح مع مراعاة الثيم
-  void _showSuccessDialog(BuildContext context, Color primaryYellow, Color cardColor, Color textColor, Color subTextColor) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: cardColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 70),
-              const SizedBox(height: 20),
-              Text(
-                "تم بنجاح!",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "تم تغيير كلمة السر الخاصة بك بنجاح.",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: subTextColor),
-              ),
-              const SizedBox(height: 25),
-              SizedBox(
-                width: double.infinity,
-                height: 45,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // إغلاق الدايلوج
-                    Navigator.pop(context); // العودة للخلف
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryYellow,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: const Text(
-                    "حسناً",
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
-              ),
-            ],
+  Widget _buildStrengthBar(_PasswordStrength strength, bool isDark) {
+    final labels = {
+      _PasswordStrength.weak: 'ضعيفة',
+      _PasswordStrength.medium: 'متوسطة',
+      _PasswordStrength.strong: 'قوية',
+    };
+    final colors = {
+      _PasswordStrength.weak: Colors.redAccent,
+      _PasswordStrength.medium: Colors.orange,
+      _PasswordStrength.strong: Colors.green,
+    };
+    final values = {
+      _PasswordStrength.weak: 0.33,
+      _PasswordStrength.medium: 0.66,
+      _PasswordStrength.strong: 1.0,
+    };
+
+    final color = colors[strength]!;
+    final value = values[strength]!;
+    final label = labels[strength]!;
+
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              backgroundColor:
+                  isDark ? Colors.white12 : Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation(color),
+              minHeight: 6,
+            ),
           ),
-        );
-      },
+        ),
+        const SizedBox(width: 10),
+        Text("قوة: $label",
+            style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Cairo')),
+      ],
     );
   }
 
-  Widget _buildPasswordField({
+  Widget _buildField({
     required String label,
-    required String hintText,
-    required IconData prefixIcon,
-    required bool obscureText,
-    required VoidCallback onToggleVisibility,
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    required bool obscure,
+    required VoidCallback onToggle,
     required Color textColor,
-    required Color cardColor,
+    required bool isDark,
+    IconData? trailingIcon,
+    Color? trailingColor,
+    ValueChanged<String>? onChanged,
   }) {
+    final cardColor = isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.grey.shade100;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(right: 15, bottom: 8),
-          child: Text(
-            label,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor),
-          ),
+          padding: const EdgeInsets.only(right: 4, bottom: 8),
+          child: Text(label,
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: textColor,
+                  fontFamily: 'Cairo')),
         ),
         Container(
           decoration: BoxDecoration(
             color: cardColor,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: textColor.withValues(alpha: 0.1)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.grey.shade300),
           ),
           child: TextField(
-            obscureText: obscureText,
-            style: TextStyle(color: textColor),
+            controller: controller,
+            obscureText: obscure,
+            onChanged: onChanged,
+            style: TextStyle(color: textColor, fontSize: 15),
             decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 13),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              hintText: hint,
+              hintStyle: TextStyle(
+                  color: textColor.withValues(alpha: 0.35), fontSize: 14),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               border: InputBorder.none,
-              prefixIcon: Icon(prefixIcon, color: textColor.withValues(alpha: 0.5), size: 20),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: textColor.withValues(alpha: 0.4),
-                  size: 20,
-                ),
-                onPressed: onToggleVisibility,
-              ),
+              prefixIcon: Icon(icon,
+                  color: isDark
+                      ? const Color(0xFFFFCC00)
+                      : const Color(0xFFD4AC0D),
+                  size: 22),
+              suffixIcon: trailingIcon != null
+                  ? Icon(trailingIcon, color: trailingColor, size: 22)
+                  : IconButton(
+                      icon: Icon(
+                          obscure
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: textColor.withValues(alpha: 0.4),
+                          size: 22),
+                      onPressed: onToggle,
+                    ),
             ),
           ),
         ),
@@ -297,3 +485,5 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
     );
   }
 }
+
+enum _PasswordStrength { none, weak, medium, strong }

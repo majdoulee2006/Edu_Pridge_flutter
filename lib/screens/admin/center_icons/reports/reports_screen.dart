@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -58,7 +58,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryYellow = const Color(0xFFEFFF00);
+    final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -122,7 +122,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             spreadRadius: 2)
                       ],
@@ -215,7 +215,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: Column(
               children: [
                 CircleAvatar(
-                  backgroundColor: isSelected ? yellow.withOpacity(0.2) : Colors.grey.shade100,
+                  backgroundColor: isSelected ? yellow.withValues(alpha: 0.2) : Colors.grey.shade100,
                   child: Icon(icon, color: isSelected ? Colors.blue : Colors.grey),
                 ),
                 const SizedBox(height: 10),
@@ -250,7 +250,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 15),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: Colors.grey.shade200),
           ),

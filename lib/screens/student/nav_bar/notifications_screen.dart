@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
@@ -184,7 +184,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: TabBar(
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
-          color: const Color(0xFFEFFF00),
+          color: const Color(0xFFFFCC00),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
@@ -267,7 +267,7 @@ class _NotificationsListView extends StatelessWidget {
           // تمييز الإشعار غير المقروء بخلفية أفتح
           color: notify.isRead
               ? (isDark ? Theme.of(context).cardColor : Colors.white)
-              : (isDark ? Colors.amber.withOpacity(0.1) : Colors.amber.shade50),
+              : (isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.shade50),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(

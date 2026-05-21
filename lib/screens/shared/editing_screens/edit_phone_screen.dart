@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
-// تأكدي من أن ملف otp_screen يدعم الثيم الداكن أيضاً
+﻿import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'otp_screen.dart';
 
 class EditPhoneScreen extends StatefulWidget {
@@ -10,172 +11,252 @@ class EditPhoneScreen extends StatefulWidget {
 }
 
 class _EditPhoneScreenState extends State<EditPhoneScreen> {
-  // متغير لحفظ رمز الدولة المختار
-  String _selectedCountryCode = '+966';
+  final _phoneController = TextEditingController();
+  String _selectedCode = '+966';
 
-  // قائمة برموز الدول المتاحة
-  final List<String> _countryCodes = [
-    '+966', '+971', '+965', '+974', '+968', '+973', '+20', '+963', '+962', '+961',
+  static const _base = "http://127.0.0.1:8000/api";
+
+  final List<Map<String, String>> _countries = [
+    {'code': '+966', 'flag': '🇸🇦', 'name': 'السعودية'},
+    {'code': '+971', 'flag': '🇦🇪', 'name': 'الإمارات'},
+    {'code': '+965', 'flag': '🇰🇼', 'name': 'الكويت'},
+    {'code': '+974', 'flag': '🇶🇦', 'name': 'قطر'},
+    {'code': '+968', 'flag': '🇴🇲', 'name': 'عُمان'},
+    {'code': '+973', 'flag': '🇧🇭', 'name': 'البحرين'},
+    {'code': '+20',  'flag': '🇪🇬', 'name': 'مصر'},
+    {'code': '+963', 'flag': '🇸🇾', 'name': 'سوريا'},
+    {'code': '+962', 'flag': '🇯🇴', 'name': 'الأردن'},
+    {'code': '+961', 'flag': '🇱🇧', 'name': 'لبنان'},
   ];
+
+  Future<void> _handleSendOtp() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty || phone.length < 7) {
+      _showSnack("يرجى إدخال رقم هاتف صحيح", isError: true);
+      return;
+    }
+
+    final fullPhone = '$_selectedCode$phone';
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OTPScreen(
+          appBarTitle: "تأكيد رقم الهاتف",
+          message: "أدخل رمز التحقق المكون من 6 أرقام\nلتأكيد رقمك الجديد",
+          icon: Icons.phone_iphone_rounded,
+          onVerify: (otp) async {
+            // رمز ثابت للتطوير
+            if (otp != "123456") {
+              return "الرمز غير صحيح، حاول مجدداً";
+            }
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              final token = prefs.getString('token') ?? '';
+              await Dio().post(
+                '$_base/profile/update',
+                data: {'phone': fullPhone},
+                options: Options(headers: {
+                  'Authorization': 'Bearer $token',
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json',
+                }),
+              );
+              return null; // نجاح
+            } on DioException catch (e) {
+              return e.response?.data['message']?.toString() ??
+                  'حدث خطأ أثناء تحديث الرقم';
+            }
+          },
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      _showSnack("تم تغيير رقم الهاتف بنجاح ✓", isError: false);
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) Navigator.pop(context, true);
+    }
+  }
+
+  void _showSnack(String msg, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'Cairo', fontSize: 14)),
+      backgroundColor: isError ? Colors.redAccent : Colors.green,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      duration: const Duration(seconds: 3),
+    ));
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 🎨 استخراج ألوان الثيم الحالي
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
-    final scaffoldBg = theme.scaffoldBackgroundColor;
-    final cardColor = theme.cardColor; // لون الحقول في الوضع الداكن
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
-    final primaryYellow = const Color(0xFFF6E300);
+    final subColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final cardColor = isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.grey.shade100;
+    const yellow = Color(0xFFFFCC00);
+
+    final selectedCountry =
+        _countries.firstWhere((c) => c['code'] == _selectedCode);
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: scaffoldBg,
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          centerTitle: true,
+          title: Text("تعديل رقم الهاتف",
+              style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Text(
-            'تعديل رقم الهاتف',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          centerTitle: true,
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 26),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 36),
 
-              // 1. الأيقونة المضيئة (تتأثر بالثيم)
+              // ── أيقونة مضيئة ──
               Container(
-                padding: const EdgeInsets.all(20),
+                width: 110,
+                height: 110,
                 decoration: BoxDecoration(
-                  color: cardColor,
                   shape: BoxShape.circle,
+                  color: isDark
+                      ? yellow.withValues(alpha: 0.12)
+                      : const Color(0xFFFEF9E7),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryYellow.withValues(alpha: 0.2),
-                      blurRadius: 40,
-                      spreadRadius: 10,
+                      color: yellow.withValues(alpha: isDark ? 0.2 : 0.35),
+                      blurRadius: 35,
+                      spreadRadius: 5,
                     ),
                   ],
                 ),
-                child: Icon(
-                  Icons.phone_iphone,
-                  size: 40,
-                  color: primaryYellow,
-                ),
+                child: Icon(Icons.phone_iphone_rounded,
+                    size: 52,
+                    color: isDark ? yellow : const Color(0xFFD4AC0D)),
               ),
-              const SizedBox(height: 30),
 
-              // 2. النصوص
-              Text(
-                'رقم الهاتف الجديد',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
-              ),
+              const SizedBox(height: 28),
+
+              Text("تغيير رقم الهاتف",
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      fontFamily: 'Cairo')),
               const SizedBox(height: 10),
               Text(
-                'يرجى إدخال رقم هاتفك الجديد. سنقوم بإرسال رمز تحقق\nبرسالة نصية (SMS) لتأكيد الرقم.',
+                "أدخل رقم هاتفك الجديد\nسنرسل رمز تحقق للتأكيد",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: subTextColor, height: 1.5),
+                style: TextStyle(
+                    fontSize: 14,
+                    color: subColor,
+                    height: 1.6,
+                    fontFamily: 'Cairo'),
               ),
-              const SizedBox(height: 40),
 
-              // 3. عنوان الحقل
+              const SizedBox(height: 44),
+
+              // ── عنوان الحقل ──
               Align(
                 alignment: Alignment.centerRight,
-                child: Text(
-                  'رقم الجوال',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: subTextColor,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 4, bottom: 8),
+                  child: Text("رقم الجوال",
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: textColor,
+                          fontFamily: 'Cairo')),
                 ),
               ),
-              const SizedBox(height: 8),
 
-              // حقل إدخال رقم الجوال (LTR للأرقام)
-              Directionality(
-                textDirection: TextDirection.ltr,
+              // ── حقل الرقم مع كود الدولة ──
+              Container(
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.grey.shade300),
+                ),
                 child: Row(
                   children: [
-                    // مفتاح الدولة (Dropdown)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        border: Border.all(color: textColor.withValues(alpha: 0.1)),
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedCountryCode,
-                          isDense: true,
-                          dropdownColor: cardColor, // لون القائمة المنسدلة في الداكن
-                          icon: Icon(
-                            Icons.keyboard_arrow_down,
-                            color: subTextColor,
-                            size: 18,
+                    // كود الدولة
+                    GestureDetector(
+                      onTap: () => _showCountryPicker(
+                          context, textColor, cardColor, isDark),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 16),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            left: BorderSide(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.grey.shade300,
+                            ),
                           ),
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                          items: _countryCodes.map((String code) {
-                            return DropdownMenuItem<String>(
-                              value: code,
-                              child: Text(code),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              setState(() => _selectedCountryCode = newValue);
-                            }
-                          },
+                        ),
+                        child: Row(
+                          children: [
+                            Text(selectedCountry['flag']!,
+                                style: const TextStyle(fontSize: 20)),
+                            const SizedBox(width: 6),
+                            Text(_selectedCode,
+                                style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15)),
+                            const SizedBox(width: 4),
+                            Icon(Icons.keyboard_arrow_down_rounded,
+                                color: subColor, size: 18),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    // حقل الإدخال النصي
+                    // رقم الهاتف
                     Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          border: Border.all(color: textColor.withValues(alpha: 0.1)),
-                          borderRadius: BorderRadius.circular(25),
-                        ),
+                      child: Directionality(
+                        textDirection: TextDirection.ltr,
                         child: TextField(
+                          controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          style: TextStyle(color: textColor),
+                          style: TextStyle(
+                              color: textColor, fontSize: 15),
                           decoration: InputDecoration(
-                            hintText: '50 123 4567',
+                            hintText: "50 123 4567",
                             hintStyle: TextStyle(
-                              color: textColor.withValues(alpha: 0.3),
-                              fontSize: 15,
-                            ),
+                                color: textColor.withValues(alpha: 0.35),
+                                fontSize: 14),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 15,
-                            ),
+                                horizontal: 16, vertical: 18),
                           ),
                         ),
                       ),
@@ -184,57 +265,137 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 16),
 
-              // 4. الزر الأصفر
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => OTPScreen(
-                          appBarTitle: "تأكيد الهاتف",
-                          message: "تم إرسال الرمز المكون من 4 أرقام إلى رقم\nهاتفك الجديد",
-                          onConfirm: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "تم تغيير رقم الهاتف بنجاح! ✅",
-                                  textAlign: TextAlign.center,
-                                ),
-                                backgroundColor: Colors.green,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                            int count = 0;
-                            Navigator.of(context).popUntil((_) => count++ >= 2);
-                          },
-                        ),
+              // ── تنبيه dev ──
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.blue.withValues(alpha: 0.1)
+                      : Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        color: Colors.blue.shade400, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "رمز التحقق في بيئة التطوير: 123456",
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade400,
+                            fontFamily: 'Cairo'),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryYellow,
-                    foregroundColor: Colors.black, // النص يبقى أسود للوضوح على الأصفر
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
                     ),
-                  ),
-                  child: const Text(
-                    'إرسال رمز التحقق',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  ],
                 ),
               ),
+
+              const SizedBox(height: 48),
+
+              // ── زر إرسال OTP ──
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: ElevatedButton(
+                  onPressed: _handleSendOtp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: yellow,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18)),
+                  ),
+                  child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.send_rounded,
+                                color: Colors.black, size: 20),
+                            SizedBox(width: 10),
+                            Text("إرسال رمز التحقق",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                    fontFamily: 'Cairo')),
+                          ],
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showCountryPicker(
+      BuildContext context, Color textColor, Color cardColor, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text("اختر كود الدولة",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: textColor,
+                    fontFamily: 'Cairo')),
+            const SizedBox(height: 8),
+            const Divider(),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: _countries.map((c) {
+                  final selected = c['code'] == _selectedCode;
+                  return ListTile(
+                    leading: Text(c['flag']!,
+                        style: const TextStyle(fontSize: 24)),
+                    title: Text("${c['name']} (${c['code']})",
+                        style: TextStyle(
+                            color: textColor,
+                            fontWeight: selected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontFamily: 'Cairo')),
+                    trailing: selected
+                        ? const Icon(Icons.check_circle_rounded,
+                            color: Color(0xFFFFCC00))
+                        : null,
+                    onTap: () {
+                      setState(() => _selectedCode = c['code']!);
+                      Navigator.pop(context);
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );

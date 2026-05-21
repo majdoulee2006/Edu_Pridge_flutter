@@ -1,16 +1,18 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
-// 🌟 استيراد الشاشات
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
-// 🚀 إضافة استيراد صفحة الإجازات
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/leave_requests_screen.dart';
-
+import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_screen.dart';
 import '../../../widgets/boss_center_icon.dart';
 
 class BossProfileScreen extends StatefulWidget {
@@ -21,213 +23,280 @@ class BossProfileScreen extends StatefulWidget {
 }
 
 class _BossProfileScreenState extends State<BossProfileScreen> {
-  String _userName = "أحمد عبدالله";
-  final String _userRole = "رئيس القسم الأكاديمي";
-  final String _email = "ahmed.abd@edubridge.com";
-  final String _phone = "+966 50 123 4567";
-  final String _department = "علوم الحاسب الآلي";
+  String _userName   = "جارِ التحميل...";
+  String _userRole   = "رئيس القسم الأكاديمي";
+  String _email      = "";
+  String _phone      = "";
+  String _department = "";
+  bool   _isLoading  = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _fetchProfile();
   }
 
-  Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _userName = prefs.getString('user_name') ?? "أحمد عبدالله";
-    });
+  Future<void> _fetchProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/department-head/profile",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final d = res.data['data'] as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _userName   = d['full_name']  as String? ?? d['name'] as String? ?? '';
+            _email      = d['email']      as String? ?? '';
+            _phone      = d['phone']      as String? ?? '';
+            _department = d['department'] as String? ?? '';
+            _userRole   = d['role_label'] as String? ?? "رئيس القسم الأكاديمي";
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('⛔ Boss Profile Error: $e');
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) setState(() => _userName = prefs.getString('user_name') ?? "رئيس القسم");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
-    final Color cardColor = Theme.of(context).cardColor;
-    const Color primaryYellow = Color(0xFFD4E000);
+    final bgColor     = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor   = Theme.of(context).cardColor;
+    final textColor   = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      _buildTopBar(context, isDark, _userName),
-                      const SizedBox(height: 10),
-                      _buildProfileHeader(isDark, primaryYellow),
-                      const SizedBox(height: 30),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: _buildAppBar(context, textColor, isDark),
+        body: Stack(
+          children: [
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator(color: Color(0xFFCCAA00)))
+            else
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Column(
+                  children: [
+                    _buildProfileHeader(textColor),
+                    const SizedBox(height: 30),
 
-                      // 🚀 إضافة قسم الإجازات ليدعم الرجوع للبروفايل
-                      _buildSectionHeader("إجراءات سريعة"),
-                      _buildInfoCard(cardColor, isDark, [
-                        _buildTile(
-                          Icons.event_note_rounded,
-                          "طلبات الإجازة",
-                          "عرض وإدارة الطلبات من البروفايل",
-                          primaryYellow,
-                          isDark,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LeaveRequestsScreen(fromSource: "profile"),
-                              ),
-                            );
-                          },
-                        ),
-                      ]),
+                    _buildSectionTitle("إجراءات سريعة", textColor),
+                    _buildInfoCard(cardColor, [
+                      _buildClickableRow(
+                        "طلبات الإجازة", "عرض وإدارة طلبات الإجازة",
+                        Icons.event_note_rounded, const Color(0xFFCCAA00), textColor,
+                        () => Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => const LeaveRequestsScreen(fromSource: "profile"),
+                        )),
+                      ),
+                    ]),
 
-                      const SizedBox(height: 25),
+                    const SizedBox(height: 25),
+                    _buildSectionTitle("معلومات التواصل", textColor),
+                    _buildInfoCard(cardColor, [
+                      _buildClickableRow(
+                        "رقم الهاتف", _phone.isNotEmpty ? _phone : "غير محدد",
+                        Icons.phone_android_rounded, Colors.green, textColor,
+                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditPhoneScreen()))
+                            .then((_) => _fetchProfile()),
+                      ),
+                      _buildDivider(textColor),
+                      _buildClickableRow(
+                        "البريد الإلكتروني", _email.isNotEmpty ? _email : "غير محدد",
+                        Icons.alternate_email_rounded, Colors.blue, textColor,
+                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditEmailScreen()))
+                            .then((_) => _fetchProfile()),
+                      ),
+                    ]),
 
-                      _buildSectionHeader("بيانات الحساب"),
-                      _buildInfoCard(cardColor, isDark, [
-                        _buildTile(Icons.phone_outlined, "رقم الهاتف", _phone, primaryYellow, isDark, hasEdit: true),
-                        _buildDivider(isDark),
-                        _buildTile(Icons.email_outlined, "البريد الإلكتروني", _email, primaryYellow, isDark, hasEdit: true),
-                        _buildDivider(isDark),
-                        _buildTile(Icons.lock_outline, "كلمة المرور", "••••••••", primaryYellow, isDark, isPassword: true),
-                      ]),
+                    const SizedBox(height: 25),
+                    _buildSectionTitle("الأمان", textColor),
+                    _buildInfoCard(cardColor, [
+                      _buildClickableRow(
+                        "كلمة المرور", "••••••••",
+                        Icons.lock_reset_rounded, Colors.redAccent, textColor,
+                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditPasswordScreen())),
+                      ),
+                    ]),
 
-                      const SizedBox(height: 25),
+                    const SizedBox(height: 25),
+                    _buildSectionTitle("المعلومات الشخصية", textColor),
+                    _buildInfoCard(cardColor, [
+                      _buildStaticRow(
+                        "القسم", _department.isNotEmpty ? _department : "غير محدد",
+                        Icons.business_outlined, Colors.purple, textColor,
+                      ),
+                      _buildDivider(textColor),
+                      _buildStaticRow(
+                        "تاريخ الميلاد", "15 مايو 1985",
+                        Icons.cake_outlined, Colors.orange, textColor,
+                      ),
+                    ]),
 
-                      _buildSectionHeader("المعلومات الشخصية"),
-                      _buildInfoCard(cardColor, isDark, [
-                        _buildTile(Icons.business_outlined, "القسم", _department, primaryYellow, isDark, isLocked: true),
-                        _buildDivider(isDark),
-                        _buildTile(Icons.calendar_today_outlined, "تاريخ الميلاد", "15 مايو 1985", primaryYellow, isDark, hasEdit: true),
-                      ]),
-
-                      const SizedBox(height: 150),
-                    ],
-                  ),
+                    const SizedBox(height: 150),
+                  ],
                 ),
               ),
 
-              CustomBottomNav(
-                currentIndex: 1, // التزاماً بطلبك السابق
-                centerButton: GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountsManagementScreen())),
-                  child: const Boss_Center_Icon(),
-                ),
-                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
-                onProfileTap: () {},
-                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossNotificationScreen())),
-                onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossMessageScreen())),
+            CustomBottomNav(
+              currentIndex: 1,
+              centerButton: GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountsManagementScreen())),
+                child: const Boss_Center_Icon(),
               ),
-            ],
-          ),
+              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
+              onProfileTap: () {},
+              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossNotificationScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossMessageScreen())),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // --- المكونات الداخلية المصححة ---
-
-  Widget _buildTopBar(BuildContext context, bool isDark, String name) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
-            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
-          ),
-          const Text("الملف الشخصي", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsScreen(userName: name, userRole: "رئيس القسم الأكاديمي", onProfileTap: () => Navigator.pop(context)))),
-          ),
-        ],
+  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor, bool isDark) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      title: Text("الملف الشخصي", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+        onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
       ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => SettingsScreen(
+              userName: _userName,
+              userRole: "رئيس القسم الأكاديمي",
+              onProfileTap: () => Navigator.pop(context),
+            ),
+          )),
+        ),
+      ],
     );
   }
 
-  Widget _buildProfileHeader(bool isDark, Color yellow) {
+  Widget _buildProfileHeader(Color textColor) {
     return Column(
       children: [
         Stack(
-          alignment: Alignment.bottomLeft,
+          alignment: Alignment.bottomRight,
           children: [
             Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: yellow.withValues(alpha: 0.3), width: 2)),
-              child: const CircleAvatar(radius: 60, backgroundImage: NetworkImage('https://api.dicebear.com/7.x/avataaars/png?seed=Boss123')),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFCCAA00), width: 3),
+              ),
+              child: const CircleAvatar(
+                radius: 60,
+                backgroundImage: NetworkImage('https://api.dicebear.com/7.x/avataaars/png?seed=Boss123'),
+              ),
             ),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: yellow, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-              child: const Icon(Icons.edit, size: 16, color: Colors.black),
+            const CircleAvatar(
+              radius: 18,
+              backgroundColor: Color(0xFFCCAA00),
+              child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
             ),
           ],
         ),
         const SizedBox(height: 15),
-        Text(_userName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(_userName, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
         Text(_userRole, style: const TextStyle(color: Colors.grey, fontSize: 14)),
       ],
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildInfoCard(Color cardColor, List<Widget> children) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
-      child: Text(title, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13)),
-    );
-  }
-
-  Widget _buildInfoCard(Color cardColor, bool isDark, List<Widget> children) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10)]),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+      ),
       child: Column(children: children),
     );
   }
 
-  // 🛠️ تعديل الـ Tile ليدعم الضغط (onTap)
-  Widget _buildTile(IconData icon, String label, String value, Color yellow, bool isDark,
-      {bool hasEdit = false, bool isPassword = false, bool isLocked = false, VoidCallback? onTap}) {
+  Widget _buildClickableRow(String label, String value, IconData icon, Color color, Color textColor, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(25),
+      borderRadius: BorderRadius.circular(30),
       child: Padding(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: yellow.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: yellow, size: 22),
-            ),
+            _buildColoredIcon(icon, color),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                  Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor)),
                 ],
               ),
             ),
-            if (isPassword) const Text("تغيير", style: TextStyle(color: Colors.grey, fontSize: 12))
-            else if (isLocked) const Icon(Icons.lock_outline, size: 18, color: Colors.grey)
-            else if (onTap != null) const Icon(Icons.arrow_back_ios_new, size: 14, color: Colors.grey)
-              else if (hasEdit) const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
+            Icon(Icons.edit_note_rounded, color: color.withValues(alpha: 0.6)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDivider(bool isDark) {
-    return Divider(height: 1, indent: 70, endIndent: 20, color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1));
+  Widget _buildStaticRow(String label, String value, IconData icon, Color color, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          _buildColoredIcon(icon, color),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor)),
+              ],
+            ),
+          ),
+          const Icon(Icons.lock_outline_rounded, size: 16, color: Colors.grey),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColoredIcon(IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+      child: Icon(icon, size: 22, color: color),
+    );
+  }
+
+  Widget _buildDivider(Color textColor) {
+    return Divider(height: 1, color: textColor.withValues(alpha: 0.08), indent: 20, endIndent: 20);
+  }
+
+  Widget _buildSectionTitle(String title, Color textColor) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 5, bottom: 10),
+        child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor)),
+      ),
+    );
   }
 }

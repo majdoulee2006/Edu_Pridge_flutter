@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -201,7 +201,7 @@ class _AdminMessagesScreenState extends State<AdminMessagesScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: textColor.withOpacity(0.85),
+                      color: textColor.withValues(alpha: 0.85),
                       fontSize: 14,
                     ),
                   ),
@@ -223,7 +223,7 @@ class _AdminMessagesScreenState extends State<AdminMessagesScreen> {
                     margin: const EdgeInsets.only(top: 6),
                     padding: const EdgeInsets.all(5),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFEFFF00),
+                      color: Color(0xFFFFCC00),
                       shape: BoxShape.circle,
                     ),
                     child: Text(

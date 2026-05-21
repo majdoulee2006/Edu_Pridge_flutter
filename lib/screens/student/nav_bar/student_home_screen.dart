@@ -4,9 +4,8 @@ import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-
-// 🌟 ضفنا الاستدعاء لملف السيرفيس
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/qr_scanner/qr_scanner_screen.dart';
 
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
@@ -196,6 +195,34 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ),
               ),
             ),
+            // زر الكاميرا العائم لمسح QR الحضور
+            Positioned(
+              bottom: 100,
+              left: 20,
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+                ),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFCC00),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.qr_code_scanner, color: Colors.black, size: 28),
+                ),
+              ),
+            ),
+
             CustomBottomNav(
               currentIndex: 0,
               centerButton: const CustomSpeedDialEduBridge(),
@@ -225,9 +252,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.blueGrey.withOpacity(0.2) : Colors.blue.shade50,
+        color: isDark ? Colors.blueGrey.withValues(alpha: 0.2) : Colors.blue.shade50,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -272,7 +299,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.withOpacity(0.1) : Colors.grey.shade100,
+        color: isDark ? Colors.grey.withValues(alpha: 0.1) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(20),
       ),
       child: const Center(
@@ -343,7 +370,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.amber.withOpacity(0.2)
+                      ? Colors.amber.withValues(alpha: 0.2)
                       : Colors.amber.shade100,
                   shape: BoxShape.circle,
                 ),
@@ -419,7 +446,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -451,7 +478,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(

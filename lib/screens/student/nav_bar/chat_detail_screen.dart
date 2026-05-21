@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/models/message_model.dart';
@@ -255,7 +255,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildMessageBubble(String text, bool isMe, String time, bool isDark) {
-    Color bubbleColor = isMe ? const Color(0xFFEFFF00) : (isDark ? Theme.of(context).cardColor : Colors.white);
+    Color bubbleColor = isMe ? const Color(0xFFFFCC00) : (isDark ? Theme.of(context).cardColor : Colors.white);
     Color messageTextColor = isMe ? Colors.black87 : (isDark ? Colors.white : Colors.black87);
 
     return Align(
@@ -342,7 +342,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               onTap: _sendMessage,
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(color: Color(0xFFEFFF00), shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
                 child: const Icon(Icons.send_rounded, color: Colors.black, size: 24),
               ),
             ),

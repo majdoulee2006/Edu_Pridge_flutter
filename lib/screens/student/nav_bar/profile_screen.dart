@@ -78,12 +78,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
 
         if (success) {
+          if (!mounted) return;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           setState(() {
             _isSaving = false;
             _hasChanges = false;
           });
-          _fetchUserProfile(); // جلب البيانات الجديدة بعد الرفع
-          _showSuccessDialog(Theme.of(context).brightness == Brightness.dark);
+          _fetchUserProfile();
+          _showSuccessDialog(isDark);
         } else {
           throw Exception("فشل في تحديث الصورة");
         }

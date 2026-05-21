@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/widgets/parents_center_icon.dart';
@@ -177,13 +177,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: const Color(0xFFEFFF00).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           const CircleAvatar(
             radius: 30,
-            backgroundColor: Color(0xFFEFFF00),
+            backgroundColor: Color(0xFFFFCC00),
             child: Icon(Icons.person, color: Colors.black, size: 30),
           ),
           const SizedBox(width: 15),
@@ -191,7 +191,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("أنت تطلب تقريراً للابن:", style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.6))),
+                Text("أنت تطلب تقريراً للابن:", style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.6))),
                 // ✅ عرض الاسم بشكل ديناميكي
                 Text(studentName ?? "جاري تحميل الاسم...",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
@@ -229,13 +229,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(35),
-          border: Border.all(color: isSelected ? const Color(0xFFEFFF00) : textColor.withOpacity(0.05), width: 2),
+          border: Border.all(color: isSelected ? const Color(0xFFFFCC00) : textColor.withValues(alpha: 0.05), width: 2),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 26),
             ),
             const SizedBox(width: 15),
@@ -244,11 +244,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
-                  Text(subtitle, style: TextStyle(fontSize: 11, color: textColor.withOpacity(0.5))),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5))),
                 ],
               ),
             ),
-            if (isSelected) const Icon(Icons.check_circle, color: Color(0xFFEFFF00), size: 24),
+            if (isSelected) const Icon(Icons.check_circle, color: Color(0xFFFFCC00), size: 24),
           ],
         ),
       ),
@@ -259,9 +259,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEFEE7).withOpacity(0.05),
+        color: const Color(0xFFFEFEE7).withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.yellow.withOpacity(0.1)),
+        border: Border.all(color: Colors.yellow.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -270,7 +270,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Expanded(
             child: Text(
               "يمكنك طلب تقرير جديد لكل طالب مرة واحدة كل 15 يومًا لضمان دقة البيانات.",
-              style: TextStyle(fontSize: 11, color: textColor.withOpacity(0.6), height: 1.4),
+              style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.6), height: 1.4),
             ),
           ),
         ],
@@ -286,10 +286,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFFEFFF00),
+          color: const Color(0xFFFFCC00),
           borderRadius: BorderRadius.circular(40),
           boxShadow: [
-            BoxShadow(color: const Color(0xFFEFFF00).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
+            BoxShadow(color: const Color(0xFFFFCC00).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))
           ],
         ),
         child: Center(
@@ -301,7 +301,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               : Column(
             children: [
               const Text("طلب التقرير الآن", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
-              Text("سيصلك إشعار عند جاهزية الملف", style: TextStyle(fontSize: 12, color: Colors.black.withOpacity(0.6))),
+              Text("سيصلك إشعار عند جاهزية الملف", style: TextStyle(fontSize: 12, color: Colors.black.withValues(alpha: 0.6))),
             ],
           ),
         ),

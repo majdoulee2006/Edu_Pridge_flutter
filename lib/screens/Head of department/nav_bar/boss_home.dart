@@ -1,5 +1,7 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 // 🌟 استيراد الشاشات الأساسية للتنقل
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
@@ -25,18 +27,38 @@ class DeptHeadHomeScreen extends StatefulWidget {
 
 class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
   String _bossName = "جارِ التحميل...";
+  int _pendingLeaveCount = 0;
+  List<Map<String, dynamic>> _announcements = [];
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _fetchDashboard();
   }
 
-  Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _bossName = prefs.getString('user_name') ?? "رئيس القسم";
-    });
+  Future<void> _fetchDashboard() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/department-head/dashboard",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final d = res.data['data'] as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _bossName = d['name'] as String? ?? prefs.getString('user_name') ?? "رئيس القسم";
+            _pendingLeaveCount = d['pending_leave_requests'] as int? ?? 0;
+            _announcements = List<Map<String, dynamic>>.from(d['announcements'] ?? []);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('⛔ Boss Dashboard Error: $e');
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) setState(() => _bossName = prefs.getString('user_name') ?? "رئيس القسم");
+    }
   }
 
   @override
@@ -44,7 +66,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
-    const primaryYellow = Color(0xFFD4E000);
+    const primaryYellow = Color(0xFFCCAA00);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -110,14 +132,14 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Edu-Bridge",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor.withOpacity(0.6))),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor.withValues(alpha: 0.6))),
                 const SizedBox(height: 5),
                 Text.rich(
                   TextSpan(
                     text: "مرحباً، ",
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
                     children: [
-                      TextSpan(text: _bossName, style: const TextStyle(color: Color(0xFFD4E000))),
+                      TextSpan(text: _bossName, style: const TextStyle(color: Color(0xFFCCAA00))),
                     ],
                   ),
                 ),
@@ -156,14 +178,19 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.yellow.withOpacity(0.2)),
+          border: Border.all(color: Colors.yellow.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
             Icon(Icons.info_outline, color: Colors.yellow[800], size: 22),
             const SizedBox(width: 12),
-            const Expanded(
-              child: Text("لديك طلبات إجازات معلقة بانتظار الموافقة.", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            Expanded(
+              child: Text(
+                _pendingLeaveCount > 0
+                    ? "لديك $_pendingLeaveCount طلب إجازة معلق بانتظار الموافقة."
+                    : "لا توجد طلبات إجازة معلقة حالياً.",
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
             ),
             const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           ],
@@ -173,32 +200,33 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
   }
 
   Widget _buildMainNewsCard(Color cardColor, Color textColor) {
+    if (_announcements.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(25)),
+        child: const Center(child: Text("لا توجد أخبار حالياً", style: TextStyle(color: Colors.grey))),
+      );
+    }
+    final news = _announcements.first;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
       ),
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-            child: Image.network('https://picsum.photos/seed/edu/400/200', height: 160, width: double.infinity, fit: BoxFit.cover),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("تحديث جدول اجتماعات القسم", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-                const SizedBox(height: 5),
-                Text("تم نقل اجتماع الهيئة التدريسية إلى القاعة B لمناقشة الخطة الفصلية.",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-              ],
-            ),
-          )
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(news['title'] as String? ?? '', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+            const SizedBox(height: 5),
+            Text(news['body'] as String? ?? news['content'] as String? ?? '',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          ],
+        ),
       ),
     );
   }
@@ -221,7 +249,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+        decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
         child: Icon(icon, color: const Color(0xFFF1C40F), size: 26),
       ),
     );

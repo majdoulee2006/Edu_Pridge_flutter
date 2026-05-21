@@ -1,4 +1,7 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/boss_center_icon.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
@@ -20,6 +23,88 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
   String? selectedTrainer;
   bool isAcademicSelected = true;
 
+  List<Map<String, dynamic>> _teachers = [];
+  bool _isLoadingTeachers = false;
+  bool _isSubmitting = false;
+
+  final _studentController = TextEditingController();
+  final _notesController   = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTeachers();
+  }
+
+  @override
+  void dispose() {
+    _studentController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchTeachers() async {
+    setState(() => _isLoadingTeachers = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/department-head/teachers",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        setState(() {
+          _teachers = List<Map<String, dynamic>>.from(res.data['data'] ?? []);
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Fetch Teachers Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingTeachers = false);
+    }
+  }
+
+  Future<void> _submitReport() async {
+    if (_studentController.text.trim().isEmpty || selectedTrainer == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى تعبئة اسم الطالب واختيار المدرب')),
+      );
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      await Dio().post(
+        "${ApiService().baseUrl}/department-head/report-requests",
+        data: {
+          'student_name': _studentController.text.trim(),
+          'teacher_id':   selectedTrainer,
+          'report_type':  isAcademicSelected ? 'academic' : 'behavioral',
+          'notes':        _notesController.text.trim(),
+        },
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ تم إرسال الطلب بنجاح'), backgroundColor: Colors.green),
+        );
+        _studentController.clear();
+        _notesController.clear();
+        setState(() => selectedTrainer = null);
+      }
+    } catch (e) {
+      debugPrint('⛔ Submit Report Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ، يرجى المحاولة مرة أخرى')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 🌟 جلب الألوان من الثيم الحالي للجهاز 🌟
@@ -27,7 +112,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
     final Color bgColor = Theme.of(context).scaffoldBackgroundColor; // يأخذ لون الخلفية من النظام
     final Color cardColor = Theme.of(context).cardColor; // لون البطاقات (أبيض أو رمادي غامق)
     final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    final Color fieldColor = isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F7F9);
+    final Color fieldColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF5F7F9);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -61,6 +146,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                                   hint: "ابحث باسم الطالب أو الرقم الأكاديمي...",
                                   icon: Icons.search,
                                   fieldColor: fieldColor,
+                                  controller: _studentController,
                                 ),
                                 const SizedBox(height: 15),
                                 Text("مقترحات سريعة", style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
@@ -116,6 +202,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                                   hint: "اكتب أي نقاط ترغب في التركيز عليها...",
                                   maxLines: 3,
                                   fieldColor: fieldColor,
+                                  controller: _notesController,
                                 ),
                               ],
                             ),
@@ -175,7 +262,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
         decoration: BoxDecoration(
           color: cardColor,
           shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5)],
         ),
         child: Icon(icon, color: Theme.of(context).iconTheme.color, size: 22),
       ),
@@ -189,7 +276,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -200,7 +287,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
               const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: iconColor.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
                 child: Icon(icon, color: iconColor, size: 22),
               ),
             ],
@@ -212,8 +299,9 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
     );
   }
 
-  Widget _buildCustomTextField({required String hint, IconData? icon, int maxLines = 1, required Color fieldColor}) {
+  Widget _buildCustomTextField({required String hint, IconData? icon, int maxLines = 1, required Color fieldColor, TextEditingController? controller}) {
     return TextField(
+      controller: controller,
       maxLines: maxLines,
       style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
       decoration: InputDecoration(
@@ -232,16 +320,25 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(color: fieldColor, borderRadius: BorderRadius.circular(20)),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          dropdownColor: Theme.of(context).cardColor,
-          hint: const Text("اختر المدرب من القائمة...", style: TextStyle(fontSize: 13, color: Colors.grey)),
-          value: selectedTrainer,
-          items: ["المهندس أحمد رامي", "الدكتور سليم حمد"].map((String v) => DropdownMenuItem(value: v, child: Text(v, style: TextStyle(color: textColor)))).toList(),
-          onChanged: (val) => setState(() => selectedTrainer = val),
-        ),
-      ),
+      child: _isLoadingTeachers
+          ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+            )
+          : DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                dropdownColor: Theme.of(context).cardColor,
+                hint: const Text("اختر المدرب من القائمة...", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                value: selectedTrainer,
+                items: _teachers.map((t) {
+                  final id   = t['id']?.toString() ?? '';
+                  final name = t['full_name'] as String? ?? t['name'] as String? ?? '';
+                  return DropdownMenuItem(value: id, child: Text(name, style: TextStyle(color: textColor)));
+                }).toList(),
+                onChanged: (val) => setState(() => selectedTrainer = val),
+              ),
+            ),
     );
   }
 
@@ -269,8 +366,8 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: isSelected ? const Color(0xFFEFFF00) : Colors.grey.withOpacity(0.2), width: 2),
-            boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFEFFF00).withOpacity(0.2), blurRadius: 10)] : null,
+            border: Border.all(color: isSelected ? const Color(0xFFFFCC00) : Colors.grey.withValues(alpha: 0.2), width: 2),
+            boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFFCC00).withValues(alpha: 0.2), blurRadius: 10)] : null,
           ),
           child: Column(
             children: [
@@ -285,16 +382,21 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
   }
 
   Widget _buildSubmitButton() {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFFF00),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: const Color(0xFFEFFF00).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      child: const Center(
-        child: Text("إرسال الطلب للمدرب", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+    return GestureDetector(
+      onTap: _isSubmitting ? null : _submitReport,
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFCC00),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: const Color(0xFFFFCC00).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+        ),
+        child: Center(
+          child: _isSubmitting
+              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+              : const Text("إرسال الطلب للمدرب", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+        ),
       ),
     );
   }

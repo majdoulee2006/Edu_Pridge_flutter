@@ -1,4 +1,7 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class CreateNewScheduleScreen extends StatefulWidget {
   const CreateNewScheduleScreen({super.key});
@@ -26,13 +29,14 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
   ];
 
   late final List<List<TextEditingController>> gridControllers;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     gridControllers = List.generate(
       days.length,
-          (_) => List.generate(classNames.length, (_) => TextEditingController()),
+      (_) => List.generate(classNames.length, (_) => TextEditingController()),
     );
   }
 
@@ -46,30 +50,55 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
     super.dispose();
   }
 
-  void saveSchedule() {
+  Future<void> saveSchedule() async {
     if (!formKey.currentState!.validate()) return;
 
-    bool hasAnyData = false;
-    for (final row in gridControllers) {
-      for (final c in row) {
-        if (c.text.trim().isNotEmpty) {
-          hasAnyData = true;
-          break;
+    final List<Map<String, String>> entries = [];
+    for (int d = 0; d < days.length; d++) {
+      for (int c = 0; c < classNames.length; c++) {
+        final content = gridControllers[d][c].text.trim();
+        if (content.isNotEmpty) {
+          entries.add({
+            'day':        days[d],
+            'class_name': classNames[c],
+            'content':    content,
+          });
         }
       }
-      if (hasAnyData) break;
     }
 
-    if (!hasAnyData) {
+    if (entries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('عبّي خلية واحدة على الأقل قبل الحفظ')),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم حفظ نموذج الجدول الدراسي بنجاح')),
-    );
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      await Dio().post(
+        "${ApiService().baseUrl}/department-head/schedule",
+        data: {'entries': entries},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ تم حفظ الجدول الدراسي بنجاح'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      debugPrint('⛔ Create Schedule Error: $e');
+      String msg = 'حدث خطأ، حاول مجدداً';
+      if (e is DioException && e.response?.data is Map) {
+        msg = e.response!.data['message'] ?? msg;
+      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -77,7 +106,7 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final Color cardColor = Theme.of(context).cardColor;
-    const Color primaryYellow = Color(0xFFEFFF00);
+    const Color primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -90,11 +119,7 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
           iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
           title: Text(
             'إنشاء الجدول الدراسي',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Cairo',
-            ),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
           ),
         ),
         body: Form(
@@ -109,17 +134,13 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
                   decoration: BoxDecoration(
                     color: cardColor,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: primaryYellow.withOpacity(0.45)),
+                    border: Border.all(color: primaryYellow.withValues(alpha: 0.45)),
                   ),
                   child: Text(
                     'القالب مثل الجدول الورقي: الأيام عموديًا (الأحد - الخميس) '
-                        'والشعب أفقيًا جنب بعض.\n'
-                        'كل خلية: اكتب الحصص أو المواد الخاصة بهذا اليوم لهذه الشعبة.',
-                    style: TextStyle(
-                      color: textColor.withOpacity(0.85),
-                      fontSize: 12.5,
-                      fontFamily: 'Cairo',
-                    ),
+                    'والشعب أفقيًا جنب بعض.\n'
+                    'كل خلية: اكتب الحصص أو المواد الخاصة بهذا اليوم لهذه الشعبة.',
+                    style: TextStyle(color: textColor.withValues(alpha: 0.85), fontSize: 12.5, fontFamily: 'Cairo'),
                   ),
                 ),
               ),
@@ -138,20 +159,15 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: saveSchedule,
+                    onPressed: _isLoading ? null : saveSchedule,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryYellow,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text(
-                      'حفظ الجدول',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Cairo',
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                        : const Text('حفظ الجدول', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
                   ),
                 ),
               ),
@@ -168,7 +184,7 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.withOpacity(0.35)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.35)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -199,21 +215,16 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
       height: 46,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: primaryYellow.withOpacity(0.65),
+        color: primaryYellow.withValues(alpha: 0.65),
         border: Border(
-          left: BorderSide(color: Colors.grey.withOpacity(0.35)),
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.35)),
+          left: BorderSide(color: Colors.grey.withValues(alpha: 0.35)),
+          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.35)),
         ),
       ),
       child: Text(
         title,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-          color: Colors.black,
-          fontFamily: 'Cairo',
-        ),
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black, fontFamily: 'Cairo'),
       ),
     );
   }
@@ -224,19 +235,13 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
       height: 110,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.08),
+        color: Colors.grey.withValues(alpha: 0.08),
         border: Border(
-          left: BorderSide(color: Colors.grey.withOpacity(0.25)),
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.25)),
+          left: BorderSide(color: Colors.grey.withValues(alpha: 0.25)),
+          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.25)),
         ),
       ),
-      child: Text(
-        day,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Cairo',
-        ),
-      ),
+      child: Text(day, style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
     );
   }
 
@@ -247,8 +252,8 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         border: Border(
-          left: BorderSide(color: Colors.grey.withOpacity(0.25)),
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.25)),
+          left: BorderSide(color: Colors.grey.withValues(alpha: 0.25)),
+          bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.25)),
         ),
       ),
       child: TextFormField(

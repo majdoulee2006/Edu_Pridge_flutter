@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class CorrectedResponsesScreen extends StatelessWidget {
-  const CorrectedResponsesScreen({super.key});
+  final List<Map<String, dynamic>> submissions;
+  const CorrectedResponsesScreen({super.key, this.submissions = const []});
 
   @override
   Widget build(BuildContext context) {
@@ -35,14 +36,14 @@ class CorrectedResponsesScreen extends StatelessWidget {
                     Icon(
                       Icons.sort_rounded,
                       size: 16,
-                      color: textColor.withOpacity(0.5),
+                      color: textColor.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: 5),
                     Text(
                       "الأحدث أولاً",
                       style: TextStyle(
                         fontSize: 13,
-                        color: textColor.withOpacity(0.5),
+                        color: textColor.withValues(alpha: 0.5),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -54,65 +55,30 @@ class CorrectedResponsesScreen extends StatelessWidget {
 
           // 2. قائمة الطلاب المصححة أعمالهم
           Expanded(
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                0,
-                16,
-                100,
-              ), // مساحة إضافية للسكرول
-              children: [
-                _buildCorrectedCard(
-                  context,
-                  name: "سارة أحمد علي",
-                  task: "مشروع الفيزياء: الطاقة المتجددة",
-                  date: "20 أكتوبر - 10:30 ص",
-                  grade: "95",
-                  total: "100",
-                  isOnline: true,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                  isDark: isDark,
-                ),
-                _buildCorrectedCard(
-                  context,
-                  name: "محمد خالد العتيبي",
-                  task: "واجب الرياضيات: التفاضل والتكامل",
-                  date: "19 أكتوبر - 09:00 ص",
-                  grade: "88",
-                  total: "100",
-                  isOnline: false,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                  isDark: isDark,
-                ),
-                _buildCorrectedCard(
-                  context,
-                  name: "يوسف عمر عبد الله",
-                  task: "بحث التاريخ: العصر العباسي",
-                  date: "18 أكتوبر - 02:15 م",
-                  grade: "92",
-                  total: "100",
-                  isOnline: true,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                  isDark: isDark,
-                ),
-                _buildCorrectedCard(
-                  context,
-                  name: "نورة سالم الدوسري",
-                  task: "اختبار قصير: اللغة الإنجليزية",
-                  date: "17 أكتوبر - 11:00 ص",
-                  grade: "100",
-                  total: "100",
-                  isOnline: false,
-                  cardColor: cardColor,
-                  textColor: textColor,
-                  isDark: isDark,
-                ),
-              ],
-            ),
+            child: submissions.isEmpty
+                ? const Center(
+                    child: Text('لا توجد ردود مصححة', style: TextStyle(color: Colors.grey)),
+                  )
+                : ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                    itemCount: submissions.length,
+                    itemBuilder: (context, index) {
+                      final s = submissions[index];
+                      return _buildCorrectedCard(
+                        context,
+                        name:      s['student_name'] as String? ?? '',
+                        task:      s['assignment_title'] as String? ?? '',
+                        date:      s['submitted_at'] as String? ?? '',
+                        grade:     '${s['grade'] ?? 0}',
+                        total:     '${s['max_points'] ?? 100}',
+                        isOnline:  false,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        isDark:    isDark,
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -140,7 +106,7 @@ class CorrectedResponsesScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -156,7 +122,7 @@ class CorrectedResponsesScreen extends StatelessWidget {
                 backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
                 child: Icon(
                   Icons.person_rounded,
-                  color: textColor.withOpacity(0.3),
+                  color: textColor.withValues(alpha: 0.3),
                   size: 30,
                 ),
               ),
@@ -197,7 +163,7 @@ class CorrectedResponsesScreen extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: textColor.withOpacity(0.6),
+                    color: textColor.withValues(alpha: 0.6),
                     fontSize: 12,
                   ),
                 ),
@@ -207,13 +173,13 @@ class CorrectedResponsesScreen extends StatelessWidget {
                     Icon(
                       Icons.check_circle_outline_rounded,
                       size: 14,
-                      color: Colors.green.withOpacity(0.7),
+                      color: Colors.green.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       "تم التصحيح في: $date",
                       style: TextStyle(
-                        color: textColor.withOpacity(0.4),
+                        color: textColor.withValues(alpha: 0.4),
                         fontSize: 10,
                       ),
                     ),
@@ -227,10 +193,10 @@ class CorrectedResponsesScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFFF00).withOpacity(isDark ? 0.1 : 0.2),
+              color: const Color(0xFFFFCC00).withValues(alpha: isDark ? 0.1 : 0.2),
               borderRadius: BorderRadius.circular(15),
               border: Border.all(
-                color: const Color(0xFFEFFF00).withOpacity(0.4),
+                color: const Color(0xFFFFCC00).withValues(alpha: 0.4),
               ),
             ),
             child: Column(
@@ -240,13 +206,13 @@ class CorrectedResponsesScreen extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
-                    color: isDark ? const Color(0xFFEFFF00) : Colors.black,
+                    color: isDark ? const Color(0xFFFFCC00) : Colors.black,
                   ),
                 ),
                 Container(
                   height: 1,
                   width: 20,
-                  color: textColor.withOpacity(0.1),
+                  color: textColor.withValues(alpha: 0.1),
                   margin: const EdgeInsets.symmetric(vertical: 2),
                 ),
                 Text(
@@ -254,7 +220,7 @@ class CorrectedResponsesScreen extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 10,
-                    color: textColor.withOpacity(0.5),
+                    color: textColor.withValues(alpha: 0.5),
                   ),
                 ),
               ],

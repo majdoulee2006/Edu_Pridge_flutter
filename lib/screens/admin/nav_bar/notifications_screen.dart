@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -65,7 +65,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black);
-    final primaryYellow = const Color(0xFFEFFF00);
+    final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -267,7 +267,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
           ),
           child: ListView.builder(
             shrinkWrap: true,
@@ -279,7 +279,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
               return CheckboxListTile(
                 dense: true,
                 title: Text(name, style: TextStyle(color: textColor)),
-                subtitle: Text("القسم • التخصص", style: TextStyle(color: textColor.withOpacity(0.7))),
+                subtitle: Text("القسم • التخصص", style: TextStyle(color: textColor.withValues(alpha: 0.7))),
                 value: isSelected,
                 activeColor: yellow,
                 checkColor: Colors.black,
@@ -304,7 +304,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.4 : 0.06), blurRadius: 20)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.06), blurRadius: 20)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,7 +339,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       decoration: BoxDecoration(
         color: yellow,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: yellow.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: yellow.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -363,8 +363,8 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           decoration: BoxDecoration(
             color: isSelected ? yellow : cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: isSelected ? null : Border.all(color: Colors.grey.withOpacity(0.2)),
-            boxShadow: isSelected ? [BoxShadow(color: yellow.withOpacity(0.3), blurRadius: 12)] : [],
+            border: isSelected ? null : Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            boxShadow: isSelected ? [BoxShadow(color: yellow.withValues(alpha: 0.3), blurRadius: 12)] : [],
           ),
           child: Column(
             children: [
@@ -387,7 +387,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(color: const Color(0xFFEFFF00), width: 1.5),
+        borderSide: BorderSide(color: const Color(0xFFFFCC00), width: 1.5),
       ),
     );
   }
@@ -403,7 +403,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.withOpacity(0.3)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

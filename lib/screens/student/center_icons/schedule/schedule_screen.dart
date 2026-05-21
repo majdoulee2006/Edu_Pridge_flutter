@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -52,23 +52,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     try {
       final data = await StudentServices().getSchedules();
       if (data != null) {
-        // ترتيب الأيام منطقياً
-        Map<String, int> daysOrder = {
-          'الأحد': 1,
-          'الاثنين': 2,
-          'الثلاثاء': 3,
-          'الأربعاء': 4,
-          'الخميس': 5,
-          'الجمعة': 6,
-          'السبت': 7,
+        const Map<String, int> daysOrder = {
+          'الأحد': 1, 'Sunday': 1,
+          'الاثنين': 2, 'Monday': 2,
+          'الثلاثاء': 3, 'Tuesday': 3,
+          'الأربعاء': 4, 'Wednesday': 4,
+          'الخميس': 5, 'Thursday': 5,
         };
-        data.sort(
+        // استبعاد الجمعة والسبت
+        final filtered = data.where((d) {
+          final day = d['day'] as String? ?? '';
+          return day != 'الجمعة' && day != 'Friday' &&
+                 day != 'السبت' && day != 'Saturday';
+        }).toList();
+
+        filtered.sort(
           (a, b) =>
-              (daysOrder[a['day']] ?? 8).compareTo(daysOrder[b['day']] ?? 8),
+              (daysOrder[a['day']] ?? 9).compareTo(daysOrder[b['day']] ?? 9),
         );
 
         setState(() {
-          _schedulesData = data;
+          _schedulesData = filtered;
           _isLoadingSchedules = false;
         });
       } else {
@@ -99,7 +103,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _exportFile(String type) async {
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
       SnackBar(
         content: Text('جاري تجهيز وتنزيل ملف الـ ${type.toUpperCase()}...'),
         backgroundColor: Colors.green,
@@ -118,7 +123,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         throw 'الرابط غير متوفر';
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('حدث خطأ أثناء التنزيل!'),
           backgroundColor: Colors.red,
@@ -274,12 +279,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFEFFF00) : Colors.transparent,
+            color: isActive ? const Color(0xFFFFCC00) : Colors.transparent,
             borderRadius: BorderRadius.circular(25),
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: const Color(0xFFEFFF00).withAlpha(100),
+                      color: const Color(0xFFFFCC00).withAlpha(100),
                       blurRadius: 10,
                     ),
                   ]
@@ -310,7 +315,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     if (_isLoadingSchedules) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFEFFF00)),
+        child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
       );
     }
 
@@ -457,7 +462,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     if (_isLoadingExams) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFEFFF00)),
+        child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
       );
     }
 
@@ -646,7 +651,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         height: 95,
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFEFFF00)
+              ? const Color(0xFFFFCC00)
               : (isDark ? Theme.of(context).cardColor : Colors.white),
           borderRadius: BorderRadius.circular(35),
           border: isSelected
@@ -659,7 +664,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFFEFFF00).withAlpha(100),
+                    color: const Color(0xFFFFCC00).withAlpha(100),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -726,7 +731,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: isCurrentTime
                     ? BoxDecoration(
-                        color: const Color(0xFFEFFF00),
+                        color: const Color(0xFFFFCC00),
                         borderRadius: BorderRadius.circular(10),
                       )
                     : null,
@@ -992,7 +997,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEFFF00),
+                      backgroundColor: const Color(0xFFFFCC00),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -1127,7 +1132,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEFFF00),
+                  backgroundColor: const Color(0xFFFFCC00),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1276,7 +1281,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         color: isDark ? Theme.of(context).cardColor : Colors.white,
         borderRadius: BorderRadius.circular(25),
         border: isActive
-            ? Border.all(color: const Color(0xFFEFFF00), width: 2)
+            ? Border.all(color: const Color(0xFFFFCC00), width: 2)
             : Border.all(
                 color: Colors.transparent,
                 width: 2,

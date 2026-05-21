@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'onboarding_two.dart';
 import '../auth/login_screen.dart';
 import '../../widgets/custom_button.dart';
@@ -15,7 +15,7 @@ class OnboardingOne extends StatelessWidget {
     final scaffoldBg = theme.scaffoldBackgroundColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
     final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
-    final primaryYellow = const Color(0xFFEFFF00);
+    final primaryYellow = const Color(0xFFFFCC00);
     final inactiveDot = isDark ? Colors.white24 : const Color(0xFFE0E0E0);
 
     return Scaffold(
@@ -71,28 +71,28 @@ class OnboardingOne extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // الصورة (أضفت خلفية خفيفة في الداكن لبروز الصورة إذا كانت شفافة)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
+                    height: 250,
+                    width: double.infinity,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: isDark ? [
-                        BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5)
-                        )
-                      ] : null,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.asset(
-                          'assets/images/onboarding1.png',
-                          height: 250,
-                          width: double.infinity,
-                          fit: BoxFit.cover
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? [const Color(0xFF1A237E), const Color(0xFF121212)]
+                            : [const Color(0xFFE3F2FD), const Color(0xFFBBDEFB)],
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
                       ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.school_rounded, size: 90, color: primaryYellow),
+                        const SizedBox(height: 16),
+                        Text("منصة تعليمية متكاملة", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.blueGrey.shade700)),
+                      ],
                     ),
                   ),
                 ),

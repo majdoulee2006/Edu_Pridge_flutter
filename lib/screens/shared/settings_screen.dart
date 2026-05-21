@@ -1,17 +1,70 @@
 import 'package:flutter/material.dart';
-// 🌟 استدعي مسار شاشة تسجيل الدخول تبعتك هون (عدلي المسار حسب مشروعك) 🌟
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/auth/login_screen.dart';
 
-// 🌟 كلاس لإدارة الإعدادات العامة على مستوى التطبيق كله 🌟
+// ─── AppSettings ───────────────────────────────────────────────────────────
 class AppSettings {
-  static ValueNotifier<bool> isDarkMode = ValueNotifier(false);
-  static ValueNotifier<double> fontSize = ValueNotifier(
-    1.0,
-  ); // 1.0 هو الحجم الطبيعي
+  static ValueNotifier<bool>   isDarkMode            = ValueNotifier(true);
+  static ValueNotifier<double> fontSize              = ValueNotifier(1.0);
+  static ValueNotifier<String> language              = ValueNotifier('ar');
+  static ValueNotifier<bool>   isSoundsEnabled       = ValueNotifier(true);
+  static ValueNotifier<bool>   isVibrationEnabled    = ValueNotifier(false);
+  static ValueNotifier<bool>   isNotificationsEnabled= ValueNotifier(true);
+
+  static Future<void> loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    isDarkMode.value             = prefs.getBool('dark_mode')             ?? true;
+    fontSize.value               = prefs.getDouble('font_size')           ?? 1.0;
+    language.value               = prefs.getString('language')            ?? 'ar';
+    isSoundsEnabled.value        = prefs.getBool('sounds_enabled')        ?? true;
+    isVibrationEnabled.value     = prefs.getBool('vibration_enabled')     ?? false;
+    isNotificationsEnabled.value = prefs.getBool('notifications_enabled') ?? true;
+  }
+
+  static Future<void> setDarkMode(bool v) async {
+    isDarkMode.value = v;
+    (await SharedPreferences.getInstance()).setBool('dark_mode', v);
+  }
+
+  static Future<void> setFontSize(double v) async {
+    fontSize.value = v;
+    (await SharedPreferences.getInstance()).setDouble('font_size', v);
+  }
+
+  static Future<void> setLanguage(String v) async {
+    language.value = v;
+    (await SharedPreferences.getInstance()).setString('language', v);
+  }
+
+  static Future<void> setSoundsEnabled(bool v) async {
+    isSoundsEnabled.value = v;
+    (await SharedPreferences.getInstance()).setBool('sounds_enabled', v);
+    if (v) SystemSound.play(SystemSoundType.click);
+  }
+
+  static Future<void> setVibrationEnabled(bool v) async {
+    isVibrationEnabled.value = v;
+    (await SharedPreferences.getInstance()).setBool('vibration_enabled', v);
+    if (v) HapticFeedback.mediumImpact();
+  }
+
+  static Future<void> setNotificationsEnabled(bool v) async {
+    isNotificationsEnabled.value = v;
+    (await SharedPreferences.getInstance()).setBool('notifications_enabled', v);
+  }
+
+  static void triggerHaptic() {
+    if (isVibrationEnabled.value) HapticFeedback.lightImpact();
+  }
+
+  static void triggerSound() {
+    if (isSoundsEnabled.value) SystemSound.play(SystemSoundType.click);
+  }
 }
 
-class SettingsScreen extends StatefulWidget {
-  // 🌟 متغيرات لتمرير بيانات الأكتور (طالب، مدرس، إلخ) 🌟
+// ─── SettingsScreen ────────────────────────────────────────────────────────
+class SettingsScreen extends StatelessWidget {
   final String userName;
   final String userRole;
   final String profileImageUrl;
@@ -19,126 +72,106 @@ class SettingsScreen extends StatefulWidget {
 
   const SettingsScreen({
     super.key,
-    // قيم افتراضية عشان ما يضرب الكود القديم عند الاستدعاء
-    this.userName = "أ. أحمد محمد",
-    this.userRole = "عضو هيئة تدريس",
-    this.profileImageUrl = 'https://via.placeholder.com/150',
+    this.userName        = "مستخدم",
+    this.userRole        = "",
+    this.profileImageUrl = '',
     this.onProfileTap,
   });
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isNotificationsEnabled = true;
-  bool _isSoundsEnabled = true;
-  bool _isVibrationEnabled = false;
-
-  @override
   Widget build(BuildContext context) {
-    // 🌟 نستخدم ValueListenableBuilder ليتحدث المظهر فوراً عند التغيير 🌟
     return ValueListenableBuilder<bool>(
       valueListenable: AppSettings.isDarkMode,
-      builder: (context, isDark, child) {
-        return ValueListenableBuilder<double>(
-          valueListenable: AppSettings.fontSize,
-          builder: (context, fontScale, child) {
-            // 🌟 تعريف الألوان بناءً على الوضع (فاتح / داكن) 🌟
-            final bgColor = isDark
-                ? const Color(0xFF121212)
-                : const Color(0xFFFBFBF9);
+      builder: (context, isDark, _) => ValueListenableBuilder<double>(
+        valueListenable: AppSettings.fontSize,
+        builder: (context, fontScale, _) => ValueListenableBuilder<String>(
+          valueListenable: AppSettings.language,
+          builder: (context, lang, _) {
+            final isAr      = lang == 'ar';
+            final bgColor   = isDark ? const Color(0xFF121212) : const Color(0xFFF9F9F9);
             final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
             final textColor = isDark ? Colors.white : Colors.black;
-            final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
+            final subColor  = isDark ? Colors.grey.shade400 : Colors.grey;
 
-            // 🌟 تطبيق تغيير حجم الخط على هذه الشاشة 🌟
-            return MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: TextScaler.linear(fontScale)),
-              child: Scaffold(
-                backgroundColor: bgColor,
-                appBar: AppBar(
-                  backgroundColor: cardColor,
-                  elevation: 0,
-                  title: Text(
-                    "الإعدادات",
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: FontWeight.bold,
+            return Directionality(
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(fontScale)),
+                child: Scaffold(
+                  backgroundColor: bgColor,
+                  appBar: AppBar(
+                    backgroundColor: cardColor,
+                    elevation: 0,
+                    centerTitle: true,
+                    title: Text(isAr ? "الإعدادات" : "Settings",
+                        style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+                    leading: IconButton(
+                      icon: Icon(Icons.arrow_back, color: textColor),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
-                  centerTitle: true,
-                  leading: IconButton(
-                    icon: Icon(Icons.arrow_back, color: textColor),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                body: Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: SingleChildScrollView(
+                  body: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // كرت البروفايل العلوي (صار تفاعلي وديناميكي)
-                        _buildProfileCard(cardColor, textColor, subtitleColor),
+                        _buildProfileCard(context, cardColor, textColor, subColor, isAr),
                         const SizedBox(height: 25),
 
-                        _buildSectionTitle("المظهر", subtitleColor),
-                        _buildFontSizeSlider(cardColor, textColor),
-                        _buildSwitchTile(
-                          Icons.dark_mode_outlined,
-                          "الوضع الداكن",
-                          isDark,
-                          (val) => AppSettings.isDarkMode.value =
-                              val, // 🌟 يغير الثيم فوراً
-                          cardColor,
-                          textColor,
+                        _sectionTitle(isAr ? "المظهر" : "Appearance", subColor),
+                        _fontSizeSlider(cardColor, textColor, isAr),
+                        _switchTile(
+                          icon: Icons.dark_mode_outlined,
+                          title: isAr ? "الوضع الداكن" : "Dark Mode",
+                          value: isDark,
+                          onChanged: (v) { AppSettings.setDarkMode(v); AppSettings.triggerHaptic(); },
+                          cardColor: cardColor, textColor: textColor,
                         ),
 
                         const SizedBox(height: 25),
-                        _buildSectionTitle("اللغة", subtitleColor),
-                        _buildLanguageTile(cardColor, textColor),
+                        _sectionTitle(isAr ? "اللغة" : "Language", subColor),
+                        _languageTile(context, cardColor, textColor, subColor, lang, isAr),
 
                         const SizedBox(height: 25),
-                        _buildSectionTitle("الإشعارات", subtitleColor),
-                        _buildSwitchTile(
-                          Icons.notifications_none_outlined,
-                          "تفعيل الإشعارات",
-                          _isNotificationsEnabled,
-                          (val) =>
-                              setState(() => _isNotificationsEnabled = val),
-                          cardColor,
-                          textColor,
+                        _sectionTitle(isAr ? "الإشعارات والصوت" : "Notifications & Sound", subColor),
+
+                        ValueListenableBuilder<bool>(
+                          valueListenable: AppSettings.isNotificationsEnabled,
+                          builder: (_, notif, __) => _switchTile(
+                            icon: Icons.notifications_none_outlined,
+                            title: isAr ? "تفعيل الإشعارات" : "Notifications",
+                            value: notif,
+                            onChanged: (v) { AppSettings.setNotificationsEnabled(v); AppSettings.triggerHaptic(); },
+                            cardColor: cardColor, textColor: textColor,
+                          ),
                         ),
-                        _buildSwitchTile(
-                          Icons.volume_up_outlined,
-                          "الأصوات",
-                          _isSoundsEnabled,
-                          (val) => setState(() => _isSoundsEnabled = val),
-                          cardColor,
-                          textColor,
+
+                        ValueListenableBuilder<bool>(
+                          valueListenable: AppSettings.isSoundsEnabled,
+                          builder: (_, sounds, __) => _switchTile(
+                            icon: Icons.volume_up_outlined,
+                            title: isAr ? "الأصوات" : "Sounds",
+                            value: sounds,
+                            onChanged: (v) => AppSettings.setSoundsEnabled(v),
+                            cardColor: cardColor, textColor: textColor,
+                          ),
                         ),
-                        _buildSwitchTile(
-                          Icons.vibration_outlined,
-                          "الاهتزاز",
-                          _isVibrationEnabled,
-                          (val) => setState(() => _isVibrationEnabled = val),
-                          cardColor,
-                          textColor,
+
+                        ValueListenableBuilder<bool>(
+                          valueListenable: AppSettings.isVibrationEnabled,
+                          builder: (_, vib, __) => _switchTile(
+                            icon: Icons.vibration_outlined,
+                            title: isAr ? "الاهتزاز" : "Vibration",
+                            value: vib,
+                            onChanged: (v) => AppSettings.setVibrationEnabled(v),
+                            cardColor: cardColor, textColor: textColor,
+                          ),
                         ),
 
                         const SizedBox(height: 40),
-
-                        // قسم شعار التطبيق والإصدار
-                        _buildAppInfoSection(textColor, subtitleColor),
-
+                        _appInfoSection(textColor, subColor),
                         const SizedBox(height: 30),
-
-                        // زر تسجيل الخروج
-                        _buildLogoutButton(context), // ✅ مررنا الـ context هنا
+                        _logoutButton(context, isAr),
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -147,330 +180,288 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             );
           },
-        );
-      },
+        ),
+      ),
     );
   }
 
-  // 🌟 الكرت صار ياخد بياناته من الـ Widget وبيضغط لحتى يروح للبروفايل 🌟
-  Widget _buildProfileCard(
-    Color cardColor,
-    Color textColor,
-    Color subtitleColor,
-  ) {
+  // ── Profile Card ──────────────────────────────────────────────────────────
+  Widget _buildProfileCard(BuildContext context, Color cardColor, Color textColor, Color subColor, bool isAr) {
     return InkWell(
-      onTap: widget.onProfileTap, // الانتقال للبروفايل
+      onTap: onProfileTap,
       borderRadius: BorderRadius.circular(25),
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 30,
-              backgroundImage: NetworkImage(widget.profileImageUrl),
+              backgroundColor: const Color(0xFFCCAA00),
+              backgroundImage: profileImageUrl.isNotEmpty ? NetworkImage(profileImageUrl) : null,
+              child: profileImageUrl.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
             ),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.userName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: textColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    widget.userRole,
-                    style: TextStyle(color: subtitleColor, fontSize: 13),
-                  ),
+                  Text(userName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(userRole, style: TextStyle(color: subColor, fontSize: 13)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+            Icon(isAr ? Icons.arrow_forward_ios : Icons.arrow_back_ios, color: Colors.grey, size: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFontSizeSlider(Color cardColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
+  // ── Font Size Slider ──────────────────────────────────────────────────────
+  Widget _fontSizeSlider(Color cardColor, Color textColor, bool isAr) {
+    return ValueListenableBuilder<double>(
+      valueListenable: AppSettings.fontSize,
+      builder: (_, scale, __) => Container(
+        padding: const EdgeInsets.all(15),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
+        child: Column(
+          children: [
+            Row(children: [
               Icon(Icons.text_fields, color: textColor),
               const SizedBox(width: 10),
-              Text(
-                "حجم الخط",
-                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-              ),
-            ],
-          ),
-          Slider(
-            value: AppSettings.fontSize.value,
-            min: 0.8, // أصغر خط
-            max: 1.2, // أكبر خط
-            divisions: 2, // 3 حالات: صغير (0.8)، متوسط (1.0)، كبير (1.2)
-            activeColor: const Color(0xFFEFFF00),
-            inactiveColor: Colors.grey[300],
-            onChanged: (val) {
-              AppSettings.fontSize.value = val; // 🌟 يغير حجم الخط فوراً
-            },
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text("صغير", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              Text("متوسط", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              Text("كبير", style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
-          ),
-        ],
+              Text(isAr ? "حجم الخط" : "Font Size", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+            ]),
+            Slider(
+              value: scale,
+              min: 0.8, max: 1.2, divisions: 2,
+              activeColor: const Color(0xFFFFCC00),
+              inactiveColor: Colors.grey[300],
+              onChanged: (v) => AppSettings.setFontSize(v),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(isAr ? "صغير" : "Small", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(isAr ? "متوسط" : "Medium", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(isAr ? "كبير" : "Large", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSwitchTile(
-    IconData icon,
-    String title,
-    bool value,
-    Function(bool) onChanged,
-    Color cardColor,
-    Color textColor,
-  ) {
+  // ── Language Tile ─────────────────────────────────────────────────────────
+  Widget _languageTile(BuildContext context, Color cardColor, Color textColor, Color subColor, String lang, bool isAr) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
+      child: ListTile(
+        leading: Icon(Icons.language, color: textColor),
+        title: Text(isAr ? "لغة التطبيق" : "App Language",
+            style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFCCAA00).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(lang == 'ar' ? "العربية" : "English",
+              style: const TextStyle(color: Color(0xFFCCAA00), fontWeight: FontWeight.bold)),
+        ),
+        onTap: () => _showLanguageSheet(context, lang, isAr, cardColor, textColor, subColor),
       ),
+    );
+  }
+
+  void _showLanguageSheet(BuildContext context, String current, bool isAr, Color cardColor, Color textColor, Color subColor) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cardColor,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (_) => Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: Padding(
+          padding: const EdgeInsets.all(25),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(isAr ? "اختر اللغة" : "Select Language",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+              const SizedBox(height: 20),
+              _langOption(context, 'ar', current, "العربية", "Arabic", "🇸🇦", cardColor, textColor),
+              const SizedBox(height: 12),
+              _langOption(context, 'en', current, "English", "الإنجليزية", "🇺🇸", cardColor, textColor),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _langOption(BuildContext context, String code, String current, String label, String sub, String flag, Color cardColor, Color textColor) {
+    final isSelected = current == code;
+    return GestureDetector(
+      onTap: () {
+        AppSettings.setLanguage(code);
+        AppSettings.triggerHaptic();
+        Navigator.pop(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFCCAA00).withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: isSelected ? const Color(0xFFCCAA00) : Colors.grey.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Text(flag, style: const TextStyle(fontSize: 28)),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                  Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
+              ),
+            ),
+            if (isSelected) const Icon(Icons.check_circle, color: Color(0xFFCCAA00)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Switch Tile ───────────────────────────────────────────────────────────
+  Widget _switchTile({
+    required IconData icon,
+    required String title,
+    required bool value,
+    required Function(bool) onChanged,
+    required Color cardColor,
+    required Color textColor,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
       child: ListTile(
         leading: Icon(icon, color: textColor),
-        title: Text(
-          title,
-          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-        ),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
         trailing: Switch(
           value: value,
           activeThumbColor: Colors.black,
-          activeTrackColor: const Color(0xFFEFFF00),
+          activeTrackColor: const Color(0xFFFFCC00),
           onChanged: onChanged,
         ),
       ),
     );
   }
 
-  Widget _buildLanguageTile(Color cardColor, Color textColor) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: ListTile(
-        leading: Icon(Icons.language, color: textColor),
-        title: Text(
-          "لغة التطبيق",
-          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            "عربي",
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppInfoSection(Color textColor, Color subtitleColor) {
+  // ── App Info ──────────────────────────────────────────────────────────────
+  Widget _appInfoSection(Color textColor, Color subColor) {
     return Center(
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFFF00),
-              borderRadius: BorderRadius.circular(15),
-            ),
+            decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(15)),
             child: const Icon(Icons.school, size: 40, color: Colors.black),
           ),
           const SizedBox(height: 15),
-          Text(
-            "Edu-Bridge",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
+          Text("Edu-Bridge", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
           const SizedBox(height: 5),
-          Text(
-            "التطبيق الرسمي لإدارة شؤون الطلاب\nوالمحاضرات والواجبات.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: subtitleColor, fontSize: 13, height: 1.5),
-          ),
+          Text("التطبيق الرسمي لإدارة شؤون الطلاب\nوالمحاضرات والواجبات.",
+              textAlign: TextAlign.center, style: TextStyle(color: subColor, fontSize: 13, height: 1.5)),
           const SizedBox(height: 15),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              "Version 1.0.2",
-              style: TextStyle(
-                color: subtitleColor,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+            child: Text("Version 1.0.2", style: TextStyle(color: subColor, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  // ✅ زر تسجيل الخروج مع نافذة التأكيد (Confirmation Dialog)
-  Widget _buildLogoutButton(BuildContext context) {
+  // ── Logout Button ─────────────────────────────────────────────────────────
+  Widget _logoutButton(BuildContext context, bool isAr) {
     return InkWell(
       onTap: () {
-        // 🌟 إظهار نافذة التأكيد قبل تسجيل الخروج 🌟
+        AppSettings.triggerHaptic();
         showDialog(
           context: context,
-          builder: (BuildContext context) {
-            return Directionality(
-              textDirection:
-                  TextDirection.rtl, // لضمان دعم اللغة العربية في النافذة
-              child: AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+          builder: (_) => Directionality(
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+            child: AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(children: [
+                const Icon(Icons.logout, color: Colors.red),
+                const SizedBox(width: 10),
+                Text(isAr ? "تسجيل الخروج" : "Logout",
+                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 18)),
+              ]),
+              content: Text(isAr
+                  ? "هل أنت متأكد أنك تريد تسجيل الخروج من الحساب؟"
+                  : "Are you sure you want to log out?"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(isAr ? "لا، تراجع" : "Cancel",
+                      style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                 ),
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 10),
-                    Text(
-                      "تسجيل الخروج",
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-                content: const Text(
-                  "هل أنت متأكد أنك تريد تسجيل الخروج من الحساب؟",
-                  style: TextStyle(fontSize: 15),
-                ),
-                actions: [
-                  // خيار (لا)
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // إغلاق النافذة فقط
-                    },
-                    child: const Text(
-                      "لا، تراجع",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red, elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  // خيار (نعم)
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () {
-                      // 1. أولاً بنغلق النافذة المنبثقة
-                      Navigator.pop(context);
-
-                      // 2. بنمسح كل الواجهات وبننقله لواجهة تسجيل الدخول
-                      // ⚠️ شيلي الـ التعليقات (/* و */) وفعلي الكود تحت بعد ما تظبطي مسار صفحة الدخول فوق
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
-                        ), // تأكدي من اسم الواجهة هون
-                        (Route<dynamic> route) => false,
-                      );
-                    },
-                    child: const Text(
-                      "نعم، خروج",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (_) => false,
+                    );
+                  },
+                  child: Text(isAr ? "نعم، خروج" : "Yes, Logout",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
         );
       },
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFEBEE), // لون أحمر فاتح جداً خلف الزر
-          borderRadius: BorderRadius.circular(20),
-        ),
+        decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(20)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.logout, color: Colors.red),
-            SizedBox(width: 10),
-            Text(
-              "تسجيل الخروج",
-              style: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
+          children: [
+            const Icon(Icons.logout, color: Colors.red),
+            const SizedBox(width: 10),
+            Text(isAr ? "تسجيل الخروج" : "Logout",
+                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title, Color subtitleColor) {
+  Widget _sectionTitle(String title, Color subColor) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, right: 10),
-      child: Text(
-        title,
-        style: TextStyle(fontWeight: FontWeight.bold, color: subtitleColor),
-      ),
+      padding: const EdgeInsets.only(bottom: 10, right: 10, left: 10),
+      child: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: subColor)),
     );
   }
 }

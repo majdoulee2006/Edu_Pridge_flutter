@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class StudentAffairsManagementScreen extends StatefulWidget {
   final String mode;
@@ -29,7 +29,7 @@ class _StudentAffairsManagementScreenState extends State<StudentAffairsManagemen
       lastDate: DateTime(2008),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: Color(0xFFEFFF00), onPrimary: Colors.black),
+          colorScheme: const ColorScheme.light(primary: Color(0xFFFFCC00), onPrimary: Colors.black),
         ),
         child: child!,
       ),
@@ -40,7 +40,7 @@ class _StudentAffairsManagementScreenState extends State<StudentAffairsManagemen
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryYellow = const Color(0xFFEFFF00);
+    final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -138,7 +138,7 @@ class _StudentAffairsManagementScreenState extends State<StudentAffairsManagemen
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? yellow : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100),
+          color: isSelected ? yellow : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Row(
@@ -161,7 +161,7 @@ class _StudentAffairsManagementScreenState extends State<StudentAffairsManagemen
         prefixIcon: Icon(icon, size: 20),
         hintText: hint,
         filled: true,
-        fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
+        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       ),
     );
@@ -171,7 +171,7 @@ class _StudentAffairsManagementScreenState extends State<StudentAffairsManagemen
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
@@ -188,7 +188,7 @@ class _StudentAffairsManagementScreenState extends State<StudentAffairsManagemen
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(15),
       ),
       child: DropdownButtonHideUnderline(

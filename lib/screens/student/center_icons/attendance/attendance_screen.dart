@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart'; // 🌟 استدعاء مكتبة الملفات
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -27,22 +27,93 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   List<dynamic> _attendanceList = [];
   
   Map<int, bool> _expandedExcuses = {};
-  Set<int> _submittedExcuses = {}; // 🌟 لحفظ الكروت اللي تم تقديم عذر لها محلياً
+  Set<int> _submittedExcuses = {};
+  final Map<int, TextEditingController> _excuseControllers = {};
+  final Map<int, bool> _submittingExcuse = {};
 
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
+  final TextEditingController _leaveReasonController = TextEditingController();
+  bool _isSubmittingLeave = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchAttendance(); 
+    _fetchAttendance();
   }
 
   @override
   void dispose() {
     _dateController.dispose();
     _timeController.dispose();
+    _leaveReasonController.dispose();
+    for (var c in _excuseControllers.values) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> _submitExcuse(int index, int attendanceId) async {
+    final controller = _excuseControllers[index];
+    final reason = controller?.text.trim() ?? '';
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى كتابة سبب الغياب أولاً')),
+      );
+      return;
+    }
+    setState(() => _submittingExcuse[index] = true);
+    try {
+      final ok = await StudentServices().submitAttendanceExcuse(attendanceId, reason);
+      if (ok && mounted) {
+        _showSuccessDialog('تم إرسال التبرير بنجاح\nشاكرين تعاونكم');
+        setState(() {
+          _expandedExcuses[index] = false;
+          _submittedExcuses.add(index);
+          controller?.clear();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ، يرجى المحاولة مرة أخرى')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submittingExcuse[index] = false);
+    }
+  }
+
+  Future<void> _submitLeaveRequest() async {
+    final reason = _leaveReasonController.text.trim();
+    final date = _dateController.text.trim();
+    if (date.isEmpty || reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى ملء جميع الحقول المطلوبة')),
+      );
+      return;
+    }
+    setState(() => _isSubmittingLeave = true);
+    try {
+      final type = _leaveType == 0 ? 'full_day' : 'hourly';
+      final ok = await StudentServices().submitLeaveRequest(type, date, reason);
+      if (ok && mounted) {
+        _showSuccessDialog('تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً');
+        setState(() {
+          _dateController.clear();
+          _timeController.clear();
+          _leaveReasonController.clear();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ، يرجى المحاولة مرة أخرى')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmittingLeave = false);
+    }
   }
 
   Future<void> _fetchAttendance() async {
@@ -104,12 +175,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: isDark
                 ? const ColorScheme.dark(
-                    primary: Color(0xFFEFFF00),
+                    primary: Color(0xFFFFCC00),
                     onPrimary: Colors.black,
                     onSurface: Colors.white,
                   )
                 : const ColorScheme.light(
-                    primary: Color(0xFFEFFF00),
+                    primary: Color(0xFFFFCC00),
                     onPrimary: Colors.black,
                     onSurface: Colors.black,
                   ),
@@ -136,12 +207,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: isDark
                 ? const ColorScheme.dark(
-                    primary: Color(0xFFEFFF00),
+                    primary: Color(0xFFFFCC00),
                     onPrimary: Colors.black,
                     onSurface: Colors.white,
                   )
                 : const ColorScheme.light(
-                    primary: Color(0xFFEFFF00),
+                    primary: Color(0xFFFFCC00),
                     onPrimary: Colors.black,
                     onSurface: Colors.black,
                   ),
@@ -194,7 +265,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEFFF00),
+                    backgroundColor: const Color(0xFFFFCC00),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -219,7 +290,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   // 🌟 دالة اختيار الملفات الحقيقية من الموبايل 🌟
   Future<void> _pickFile(String type) async {
-    Navigator.pop(context); // إغلاق القائمة السفلية أولاً
+    Navigator.pop(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       FilePickerResult? result;
@@ -227,7 +299,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       if (type == 'مستند' || type == 'ملف') {
         result = await FilePicker.platform.pickFiles(
           type: FileType.custom,
-          allowedExtensions: ['pdf', 'doc', 'docx', 'zip'], 
+          allowedExtensions: ['pdf', 'doc', 'docx', 'zip'],
         );
       } else if (type == 'صورة') {
         result = await FilePicker.platform.pickFiles(type: FileType.image);
@@ -237,14 +309,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
       if (result != null) {
         String fileName = result.files.single.name;
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('تم إرفاق الملف: $fileName'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('تم إلغاء اختيار الملف'),
             backgroundColor: Colors.orange,
@@ -253,7 +325,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       }
     } catch (e) {
       debugPrint("Error picking file: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('حدث خطأ أو تم رفض الصلاحيات'),
           backgroundColor: Colors.red,
@@ -449,7 +521,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 15),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFEFFF00) : Colors.transparent,
+            color: isActive ? const Color(0xFFFFCC00) : Colors.transparent,
             borderRadius: BorderRadius.circular(30),
           ),
           child: Center(
@@ -474,7 +546,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFEFFF00)),
+        child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
       );
     }
 
@@ -489,7 +561,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     return RefreshIndicator(
       onRefresh: _fetchAttendance,
-      color: const Color(0xFFEFFF00),
+      color: const Color(0xFFFFCC00),
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
@@ -513,7 +585,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 icon: Icons.hourglass_empty,
               );
             }
-            return _buildUnexcusedAbsenceCard(index, date, subject);
+            final attendanceId = record['id'] as int? ?? 0;
+            return _buildUnexcusedAbsenceCard(index, attendanceId, date, subject);
           }
 
           Color statusColor;
@@ -551,9 +624,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildUnexcusedAbsenceCard(int index, String date, String subject) {
+  Widget _buildUnexcusedAbsenceCard(int index, int attendanceId, String date, String subject) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isExpanded = _expandedExcuses[index] ?? false;
+    _excuseControllers.putIfAbsent(index, () => TextEditingController());
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -683,6 +757,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
             const SizedBox(height: 10),
             TextField(
+              controller: _excuseControllers[index],
               maxLines: 3,
               style: TextStyle(color: isDark ? Colors.white : Colors.black),
               decoration: InputDecoration(
@@ -752,34 +827,36 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               height: 45,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEFFF00),
+                  backgroundColor: const Color(0xFFFFCC00),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
                 ),
-                onPressed: () {
-                  _showSuccessDialog('تم إرسال التبرير بنجاح\nشاكرين تعاونكم');
-                  setState(() {
-                    _expandedExcuses[index] = false;
-                    _submittedExcuses.add(index); // 🌟 إخفاء الكرت وتحويله لقيد المراجعة 🌟
-                  });
-                },
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.send_rounded, color: Colors.black, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'إرسال التبرير',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                onPressed: (_submittingExcuse[index] ?? false)
+                    ? null
+                    : () => _submitExcuse(index, attendanceId),
+                child: (_submittingExcuse[index] ?? false)
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.send_rounded, color: Colors.black, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'إرسال التبرير',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
@@ -1058,6 +1135,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               const SizedBox(height: 10),
               TextField(
+                controller: _leaveReasonController,
                 maxLines: 4,
                 style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 decoration: InputDecoration(
@@ -1083,37 +1161,34 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEFFF00),
+                    backgroundColor: const Color(0xFFFFCC00),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 0,
                   ),
-                  onPressed: () {
-                    _showSuccessDialog(
-                      'تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً',
-                    );
-                    // 🌟 مسح الحقول بعد تقديم الطلب
-                    setState(() {
-                      _dateController.clear();
-                      _timeController.clear();
-                    });
-                  },
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.send_rounded, color: Colors.black, size: 18),
-                      SizedBox(width: 8),
-                      Text(
-                        'إرسال الطلب',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                  onPressed: _isSubmittingLeave ? null : _submitLeaveRequest,
+                  child: _isSubmittingLeave
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.send_rounded, color: Colors.black, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'إرسال الطلب',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ],
@@ -1134,7 +1209,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFEFFF00) : Colors.transparent,
+            color: isActive ? const Color(0xFFFFCC00) : Colors.transparent,
             borderRadius: BorderRadius.circular(15),
             boxShadow: isActive
                 ? [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 5)]

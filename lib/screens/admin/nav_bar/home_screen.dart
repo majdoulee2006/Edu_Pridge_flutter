@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
@@ -126,7 +126,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             MaterialPageRoute(builder: (context) => const AddPostScreen()),
           );
         },
-        backgroundColor: const Color(0xFFEFFF00),
+        backgroundColor: const Color(0xFFFFCC00),
         elevation: 8,
         shape: const CircleBorder(),
         child: const Icon(Icons.add, color: Colors.black, size: 32),
@@ -174,7 +174,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             },
             child: CircleAvatar(
               radius: 26,
-              backgroundColor: isDark ? Colors.amber.withOpacity(0.1) : const Color(0xFF2D2A1A),
+              backgroundColor: isDark ? Colors.amber.withValues(alpha: 0.1) : const Color(0xFF2D2A1A),
               child: const Icon(Icons.person, color: Colors.amber, size: 28),
             ),
           ),
@@ -189,7 +189,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +225,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           Container(
             width: 60,
             height: 60,
-            decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
+            decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(15)),
             child: const Icon(Icons.admin_panel_settings, color: Colors.amber),
           ),
           const SizedBox(width: 15),

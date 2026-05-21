@@ -1,9 +1,13 @@
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class EditOfTableScreen extends StatefulWidget {
-  final Map<String, String>? initialData;
+  final Map<String, dynamic>? initialData;
+  final int? scheduleId;
 
-  const EditOfTableScreen({super.key, this.initialData});
+  const EditOfTableScreen({super.key, this.initialData, this.scheduleId});
 
   @override
   State<EditOfTableScreen> createState() => _EditOfTableScreenState();
@@ -11,75 +15,79 @@ class EditOfTableScreen extends StatefulWidget {
 
 class _EditOfTableScreenState extends State<EditOfTableScreen> {
   final _formKey = GlobalKey<FormState>();
-  static const int _rowsCount = 10;
 
-  late final List<TextEditingController> _sectionControllers;
-  late final List<TextEditingController> _subjectControllers;
-  late final List<TextEditingController> _teacherControllers;
-  late final List<TextEditingController> _timeControllers;
+  late final TextEditingController _dayController;
+  late final TextEditingController _subjectController;
+  late final TextEditingController _teacherController;
+  late final TextEditingController _timeController;
+  late final TextEditingController _hallController;
+
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _sectionControllers = List.generate(_rowsCount, (i) {
-      return TextEditingController(
-        text: i == 0 ? (widget.initialData?['section'] ?? 'الشعبة ${i + 1}') : 'الشعبة ${i + 1}',
-      );
-    });
-    _subjectControllers = List.generate(_rowsCount, (i) {
-      return TextEditingController(
-        text: i == 0 ? (widget.initialData?['subject'] ?? 'مادة ${i + 1}') : 'مادة ${i + 1}',
-      );
-    });
-    _teacherControllers = List.generate(_rowsCount, (i) {
-      return TextEditingController(
-        text: i == 0 ? (widget.initialData?['doctor'] ?? 'الأستاذ ${i + 1}') : 'الأستاذ ${i + 1}',
-      );
-    });
-    _timeControllers = List.generate(_rowsCount, (i) {
-      return TextEditingController(
-        text: i == 0 ? (widget.initialData?['time'] ?? '08:00 - 09:00') : '08:00 - 09:00',
-      );
-    });
+    final d = widget.initialData;
+    _dayController     = TextEditingController(text: d?['day']     as String? ?? '');
+    _subjectController = TextEditingController(text: d?['subject'] as String? ?? '');
+    _teacherController = TextEditingController(text: d?['doctor']  as String? ?? '');
+    _timeController    = TextEditingController(text: d?['time']    as String? ?? '');
+    _hallController    = TextEditingController(text: d?['hall']    as String? ?? '');
   }
 
   @override
   void dispose() {
-    for (final c in _sectionControllers) {
-      c.dispose();
-    }
-    for (final c in _subjectControllers) {
-      c.dispose();
-    }
-    for (final c in _teacherControllers) {
-      c.dispose();
-    }
-    for (final c in _timeControllers) {
-      c.dispose();
-    }
+    _dayController.dispose();
+    _subjectController.dispose();
+    _teacherController.dispose();
+    _timeController.dispose();
+    _hallController.dispose();
     super.dispose();
   }
 
-  void _saveChanges() {
+  Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم حفظ تعديلات الجدول الدراسي')),
-    );
-    Navigator.pop<Map<String, String>>(context, {
-      'day': 'محدّث',
-      'subject': _subjectControllers.first.text.trim(),
-      'doctor': _teacherControllers.first.text.trim(),
-      'time': _timeControllers.first.text.trim(),
-      'hall': '-',
-      'section': _sectionControllers.first.text.trim(),
-    });
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final id = widget.scheduleId;
+      if (id != null) {
+        await Dio().put(
+          "${ApiService().baseUrl}/department-head/schedule/$id",
+          data: {
+            'day':     _dayController.text.trim(),
+            'subject': _subjectController.text.trim(),
+            'teacher': _teacherController.text.trim(),
+            'time':    _timeController.text.trim(),
+            'hall':    _hallController.text.trim(),
+          },
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ تم حفظ تعديلات الجدول بنجاح'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      debugPrint('⛔ Edit Schedule Error: $e');
+      String msg = 'حدث خطأ، حاول مجدداً';
+      if (e is DioException && e.response?.data is Map) {
+        msg = e.response!.data['message'] ?? msg;
+      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    const primaryYellow = Color(0xFFEFFF00);
+    const primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -92,11 +100,7 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
           iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
           title: Text(
             'تعديل الجدول الدراسي',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Cairo',
-            ),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
           ),
         ),
         body: Form(
@@ -111,34 +115,29 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  'يمكنك تعديل بيانات الجدول الدراسي بالكامل. النموذج يحتوي 10 صفوف.',
-                  style: TextStyle(
-                    color: textColor.withOpacity(0.85),
-                    fontSize: 12.5,
-                    fontFamily: 'Cairo',
-                  ),
+                  'عدّل بيانات هذا الصف في الجدول الدراسي ثم اضغط حفظ.',
+                  style: TextStyle(color: textColor.withValues(alpha: 0.85), fontSize: 12.5, fontFamily: 'Cairo'),
                 ),
               ),
               const SizedBox(height: 14),
-              ...List.generate(_rowsCount, (index) => _rowCard(index, textColor)),
+              _input(_dayController,     'اليوم'),
+              _input(_subjectController, 'المادة'),
+              _input(_teacherController, 'الأستاذ'),
+              _input(_timeController,    'الوقت'),
+              _input(_hallController,    'القاعة'),
               const SizedBox(height: 24),
               SizedBox(
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _saveChanges,
+                  onPressed: _isLoading ? null : _saveChanges,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryYellow,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text(
-                    'حفظ التعديلات',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Cairo',
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                      : const Text('حفظ التعديلات', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
                 ),
               ),
             ],
@@ -148,56 +147,19 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
     );
   }
 
-  Widget _rowCard(int index, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'الصف ${index + 1}',
-              style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Cairo',
-              ),
-            ),
-            const SizedBox(height: 10),
-            _input(_sectionControllers[index], 'اسم الشعبة'),
-            _input(_subjectControllers[index], 'المادة'),
-            _input(_teacherControllers[index], 'الأستاذ'),
-            _input(_timeControllers[index], 'الوقت'),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _input(TextEditingController controller, String label) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         style: const TextStyle(fontFamily: 'Cairo'),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'هذا الحقل مطلوب';
-          }
-          return null;
-        },
+        validator: (v) => (v == null || v.trim().isEmpty) ? 'هذا الحقل مطلوب' : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.35)),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.35)),
           ),
         ),
       ),
