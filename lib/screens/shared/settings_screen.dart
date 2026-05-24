@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/auth/login_screen.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 // ─── AppSettings ───────────────────────────────────────────────────────────
 class AppSettings {
@@ -202,7 +203,7 @@ class SettingsScreen extends StatelessWidget {
             CircleAvatar(
               radius: 30,
               backgroundColor: const Color(0xFFCCAA00),
-              backgroundImage: profileImageUrl.isNotEmpty ? NetworkImage(profileImageUrl) : null,
+              backgroundImage: profileImageUrl.isNotEmpty ? NetworkImage(ApiService.fixMediaUrl(profileImageUrl)!) : null,
               child: profileImageUrl.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
             ),
             const SizedBox(width: 15),

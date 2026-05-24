@@ -58,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _email          = d['email']          as String? ?? '';
         _phone          = d['phone']          as String? ?? '';
         _specialization = d['specialization'] as String? ?? '';
-        _avatarUrl      = d['avatar']         as String?;
+        _avatarUrl      = ApiService.fixMediaUrl(d['avatar'] as String?);
       }
     } catch (e) {
       debugPrint('⛔ Profile Error: $e');
@@ -89,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       if (res.statusCode == 200 && res.data['success'] == true) {
         if (mounted) {
-          setState(() => _avatarUrl = res.data['avatar'] as String?);
+          setState(() => _avatarUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?));
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('تم تحديث الصورة الشخصية',

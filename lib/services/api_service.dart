@@ -9,12 +9,21 @@ class ApiService {
   // ==========================================
   String get baseUrl {
     if (kIsWeb) {
-      return "http://127.0.0.1:8000/api"; // إذا فتحتيه على متصفح (كروم أو إيدج)
+      return "http://127.0.0.1:8000/api";
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      return "http://localhost:8000/api"; // USB adb reverse
+      return "http://localhost:8000/api";
     } else {
-      return "http://127.0.0.1:8000/api"; // للآيفون أو أنظمة تانية
+      return "http://127.0.0.1:8000/api";
     }
+  }
+
+  // تصليح روابط الميديا الراجعة من السيرفر (127.0.0.1 → localhost على الأندرويد)
+  static String? fixMediaUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return url.replaceFirst('http://127.0.0.1:', 'http://localhost:');
+    }
+    return url;
   }
 
   final Dio _dio = Dio();

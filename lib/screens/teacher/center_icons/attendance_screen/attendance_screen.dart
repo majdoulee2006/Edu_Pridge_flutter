@@ -285,12 +285,21 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         return;
       }
 
-      final dir = await getTemporaryDirectory();
-      final filePath = '${dir.path}/كشف_الحضور_$dateStr.xlsx';
-      final file = File(filePath);
-      await file.writeAsBytes(bytes);
+      // اسم ملف بأحرف ASCII فقط لتجنب مشاكل التوافق
+      final safeDate = dateStr.replaceAll('/', '-');
+      final fileName = 'Attendance_$safeDate.xlsx';
 
-      // مشاركة الملف
+      // حاول حفظ في مجلد التنزيلات أولاً، وإلا استخدم المستندات
+      Directory? dir;
+      try {
+        dir = await getDownloadsDirectory();
+      } catch (_) {}
+      dir ??= await getApplicationDocumentsDirectory();
+
+      final filePath = '${dir.path}/$fileName';
+      await File(filePath).writeAsBytes(bytes);
+
+      // مشاركة / فتح الملف
       await Share.shareXFiles(
         [XFile(filePath)],
         subject: 'كشف الحضور',

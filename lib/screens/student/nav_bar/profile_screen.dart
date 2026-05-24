@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_scr
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'student_home_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
@@ -201,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader(Color textColor) {
-    final avatarUrl = userData?['avatar'] as String?;
+    final avatarUrl = ApiService.fixMediaUrl(userData?['avatar'] as String?);
     return Column(
       children: [
         Stack(

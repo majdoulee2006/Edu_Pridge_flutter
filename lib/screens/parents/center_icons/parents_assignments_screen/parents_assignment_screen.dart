@@ -251,8 +251,6 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
                 ),
               if (grade != null)
                 Text(grade, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
-              if (isOverdue)
-                const Text("طلب تمديد ←", style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
         ],

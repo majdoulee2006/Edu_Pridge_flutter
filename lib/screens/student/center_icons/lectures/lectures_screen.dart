@@ -338,7 +338,9 @@ class _SubjectCardState extends State<_SubjectCard> {
   }
 
   Future<void> _checkDownloadedFiles() async {
-    final dir = await getApplicationDocumentsDirectory();
+    Directory? dir;
+    try { dir = await getDownloadsDirectory(); } catch (_) {}
+    dir ??= await getApplicationDocumentsDirectory();
     for (final file in widget.files) {
       final url = file['url'] as String? ?? '';
       if (url.isEmpty) continue;
@@ -360,7 +362,11 @@ class _SubjectCardState extends State<_SubjectCard> {
   }
 
   Future<String> _getSavePath(String url) async {
-    final dir = await getApplicationDocumentsDirectory();
+    Directory? dir;
+    try {
+      dir = await getDownloadsDirectory();
+    } catch (_) {}
+    dir ??= await getApplicationDocumentsDirectory();
     final fileName = Uri.parse(url).pathSegments.last;
     return '${dir.path}/$fileName';
   }
@@ -369,25 +375,32 @@ class _SubjectCardState extends State<_SubjectCard> {
     if (_downloading[url] == true) return;
     setState(() => _downloading[url] = true);
     try {
+      // Fix URL for Android device (127.0.0.1 → localhost via ADB)
+      final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
       final savePath = await _getSavePath(url);
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
       await Dio().download(
-        url,
+        fixedUrl,
         savePath,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       if (mounted) {
         setState(() => _downloaded[url] = true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم التحميل بنجاح ✓'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('تم التحميل بنجاح ✓ — محفوظ في مجلد التنزيلات'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       debugPrint('⛔ Download error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل التحميل، تأكد من الاتصال'), backgroundColor: Colors.red),
+          const SnackBar(
+              content: Text('فشل التحميل، تأكد من الاتصال'),
+              backgroundColor: Colors.red),
         );
       }
     } finally {

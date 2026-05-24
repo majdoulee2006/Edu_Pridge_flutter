@@ -11,7 +11,6 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_h
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
-import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/leave_requests_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_screen.dart';
@@ -30,6 +29,7 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
   String  _email           = "";
   String  _phone           = "";
   String  _department      = "";
+  String  _lastLogin       = "";
   String? _avatarUrl;
   bool    _isLoading       = true;
   bool    _uploadingAvatar = false;
@@ -44,6 +44,16 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
+
+      // Save last login if not set yet in this session
+      if (prefs.getString('last_login_at') == null) {
+        final now = DateTime.now();
+        final formatted =
+            '${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')} '
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+        await prefs.setString('last_login_at', formatted);
+      }
+
       final res = await Dio().get(
         "${ApiService().baseUrl}/department-head/profile",
         options: Options(headers: {"Authorization": "Bearer $token"}),
@@ -57,14 +67,20 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
             _phone      = d['phone']      as String? ?? '';
             _department = d['department'] as String? ?? '';
             _userRole   = d['role_label'] as String? ?? "رئيس القسم الأكاديمي";
-            _avatarUrl  = d['avatar']     as String?;
+            _avatarUrl  = ApiService.fixMediaUrl(d['avatar'] as String?);
+            _lastLogin  = prefs.getString('last_login_at') ?? '';
           });
         }
       }
     } catch (e) {
       debugPrint('⛔ Boss Profile Error: $e');
       final prefs = await SharedPreferences.getInstance();
-      if (mounted) setState(() => _userName = prefs.getString('user_name') ?? "رئيس القسم");
+      if (mounted) {
+        setState(() {
+          _userName  = prefs.getString('user_name') ?? "رئيس القسم";
+          _lastLogin = prefs.getString('last_login_at') ?? '';
+        });
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -85,7 +101,7 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (res.statusCode == 200 && res.data['success'] == true && mounted) {
-        setState(() => _avatarUrl = res.data['avatar'] as String?);
+        setState(() => _avatarUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?));
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
           backgroundColor: Color(0xFFCCAA00),
@@ -122,18 +138,6 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
                     _buildProfileHeader(textColor),
                     const SizedBox(height: 30),
 
-                    _buildSectionTitle("إجراءات سريعة", textColor),
-                    _buildInfoCard(cardColor, [
-                      _buildClickableRow(
-                        "طلبات الإجازة", "عرض وإدارة طلبات الإجازة",
-                        Icons.event_note_rounded, const Color(0xFFCCAA00), textColor,
-                        () => Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => const LeaveRequestsScreen(fromSource: "profile"),
-                        )),
-                      ),
-                    ]),
-
-                    const SizedBox(height: 25),
                     _buildSectionTitle("معلومات التواصل", textColor),
                     _buildInfoCard(cardColor, [
                       _buildClickableRow(
@@ -152,26 +156,35 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
                     ]),
 
                     const SizedBox(height: 25),
-                    _buildSectionTitle("الأمان", textColor),
-                    _buildInfoCard(cardColor, [
-                      _buildClickableRow(
-                        "كلمة المرور", "••••••••",
-                        Icons.lock_reset_rounded, Colors.redAccent, textColor,
-                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditPasswordScreen())),
-                      ),
-                    ]),
-
-                    const SizedBox(height: 25),
                     _buildSectionTitle("المعلومات الشخصية", textColor),
                     _buildInfoCard(cardColor, [
                       _buildStaticRow(
                         "القسم", _department.isNotEmpty ? _department : "غير محدد",
                         Icons.business_outlined, Colors.purple, textColor,
                       ),
+                    ]),
+
+                    const SizedBox(height: 25),
+                    _buildSectionTitle("الصلاحيات والنظام", textColor),
+                    _buildInfoCard(cardColor, [
+                      _buildStaticRow(
+                        "نوع الحساب", "رئيس القسم",
+                        Icons.manage_accounts_outlined, const Color(0xFFCCAA00), textColor,
+                      ),
                       _buildDivider(textColor),
                       _buildStaticRow(
-                        "تاريخ الميلاد", "15 مايو 1985",
-                        Icons.cake_outlined, Colors.orange, textColor,
+                        "آخر تسجيل دخول", _lastLogin.isNotEmpty ? _lastLogin : "غير متاح",
+                        Icons.access_time_rounded, Colors.teal, textColor,
+                      ),
+                    ]),
+
+                    const SizedBox(height: 25),
+                    _buildSectionTitle("الإعدادات والأمان", textColor),
+                    _buildInfoCard(cardColor, [
+                      _buildClickableRow(
+                        "كلمة المرور", "••••••••",
+                        Icons.lock_reset_rounded, Colors.redAccent, textColor,
+                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditPasswordScreen())),
                       ),
                     ]),
 

@@ -360,6 +360,23 @@ class StudentServices {
     return false;
   }
 
+  Future<List<dynamic>> getMyLeaveRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final response = await _dio.get(
+        "${ApiService().baseUrl}/student/leave-requests",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'] ?? [];
+      }
+    } catch (e) {
+      debugPrint("❌ Get Leave Requests Error: $e");
+    }
+    return [];
+  }
+
   // ==========================================
   // 15. جلب العلامات
   // ==========================================

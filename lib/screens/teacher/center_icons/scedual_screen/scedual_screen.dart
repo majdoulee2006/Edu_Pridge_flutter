@@ -29,12 +29,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
 
   List<Map<String, dynamic>> days = [];
 
-  // الأسبوع: الأحد (7) ← الخميس (4) فقط
-  static const Map<int, String> _arabicDayNames = {
-    1: 'الاثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس',
-    7: 'الأحد',
-  };
-
   @override
   void initState() {
     super.initState();
@@ -43,35 +37,20 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
   }
 
   void _generateDays() {
-    final now = DateTime.now();
-
-    // إيجاد يوم الأحد للأسبوع الحالي (weekday: 7=أحد, 1=اثنين ... 4=خميس)
-    final int daysFromSunday = (now.weekday == 7) ? 0 : now.weekday;
-    final sunday = now.subtract(Duration(days: daysFromSunday));
-
-    // توليد 5 أيام فقط: الأحد (0) → الخميس (4)
-    days = List.generate(5, (i) {
-      final d = sunday.add(Duration(days: i));
-      return {
-        "name":   _arabicDayNames[d.weekday]!,
-        "day":    d.day,
-        "dayKey": _arabicDayNames[d.weekday]!,
-        "date":   d,
-      };
+    const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+    days = List.generate(5, (i) => {
+      "name":   dayNames[i],
+      "dayKey": dayNames[i],
     });
 
-    // تحديد اليوم المحدد والـ todayIndex
+    final now = DateTime.now();
     if (now.weekday == 7) {
-      // الأحد → index 0
       _todayIndex = 0;
     } else if (now.weekday <= 4) {
-      // الاثنين(1)→1, الثلاثاء(2)→2, الأربعاء(3)→3, الخميس(4)→4
       _todayIndex = now.weekday;
     } else {
-      // الجمعة أو السبت → لا يوم حالي ضمن أيام العمل
       _todayIndex = -1;
     }
-
     selectedDayIndex = (_todayIndex == -1) ? 4 : _todayIndex;
   }
 
@@ -195,10 +174,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                         child: Container(
                           width: 68,
                           decoration: BoxDecoration(
-                            // 🌟 الكرت يتجاوب مع الثيم إذا لم يكن محدداً
-                            color: isSelected
-                                ? const Color(0xFFFFCC00)
-                                : cardColor,
+                            color: isSelected ? const Color(0xFFFFCC00) : cardColor,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -214,32 +190,18 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                               Text(
                                 item["name"],
                                 style: TextStyle(
-                                  color: isSelected
-                                      ? Colors.black
-                                      : Colors.grey,
+                                  color: isSelected ? Colors.black : Colors.grey,
                                   fontSize: 12,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
+                                width: 8,
+                                height: 8,
                                 decoration: BoxDecoration(
-                                  // 🌟 الدائرة الداخلية تتجاوب مع الثيم
-                                  color: isSelected
-                                      ? Colors.black
-                                      : Colors.grey.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  "${item["day"]}",
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : textColor,
-                                  ),
+                                  color: isSelected ? Colors.black : Colors.grey.withValues(alpha: 0.3),
+                                  shape: BoxShape.circle,
                                 ),
                               ),
                             ],
@@ -256,7 +218,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
                   alignment: Alignment.centerRight,
                   child: Text(
                     days.isNotEmpty
-                        ? "${selectedDayIndex == _todayIndex ? 'اليوم' : days[selectedDayIndex]['name']}: ${(days[selectedDayIndex]['date'] as DateTime).day} ${_monthName((days[selectedDayIndex]['date'] as DateTime).month)}"
+                        ? (selectedDayIndex == _todayIndex
+                            ? 'اليوم — ${days[selectedDayIndex]['name']}'
+                            : days[selectedDayIndex]['name'])
                         : '',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -311,12 +275,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen> {
         ),
       ),
     );
-  }
-
-  String _monthName(int month) {
-    const names = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-                   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-    return names[month];
   }
 
   List<Widget> _buildDayCards(BuildContext context) {

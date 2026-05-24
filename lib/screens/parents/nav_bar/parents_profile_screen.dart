@@ -55,7 +55,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
             parentName  = response.data['full_name'] ?? parentName;
             parentEmail = response.data['email']     ?? parentEmail;
             parentPhone = response.data['phone']     ?? parentPhone;
-            _avatarUrl  = response.data['avatar']    as String?;
+            _avatarUrl  = ApiService.fixMediaUrl(response.data['avatar'] as String?);
           });
         }
       } catch (e) { debugPrint("فشل جلب بيانات الأب: $e"); }
@@ -96,7 +96,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (res.statusCode == 200 && res.data['success'] == true && mounted) {
-        setState(() => _avatarUrl = res.data['avatar'] as String?);
+        setState(() => _avatarUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?));
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
           backgroundColor: Color(0xFFFFCC00),

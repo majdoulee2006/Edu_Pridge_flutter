@@ -6,6 +6,9 @@ import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dar
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
+import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/qr_scanner/qr_scanner_screen.dart';
 
 import 'profile_screen.dart';
@@ -24,11 +27,34 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   List<dynamic> latestNews = [];
   bool isLoading = true;
   String offlineName = "طالب";
+  bool _hasUnread = false;
+
+  void _onUnreadChanged() {
+    if (mounted) setState(() => _hasUnread = NotificationPolling.unreadCount.value > 0);
+  }
+
+  void _onNewNotif() {
+    final n = NotificationPolling.latestNew.value;
+    if (n != null && mounted) {
+      showInAppBanner(context, n['title']?.toString() ?? 'إشعار جديد', n['message']?.toString() ?? n['body']?.toString() ?? '');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _loadDashboardData();
+    NotificationPolling.start('/student/notifications');
+    NotificationPolling.unreadCount.addListener(_onUnreadChanged);
+    NotificationPolling.latestNew.addListener(_onNewNotif);
+  }
+
+  @override
+  void dispose() {
+    NotificationPolling.unreadCount.removeListener(_onUnreadChanged);
+    NotificationPolling.latestNew.removeListener(_onNewNotif);
+    NotificationPolling.stop();
+    super.dispose();
   }
 
   // 🌟 الدالة الجديدة النظيفة اللي بتعتمد على الـ Service
@@ -79,7 +105,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final studentData = dashboardData?['student'];
     String displayName =
         studentData?['name'] ?? studentData?['full_name'] ?? offlineName;
-    String? avatarUrl = studentData?['avatar'];
+    String? avatarUrl = ApiService.fixMediaUrl(studentData?['avatar'] as String?);
 
     Map<String, dynamic>? upcoming = dashboardData?['next_lecture'];
     bool hasLecture = upcoming != null && upcoming.isNotEmpty;
@@ -225,6 +251,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
             CustomBottomNav(
               currentIndex: 0,
+              hasUnread: _hasUnread,
               centerButton: const CustomSpeedDialEduBridge(),
               onHomeTap: () => _loadDashboardData(),
               onProfileTap: () => Navigator.pushReplacement(

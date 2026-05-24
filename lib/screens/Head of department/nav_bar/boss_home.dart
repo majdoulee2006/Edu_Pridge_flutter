@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
+import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -22,6 +24,7 @@ class DeptHeadHomeScreen extends StatefulWidget {
 class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
   String _bossName = "جارِ التحميل...";
   List<Map<String, dynamic>> _announcements = [];
+  bool _hasUnread = false;
 
   static const List<Color> _cardColors = [
     Color(0xFFFFCC33),
@@ -31,10 +34,32 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     Color(0xFF42A5F5),
   ];
 
+  void _onUnreadChanged() {
+    if (mounted) setState(() => _hasUnread = NotificationPolling.unreadCount.value > 0);
+  }
+
+  void _onNewNotif() {
+    final n = NotificationPolling.latestNew.value;
+    if (n != null && mounted) {
+      showInAppBanner(context, n['title']?.toString() ?? 'إشعار جديد', n['message']?.toString() ?? n['body']?.toString() ?? '');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _fetchDashboard();
+    NotificationPolling.start('/department-head/notifications');
+    NotificationPolling.unreadCount.addListener(_onUnreadChanged);
+    NotificationPolling.latestNew.addListener(_onNewNotif);
+  }
+
+  @override
+  void dispose() {
+    NotificationPolling.unreadCount.removeListener(_onUnreadChanged);
+    NotificationPolling.latestNew.removeListener(_onNewNotif);
+    NotificationPolling.stop();
+    super.dispose();
   }
 
   Future<void> _fetchDashboard() async {
@@ -132,6 +157,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
 
               CustomBottomNav(
                 currentIndex: 0,
+                hasUnread: _hasUnread,
                 centerButton: const Boss_Center_Icon(),
                 onHomeTap: () {},
                 onProfileTap: () => Navigator.pushReplacement(context,
