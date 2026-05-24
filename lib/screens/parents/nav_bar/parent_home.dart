@@ -1,10 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
+import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import '../../../widgets/parents_center_icon.dart';
@@ -22,6 +25,18 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
 
   Future<List<dynamic>>? _childrenFuture;
   List<Map<String, dynamic>> _announcements = [];
+  bool _hasUnread = false;
+
+  void _onUnreadChanged() {
+    if (mounted) setState(() => _hasUnread = NotificationPolling.unreadCount.value > 0);
+  }
+
+  void _onNewNotif() {
+    final n = NotificationPolling.latestNew.value;
+    if (n != null && mounted) {
+      showInAppBanner(context, n['title']?.toString() ?? 'إشعار جديد', n['message']?.toString() ?? n['body']?.toString() ?? '');
+    }
+  }
 
   @override
   void initState() {
@@ -29,6 +44,17 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     _loadUserData();
     _refreshChildren();
     _fetchAnnouncements();
+    NotificationPolling.start('/parent/notifications');
+    NotificationPolling.unreadCount.addListener(_onUnreadChanged);
+    NotificationPolling.latestNew.addListener(_onNewNotif);
+  }
+
+  @override
+  void dispose() {
+    NotificationPolling.unreadCount.removeListener(_onUnreadChanged);
+    NotificationPolling.latestNew.removeListener(_onNewNotif);
+    NotificationPolling.stop();
+    super.dispose();
   }
 
   void _refreshChildren() {
@@ -99,7 +125,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
         title: const Text("ربط ابن جديد", textAlign: TextAlign.right),
         content: TextField(
           controller: codeController,
-          decoration: const InputDecoration(hintText: "أدخل كود الطالب"),
+          decoration: const InputDecoration(hintText: "أدخل الرقم الجامعي للطالب"),
           textAlign: TextAlign.right,
           keyboardType: TextInputType.number,
         ),
@@ -270,6 +296,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
               ),
               CustomBottomNav(
                 currentIndex: 0,
+                hasUnread: _hasUnread,
                 centerButton: const Parents_Center_Icon(),
                 onHomeTap: () {},
                 onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsProfileScreen())),
@@ -292,17 +319,16 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Edu-Bridge", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
-              const SizedBox(height: 8),
               Text.rich(
                 TextSpan(
-                  text: "مرحباً، ",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
+                  text: "أهلاً، ",
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: textColor),
                   children: [
                     TextSpan(text: _parentName, style: const TextStyle(color: Color(0xFFCCAA00))),
                   ],
                 ),
               ),
+              const Text("لوحة متابعة الأبناء", style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
           GestureDetector(
@@ -325,7 +351,6 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-          const Text("عرض الكل", style: TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
     );
@@ -402,17 +427,14 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
       );
     }
 
-    return SizedBox(
-      height: 140,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        itemCount: _announcements.length,
-        itemBuilder: (context, index) {
-          final ann = _announcements[index];
-          return Container(
-            width: 280,
-            margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+    return Column(
+      children: _announcements.map((ann) {
+        return GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => AnnouncementDetailScreen(announcement: ann))),
+          child: Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               gradient: const LinearGradient(colors: [Color(0xFF3B67D1), Color(0xFF2A4B9A)]),
@@ -420,15 +442,21 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(ann['title'] ?? "", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
-                Text(ann['time_ago'] ?? "", style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(ann['time_ago'] ?? "", style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                    const Icon(Icons.arrow_back_ios_new, size: 13, color: Colors.white60),
+                  ],
+                ),
               ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
@@ -18,10 +18,7 @@ class PerformanceScreen extends StatefulWidget {
 }
 
 class _PerformanceScreenState extends State<PerformanceScreen> {
-  bool _showSubjectDetails = false;
   String studentName = "جارِ التحميل...";
-
-  // متغيرات الربط
   Map<String, dynamic>? data;
   bool isLoading = true;
 
@@ -32,14 +29,12 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   }
 
   Future<void> _fetchPerformanceData() async {
-    setState(() => isLoading = true); 
+    setState(() => isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       int? sId = prefs.getInt('selected_student_id');
       String? token = prefs.getString('token');
       studentName = prefs.getString('selected_student_name') ?? "الطالب";
-
-      debugPrint("جلب بيانات الطالب رقم: $sId");
 
       if (sId != null && token != null) {
         var response = await Dio().get(
@@ -49,7 +44,6 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             "Authorization": "Bearer $token"
           }),
         );
-
         if (response.statusCode == 200) {
           setState(() {
             data = response.data;
@@ -64,6 +58,61 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       setState(() => isLoading = false);
     }
   }
+
+  void _showGradeDialog(Map<String, dynamic> item, Color col) {
+    final exams = (item['exams'] as List?) ?? [];
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final cardColor = Theme.of(context).cardColor;
+
+    showDialog(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          title: Row(
+            children: [
+              CircleAvatar(backgroundColor: col.withValues(alpha: 0.1), child: Icon(Icons.book, color: col, size: 20)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(item['name'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontSize: 16))),
+            ],
+          ),
+          content: exams.isEmpty
+              ? Text("لا توجد تفاصيل للاختبارات", style: TextStyle(color: textColor.withValues(alpha: 0.5)))
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: exams.map<Widget>((e) {
+                    final examName = e['exam_name'] ?? 'اختبار';
+                    final score = (e['score'] as num?)?.toDouble() ?? 0.0;
+                    final max = (e['max_score'] as num?)?.toInt() ?? 100;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(examName, style: TextStyle(color: textColor, fontSize: 14)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                            child: Text("$score/$max", style: TextStyle(color: col, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("إغلاق", style: TextStyle(color: col, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
@@ -76,35 +125,30 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         textDirection: TextDirection.rtl,
         child: Scaffold(
           backgroundColor: bgColor,
-          appBar: _showSubjectDetails
-              ? _buildDetailsAppBar(context, textColor)
-              : _buildMainAppBar(context, textColor, cardColor),
+          appBar: _buildMainAppBar(context, textColor, cardColor),
           body: isLoading
               ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
               : Stack(
-            children: [
-              Positioned.fill(
-                child: _showSubjectDetails
-                    ? _buildSubjectDetailsView(textColor, cardColor)
-                    : TabBarView(
                   children: [
-                    _buildResultsTab(textColor, cardColor),
-                    _buildGradesTab(textColor, cardColor),
-                    _buildAttendanceTab(textColor, cardColor),
+                    Positioned.fill(
+                      child: TabBarView(
+                        children: [
+                          _buildResultsTab(textColor, cardColor),
+                          _buildGradesTab(textColor, cardColor),
+                          _buildAttendanceTab(textColor, cardColor),
+                        ],
+                      ),
+                    ),
+                    CustomBottomNav(
+                      currentIndex: 0,
+                      centerButton: const Parents_Center_Icon(),
+                      onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+                      onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+                      onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
+                      onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
+                    ),
                   ],
                 ),
-              ),
-
-              CustomBottomNav(
-                currentIndex: 0,
-                centerButton: const Parents_Center_Icon(),
-                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
-                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
-                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
-                onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -141,8 +185,6 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  // --- Widgets Tabs (مربوطة بالبيانات) ---
-
   Widget _buildResultsTab(Color textColor, Color cardColor) {
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -157,9 +199,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           ],
         ),
         const SizedBox(height: 30),
-        // عرض قائمة مختصرة لأول مادتين في تبويب النتائج
         if (data?['grades'] != null)
-          ... (data!['grades'] as List).take(2).map((item) {
+          ...(data!['grades'] as List).take(2).map((item) {
             return _buildSubjectResultCard(item['name'] ?? "", "${item['score'] ?? 0}", Colors.blue, cardColor, textColor);
           }),
         const SizedBox(height: 150),
@@ -175,15 +216,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       padding: const EdgeInsets.all(20),
       itemCount: grades.length,
       itemBuilder: (context, index) {
-        var item = grades[index];
-        return _buildGradeDetailCard(
-            item['name'] ?? "غير معروف",
-            "${item['score'] ?? 0}%",
-            index % 2 == 0 ? Colors.blue : Colors.orange,
-            textColor,
-            cardColor,
-            index == 0 // نجعل أول عنصر فقط يفتح التفاصيل كما في تصميمك
-        );
+        final item = grades[index] as Map<String, dynamic>;
+        final col = index % 2 == 0 ? Colors.blue : Colors.orange;
+        return _buildGradeDetailCard(item, "${item['score'] ?? 0}%", col, textColor, cardColor);
       },
     );
   }
@@ -205,21 +240,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         ...logs.map((log) {
           bool isPresent = log['status'] == 'present';
           return _buildLectureRow(
-              log['attendance_date']?.toString().split('-').last ?? "00",
-              "الشهر", // يمكنك تعديلها لجلب الشهر من التاريخ
-              log['name'] ?? "",
-              isPresent ? "حاضر" : "غائب",
-              isPresent ? Colors.green : Colors.red,
-              textColor,
-              cardColor
+            log['attendance_date']?.toString().split('-').last ?? "00",
+            "الشهر",
+            log['name'] ?? "",
+            isPresent ? "حاضر" : "غائب",
+            isPresent ? Colors.green : Colors.red,
+            textColor,
+            cardColor,
           );
         }),
         const SizedBox(height: 150),
       ],
     );
   }
-
-  // --- Helper Widgets (التصميم كما هو تماماً) ---
 
   Widget _buildGpaCard(String gpaValue, Color textColor, Color cardColor) {
     return Container(
@@ -236,10 +269,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             ],
           ),
           CircularProgressIndicator(
-              value: (double.tryParse(gpaValue) ?? 0) / 4, // افترضنا المعدل من 4
-              strokeWidth: 8,
-              color: const Color(0xFFFFCC00),
-              backgroundColor: textColor.withValues(alpha: 0.1)
+            value: (double.tryParse(gpaValue) ?? 0) / 4,
+            strokeWidth: 8,
+            color: const Color(0xFFFFCC00),
+            backgroundColor: textColor.withValues(alpha: 0.1),
           ),
         ],
       ),
@@ -262,9 +295,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  Widget _buildGradeDetailCard(String title, String percent, Color col, Color textColor, Color cardColor, bool isFirst) {
+  Widget _buildGradeDetailCard(Map<String, dynamic> item, String percent, Color col, Color textColor, Color cardColor) {
     return GestureDetector(
-      onTap: isFirst ? () => setState(() => _showSubjectDetails = true) : null,
+      onTap: () => _showGradeDialog(item, col),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(18),
@@ -273,7 +306,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           children: [
             CircleAvatar(backgroundColor: col.withValues(alpha: 0.1), child: Icon(Icons.book, color: col, size: 18)),
             const SizedBox(width: 15),
-            Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+            Text(item['name'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
             const Spacer(),
             Text(percent, style: TextStyle(color: col, fontWeight: FontWeight.bold)),
             const SizedBox(width: 10),
@@ -291,7 +324,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
       child: Row(
         children: [
-          Column(children: [Text(day, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)), Text(month, style: const TextStyle(fontSize: 10, color: Colors.blue))]),
+          Column(children: [
+            Text(day, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
+            Text(month, style: const TextStyle(fontSize: 10, color: Colors.blue)),
+          ]),
           const SizedBox(width: 15),
           Text(subject, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
           const Spacer(),
@@ -328,63 +364,6 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         children: [
           Text(val, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: col)),
           Text(label, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildDetailsAppBar(BuildContext context, Color textColor) {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      centerTitle: true,
-      title: Text("تفاصيل المادة", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
-      actions: [
-        IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => setState(() => _showSubjectDetails = false)),
-      ],
-    );
-  }
-
-  Widget _buildSubjectDetailsView(Color textColor, Color cardColor) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        _buildSectionHeader("المذاكرات", Icons.assignment, Colors.blue, textColor),
-        _buildDetailsGroupCard(cardColor, [
-          _buildDetailRow("مذاكرة منتصف الفصل", "28/30", Colors.blue, textColor),
-          _buildDetailRow("مشروع الفصل", "29/30", Colors.blue, textColor),
-        ]),
-        const SizedBox(height: 150),
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon, Color col, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Icon(icon, color: col, size: 20),
-          const SizedBox(width: 10),
-          Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: textColor)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailsGroupCard(Color cardColor, List<Widget> children) => Container(
-    decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
-    child: Column(children: children),
-  );
-
-  Widget _buildDetailRow(String title, String score, Color col, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
-          Text(score, style: TextStyle(color: col, fontWeight: FontWeight.bold)),
         ],
       ),
     );

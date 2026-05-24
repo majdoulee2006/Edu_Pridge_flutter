@@ -149,16 +149,6 @@ class _GradingScreenState extends State<GradingScreen> {
                   _buildStudentHeaderCard(context, cardColor, textColor),
                   const SizedBox(height: 20),
 
-                  // إجابة الطالب
-                  _buildSectionTitle("إجابة الطالب", textColor),
-                  _buildResponseContent(
-                    context,
-                    widget.submission['student_notes'] as String? ?? 'لا توجد ملاحظات',
-                    cardColor,
-                    textColor,
-                  ),
-                  const SizedBox(height: 20),
-
                   // المرفقات
                   if ((widget.submission['file_path'] as String?) != null) ...[
                     _buildSectionTitle("المرفقات", textColor),
@@ -308,27 +298,6 @@ class _GradingScreenState extends State<GradingScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildResponseContent(
-    BuildContext context,
-    String content,
-    Color cardColor,
-    Color textColor,
-  ) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-      ),
-      child: Text(
-        content,
-        style: TextStyle(color: textColor.withValues(alpha: 0.7), height: 1.6),
       ),
     );
   }

@@ -35,11 +35,34 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   final TextEditingController _timeController = TextEditingController();
   final TextEditingController _leaveReasonController = TextEditingController();
   bool _isSubmittingLeave = false;
+  List<dynamic> _myLeaveRequests = [];
+  bool _isLoadingRequests = false;
 
   @override
   void initState() {
     super.initState();
     _fetchAttendance();
+    _initDefaultDateTime();
+    _fetchMyLeaveRequests();
+  }
+
+  Future<void> _fetchMyLeaveRequests() async {
+    setState(() => _isLoadingRequests = true);
+    try {
+      final data = await StudentServices().getMyLeaveRequests();
+      if (mounted) setState(() => _myLeaveRequests = data);
+    } catch (_) {}
+    finally { if (mounted) setState(() => _isLoadingRequests = false); }
+  }
+
+  void _initDefaultDateTime() {
+    final now = DateTime.now();
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    _dateController.text = "${now.year}-$month-$day";
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    _timeController.text = "$hour:$minute";
   }
 
   @override
@@ -99,11 +122,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final ok = await StudentServices().submitLeaveRequest(type, date, reason);
       if (ok && mounted) {
         _showSuccessDialog('تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً');
-        setState(() {
-          _dateController.clear();
-          _timeController.clear();
-          _leaveReasonController.clear();
-        });
+        _initDefaultDateTime();
+        _leaveReasonController.clear();
+        _fetchMyLeaveRequests();
       }
     } catch (e) {
       if (mounted) {
@@ -191,8 +212,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
 
     if (picked != null) {
+      final month = picked.month.toString().padLeft(2, '0');
+      final day = picked.day.toString().padLeft(2, '0');
       setState(() {
-        _dateController.text = "${picked.year}/${picked.month}/${picked.day}";
+        _dateController.text = "${picked.year}-$month-$day";
       });
     }
   }
@@ -427,6 +450,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: bgColor,
         appBar: AppBar(
           backgroundColor: bgColor,
@@ -952,6 +976,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'approved': return Colors.green;
+      case 'rejected': return Colors.red;
+      case 'pending_parent': return Colors.orange;
+      default: return Colors.blue;
+    }
+  }
+
   Widget _buildLeaveRequest() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -959,67 +992,62 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.blue.withAlpha(25) : const Color(0xFFEDF4FC),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isDark ? Colors.blue.withAlpha(50) : Colors.blue.shade100,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.info_outline,
-                color: isDark ? Colors.blue.shade300 : Colors.blue,
+        // ── تاريخ الطلبات ──
+        if (_isLoadingRequests)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00), strokeWidth: 2)),
+          )
+        else if (_myLeaveRequests.isNotEmpty) ...[
+          Text('طلباتي السابقة',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black54)),
+          const SizedBox(height: 10),
+          ..._myLeaveRequests.map((req) {
+            final status = req['status'] as String? ?? '';
+            final statusText = req['status_text'] as String? ?? status;
+            final color = _statusColor(status);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isDark ? Theme.of(context).cardColor : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8)],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'طلب قيد المراجعة',
-                          style: TextStyle(
-                            color: isDark ? Colors.blue.shade300 : Colors.blue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.red.shade400
-                                : const Color(0xFFE53935),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                        Text(req['type'] ?? '', style: TextStyle(fontWeight: FontWeight.bold,
+                            fontSize: 13, color: isDark ? Colors.white : Colors.black87)),
+                        const SizedBox(height: 3),
+                        Text(req['date'] ?? '', style: TextStyle(fontSize: 11,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey)),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'لديك طلب إجازة معلق بتاريخ 25 أكتوبر. سيتم إشعارك فور اتخاذ القرار.',
-                      style: TextStyle(
-                        color: isDark ? Colors.blue.shade200 : Colors.blue,
-                        fontSize: 11,
-                        height: 1.4,
-                      ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withAlpha(30),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                  ],
-                ),
+                    child: Text(statusText, style: TextStyle(color: color,
+                        fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 25),
+            );
+          }),
+          const SizedBox(height: 15),
+          Divider(color: isDark ? Colors.white12 : Colors.grey.shade200),
+          const SizedBox(height: 10),
+        ],
 
+        // ── نموذج طلب جديد ──
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(

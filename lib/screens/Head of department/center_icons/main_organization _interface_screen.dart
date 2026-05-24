@@ -1,4 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_profile.dart';
@@ -6,9 +9,6 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_n
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
 import 'package:edu_pridge_flutter/widgets/boss_center_icon.dart';
-import 'organization/study_schedule_screen/create_new_schedule.dart';
-import 'organization/study_schedule_screen/edit_of_table.dart';
-import 'organization/study_schedule_screen/table_view.dart';
 
 class MainOrganizationInterfaceScreen extends StatefulWidget {
   const MainOrganizationInterfaceScreen({super.key});
@@ -18,14 +18,103 @@ class MainOrganizationInterfaceScreen extends StatefulWidget {
 }
 
 class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterfaceScreen> {
-  int selectedIndex = 0;
+  int _tabIndex = 0; // 0=دراسي 1=امتحاني
+
+  // بيانات البرامج مع جداولها
+  bool _isLoadingPrograms = true;
+  List<Map<String, dynamic>> _programs = [];
+
+  // بيانات الامتحانات
+  bool _isLoadingExams = false;
+  bool _examsFetched = false;
+  List<Map<String, dynamic>> _exams = [];
+
+  // الاختيارات
+  int? _selectedProgramId;
+  String? _selectedProgramName;
+  int _selectedYear = 1;
+
+  static const _dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+  static const _dayNames = {
+    'Sunday': 'الأحد', 'Monday': 'الاثنين', 'Tuesday': 'الثلاثاء',
+    'Wednesday': 'الأربعاء', 'Thursday': 'الخميس',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPrograms();
+  }
+
+  Future<String> _token() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token') ?? '';
+  }
+
+  Future<void> _fetchPrograms() async {
+    setState(() => _isLoadingPrograms = true);
+    try {
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/department-head/programs-schedule",
+        options: Options(headers: {"Authorization": "Bearer ${await _token()}"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final list = res.data['data'] as List<dynamic>? ?? [];
+        setState(() {
+          _programs = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (_programs.isNotEmpty && _selectedProgramId == null) {
+            _selectedProgramId   = _programs.first['id'] as int?;
+            _selectedProgramName = _programs.first['name'] as String?;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Programs: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingPrograms = false);
+    }
+  }
+
+  Future<void> _fetchExams() async {
+    if (_isLoadingExams || _examsFetched) return;
+    setState(() => _isLoadingExams = true);
+    try {
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/department-head/all-exams",
+        options: Options(headers: {"Authorization": "Bearer ${await _token()}"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final list = res.data['data'] as List<dynamic>? ?? [];
+        setState(() {
+          _exams = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          _examsFetched = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Exams: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingExams = false);
+    }
+  }
+
+  List<Map<String, dynamic>> get _currentSchedule {
+    if (_selectedProgramId == null) return [];
+    final prog = _programs.firstWhere(
+      (p) => p['id'] == _selectedProgramId,
+      orElse: () => {},
+    );
+    if (prog.isEmpty) return [];
+    final schedule = prog['schedule'] as Map<String, dynamic>? ?? {};
+    final yearData = schedule['$_selectedYear'] as List<dynamic>? ?? [];
+    return yearData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark    = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    const primaryYellow = Color(0xFFFFCC00);
+    const yellow    = Color(0xFFFFCC00);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -38,13 +127,13 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
               Column(
                 children: [
                   _buildHeader(context, textColor, isDark),
-                  const SizedBox(height: 8),
-                  _buildTabs(cardColor, primaryYellow),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 6),
+                  _buildMainTabs(cardColor, yellow),
+                  const SizedBox(height: 10),
                   Expanded(
-                    child: selectedIndex == 0
-                        ? _buildStudyScheduleCards(context, cardColor, textColor, isDark, primaryYellow)
-                        : _buildExamPlaceholder(textColor),
+                    child: _tabIndex == 0
+                        ? _buildScheduleTab(cardColor, textColor, isDark, yellow)
+                        : _buildExamsTab(cardColor, textColor, isDark),
                   ),
                   const SizedBox(height: 100),
                 ],
@@ -74,15 +163,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const SizedBox(width: 48),
-          Text(
-            'واجهة التنظيم',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-              fontFamily: 'Cairo',
-            ),
-          ),
+          Text('واجهة التنظيم', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo')),
           IconButton(
             icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
@@ -92,207 +173,254 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
     );
   }
 
-  Widget _buildTabs(Color cardColor, Color primaryYellow) {
+  Widget _buildMainTabs(Color cardColor, Color yellow) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      height: 55,
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
-      ),
-      child: Row(
-        children: [
-          _tabItem('الجداول الدراسية', 0, primaryYellow),
-          _tabItem('الجداول الامتحانية', 1, primaryYellow),
-        ],
-      ),
+      height: 50,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)]),
+      child: Row(children: [
+        _mainTab('الجداول الدراسية', 0, yellow),
+        _mainTab('الجداول الامتحانية', 1, yellow),
+      ]),
     );
   }
 
-  Widget _tabItem(String title, int index, Color primaryYellow) {
-    final isActive = selectedIndex == index;
+  Widget _mainTab(String title, int index, Color yellow) {
+    final active = _tabIndex == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => selectedIndex = index),
+        onTap: () {
+          setState(() => _tabIndex = index);
+          if (index == 1) _fetchExams();
+        },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          decoration: BoxDecoration(
-            color: isActive ? primaryYellow : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: isActive ? Colors.black : Colors.grey,
-                fontFamily: 'Cairo',
-              ),
-            ),
-          ),
+          duration: const Duration(milliseconds: 220),
+          decoration: BoxDecoration(color: active ? yellow : Colors.transparent, borderRadius: BorderRadius.circular(11)),
+          child: Center(child: Text(title, style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13, color: active ? Colors.black : Colors.grey))),
         ),
       ),
     );
   }
 
-  Widget _buildStudyScheduleCards(
-    BuildContext context,
-    Color cardColor,
-    Color textColor,
-    bool isDark,
-    Color primaryYellow,
-  ) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+  // ─── تبويب الجداول الدراسية ──────────────────────────────────────
+  Widget _buildScheduleTab(Color cardColor, Color textColor, bool isDark, Color yellow) {
+    if (_isLoadingPrograms) return const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)));
+    if (_programs.isEmpty) {
+      return Center(child: Text('لا توجد برامج مسجّلة', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontFamily: 'Cairo')));
+    }
+
+    return Column(
       children: [
-        _actionCard(
-          context: context,
-          cardColor: cardColor,
-          title: 'عرض الجدول الدراسي',
-          subtitle: 'استعراض الجداول الحالية للشعب والمحاضرات.',
-          icon: Icons.table_chart_outlined,
-          iconColor: Colors.blueAccent,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const TableViewScreen()),
+        // أزرار البرامج (الدورات)
+        SizedBox(
+          height: 42,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _programs.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final prog = _programs[i];
+              final isActive = _selectedProgramId == prog['id'];
+              return GestureDetector(
+                onTap: () => setState(() {
+                  _selectedProgramId   = prog['id'] as int?;
+                  _selectedProgramName = prog['name'] as String?;
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isActive ? yellow : cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6)],
+                  ),
+                  child: Text(prog['name'] as String? ?? '',
+                      style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13, color: isActive ? Colors.black : Colors.grey)),
+                ),
+              );
+            },
           ),
-          isDark: isDark,
         ),
-        const SizedBox(height: 14),
-        _actionCard(
-          context: context,
-          cardColor: cardColor,
-          title: 'إنشاء جدول دراسي جديد',
-          subtitle: 'إضافة 10 صفوف مواد مع أوقاتها وأساتذتها.',
-          icon: Icons.add_card_rounded,
-          iconColor: Colors.green,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const CreateNewScheduleScreen()),
-          ),
-          isDark: isDark,
+        const SizedBox(height: 10),
+
+        // مفتاح السنة
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            _yearToggle(1, yellow, cardColor),
+            const SizedBox(width: 10),
+            _yearToggle(2, yellow, cardColor),
+            const Spacer(),
+            if (_selectedProgramName != null)
+              Text(_selectedProgramName!, style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
+          ]),
         ),
-        const SizedBox(height: 14),
-        _actionCard(
-          context: context,
-          cardColor: cardColor,
-          title: 'تعديل الجدول الدراسي',
-          subtitle: 'تحديث بيانات الجدول الموجود بسهولة.',
-          icon: Icons.edit_note_outlined,
-          iconColor: Colors.orange,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const EditOfTableScreen(),
-            ),
-          ),
-          isDark: isDark,
-        ),
-        const SizedBox(height: 40),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: primaryYellow.withValues(alpha: 0.4)),
-          ),
-          child: Text(
-            'اختر الخدمة من البطاقات الثلاث أعلاه للانتقال مباشرة إلى صفحة العرض أو الإنشاء أو التعديل.',
-            style: TextStyle(
-              color: textColor.withValues(alpha: 0.85),
-              fontSize: 12.5,
-              fontFamily: 'Cairo',
-            ),
-          ),
+        const SizedBox(height: 10),
+
+        // الجدول
+        Expanded(
+          child: _buildWeeklySchedule(cardColor, textColor, isDark),
         ),
       ],
     );
   }
 
-  Widget _actionCard({
-    required BuildContext context,
-    required Color cardColor,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color iconColor,
-    required VoidCallback onTap,
-    required bool isDark,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
-      child: Container(
-        padding: const EdgeInsets.all(16),
+  Widget _yearToggle(int year, Color yellow, Color cardColor) {
+    final active = _selectedYear == year;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedYear = year),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: active ? yellow : cardColor,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 26),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Cairo',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: isDark ? Colors.white70 : Colors.black54,
-                      fontFamily: 'Cairo',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Colors.grey),
-          ],
-        ),
+        child: Text('السنة $year', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13, color: active ? Colors.black : Colors.grey)),
       ),
     );
   }
 
-  Widget _buildExamPlaceholder(Color textColor) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
-        child: Text(
-          'سيتم إضافة واجهات الجدول الامتحاني هنا لاحقاً.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: textColor.withValues(alpha: 0.65),
-            fontSize: 14,
-            fontFamily: 'Cairo',
-          ),
+  Widget _buildWeeklySchedule(Color cardColor, Color textColor, bool isDark) {
+    final sessions = _currentSchedule;
+
+    if (sessions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.calendar_today_outlined, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 10),
+            Text('لا يوجد جدول لهذا القسم والسنة', style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Cairo')),
+          ],
         ),
+      );
+    }
+
+    // تجميع حسب اليوم
+    final byDay = <String, List<Map<String, dynamic>>>{};
+    for (final s in sessions) {
+      final day = s['day'] as String? ?? '';
+      byDay.putIfAbsent(day, () => []).add(s);
+    }
+
+    final orderedDays = _dayOrder.where((d) => byDay.containsKey(d)).toList();
+
+    return RefreshIndicator(
+      onRefresh: _fetchPrograms,
+      color: const Color(0xFFFFCC00),
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        itemCount: orderedDays.length,
+        itemBuilder: (_, i) {
+          final day  = orderedDays[i];
+          final list = byDay[day]!;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(18),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 8, offset: const Offset(0, 3))]),
+            child: Column(
+              children: [
+                // رأس اليوم
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFCC00).withValues(alpha: 0.15),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  ),
+                  child: Text(_dayNames[day] ?? day,
+                      style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFAA8800))),
+                ),
+                // الجلسات
+                ...list.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final s   = entry.value;
+                  final start = _trimTime(s['start_time'] as String? ?? '');
+                  final end   = _trimTime(s['end_time']   as String? ?? '');
+                  return Container(
+                    decoration: BoxDecoration(
+                      border: idx < list.length - 1
+                          ? Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)))
+                          : null,
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      leading: Container(
+                        width: 38, height: 38,
+                        decoration: BoxDecoration(color: Colors.blueAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                        child: Center(child: Text('${idx + 1}', style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 13))),
+                      ),
+                      title: Text(s['course_name'] as String? ?? '—',
+                          style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor)),
+                      subtitle: Text('$start - $end', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Cairo')),
+                      trailing: s['room'] != null
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: Colors.blueAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                              child: Text(s['room'] as String, style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                            )
+                          : null,
+                    ),
+                  );
+                }),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _trimTime(String t) => t.length >= 5 ? t.substring(0, 5) : t;
+
+  // ─── تبويب الجداول الامتحانية ────────────────────────────────────
+  Widget _buildExamsTab(Color cardColor, Color textColor, bool isDark) {
+    if (_isLoadingExams) return const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)));
+    if (_exams.isEmpty) return Center(child: Text('لا توجد جداول امتحانية', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontFamily: 'Cairo')));
+
+    return RefreshIndicator(
+      onRefresh: _fetchExams,
+      color: const Color(0xFFFFCC00),
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        itemCount: _exams.length,
+        itemBuilder: (_, i) {
+          final e = _exams[i];
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(18),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 8, offset: const Offset(0, 3))]),
+            child: Row(
+              children: [
+                Container(width: 44, height: 44,
+                    decoration: BoxDecoration(color: Colors.deepPurple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.assignment_outlined, color: Colors.deepPurple, size: 22)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(e['exam_name'] as String? ?? '—', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor, fontFamily: 'Cairo')),
+                    const SizedBox(height: 2),
+                    Text(e['course_name'] as String? ?? '—', style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
+                    const SizedBox(height: 4),
+                    Text('التاريخ: ${e['exam_date'] ?? '—'}', style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
+                  ]),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.deepPurple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                  child: Text('${e['max_score'] ?? '—'} علامة', style: const TextStyle(color: Colors.deepPurple, fontSize: 12, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

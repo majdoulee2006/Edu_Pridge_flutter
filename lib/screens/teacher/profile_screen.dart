@@ -1,5 +1,7 @@
-﻿import 'package:dio/dio.dart';
+﻿import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'teacher_home.dart';
@@ -21,11 +23,13 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
+  bool _uploadingAvatar = false;
 
   String _fullName       = '';
   String _email          = '';
   String _phone          = '';
   String _specialization = '';
+  String? _avatarUrl;
   List<String> _courseNames = [];
 
   @override
@@ -54,9 +58,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _email          = d['email']          as String? ?? '';
         _phone          = d['phone']          as String? ?? '';
         _specialization = d['specialization'] as String? ?? '';
+        _avatarUrl      = ApiService.fixMediaUrl(d['avatar'] as String?);
       }
     } catch (e) {
       debugPrint('⛔ Profile Error: $e');
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 800,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploadingAvatar = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(picked.path,
+            filename: 'avatar.jpg'),
+      });
+      final res = await Dio().post(
+        "${ApiService().baseUrl}/teacher/profile/avatar",
+        data: formData,
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        if (mounted) {
+          setState(() => _avatarUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم تحديث الصورة الشخصية',
+                  style: TextStyle(fontFamily: 'Cairo')),
+              backgroundColor: Color(0xFFFFCC00),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('⛔ Avatar upload error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('فشل رفع الصورة، حاول مجدداً',
+                style: TextStyle(fontFamily: 'Cairo')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingAvatar = false);
     }
   }
 
@@ -235,21 +290,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Stack(
           alignment: Alignment.bottomRight,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFFFCC00), width: 3),
-              ),
-              child: const CircleAvatar(
-                radius: 60,
-                backgroundColor: Colors.grey,
-                child: Icon(Icons.person, size: 60, color: Colors.white),
+            GestureDetector(
+              onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFFFCC00), width: 3),
+                ),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey,
+                  backgroundImage: _avatarUrl != null
+                      ? NetworkImage(_avatarUrl!)
+                      : null,
+                  child: _uploadingAvatar
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : (_avatarUrl == null
+                          ? const Icon(Icons.person, size: 60, color: Colors.white)
+                          : null),
+                ),
               ),
             ),
-            const CircleAvatar(
-              radius: 18,
-              backgroundColor: Color(0xFFFFCC00),
-              child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
+            GestureDetector(
+              onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: Color(0xFFFFCC00),
+                child: Icon(Icons.camera_alt, size: 18, color: Colors.black),
+              ),
             ),
           ],
         ),

@@ -3,9 +3,9 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/models/notification_model.dart';
-
-// 🌟 استدعاء السيرفيس اللي عملناه
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
@@ -51,6 +51,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       debugPrint("❌ خطأ في جلب الإشعارات: $e");
       if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  void _navigateForNotification(BuildContext ctx, AppNotification notify) {
+    switch (notify.type) {
+      case 'leave_request':
+      case 'attendance':
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
+        break;
+      default:
+        if (notify.title.contains('وظيفة') || notify.title.contains('واجب') || notify.title.contains('assignment')) {
+          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));
+        }
     }
   }
 
@@ -130,16 +143,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   children: [
                     TabBarView(
                       children: [
-                        // 🌟 الترتيب الصحيح: أكاديمي أولاً ثم إداري
                         _NotificationsListView(
                           notifications: academicNotifications,
                           onRefresh: _fetchNotifications,
                           onTapNotification: _markAsRead,
+                          onNavigate: _navigateForNotification,
                         ),
                         _NotificationsListView(
                           notifications: administrativeNotifications,
                           onRefresh: _fetchNotifications,
                           onTapNotification: _markAsRead,
+                          onNavigate: _navigateForNotification,
                         ),
                       ],
                     ),
@@ -218,11 +232,13 @@ class _NotificationsListView extends StatelessWidget {
   final List<AppNotification> notifications;
   final Future<void> Function() onRefresh;
   final Function(AppNotification) onTapNotification;
+  final void Function(BuildContext, AppNotification)? onNavigate;
 
   const _NotificationsListView({
     required this.notifications,
     required this.onRefresh,
     required this.onTapNotification,
+    this.onNavigate,
   });
 
   @override
@@ -258,7 +274,10 @@ class _NotificationsListView extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
-      onTap: () => onTapNotification(notify),
+      onTap: () {
+        onTapNotification(notify);
+        onNavigate?.call(context, notify);
+      },
       borderRadius: BorderRadius.circular(20),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),

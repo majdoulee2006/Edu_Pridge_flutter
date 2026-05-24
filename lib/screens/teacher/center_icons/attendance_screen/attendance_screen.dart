@@ -32,21 +32,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   // كل المواد من الـ API
   List<Map<String, dynamic>> _allCourses = [];
 
-  // الـ dropdown الأول: أسماء المواد (بدون تكرار)
-  List<String> _uniqueTitles = [];
-  String? _selectedTitle;
-
-  // دورات المعلم حسب اختصاصه (القسم)
+  // الدورات
   List<Map<String, dynamic>> _allPrograms = [];
-  List<Map<String, dynamic>> _filteredPrograms = [];
   String? _selectedProgramId;
 
-  // course_id المحدد تلقائياً من (المادة + الدورة)
-  String? _selectedCourseId;
+  // السنة الدراسية: 1 أو 2
+  int? _selectedYear;
 
-  // السنة الدراسية
-  String? _selectedYear;
-  final List<String> _years = ['السنة الأولى', 'السنة الثانية'];
+  // المواد المفلترة بعد اختيار الدورة والسنة
+  List<Map<String, dynamic>> _filteredCourses = [];
+  String? _selectedCourseId;
 
   // بيانات الجلسة الحالية
   int? _sessionId;
@@ -62,8 +57,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchCourses();
-    _fetchPrograms();
+    _loadData();
   }
 
   Future<String> _getToken() async {
@@ -71,96 +65,55 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return prefs.getString('token') ?? '';
   }
 
-  Future<void> _fetchCourses() async {
+  Future<void> _loadData() async {
     try {
       final token = await _getToken();
-      final res = await Dio().get(
-        "${ApiService().baseUrl}/teacher/courses",
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        final data = res.data['data'] as List<dynamic>? ?? [];
+      final headers = {"Authorization": "Bearer $token"};
+      final results = await Future.wait([
+        Dio().get("${ApiService().baseUrl}/teacher/courses",  options: Options(headers: headers)),
+        Dio().get("${ApiService().baseUrl}/teacher/programs", options: Options(headers: headers)),
+      ]);
 
-        final courses = data.map<Map<String, dynamic>>((c) => {
-          'id': c['id'].toString(),
-          'title': c['title'].toString(),
-          'level': c['level']?.toString() ?? '',
-          'program_id': c['program_id']?.toString() ?? '',
-          'program_name': c['program_name']?.toString() ?? '',
-        }).toList();
-
-        final seen = <String>{};
-        final titles = courses
-            .map((c) => c['title'] as String)
-            .where(seen.add)
+      if (results[0].statusCode == 200 && results[0].data['success'] == true) {
+        _allCourses = (results[0].data['data'] as List? ?? [])
+            .map<Map<String, dynamic>>((c) => {
+                  'id':         c['id'].toString(),
+                  'title':      c['title'].toString(),
+                  'program_id': c['program_id']?.toString() ?? '',
+                  'year':       (c['year'] as num?)?.toInt() ?? 1,
+                })
             .toList();
+      }
 
-        setState(() {
-          _allCourses = courses;
-          _uniqueTitles = titles;
-        });
+      if (results[1].statusCode == 200 && results[1].data['success'] == true) {
+        _allPrograms = (results[1].data['data'] as List? ?? [])
+            .map<Map<String, dynamic>>((p) => {
+                  'id':   p['id'].toString(),
+                  'name': p['name'].toString(),
+                })
+            .toList();
       }
     } catch (e) {
-      debugPrint('⛔ Courses Error: $e');
+      debugPrint('⛔ Load Error: $e');
     } finally {
       if (mounted) setState(() => _isLoadingCourses = false);
     }
   }
 
-  Future<void> _fetchPrograms() async {
-    try {
-      final token = await _getToken();
-      final res = await Dio().get(
-        "${ApiService().baseUrl}/teacher/programs",
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        final data = res.data['data'] as List<dynamic>? ?? [];
-        setState(() {
-          _allPrograms = data
-              .map<Map<String, dynamic>>((p) => {
-                    'id': p['id'].toString(),
-                    'name': p['name'].toString(),
-                  })
-              .toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('⛔ Programs Error: $e');
+  void _applyFilter() {
+    if (_selectedProgramId == null || _selectedYear == null) {
+      setState(() { _filteredCourses = []; _selectedCourseId = null; });
+      return;
     }
-  }
-
-  void _onTitleSelected(String? title) {
-    if (title == null) return;
-    // عرض كل برامج قسم المعلم بدون فلترة — المعلم يختار الدورة بحرية
-    final coursesForTitle = _allCourses.where((c) => c['title'] == title).toList();
-    final autoId = coursesForTitle.length == 1 ? coursesForTitle[0]['id'] as String : null;
-
+    final filtered = _allCourses.where((c) =>
+      c['program_id'] == _selectedProgramId &&
+      c['year'] == _selectedYear,
+    ).toList();
     setState(() {
-      _selectedTitle     = title;
-      _filteredPrograms  = List.from(_allPrograms);
-      _selectedProgramId = null;
-      _selectedCourseId  = _allPrograms.isEmpty ? autoId : null;
-    });
-  }
-
-  void _onProgramSelected(String? programId) {
-    if (programId == null) return;
-    // أولاً: كورس يطابق المادة + الدورة بالضبط
-    var match = _allCourses.firstWhere(
-      (c) => c['title'] == _selectedTitle && c['program_id'] == programId,
-      orElse: () => {},
-    );
-    // إذا ما في → اختار أول كورس بهذا العنوان
-    if (match.isEmpty) {
-      match = _allCourses.firstWhere(
-        (c) => c['title'] == _selectedTitle,
-        orElse: () => {},
-      );
-    }
-    setState(() {
-      _selectedProgramId = programId;
-      _selectedCourseId  = match.isNotEmpty ? match['id'] as String : null;
+      _filteredCourses  = filtered;
+      _selectedCourseId = filtered.any((c) => c['id'] == _selectedCourseId)
+          ? _selectedCourseId
+          : null;
     });
   }
 
@@ -300,7 +253,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       // بيانات الطلاب
       final today = DateTime.now();
       final dateStr = '${today.year}/${today.month.toString().padLeft(2, '0')}/${today.day.toString().padLeft(2, '0')}';
-      final courseName = _selectedTitle ?? 'غير محدد';
+      final courseName = _filteredCourses.firstWhere(
+        (c) => c['id'] == _selectedCourseId,
+        orElse: () => {'title': 'غير محدد'},
+      )['title'] as String? ?? 'غير محدد';
 
       for (int i = 0; i < allStudents.length; i++) {
         final student = allStudents[i];
@@ -329,12 +285,21 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         return;
       }
 
-      final dir = await getTemporaryDirectory();
-      final filePath = '${dir.path}/كشف_الحضور_$dateStr.xlsx';
-      final file = File(filePath);
-      await file.writeAsBytes(bytes);
+      // اسم ملف بأحرف ASCII فقط لتجنب مشاكل التوافق
+      final safeDate = dateStr.replaceAll('/', '-');
+      final fileName = 'Attendance_$safeDate.xlsx';
 
-      // مشاركة الملف
+      // حاول حفظ في مجلد التنزيلات أولاً، وإلا استخدم المستندات
+      Directory? dir;
+      try {
+        dir = await getDownloadsDirectory();
+      } catch (_) {}
+      dir ??= await getApplicationDocumentsDirectory();
+
+      final filePath = '${dir.path}/$fileName';
+      await File(filePath).writeAsBytes(bytes);
+
+      // مشاركة / فتح الملف
       await Share.shareXFiles(
         [XFile(filePath)],
         subject: 'كشف الحضور',
@@ -589,64 +554,89 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Dropdown 1 — المادة الدراسية
-          _buildFieldLabel('المادة الدراسية', textColor),
+          // الدورة + السنة جنب بعض
           _isLoadingCourses
               ? const Center(
                   child: Padding(
                     padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                        color: _yellow, strokeWidth: 2),
+                    child: CircularProgressIndicator(color: _yellow, strokeWidth: 2),
                   ),
                 )
-              : _buildDropdown(
-                  hint: 'اختر المادة',
-                  value: _selectedTitle,
-                  items: _uniqueTitles
-                      .map((t) => DropdownMenuItem<String>(
-                            value: t,
-                            child: Text(t),
-                          ))
-                      .toList(),
-                  onChanged: _sessionActive ? null : _onTitleSelected,
-                  isDark: isDark,
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildFieldLabel('الدورة', textColor),
+                          _buildDropdown(
+                            hint: 'اختر الدورة',
+                            value: _selectedProgramId,
+                            items: _allPrograms.map((p) => DropdownMenuItem<String>(
+                              value: p['id'] as String,
+                              child: Text(p['name'] as String, overflow: TextOverflow.ellipsis),
+                            )).toList(),
+                            onChanged: _sessionActive ? null : (val) {
+                              setState(() => _selectedProgramId = val);
+                              _applyFilter();
+                            },
+                            isDark: isDark,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildFieldLabel('السنة', textColor),
+                          _buildDropdown(
+                            hint: 'السنة',
+                            value: _selectedYear?.toString(),
+                            items: const [
+                              DropdownMenuItem(value: '1', child: Text('السنة الأولى')),
+                              DropdownMenuItem(value: '2', child: Text('السنة الثانية')),
+                            ],
+                            onChanged: _sessionActive ? null : (val) {
+                              setState(() => _selectedYear = int.tryParse(val ?? ''));
+                              _applyFilter();
+                            },
+                            isDark: isDark,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
 
           const SizedBox(height: 16),
 
-          // Dropdown 2 — الدورة (يظهر إذا في برامج لقسم المعلم)
-          if (_selectedTitle != null && _allPrograms.isNotEmpty) ...[
-            _buildFieldLabel('الدورة', textColor),
-            _buildDropdown(
-              hint: 'اختر الدورة',
-              value: _selectedProgramId,
-              items: _filteredPrograms
-                  .map((p) => DropdownMenuItem<String>(
-                        value: p['id'] as String,
-                        child: Text(p['name'] as String),
-                      ))
-                  .toList(),
-              onChanged: _sessionActive ? null : _onProgramSelected,
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Dropdown 3 — السنة الدراسية (يظهر دائماً بعد اختيار المادة)
-          if (_selectedTitle != null) ...[
-            // Dropdown 3 — السنة الدراسية
-            _buildFieldLabel('السنة الدراسية', textColor),
-            _buildDropdown(
-              hint: 'اختر السنة',
-              value: _selectedYear,
-              items: _years
-                  .map((y) => DropdownMenuItem<String>(value: y, child: Text(y)))
-                  .toList(),
-              onChanged: _sessionActive
-                  ? null
-                  : (val) => setState(() => _selectedYear = val),
-              isDark: isDark,
-            ),
+          // المادة الدراسية (تظهر بعد اختيار الدورة والسنة)
+          if (_selectedProgramId != null && _selectedYear != null) ...[
+            _buildFieldLabel('المادة الدراسية', textColor),
+            _filteredCourses.isEmpty
+                ? Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Text('لا توجد مواد لهذه الدورة والسنة',
+                          style: TextStyle(color: Colors.orange, fontSize: 13)),
+                    ),
+                  )
+                : _buildDropdown(
+                    hint: 'اختر المادة',
+                    value: _selectedCourseId,
+                    items: _filteredCourses.map((c) => DropdownMenuItem<String>(
+                      value: c['id'] as String,
+                      child: Text(c['title'] as String),
+                    )).toList(),
+                    onChanged: _sessionActive ? null : (val) => setState(() => _selectedCourseId = val),
+                    isDark: isDark,
+                  ),
             const SizedBox(height: 8),
           ],
 

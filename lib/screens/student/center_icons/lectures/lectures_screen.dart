@@ -1,7 +1,10 @@
-﻿import 'package:dio/dio.dart';
+﻿import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../widgets/student_speed_dial.dart';
@@ -324,11 +327,27 @@ class _SubjectCard extends StatefulWidget {
 class _SubjectCardState extends State<_SubjectCard> {
   late bool isExpanded;
   int selectedFilter = 0;
+  final Map<String, bool> _downloading = {};
+  final Map<String, bool> _downloaded = {};
 
   @override
   void initState() {
     super.initState();
     isExpanded = widget.initiallyExpanded;
+    _checkDownloadedFiles();
+  }
+
+  Future<void> _checkDownloadedFiles() async {
+    Directory? dir;
+    try { dir = await getDownloadsDirectory(); } catch (_) {}
+    dir ??= await getApplicationDocumentsDirectory();
+    for (final file in widget.files) {
+      final url = file['url'] as String? ?? '';
+      if (url.isEmpty) continue;
+      final fileName = Uri.parse(url).pathSegments.last;
+      final exists = File('${dir.path}/$fileName').existsSync();
+      if (exists && mounted) setState(() => _downloaded[url] = true);
+    }
   }
 
   Future<void> _launchURL(String urlString) async {
@@ -337,6 +356,71 @@ class _SubjectCardState extends State<_SubjectCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('عذراً، لا يمكن فتح الرابط حالياً')),
+        );
+      }
+    }
+  }
+
+  Future<String> _getSavePath(String url) async {
+    Directory? dir;
+    try {
+      dir = await getDownloadsDirectory();
+    } catch (_) {}
+    dir ??= await getApplicationDocumentsDirectory();
+    final fileName = Uri.parse(url).pathSegments.last;
+    return '${dir.path}/$fileName';
+  }
+
+  Future<void> _download(String url) async {
+    if (_downloading[url] == true) return;
+    setState(() => _downloading[url] = true);
+    try {
+      // Fix URL for Android device (127.0.0.1 → localhost via ADB)
+      final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
+      final savePath = await _getSavePath(url);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      await Dio().download(
+        fixedUrl,
+        savePath,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (mounted) {
+        setState(() => _downloaded[url] = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم التحميل بنجاح ✓ — محفوظ في مجلد التنزيلات'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('⛔ Download error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('فشل التحميل، تأكد من الاتصال'),
+              backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading[url] = false);
+    }
+  }
+
+  Future<void> _openFile(String url) async {
+    try {
+      final savePath = await _getSavePath(url);
+      final result = await OpenFilex.open(savePath);
+      if (result.type != ResultType.done && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا يوجد تطبيق لفتح هذا النوع من الملفات')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذّر فتح الملف'), backgroundColor: Colors.red),
         );
       }
     }
@@ -463,19 +547,19 @@ class _SubjectCardState extends State<_SubjectCard> {
                             : file['bgColor'],
                         iconColor: file['color'],
                         icon: file['icon'],
-                        actionIcon: file['actionIcon'],
                         isDark: isDark,
-                        onActionTap: () {
-                          final url = file['url'] as String?;
-                          if (url != null && url.isNotEmpty) {
+                        url: file['url'] as String? ?? '',
+                        type: file['type'] as String? ?? 'pdf',
+                        isDownloading: _downloading[file['url'] as String? ?? ''] == true,
+                        isDownloaded: _downloaded[file['url'] as String? ?? ''] == true,
+                        onDownload: () => _download(file['url'] as String? ?? ''),
+                        onOpen: () {
+                          final url = file['url'] as String? ?? '';
+                          final type = file['type'] as String? ?? 'pdf';
+                          if (type == 'link' || type == 'video') {
                             _launchURL(url);
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('جاري فتح ${file['title']}...'),
-                                backgroundColor: Colors.blue,
-                              ),
-                            );
+                            _openFile(url);
                           }
                         },
                       ),
@@ -555,10 +639,16 @@ class _SubjectCardState extends State<_SubjectCard> {
     required Color iconBgColor,
     required Color iconColor,
     required IconData icon,
-    required IconData actionIcon,
-    required VoidCallback onActionTap,
     required bool isDark,
+    required String url,
+    required String type,
+    required VoidCallback onDownload,
+    required VoidCallback onOpen,
+    bool isDownloading = false,
+    bool isDownloaded = false,
   }) {
+    final isFileType = type != 'link' && type != 'video';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
       child: Row(
@@ -566,45 +656,60 @@ class _SubjectCardState extends State<_SubjectCard> {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
             child: Icon(icon, color: iconColor, size: 20),
           ),
-          const SizedBox(width: 15),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
+                Text(title,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13,
+                        color: isDark ? Colors.white : Colors.black87)),
                 const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: isDark ? Colors.grey.shade500 : Colors.grey,
-                    fontSize: 11,
-                  ),
-                ),
+                Text(subtitle,
+                    style: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey, fontSize: 11)),
               ],
             ),
           ),
-          IconButton(
-            icon: Icon(
-              actionIcon,
-              color: isDark ? Colors.grey.shade400 : Colors.grey,
-              size: 22,
+          if (!isFileType)
+            // رابط أو فيديو — زر فتح مباشر
+            IconButton(
+              icon: Icon(Icons.open_in_new_rounded,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey, size: 22),
+              onPressed: onOpen,
+              splashRadius: 24,
+            )
+          else if (isDownloading)
+            const SizedBox(width: 40, height: 40,
+                child: Center(child: SizedBox(width: 22, height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00)))))
+          else
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // زر تحميل
+                IconButton(
+                  icon: Icon(
+                    isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
+                    color: isDownloaded ? Colors.green : (isDark ? Colors.grey.shade400 : Colors.grey),
+                    size: 22,
+                  ),
+                  onPressed: isDownloaded ? null : onDownload,
+                  splashRadius: 22,
+                  tooltip: isDownloaded ? 'محمّل' : 'تحميل',
+                ),
+                // زر فتح (يظهر بعد التحميل)
+                if (isDownloaded)
+                  IconButton(
+                    icon: const Icon(Icons.folder_open_rounded, color: Color(0xFFFFCC00), size: 22),
+                    onPressed: onOpen,
+                    splashRadius: 22,
+                    tooltip: 'فتح',
+                  ),
+              ],
             ),
-            onPressed: onActionTap,
-            splashRadius: 24,
-          ),
         ],
       ),
     );

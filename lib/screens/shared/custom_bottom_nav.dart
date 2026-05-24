@@ -7,6 +7,7 @@ class CustomBottomNav extends StatelessWidget {
   final VoidCallback? onProfileTap;
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onMessagesTap;
+  final bool hasUnread;
 
   const CustomBottomNav({
     super.key,
@@ -16,6 +17,7 @@ class CustomBottomNav extends StatelessWidget {
     this.onProfileTap,
     this.onNotificationsTap,
     this.onMessagesTap,
+    this.hasUnread = false,
   });
 
   @override
@@ -67,12 +69,11 @@ class CustomBottomNav extends StatelessWidget {
 
                       const SizedBox(width: 65), // مساحة للزر والحفرة
 
-                      _buildNavItem(
+                      _buildNotifItem(
                         currentIndex == 2
                             ? Icons.notifications
                             : Icons.notifications_none,
                         'الإشعارات',
-                        2,
                         onNotificationsTap,
                         activeColor,
                         inactiveColor,
@@ -97,6 +98,57 @@ class CustomBottomNav extends StatelessWidget {
           // 2. الزر المركزي (Speed Dial)
           Positioned.fill(child: centerButton),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNotifItem(
+    IconData icon,
+    String label,
+    VoidCallback? onTap,
+    Color activeColor,
+    Color inactiveColor,
+  ) {
+    bool isActive = currentIndex == 2;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        color: Colors.transparent,
+        width: 50,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: isActive ? activeColor : inactiveColor, size: 26),
+                if (hasUnread)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? activeColor : inactiveColor,
+                fontFamily: 'Tajawal',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

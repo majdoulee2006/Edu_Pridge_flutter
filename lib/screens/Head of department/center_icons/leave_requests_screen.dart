@@ -277,33 +277,57 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
             ),
             child: Text(data['reason'], style: TextStyle(fontSize: 14, height: 1.4, color: textColor)),
           ),
-          const SizedBox(height: 25),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _respondToRequest(data['id'] as int, 'approved'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFCC00),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+          const SizedBox(height: 15),
+          if (data['status'] == 'pending_hod') ...[
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _respondToRequest(data['id'] as int, 'approved'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFCC00),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text("موافقة", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                   ),
-                  child: const Text("موافقة", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _respondToRequest(data['id'] as int, 'rejected'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text("رفض", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: data['status'] == 'rejected'
+                    ? Colors.red.withValues(alpha: 0.1)
+                    : Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Center(
+                child: Text(
+                  data['status'] == 'rejected'
+                      ? '❌ تم رفض الطلب'
+                      : '✅ تمت الموافقة - في انتظار ولي الأمر',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: data['status'] == 'rejected' ? Colors.red : Colors.green,
+                  ),
                 ),
               ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _respondToRequest(data['id'] as int, 'rejected'),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: Text("رفض", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );

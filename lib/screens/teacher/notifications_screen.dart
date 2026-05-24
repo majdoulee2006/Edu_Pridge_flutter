@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
 import '../../widgets/teacher_speed_dial.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
@@ -95,6 +97,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   int get _unreadCount =>
       _notifications.where((n) => n['is_read'] != true).length;
+
+  void _navigateForType(String? type) {
+    switch (type) {
+      case 'leave_request':
+      case 'attendance':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
+        break;
+      case 'academic':
+      case 'assignment':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));
+        break;
+    }
+  }
 
   // أيقونة ولون كل نوع إشعار
   _NotifStyle _styleForType(String? type) {
@@ -271,7 +286,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     required Color textColor,
   }) {
     return GestureDetector(
-      onTap: () => _markAsRead(id, index),
+      onTap: () {
+        _markAsRead(id, index);
+        _navigateForType(_notifications[index]['type'] as String?);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(14),
