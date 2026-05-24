@@ -13,6 +13,7 @@ import '../student/nav_bar/student_home_screen.dart';
 import '../parents/nav_bar/parent_home.dart';
 import 'create_account_screen.dart';
 import '../Head of department/nav_bar/boss_home.dart';
+import '../Affairs_Officer/nav_bar/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -103,9 +104,9 @@ class _LoginScreenState extends State<LoginScreen> {
         // 🌟 الحل الجذري: صيد التوكن بأي اسم بيرجعه اللارافل
         String token =
             responseData['token']?.toString() ??
-            responseData['access_token']?.toString() ??
-            responseData['data']?['token']?.toString() ??
-            "";
+                responseData['access_token']?.toString() ??
+                responseData['data']?['token']?.toString() ??
+                "";
 
         // 🌟 صيد بيانات اليوزر بشكل مرن (أحياناً بتكون جوا data وأحياناً برا)
         var userData = responseData['user'] ?? responseData['data']?['user'];
@@ -123,8 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
             userData['user_id']?.toString() ?? userData['id']?.toString() ?? "";
         String displayName =
             userData['full_name']?.toString() ??
-            userData['name']?.toString() ??
-            "مستخدم";
+                userData['name']?.toString() ??
+                "مستخدم";
         String role = userData['role']?.toString() ?? "student";
 
         // ✨ إذا كان المستخدم ولي أمر
@@ -372,14 +373,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.black)
                           : const Text(
-                              "تسجيل الدخول",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                                fontFamily: 'Cairo',
-                              ),
-                            ),
+                        "تسجيل الدخول",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -392,7 +393,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Text.rich(
                       TextSpan(
-                        text: "ليس لديك حساب؟ ",
+                        text: "ليس لديك حساب? ",
                         style: TextStyle(
                           color: textColor.withValues(alpha: 0.6),
                           fontFamily: 'Cairo',
@@ -429,9 +430,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _buildDevButton(
+                          "شؤون",
+                          Icons.supervised_user_circle_outlined,
+                              () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AffairsOfficerHomeScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 15),
+                        _buildDevButton(
                           "رئيس قسم",
                           Icons.admin_panel_settings,
-                          () {
+                              () {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
@@ -546,14 +560,14 @@ class _LoginScreenState extends State<LoginScreen> {
           prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
           suffixIcon: isPassword
               ? IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
-                    size: 20,
-                  ),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                )
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey,
+              size: 20,
+            ),
+            onPressed: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
+          )
               : null,
         ),
       ),
