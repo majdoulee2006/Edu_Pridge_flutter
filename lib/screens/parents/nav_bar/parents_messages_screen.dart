@@ -81,8 +81,8 @@ class _ParentsMessagesScreenState extends State<ParentsMessagesScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
-            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_forward, color: textColor),
+            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen())),
           ),
           const Spacer(),
           Column(

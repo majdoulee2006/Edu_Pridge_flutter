@@ -190,7 +190,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
       ),
       actions: [
-        IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pop(context)),
+        IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
       ],
     );
   }

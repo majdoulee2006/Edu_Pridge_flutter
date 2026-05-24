@@ -42,6 +42,12 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   Future<void> _loadAllData() async {
     final prefs = await SharedPreferences.getInstance();
 
+    // Show cached avatar immediately before API call
+    final cachedAvatar = prefs.getString('parent_avatar_url');
+    if (cachedAvatar != null && cachedAvatar.isNotEmpty && mounted) {
+      setState(() => _avatarUrl = cachedAvatar);
+    }
+
     // 1. جلب بيانات ولي الأمر من الـ endpoint المصادق عليه
     final token = prefs.getString('token') ?? '';
     if (token.isNotEmpty) {
@@ -51,11 +57,16 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
           options: Options(headers: {"Authorization": "Bearer $token"}),
         );
         if (response.statusCode == 200) {
+          final d = response.data['data'] ?? response.data;
+          final avatarUrl = ApiService.fixMediaUrl(d['avatar'] as String?);
+          if (avatarUrl != null) {
+            await prefs.setString('parent_avatar_url', avatarUrl);
+          }
           setState(() {
-            parentName  = response.data['full_name'] ?? parentName;
-            parentEmail = response.data['email']     ?? parentEmail;
-            parentPhone = response.data['phone']     ?? parentPhone;
-            _avatarUrl  = ApiService.fixMediaUrl(response.data['avatar'] as String?);
+            parentName  = d['full_name'] ?? parentName;
+            parentEmail = d['email']     ?? parentEmail;
+            parentPhone = d['phone']     ?? parentPhone;
+            _avatarUrl  = avatarUrl ?? _avatarUrl;
           });
         }
       } catch (e) { debugPrint("فشل جلب بيانات الأب: $e"); }
@@ -96,8 +107,14 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (res.statusCode == 200 && res.data['success'] == true && mounted) {
-        setState(() => _avatarUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?));
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        final newUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?);
+        final messenger = ScaffoldMessenger.of(context);
+        if (newUrl != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('parent_avatar_url', newUrl);
+        }
+        if (mounted) setState(() => _avatarUrl = newUrl);
+        messenger.showSnackBar(const SnackBar(
           content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
           backgroundColor: Color(0xFFFFCC00),
         ));

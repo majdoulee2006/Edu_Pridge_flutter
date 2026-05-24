@@ -41,7 +41,12 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
   void _onNewNotif() {
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
-      showInAppBanner(context, n['title']?.toString() ?? 'إشعار جديد', n['message']?.toString() ?? n['body']?.toString() ?? '');
+      showInAppBanner(
+        context,
+        n['title']?.toString() ?? 'إشعار جديد',
+        n['message']?.toString() ?? n['body']?.toString() ?? '',
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BossNotificationScreen())),
+      );
     }
   }
 

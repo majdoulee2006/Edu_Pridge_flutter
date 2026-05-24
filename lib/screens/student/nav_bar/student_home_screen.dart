@@ -36,7 +36,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   void _onNewNotif() {
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
-      showInAppBanner(context, n['title']?.toString() ?? 'إشعار جديد', n['message']?.toString() ?? n['body']?.toString() ?? '');
+      showInAppBanner(
+        context,
+        n['title']?.toString() ?? 'إشعار جديد',
+        n['message']?.toString() ?? n['body']?.toString() ?? '',
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+      );
     }
   }
 
@@ -149,7 +154,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                 padding: const EdgeInsets.only(bottom: 100),
                                 children: [
                                                   if (hasLecture)
-                                    _buildUpcomingLectureCard(upcoming!, isDark),
+                                    _buildUpcomingLectureCard(upcoming, isDark),
                                   const SizedBox(height: 20),
                                   _buildSectionTitle(textColor),
                                   const SizedBox(height: 16),

@@ -216,7 +216,10 @@ class _TeacherReportEvaluationScreenState extends State<TeacherReportEvaluationS
       await Dio().post(
         "${ApiService().baseUrl}/teacher/report-requests/$requestId/evaluate",
         data: {'notes': notes},
-        options: Options(headers: {"Authorization": "Bearer ${await _token()}"}),
+        options: Options(headers: {
+          "Authorization": "Bearer ${await _token()}",
+          "Accept": "application/json",
+        }),
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

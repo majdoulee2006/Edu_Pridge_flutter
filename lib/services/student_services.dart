@@ -322,7 +322,7 @@ class StudentServices {
 
       Response response = await _dio.post(
         "${ApiService().baseUrl}/student/attendance/$attendanceId/excuse",
-        data: {'reason': reason},
+        data: {'excuse_text': reason},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 

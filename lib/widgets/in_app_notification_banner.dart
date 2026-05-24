@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 OverlayEntry? _currentBanner;
 
-void showInAppBanner(BuildContext context, String title, String message) {
+void showInAppBanner(BuildContext context, String title, String message, {VoidCallback? onTap}) {
   _currentBanner?.remove();
   late OverlayEntry entry;
   entry = OverlayEntry(
@@ -13,6 +13,7 @@ void showInAppBanner(BuildContext context, String title, String message) {
         entry.remove();
         _currentBanner = null;
       },
+      onTap: onTap,
     ),
   );
   _currentBanner = entry;
@@ -29,7 +30,8 @@ class _BannerWidget extends StatefulWidget {
   final String title;
   final String message;
   final VoidCallback onDismiss;
-  const _BannerWidget({required this.title, required this.message, required this.onDismiss});
+  final VoidCallback? onTap;
+  const _BannerWidget({required this.title, required this.message, required this.onDismiss, this.onTap});
 
   @override
   State<_BannerWidget> createState() => _BannerWidgetState();
@@ -66,7 +68,10 @@ class _BannerWidgetState extends State<_BannerWidget> with SingleTickerProviderS
         child: Material(
           color: Colors.transparent,
           child: GestureDetector(
-            onTap: widget.onDismiss,
+            onTap: () {
+              widget.onDismiss();
+              widget.onTap?.call();
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(

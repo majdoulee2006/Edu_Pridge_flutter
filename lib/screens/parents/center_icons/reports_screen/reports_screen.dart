@@ -56,8 +56,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     setState(() => _isLoadingHistory = true);
     try {
       final token = await _getToken();
+      final sid = studentId;
+      final url = sid != null
+          ? "${ApiService().baseUrl}/parent/reports/history?student_id=$sid"
+          : "${ApiService().baseUrl}/parent/reports/history";
       final res = await Dio().get(
-        "${ApiService().baseUrl}/parent/reports/history",
+        url,
         options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
       );
       if (res.statusCode == 200 && res.data['success'] == true && mounted) {
@@ -105,6 +109,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } on DioException catch (e) {
       final msg = e.response?.data['message'] ?? "حدث خطأ أثناء طلب التقرير";
       messenger.showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.redAccent));
+      _fetchHistory();
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -348,25 +353,105 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
+  void _showReportDetail(Map<String, dynamic> report) {
+    final isAcademic = report['report_type'] == 'academic';
+    final cardColor  = Theme.of(context).cardColor;
+    final textColor  = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final color      = isAcademic ? Colors.blueAccent : Colors.purpleAccent;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: cardColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(30))),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 20),
+              Row(children: [
+                Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: Icon(isAcademic ? Icons.school_rounded : Icons.psychology_outlined, color: color, size: 22)),
+                const SizedBox(width: 12),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(isAcademic ? "تقرير أكاديمي" : "تقرير سلوك",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                  Text(report['student_name'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                ]),
+              ]),
+              const SizedBox(height: 20),
+              if (isAcademic) ...[
+                Row(children: [
+                  Expanded(child: _detailChip("المعدل", "${report['average_grade'] ?? '—'}%", Colors.blue)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _detailChip("الحضور", "${report['attendance_rate'] ?? '—'}%", Colors.green)),
+                ]),
+                const SizedBox(height: 16),
+              ],
+              Text("الملاحظات:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withValues(alpha: 0.15))),
+                child: Text(report['recommendations'] ?? 'لا توجد ملاحظات',
+                    style: TextStyle(fontSize: 14, height: 1.6, color: textColor)),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(14)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(fontSize: 11, color: color)),
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+      ]),
+    );
+  }
+
   Widget _buildHistoryCard(Map<String, dynamic> report, Color cardColor, Color textColor) {
     final isAcademic = report['report_type'] == 'academic';
+    final isPending  = report['status'] == 'pending_teacher';
     final color = isAcademic ? Colors.blueAccent : Colors.purpleAccent;
     final date = (report['created_at'] as String?)?.split('T')[0] ?? '';
 
-    return Container(
+    return GestureDetector(
+      onTap: isPending ? null : () => _showReportDetail(report),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(25),
+        border: isPending ? Border.all(color: Colors.orange.withValues(alpha: 0.3)) : null,
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: Icon(isAcademic ? Icons.school_rounded : Icons.psychology_outlined, color: color, size: 22),
+            decoration: BoxDecoration(
+              color: (isPending ? Colors.orange : color).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isPending ? Icons.hourglass_top_rounded : (isAcademic ? Icons.school_rounded : Icons.psychology_outlined),
+              color: isPending ? Colors.orange : color,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -376,6 +461,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 Text(isAcademic ? "تقرير أكاديمي" : "تقرير سلوك",
                     style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
                 Text(report['student_name'] ?? '', style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5))),
+                if (isPending) ...[
+                  const SizedBox(height: 3),
+                  const Text("قيد المراجعة عند المعلم",
+                      style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w600)),
+                ],
               ],
             ),
           ),
@@ -386,13 +476,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Text("مكتمل", style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(
+                  color: (isPending ? Colors.orange : Colors.green).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isPending ? "معلق" : "مكتمل",
+                  style: TextStyle(
+                    color: isPending ? Colors.orange : Colors.green,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
         ],
       ),
+    ),
     );
   }
 

@@ -34,7 +34,12 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   void _onNewNotif() {
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
-      showInAppBanner(context, n['title']?.toString() ?? 'إشعار جديد', n['message']?.toString() ?? n['body']?.toString() ?? '');
+      showInAppBanner(
+        context,
+        n['title']?.toString() ?? 'إشعار جديد',
+        n['message']?.toString() ?? n['body']?.toString() ?? '',
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentsNotificationsScreen())),
+      );
     }
   }
 
@@ -413,50 +418,86 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     );
   }
 
+  static const List<Color> _cardColors = [
+    Color(0xFFFFCC33),
+    Color(0xFF4DB6AC),
+    Color(0xFF7E57C2),
+    Color(0xFFEF5350),
+    Color(0xFF42A5F5),
+  ];
+
   Widget _buildNewsSection(Color cardColor, Color textColor) {
     if (_announcements.isEmpty) {
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        height: 120,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF3B67D1), Color(0xFF2A4B9A)]),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: const Center(child: Text("لا توجد أخبار حالياً", style: TextStyle(color: Colors.white70))),
+        padding: const EdgeInsets.all(30),
+        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(25)),
+        child: Center(child: Text("لا توجد أخبار حالياً", style: TextStyle(color: textColor.withValues(alpha: 0.4)))),
       );
     }
 
     return Column(
-      children: _announcements.map((ann) {
+      children: List.generate(_announcements.length, (i) {
+        final ann = _announcements[i];
+        final headerColor = _cardColors[i % _cardColors.length];
         return GestureDetector(
           onTap: () => Navigator.push(context, MaterialPageRoute(
               builder: (_) => AnnouncementDetailScreen(announcement: ann))),
           child: Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-            padding: const EdgeInsets.all(18),
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF3B67D1), Color(0xFF2A4B9A)]),
+              color: cardColor,
               borderRadius: BorderRadius.circular(25),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(ann['title'] ?? "", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(ann['time_ago'] ?? "", style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                    const Icon(Icons.arrow_back_ios_new, size: 13, color: Colors.white60),
-                  ],
+                Container(
+                  height: 130,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: headerColor,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 12, right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                          child: const Text('إعلان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
+                        ),
+                      ),
+                      const Center(child: Icon(Icons.campaign_outlined, size: 45, color: Colors.white60)),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(ann['title'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 6),
+                      Text(ann['content'] ?? ann['body'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(ann['time_ago'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                          Icon(Icons.arrow_back_ios_new, size: 13, color: textColor.withValues(alpha: 0.4)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
         );
-      }).toList(),
+      }),
     );
   }
 }

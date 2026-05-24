@@ -1,5 +1,4 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart'; // 🌟 استدعاء مكتبة الملفات
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
@@ -26,10 +25,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   bool _isLoading = true;
   List<dynamic> _attendanceList = [];
   
-  Map<int, bool> _expandedExcuses = {};
-  Set<int> _submittedExcuses = {};
-  final Map<int, TextEditingController> _excuseControllers = {};
-  final Map<int, bool> _submittingExcuse = {};
 
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
@@ -70,41 +65,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     _dateController.dispose();
     _timeController.dispose();
     _leaveReasonController.dispose();
-    for (var c in _excuseControllers.values) {
-      c.dispose();
-    }
     super.dispose();
-  }
-
-  Future<void> _submitExcuse(int index, int attendanceId) async {
-    final controller = _excuseControllers[index];
-    final reason = controller?.text.trim() ?? '';
-    if (reason.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى كتابة سبب الغياب أولاً')),
-      );
-      return;
-    }
-    setState(() => _submittingExcuse[index] = true);
-    try {
-      final ok = await StudentServices().submitAttendanceExcuse(attendanceId, reason);
-      if (ok && mounted) {
-        _showSuccessDialog('تم إرسال التبرير بنجاح\nشاكرين تعاونكم');
-        setState(() {
-          _expandedExcuses[index] = false;
-          _submittedExcuses.add(index);
-          controller?.clear();
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ، يرجى المحاولة مرة أخرى')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _submittingExcuse[index] = false);
-    }
   }
 
   Future<void> _submitLeaveRequest() async {
@@ -311,134 +272,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  // 🌟 دالة اختيار الملفات الحقيقية من الموبايل 🌟
-  Future<void> _pickFile(String type) async {
-    Navigator.pop(context);
-    final messenger = ScaffoldMessenger.of(context);
-
-    try {
-      FilePickerResult? result;
-
-      if (type == 'مستند' || type == 'ملف') {
-        result = await FilePicker.platform.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: ['pdf', 'doc', 'docx', 'zip'],
-        );
-      } else if (type == 'صورة') {
-        result = await FilePicker.platform.pickFiles(type: FileType.image);
-      } else if (type == 'فيديو') {
-        result = await FilePicker.platform.pickFiles(type: FileType.video);
-      }
-
-      if (result != null) {
-        String fileName = result.files.single.name;
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('تم إرفاق الملف: $fileName'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('تم إلغاء اختيار الملف'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint("Error picking file: $e");
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('حدث خطأ أو تم رفض الصلاحيات'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _showAttachmentOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDark ? Theme.of(context).cardColor : Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'إرفاق مستند',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildAttachmentOption(Icons.camera_alt, 'الكاميرا', Colors.blue),
-                    _buildAttachmentOption(Icons.photo_library, 'صورة', Colors.purple),
-                    _buildAttachmentOption(Icons.insert_drive_file, 'ملف', Colors.orange),
-                  ],
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAttachmentOption(IconData icon, String title, Color color) {
-    return Builder(
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return GestureDetector(
-          onTap: () => _pickFile(title), // 🌟 ربط الزر بمدير الملفات
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(isDark ? 50 : 25),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: isDark ? color.withAlpha(200) : color,
-                  size: 30,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -598,19 +431,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           String date = _translateDate(record['date'] ?? '');
 
           if (status == 'absent') {
-            // 🌟 إذا الطالب قدم عذر لهاد الغياب محلياً، نقلبه لبرتقالي 🌟
-            if (_submittedExcuses.contains(index)) {
-              return _buildRecordCard(
-                date: date,
-                subject: subject,
-                statusText: 'عذر قيد المراجعة',
-                statusColor: Colors.orange,
-                bgColor: isDark ? Colors.orange.withAlpha(30) : const Color(0xFFFFF3E0),
-                icon: Icons.hourglass_empty,
-              );
-            }
-            final attendanceId = record['id'] as int? ?? 0;
-            return _buildUnexcusedAbsenceCard(index, attendanceId, date, subject);
+            return _buildRecordCard(
+              date: date,
+              subject: subject,
+              statusText: 'غائب',
+              statusColor: isDark ? Colors.red.shade300 : Colors.red,
+              bgColor: isDark ? Colors.red.withAlpha(30) : const Color(0xFFFFEBEE),
+              icon: Icons.close,
+            );
           }
 
           Color statusColor;
@@ -644,247 +472,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             icon: icon,
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildUnexcusedAbsenceCard(int index, int attendanceId, String date, String subject) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    bool isExpanded = _expandedExcuses[index] ?? false;
-    _excuseControllers.putIfAbsent(index, () => TextEditingController());
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? Theme.of(context).cardColor : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? Colors.red.withAlpha(50) : Colors.red.shade100,
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withAlpha(50)
-                : Colors.red.withAlpha(13),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _expandedExcuses[index] = !isExpanded;
-              });
-            },
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        date,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Text(
-                            subject,
-                            style: const TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                          const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.red.withAlpha(30)
-                                  : const Color(0xFFFFEBEE),
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            child: Text(
-                              'غائب',
-                              style: TextStyle(
-                                color: isDark ? Colors.red.shade300 : Colors.red,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.red.withAlpha(30)
-                        : const Color(0xFFFFEBEE),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.close,
-                    color: isDark ? Colors.red.shade300 : Colors.red,
-                    size: 20,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          if (isExpanded) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              child: Divider(
-                color: isDark ? Colors.red.withAlpha(50) : Colors.red.shade100,
-                thickness: 1,
-                height: 1,
-              ),
-            ),
-            Row(
-              children: [
-                Icon(
-                  Icons.edit_note,
-                  color: isDark ? Colors.red.shade300 : Colors.red,
-                  size: 18,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'تقديم عذر للغياب',
-                  style: TextStyle(
-                    color: isDark ? Colors.red.shade300 : Colors.red.shade700,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _excuseControllers[index],
-              maxLines: 3,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              decoration: InputDecoration(
-                hintText: 'يرجى كتابة سبب الغياب هنا...',
-                hintStyle: TextStyle(
-                  color: isDark ? Colors.grey.shade600 : Colors.grey,
-                  fontSize: 12,
-                ),
-                contentPadding: const EdgeInsets.all(12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(
-                    color: isDark
-                        ? Colors.white.withAlpha(30)
-                        : Colors.grey.shade200,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(
-                    color: isDark
-                        ? Colors.white.withAlpha(30)
-                        : Colors.grey.shade200,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            InkWell(
-              onTap: _showAttachmentOptions,
-              borderRadius: BorderRadius.circular(15),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withAlpha(30)
-                        : Colors.grey.shade300,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.camera_alt_outlined,
-                      color: isDark ? Colors.grey.shade400 : Colors.blueGrey,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'إرفاق مستند (اختياري)',
-                      style: TextStyle(
-                        color: isDark ? Colors.grey.shade400 : Colors.blueGrey,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            SizedBox(
-              width: double.infinity,
-              height: 45,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFCC00),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                onPressed: (_submittingExcuse[index] ?? false)
-                    ? null
-                    : () => _submitExcuse(index, attendanceId),
-                child: (_submittingExcuse[index] ?? false)
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
-                      )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.send_rounded, color: Colors.black, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'إرسال التبرير',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

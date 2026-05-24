@@ -50,7 +50,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   // قوائم الحضور والغياب
   List<Map<String, dynamic>> _absentStudents = [];
+  // ignore: unused_field
   List<Map<String, dynamic>> _allStudents = [];
+  // ignore: unused_field
   int _presentCount = 0;
   int _totalCount = 0;
 

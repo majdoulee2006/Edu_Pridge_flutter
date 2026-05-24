@@ -366,6 +366,17 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           var item = permissions[index];
                           if (item['status'] == 'pending_parent') {
                             return _buildDetailedCard(item, cardColor, textColor);
+                          } else if (item['status'] == 'pending_hod') {
+                            return _buildSimpleCard(
+                              title: item['student_name'] ?? 'طالب',
+                              date: item['date']?.toString().substring(0, 10) ?? "",
+                              icon: Icons.hourglass_empty_rounded,
+                              iconCol: Colors.orange,
+                              cardColor: cardColor,
+                              textColor: textColor,
+                              statusText: 'قيد المراجعة',
+                              statusColor: Colors.orange,
+                            );
                           } else {
                             final isApproved = item['status'] == 'approved';
                             return _buildSimpleCard(
