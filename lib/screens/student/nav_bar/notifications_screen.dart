@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
@@ -22,11 +23,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification> academicNotifications = [];
   List<AppNotification> administrativeNotifications = [];
   bool isLoading = true;
+  String _userName = '';
+  String _avatarUrl = '';
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _userName  = prefs.getString('user_name') ?? '';
+        _avatarUrl = prefs.getString('avatar') ?? '';
+      });
+    }
   }
 
   // 🌟 جلب الإشعارات باستخدام الـ Service النظيف
@@ -98,7 +112,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             elevation: 0,
             leading: IconButton(
               icon: Icon(
-                Icons.arrow_back,
+                Icons.arrow_forward,
                 color: isDark ? Colors.white : Colors.black,
               ),
               onPressed: () => Navigator.pushReplacement(
@@ -125,7 +139,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
+                    builder: (context) => SettingsScreen(
+                      userName: _userName,
+                      userRole: 'طالب',
+                      profileImageUrl: _avatarUrl,
+                    ),
                   ),
                 ),
               ),

@@ -39,6 +39,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     if (mounted) setState(() => _hasUnread = NotificationPolling.unreadCount.value > 0);
   }
 
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   void _onNewNotif() {
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
@@ -59,6 +61,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     NotificationPolling.start('/teacher/notifications');
     NotificationPolling.unreadCount.addListener(_onUnreadChanged);
     NotificationPolling.latestNew.addListener(_onNewNotif);
+    AppSettings.language.addListener(_onLangChange);
   }
 
   @override
@@ -66,6 +69,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     NotificationPolling.unreadCount.removeListener(_onUnreadChanged);
     NotificationPolling.latestNew.removeListener(_onNewNotif);
     NotificationPolling.stop();
+    AppSettings.language.removeListener(_onLangChange);
     super.dispose();
   }
 
@@ -114,10 +118,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
 
+    final isAr = AppSettings.language.value == 'ar';
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: Stack(
           children: [
             Column(
@@ -139,24 +144,33 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                                 children: [
                                   Text.rich(
                                     TextSpan(
-                                      text: 'أهلاً، ',
+                                      text: isAr ? 'أهلاً، ' : 'Hello, ',
                                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
                                       children: [
                                         TextSpan(
-                                          text: _isLoading ? '...' : (_teacherName.isNotEmpty ? 'أستاذ $_teacherName' : 'أستاذ'),
+                                          text: _isLoading ? '...' : (_teacherName.isNotEmpty
+                                              ? (isAr ? 'أستاذ $_teacherName' : 'Prof. $_teacherName')
+                                              : (isAr ? 'أستاذ' : 'Professor')),
                                           style: const TextStyle(color: Color(0xFFFFCC00)),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Text('لوحة تحكم المعلم', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                  Text(isAr ? 'لوحة تحكم المعلم' : 'Teacher Dashboard', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                                 ],
                               ),
                               IconButton(
                                 icon: const Icon(Icons.settings_outlined, color: Color(0xFFF1C40F), size: 28),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
-                                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(
+                  userName: _teacherName.isNotEmpty ? _teacherName : '',
+                  userRole: 'مدرس',
+                  onProfileTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+                  },
+                ))),
                               ),
                             ],
                           ),
@@ -165,7 +179,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                             children: [
                               Container(width: 4, height: 24, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
                               const SizedBox(width: 8),
-                              Text('آخر الأخبار', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+                              Text(isAr ? 'آخر الأخبار' : 'Latest News', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
                             ],
                           ),
                           const SizedBox(height: 10),

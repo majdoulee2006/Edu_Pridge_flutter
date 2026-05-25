@@ -6,6 +6,8 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/teacher_report_evaluation_screen.dart';
 import '../../widgets/teacher_speed_dial.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
@@ -98,8 +100,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int get _unreadCount =>
       _notifications.where((n) => n['is_read'] != true).length;
 
-  void _navigateForType(String? type) {
+  void _navigateForNotif(Map<String, dynamic> notif) {
+    final type = notif['type'] as String?;
     switch (type) {
+      case 'announcement':
+      case 'new_announcement':
+      case 'administrative':
+        final embedded = notif['data'] is Map ? Map<String, dynamic>.from(notif['data'] as Map) : <String, dynamic>{};
+        final announcement = <String, dynamic>{
+          'title':       embedded['title']   ?? notif['title']   ?? '',
+          'body':        embedded['body']    ?? notif['message'] ?? notif['body'] ?? '',
+          'content':     embedded['content'] ?? notif['message'] ?? '',
+          'time_ago':    embedded['time_ago']  ?? notif['created_at'] ?? '',
+          'created_at':  notif['created_at'] ?? '',
+          'author_name': embedded['author_name'] ?? notif['sender'] ?? 'الإدارة',
+          ...embedded,
+        };
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => AnnouncementDetailScreen(announcement: announcement),
+        ));
+        break;
+      case 'report_request':
+      case 'new_report':
+      case 'report':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherReportEvaluationScreen()));
+        break;
       case 'leave_request':
       case 'attendance':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
@@ -142,8 +167,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
-            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+            onPressed: () => Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
           ),
           title: Row(
             mainAxisSize: MainAxisSize.min,
@@ -288,7 +314,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return GestureDetector(
       onTap: () {
         _markAsRead(id, index);
-        _navigateForType(_notifications[index]['type'] as String?);
+        _navigateForNotif(_notifications[index]);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),

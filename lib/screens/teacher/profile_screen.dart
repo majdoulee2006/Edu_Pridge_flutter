@@ -157,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
           ),
@@ -165,7 +165,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             IconButton(
               icon: Icon(Icons.settings_outlined, color: textColor),
               onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                  MaterialPageRoute(builder: (_) => SettingsScreen(
+                    userName: _fullName,
+                    userRole: _specialization.isNotEmpty ? _specialization : 'مدرس',
+                    profileImageUrl: _avatarUrl ?? '',
+                    onProfileTap: () => Navigator.pop(context),
+                  ))),
             ),
           ],
         ),

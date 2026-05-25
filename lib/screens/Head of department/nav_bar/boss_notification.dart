@@ -9,6 +9,7 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_m
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import '../../../widgets/boss_center_icon.dart';
 import '../center_icons/leave_requests_screen.dart';
+import '../center_icons/request_reports_screen.dart';
 
 class BossNotification {
   final int id;
@@ -152,7 +153,14 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
 
   Future<void> _respondLeave(int index, String status) async {
     final n = notifications[index];
-    if (n.relatedId == null) return;
+    if (n.relatedId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا يمكن الرد على هذا الطلب: معرف الطلب مفقود')),
+        );
+      }
+      return;
+    }
     try {
       final token = await _getToken();
       await Dio().put(
@@ -185,6 +193,178 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
   }
 
   int get _unreadCount => notifications.where((n) => n.isUnread).length;
+
+  void _showCreateNotifSheet() {
+    final titleCtrl   = TextEditingController();
+    final messageCtrl = TextEditingController();
+    String target = 'students';
+    bool isSending = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 40, height: 4,
+                      decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2))),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('إرسال إشعار جديد',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'عنوان الإشعار',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFCCAA00), width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: messageCtrl,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: 'محتوى الإشعار',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFCCAA00), width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('إرسال إلى:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setSheet(() => target = 'students'),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: target == 'students'
+                                  ? const Color(0xFFCCAA00)
+                                  : Colors.grey.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(
+                              child: Text('الطلاب فقط',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: target == 'students' ? Colors.black : Colors.grey,
+                                  )),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setSheet(() => target = 'all'),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: target == 'all'
+                                  ? const Color(0xFFCCAA00)
+                                  : Colors.grey.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(
+                              child: Text('الطلاب والمعلمين',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: target == 'all' ? Colors.black : Colors.grey,
+                                  )),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: isSending ? null : () async {
+                        if (titleCtrl.text.trim().isEmpty || messageCtrl.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('يرجى ملء جميع الحقول'), backgroundColor: Colors.red),
+                          );
+                          return;
+                        }
+                        setSheet(() => isSending = true);
+                        try {
+                          final token = await _getToken();
+                          await Dio().post(
+                            "${ApiService().baseUrl}/department-head/notifications/send",
+                            data: {
+                              'title':   titleCtrl.text.trim(),
+                              'message': messageCtrl.text.trim(),
+                              'target':  target,
+                            },
+                            options: Options(headers: {"Authorization": "Bearer $token"}),
+                          );
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                          }
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('تم إرسال الإشعار بنجاح ✅'), backgroundColor: Colors.green),
+                            );
+                          }
+                        } catch (e) {
+                          setSheet(() => isSending = false);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('حدث خطأ، حاول مجدداً'), backgroundColor: Colors.red),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFCCAA00),
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: isSending
+                          ? const SizedBox(width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                          : const Text('إرسال الإشعار', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -228,9 +408,13 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                                       GestureDetector(
                                         onTap: () {
                                           _markAsRead(e.value.id, e.key);
-                                          if (e.value.isLeaveRequest && e.value.isResolvedLeave) {
+                                          final n = e.value;
+                                          if (n.isLeaveRequest) {
                                             Navigator.push(context, MaterialPageRoute(
                                                 builder: (_) => const LeaveRequestsScreen()));
+                                          } else if (n.type == 'report') {
+                                            Navigator.push(context, MaterialPageRoute(
+                                                builder: (_) => const ReportRequestScreen()));
                                           }
                                         },
                                         child: _buildNotificationCard(e.value, cardColor, isDark, e.key),
@@ -254,6 +438,30 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                 onNotificationsTap: () {},
                 onMessagesTap: () => Navigator.pushReplacement(context,
                     MaterialPageRoute(builder: (_) => const BossMessageScreen())),
+              ),
+              // زر إرسال إشعار جديد
+              Positioned(
+                bottom: 95,
+                left: 20,
+                child: GestureDetector(
+                  onTap: _showCreateNotifSheet,
+                  child: Container(
+                    height: 52,
+                    width: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCCAA00),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFCCAA00).withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.add, size: 28, color: Colors.black),
+                  ),
+                ),
               ),
             ],
           ),
@@ -337,136 +545,161 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     );
   }
 
+  String _labelForType(String type) {
+    switch (type) {
+      case 'leave_request': return 'طلب إجازة';
+      case 'announcement':  return 'إعلان';
+      case 'report':        return 'تقرير';
+      default:              return 'إشعار';
+    }
+  }
+
   Widget _buildNotificationCard(
       BossNotification n, Color cardColor, bool isDark, int index) {
+    final color = n.iconColor;
+    final label = _labelForType(n.type);
+    final dateStr = n.time.length >= 10 ? n.time.substring(0, 10) : n.time;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(25),
-        border: n.isUnread
-            ? Border.all(color: n.iconColor.withValues(alpha: 0.4), width: 1)
-            : null,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)
-        ],
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    color: n.iconColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle),
-                child: Icon(n.icon, color: n.iconColor, size: 26),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(n.time,
-                            style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                        if (n.isUnread)
-                          Container(
-                              width: 8, height: 8,
-                              decoration: const BoxDecoration(
-                                  color: Colors.red, shape: BoxShape.circle)),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Text(n.title,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(n.description,
-                        style: const TextStyle(
-                            color: Colors.grey, fontSize: 13, height: 1.4)),
-                  ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            Positioned(right: 0, top: 0, bottom: 0,
+                child: Container(width: 5, color: color)),
+            // نقطة الإشعار غير المقروء
+            if (n.isUnread)
+              Positioned(
+                left: 14,
+                top: 14,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF5722),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ],
-          ),
-
-          // Leave request action area
-          if (n.isLeaveRequest) ...[
-            const SizedBox(height: 15),
-            if (n.isPendingLeave)
-              Row(
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _respondLeave(index, 'approved'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFCCAA00),
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                        child: Icon(n.icon, color: color, size: 24),
                       ),
-                      child: const Text("موافقة",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text(n.title,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                      overflow: TextOverflow.ellipsis),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.07),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(dateStr, style: TextStyle(color: color, fontSize: 10)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(n.description,
+                                style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13, height: 1.4)),
+                            const SizedBox(height: 6),
+                            Text(label,
+                                style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _respondLeave(index, 'rejected'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.withValues(alpha: 0.15),
-                        foregroundColor: isDark ? Colors.white : Colors.black,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
+
+                  if (n.isLeaveRequest) ...[
+                    const SizedBox(height: 14),
+                    if (n.isPendingLeave)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _respondLeave(index, 'approved'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFCCAA00),
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              child: const Text("موافقة", style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _respondLeave(index, 'rejected'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey.withValues(alpha: 0.15),
+                                foregroundColor: isDark ? Colors.white : Colors.black,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              child: const Text("رفض", style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: (n.leaveStatus == 'rejected' ? Colors.red : Colors.green).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              n.leaveStatus == 'rejected' ? Icons.cancel_outlined : Icons.check_circle_outline,
+                              size: 18,
+                              color: n.leaveStatus == 'rejected' ? Colors.red : Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              n.leaveStatus == 'rejected' ? 'تم رفض الطلب' : 'تمت الموافقة على الطلب',
+                              style: TextStyle(
+                                color: n.leaveStatus == 'rejected' ? Colors.red : Colors.green,
+                                fontWeight: FontWeight.bold, fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Text("رفض",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              )
-            else
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: (n.leaveStatus == 'rejected'
-                          ? Colors.red
-                          : Colors.green)
-                      .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      n.leaveStatus == 'rejected'
-                          ? Icons.cancel_outlined
-                          : Icons.check_circle_outline,
-                      size: 18,
-                      color: n.leaveStatus == 'rejected' ? Colors.red : Colors.green,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      n.leaveStatus == 'rejected' ? 'تم رفض الطلب' : 'تمت الموافقة على الطلب',
-                      style: TextStyle(
-                        color: n.leaveStatus == 'rejected' ? Colors.red : Colors.green,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
                   ],
-                ),
+                ],
               ),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }

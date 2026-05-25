@@ -179,7 +179,7 @@ class _OTPScreenState extends State<OTPScreen> {
                 fontSize: 18,
                 fontFamily: 'Cairo')),
         leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pop(context)),
       ),
       body: Directionality(

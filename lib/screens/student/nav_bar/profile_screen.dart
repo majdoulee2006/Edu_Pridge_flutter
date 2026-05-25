@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
@@ -10,6 +10,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'student_home_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -83,10 +84,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Text('الملف الشخصي',
               style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (_) => const StudentHomeScreen())),
           ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.settings_outlined, color: textColor),
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => SettingsScreen(
+                    userName: userData?['name'] as String? ?? userData?['full_name'] as String? ?? '',
+                    userRole: 'طالب',
+                    profileImageUrl: userData?['avatar'] as String? ?? '',
+                    onProfileTap: () => Navigator.pop(context),
+                  ))),
+            ),
+          ],
         ),
         body: Stack(
           children: [

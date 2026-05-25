@@ -31,6 +31,8 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     if (mounted) setState(() => _hasUnread = NotificationPolling.unreadCount.value > 0);
   }
 
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   void _onNewNotif() {
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
@@ -52,6 +54,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     NotificationPolling.start('/parent/notifications');
     NotificationPolling.unreadCount.addListener(_onUnreadChanged);
     NotificationPolling.latestNew.addListener(_onNewNotif);
+    AppSettings.language.addListener(_onLangChange);
   }
 
   @override
@@ -59,6 +62,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     NotificationPolling.unreadCount.removeListener(_onUnreadChanged);
     NotificationPolling.latestNew.removeListener(_onNewNotif);
     NotificationPolling.stop();
+    AppSettings.language.removeListener(_onLangChange);
     super.dispose();
   }
 
@@ -187,135 +191,149 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 15),
-                      _buildHeader(context, textColor, cardColor),
-                      const SizedBox(height: 25),
-                      _buildSectionTitle("الأبناء", textColor),
-
-                      FutureBuilder<List<dynamic>>(
-                        future: _childrenFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const SizedBox(
-                              height: 240,
-                              child: Center(child: CircularProgressIndicator(color: Color(0xFFCCAA00))),
-                            );
-                          }
-
-                          final children = snapshot.data ?? [];
-
-                          if (children.isNotEmpty && selectedChildId == null) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) async {
-                              final prefs = await SharedPreferences.getInstance();
-                              final first = children[0];
-                              setState(() => selectedChildId = first['student_id'] as int?);
-                              await prefs.setInt('selected_student_id', first['student_id'] as int);
-                              await prefs.setString('selected_student_name', first['full_name'] ?? "بدون اسم");
-                            });
-                          }
-
-                          return SizedBox(
-                            height: 240,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(horizontal: 15),
-                              itemCount: children.length + 1,
-                              itemBuilder: (context, index) {
-                                if (index < children.length) {
-                                  final child = children[index];
-                                  final studentId = child['student_id'] as int?;
-                                  final isSelected = selectedChildId == studentId;
-                                  final gpa = child['average_grade']?.toString() ?? "0";
-                                  final attendance = child['attendance_rate']?.toString() ?? "0";
-
-                                  return GestureDetector(
-                                    onTap: () async {
-                                      if (!mounted) return;
-                                      setState(() => selectedChildId = studentId);
-                                      final messenger = ScaffoldMessenger.of(context);
-                                      final prefs = await SharedPreferences.getInstance();
-                                      if (studentId != null) {
-                                        await prefs.setInt('selected_student_id', studentId);
-                                      }
-                                      await prefs.setString('selected_student_name', child['full_name'] ?? "بدون اسم");
-                                      if (!mounted) return;
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                          content: Text("تم اختيار: ${child['full_name']}"),
-                                          duration: const Duration(seconds: 1),
-                                        ),
-                                      );
-                                    },
-                                    child: Stack(
-                                      children: [
-                                        _buildStudentCard(
-                                          child['full_name'] ?? "بدون اسم",
-                                          child['level'] ?? "غير محدد",
-                                          gpa,
-                                          attendance,
-                                          cardColor,
-                                          textColor,
-                                          isSelected: isSelected,
-                                        ),
-                                        if (isSelected)
-                                          const Positioned(
-                                            top: 20,
-                                            right: 20,
-                                            child: CircleAvatar(
-                                              radius: 12,
-                                              backgroundColor: Color(0xFFFFCC00),
-                                              child: Icon(Icons.check, size: 16, color: Colors.black),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                } else {
-                                  return _buildAddButton(cardColor);
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 25),
-                      _buildSectionTitle("أخبار المعهد والفعاليات", textColor),
-                      _buildNewsSection(cardColor, textColor),
-                      const SizedBox(height: 120),
-                    ],
+        textDirection: AppSettings.language.value == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                // ─── الهيدر الثابت ───
+                Container(
+                  color: cardColor,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        _buildHeader(context, textColor, cardColor),
+                        const SizedBox(height: 14),
+                        _buildSectionTitle(AppSettings.language.value == 'ar' ? "الأبناء" : "Children", textColor),
+                        const SizedBox(height: 10),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              CustomBottomNav(
-                currentIndex: 0,
-                hasUnread: _hasUnread,
-                centerButton: const Parents_Center_Icon(),
-                onHomeTap: () {},
-                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsProfileScreen())),
-                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsNotificationsScreen())),
-                onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsMessagesScreen())),
-              ),
-            ],
-          ),
+                // ─── المحتوى القابل للتمرير ───
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async { _refreshChildren(); await _fetchAnnouncements(); },
+                    color: const Color(0xFFCCAA00),
+                    child: ListView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 120),
+                      children: [
+                        FutureBuilder<List<dynamic>>(
+                          future: _childrenFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const SizedBox(
+                                height: 240,
+                                child: Center(child: CircularProgressIndicator(color: Color(0xFFCCAA00))),
+                              );
+                            }
+
+                            final children = snapshot.data ?? [];
+
+                            if (children.isNotEmpty && selectedChildId == null) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                                final prefs = await SharedPreferences.getInstance();
+                                final first = children[0];
+                                setState(() => selectedChildId = first['student_id'] as int?);
+                                await prefs.setInt('selected_student_id', first['student_id'] as int);
+                                await prefs.setString('selected_student_name', first['full_name'] ?? "بدون اسم");
+                              });
+                            }
+
+                            return SizedBox(
+                              height: 240,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(horizontal: 15),
+                                itemCount: children.length + 1,
+                                itemBuilder: (context, index) {
+                                  if (index < children.length) {
+                                    final child = children[index];
+                                    final studentId = child['student_id'] as int?;
+                                    final isSelected = selectedChildId == studentId;
+                                    final gpa = child['average_grade']?.toString() ?? "0";
+                                    final attendance = child['attendance_rate']?.toString() ?? "0";
+
+                                    return GestureDetector(
+                                      onTap: () async {
+                                        if (!mounted) return;
+                                        setState(() => selectedChildId = studentId);
+                                        final messenger = ScaffoldMessenger.of(context);
+                                        final prefs = await SharedPreferences.getInstance();
+                                        if (studentId != null) {
+                                          await prefs.setInt('selected_student_id', studentId);
+                                        }
+                                        await prefs.setString('selected_student_name', child['full_name'] ?? "بدون اسم");
+                                        if (!mounted) return;
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                            content: Text("تم اختيار: ${child['full_name']}"),
+                                            duration: const Duration(seconds: 1),
+                                          ),
+                                        );
+                                      },
+                                      child: Stack(
+                                        children: [
+                                          _buildStudentCard(
+                                            child['full_name'] ?? "بدون اسم",
+                                            child['level'] ?? "غير محدد",
+                                            gpa,
+                                            attendance,
+                                            cardColor,
+                                            textColor,
+                                            isSelected: isSelected,
+                                          ),
+                                          if (isSelected)
+                                            const Positioned(
+                                              top: 20,
+                                              right: 20,
+                                              child: CircleAvatar(
+                                                radius: 12,
+                                                backgroundColor: Color(0xFFFFCC00),
+                                                child: Icon(Icons.check, size: 16, color: Colors.black),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  } else {
+                                    return _buildAddButton(cardColor);
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        _buildSectionTitle(AppSettings.language.value == 'ar' ? "أخبار المعهد والفعاليات" : "News & Events", textColor),
+                        _buildNewsSection(cardColor, textColor),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            CustomBottomNav(
+              currentIndex: 0,
+              hasUnread: _hasUnread,
+              centerButton: const Parents_Center_Icon(),
+              onHomeTap: () {},
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsProfileScreen())),
+              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsNotificationsScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsMessagesScreen())),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context, Color textColor, Color cardColor) {
+    final isAr = AppSettings.language.value == 'ar';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -326,14 +344,14 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
             children: [
               Text.rich(
                 TextSpan(
-                  text: "أهلاً، ",
+                  text: isAr ? "أهلاً، " : "Hello, ",
                   style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: textColor),
                   children: [
                     TextSpan(text: _parentName, style: const TextStyle(color: Color(0xFFCCAA00))),
                   ],
                 ),
               ),
-              const Text("لوحة متابعة الأبناء", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(isAr ? "لوحة متابعة الأبناء" : "Children Monitoring", style: const TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
           GestureDetector(

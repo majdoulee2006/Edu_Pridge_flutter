@@ -13,6 +13,7 @@ import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../widgets/parents_center_icon.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class ParentsProfileScreen extends StatefulWidget {
   const ParentsProfileScreen({super.key});
@@ -54,20 +55,31 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
       try {
         var response = await Dio().get(
           "${ApiService().baseUrl}/user/profile",
-          options: Options(headers: {"Authorization": "Bearer $token"}),
+          options: Options(headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          }),
         );
         if (response.statusCode == 200) {
-          final d = response.data['data'] ?? response.data;
-          final avatarUrl = ApiService.fixMediaUrl(d['avatar'] as String?);
+          final d = (response.data['data'] ?? response.data) as Map<String, dynamic>;
+          final rawAvatar = d['avatar'] as String?;
+          String? avatarUrl;
+          if (rawAvatar != null && rawAvatar.startsWith('http')) {
+            avatarUrl = ApiService.fixMediaUrl(rawAvatar);
+          } else if (rawAvatar != null && rawAvatar.isNotEmpty) {
+            avatarUrl = ApiService.fixMediaUrl('http://127.0.0.1:8000/storage/$rawAvatar');
+          }
           if (avatarUrl != null) {
             await prefs.setString('parent_avatar_url', avatarUrl);
           }
-          setState(() {
-            parentName  = d['full_name'] ?? parentName;
-            parentEmail = d['email']     ?? parentEmail;
-            parentPhone = d['phone']     ?? parentPhone;
-            _avatarUrl  = avatarUrl ?? _avatarUrl;
-          });
+          if (mounted) {
+            setState(() {
+              parentName  = d['full_name'] ?? parentName;
+              parentEmail = d['email']     ?? parentEmail;
+              parentPhone = d['phone']     ?? parentPhone;
+              _avatarUrl  = avatarUrl ?? _avatarUrl;
+            });
+          }
         }
       } catch (e) { debugPrint("فشل جلب بيانات الأب: $e"); }
     }
@@ -106,14 +118,14 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
         data: FormData.fromMap({'avatar': await MultipartFile.fromFile(picked.path, filename: 'avatar.jpg')}),
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
-      if (res.statusCode == 200 && res.data['success'] == true && mounted) {
+      if (res.statusCode == 200 && res.data['success'] == true) {
         final newUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?);
         final messenger = ScaffoldMessenger.of(context);
         if (newUrl != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('parent_avatar_url', newUrl);
+          if (mounted) setState(() => _avatarUrl = newUrl);
         }
-        if (mounted) setState(() => _avatarUrl = newUrl);
         messenger.showSnackBar(const SnackBar(
           content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
           backgroundColor: Color(0xFFFFCC00),
@@ -136,6 +148,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: bgColor,
+        extendBody: true,
         appBar: _buildAppBar(context, textColor),
         body: Stack(
           children: [
@@ -322,8 +335,28 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
 
   PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor) {
     return AppBar(
-      backgroundColor: Colors.transparent, elevation: 0, centerTitle: true,
-      title: Text("الملف الشخصي", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      title: Text("الملف الشخصي",
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_forward, color: textColor),
+        onPressed: () => Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen())),
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.settings_outlined, color: textColor),
+          onPressed: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => SettingsScreen(
+                userName: parentName,
+                userRole: 'ولي أمر',
+                profileImageUrl: _avatarUrl ?? '',
+                onProfileTap: () => Navigator.pop(context),
+              ))),
+        ),
+      ],
     );
   }
 }

@@ -68,26 +68,13 @@ class OnboardingThree extends StatelessWidget {
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    height: 250,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [const Color(0xFF4A148C), const Color(0xFF121212)]
-                            : [const Color(0xFFF3E5F5), const Color(0xFFE1BEE7)],
-                        begin: Alignment.topRight,
-                        end: Alignment.bottomLeft,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.analytics_rounded, size: 90, color: primaryYellow),
-                        const SizedBox(height: 16),
-                        Text("تقارير وتحليلات دقيقة", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.purple.shade800)),
-                      ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/onboarding3.png',
+                      height: 250,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),

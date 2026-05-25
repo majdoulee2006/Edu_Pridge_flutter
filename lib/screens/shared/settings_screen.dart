@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/auth/login_screen.dart';
@@ -65,7 +65,7 @@ class AppSettings {
 }
 
 // ─── SettingsScreen ────────────────────────────────────────────────────────
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   final String userName;
   final String userRole;
   final String profileImageUrl;
@@ -73,11 +73,52 @@ class SettingsScreen extends StatelessWidget {
 
   const SettingsScreen({
     super.key,
-    this.userName        = "مستخدم",
+    this.userName        = "",
     this.userRole        = "",
     this.profileImageUrl = '',
     this.onProfileTap,
   });
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  String _userName = '';
+  String _userRole = '';
+  String _avatarUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _userName  = widget.userName;
+    _userRole  = widget.userRole;
+    _avatarUrl = widget.profileImageUrl;
+    if (_userName.isEmpty) _loadFromPrefs();
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _userName = prefs.getString('user_name') ?? '';
+      _userRole = _mapRole(prefs.getString('user_role') ?? prefs.getString('role') ?? '');
+      _avatarUrl = widget.profileImageUrl.isNotEmpty
+          ? widget.profileImageUrl
+          : (prefs.getString('avatar') ?? '');
+    });
+  }
+
+  String _mapRole(String role) {
+    switch (role) {
+      case 'student':         return 'طالب';
+      case 'teacher':         return 'معلم';
+      case 'parent':          return 'ولي أمر';
+      case 'department_head': return 'رئيس قسم';
+      case 'affairs_officer': return 'موظف شؤون';
+      default:                return role;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +148,7 @@ class SettingsScreen extends StatelessWidget {
                     title: Text(isAr ? "الإعدادات" : "Settings",
                         style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
                     leading: IconButton(
-                      icon: Icon(Icons.arrow_back, color: textColor),
+                      icon: Icon(Icons.arrow_forward, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -189,7 +230,7 @@ class SettingsScreen extends StatelessWidget {
   // ── Profile Card ──────────────────────────────────────────────────────────
   Widget _buildProfileCard(BuildContext context, Color cardColor, Color textColor, Color subColor, bool isAr) {
     return InkWell(
-      onTap: onProfileTap,
+      onTap: widget.onProfileTap,
       borderRadius: BorderRadius.circular(25),
       child: Container(
         padding: const EdgeInsets.all(15),
@@ -203,16 +244,16 @@ class SettingsScreen extends StatelessWidget {
             CircleAvatar(
               radius: 30,
               backgroundColor: const Color(0xFFCCAA00),
-              backgroundImage: profileImageUrl.isNotEmpty ? NetworkImage(ApiService.fixMediaUrl(profileImageUrl)!) : null,
-              child: profileImageUrl.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
+              backgroundImage: _avatarUrl.isNotEmpty ? NetworkImage(ApiService.fixMediaUrl(_avatarUrl)!) : null,
+              child: _avatarUrl.isEmpty ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
             ),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(userName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text(userRole, style: TextStyle(color: subColor, fontSize: 13)),
+                  Text(_userName.isNotEmpty ? _userName : 'مستخدم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(_userRole, style: TextStyle(color: subColor, fontSize: 13)),
                 ],
               ),
             ),

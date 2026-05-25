@@ -33,6 +33,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     if (mounted) setState(() => _hasUnread = NotificationPolling.unreadCount.value > 0);
   }
 
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   void _onNewNotif() {
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
@@ -52,6 +54,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     NotificationPolling.start('/student/notifications');
     NotificationPolling.unreadCount.addListener(_onUnreadChanged);
     NotificationPolling.latestNew.addListener(_onNewNotif);
+    AppSettings.language.addListener(_onLangChange);
   }
 
   @override
@@ -59,6 +62,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     NotificationPolling.unreadCount.removeListener(_onUnreadChanged);
     NotificationPolling.latestNew.removeListener(_onNewNotif);
     NotificationPolling.stop();
+    AppSettings.language.removeListener(_onLangChange);
     super.dispose();
   }
 
@@ -115,51 +119,51 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     Map<String, dynamic>? upcoming = dashboardData?['next_lecture'];
     bool hasLecture = upcoming != null && upcoming.isNotEmpty;
 
+    final isAr = AppSettings.language.value == 'ar';
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
           children: [
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: Column(
-                  children: [
-                    _buildAppBar(
-                      context,
-                      isDark,
-                      textColor,
-                      displayName,
-                      avatarUrl,
+            Column(
+              children: [
+                // ─── الهيدر الثابت ───
+                Container(
+                  color: cardColor,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      child: Column(
+                        children: [
+                          _buildAppBar(context, isDark, textColor, displayName, avatarUrl),
+                          const SizedBox(height: 14),
+                          _buildSectionTitle(textColor),
+                          const SizedBox(height: 10),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                    isLoading
-                        ? const Expanded(
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.amber,
-                              ),
-                            ),
-                          )
-                        : Expanded(
-                            child: RefreshIndicator(
-                              onRefresh: _loadDashboardData,
-                              color: Colors.amber,
-                              child: ListView(
-                                physics: const BouncingScrollPhysics(),
-                                padding: const EdgeInsets.only(bottom: 100),
-                                children: [
-                                                  if (hasLecture)
-                                    _buildUpcomingLectureCard(upcoming, isDark),
-                                  const SizedBox(height: 20),
-                                  _buildSectionTitle(textColor),
-                                  const SizedBox(height: 16),
+                  ),
+                ),
+                // ─── قائمة الأخبار ───
+                isLoading
+                    ? const Expanded(
+                        child: Center(child: CircularProgressIndicator(color: Colors.amber)),
+                      )
+                    : Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: _loadDashboardData,
+                          color: Colors.amber,
+                          child: ListView(
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.only(bottom: 100),
+                            children: [
+                              if (hasLecture)
+                                _buildUpcomingLectureCard(upcoming, isDark),
+                              const SizedBox(height: 16),
 
-                                  if (latestNews.isEmpty)
+                              if (latestNews.isEmpty)
                                     const Center(
                                       child: Padding(
                                         padding: EdgeInsets.all(20.0),
@@ -224,8 +228,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                           ),
                   ],
                 ),
-              ),
-            ),
             // زر الكاميرا العائم لمسح QR الحضور
             Positioned(
               bottom: 100,
@@ -335,6 +337,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     String name,
     String? avatarUrl,
   ) {
+    final isAr = AppSettings.language.value == 'ar';
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -343,7 +346,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           children: [
             Text.rich(
               TextSpan(
-                text: 'أهلاً، ',
+                text: isAr ? 'أهلاً، ' : 'Hello, ',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
                 children: [
                   TextSpan(
@@ -353,8 +356,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ],
               ),
             ),
-            const Text('لوحة تحكم الطالب',
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(isAr ? 'لوحة تحكم الطالب' : 'Student Dashboard',
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         Row(
@@ -373,6 +376,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   Widget _buildSectionTitle(Color textColor) {
+    final isAr = AppSettings.language.value == 'ar';
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -388,7 +392,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              'آخر الأخبار',
+              isAr ? 'آخر الأخبار' : 'Latest News',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,

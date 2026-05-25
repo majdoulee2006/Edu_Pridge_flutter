@@ -200,8 +200,9 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     final color = style['color'] as Color;
     final isLeave = n['type'] == 'leave_request';
     final leaveStatus = n['leave_status'] as String?;
-    final isPending = isLeave && (leaveStatus == null || leaveStatus == 'pending_parent' || leaveStatus == 'pending_hod');
-    final isResolved = isLeave && (leaveStatus == 'approved' || leaveStatus == 'rejected');
+    final isPendingParent = isLeave && leaveStatus == 'pending_parent';
+    final isPendingHod    = isLeave && (leaveStatus == null || leaveStatus == 'pending_hod');
+    final isResolved      = isLeave && (leaveStatus == 'approved' || leaveStatus == 'rejected');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -261,7 +262,24 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                   // Leave request actions
                   if (isLeave) ...[
                     const SizedBox(height: 14),
-                    if (isPending && leaveStatus == 'pending_parent')
+                    if (isPendingHod)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.orange),
+                            SizedBox(width: 6),
+                            Text('بانتظار موافقة رئيس القسم', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                        ),
+                      )
+                    else if (isPendingParent)
                       Row(
                         children: [
                           Expanded(

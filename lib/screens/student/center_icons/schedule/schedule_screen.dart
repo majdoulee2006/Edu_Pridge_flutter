@@ -132,33 +132,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
-  // حساب تاريخ اليوم
-  String _getDateForDayName(String dayName) {
-    Map<String, int> dayMap = {
-      'الاثنين': DateTime.monday,
-      'الثلاثاء': DateTime.tuesday,
-      'الأربعاء': DateTime.wednesday,
-      'الخميس': DateTime.thursday,
-      'الجمعة': DateTime.friday,
-      'السبت': DateTime.saturday,
-      'الأحد': DateTime.sunday,
-      'Monday': DateTime.monday,
-      'Tuesday': DateTime.tuesday,
-      'Wednesday': DateTime.wednesday,
-      'Thursday': DateTime.thursday,
-      'Friday': DateTime.friday,
-      'Saturday': DateTime.saturday,
-      'Sunday': DateTime.sunday,
-    };
-
-    DateTime now = DateTime.now();
-    int targetWeekday = dayMap[dayName] ?? now.weekday;
-
-    int difference = targetWeekday - now.weekday;
-    DateTime targetDate = now.add(Duration(days: difference));
-
-    return targetDate.day.toString();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,7 +149,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -307,6 +280,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  static const List<String> _weekDays = [
+    'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'
+  ];
+
   // ----------------------------------------------------------------
   // 2. واجهة "جدول الحصص"
   // ----------------------------------------------------------------
@@ -319,29 +296,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
     }
 
-    if (_schedulesData.isEmpty) {
-      return const Center(
-        child: Text(
-          'لا يوجد حصص دراسية مسجلة',
-          style: TextStyle(color: Colors.grey),
-        ),
-      );
-    }
+    if (_selectedDateIndex >= _weekDays.length) _selectedDateIndex = 0;
 
-    if (_selectedDateIndex >= _schedulesData.length) {
-      _selectedDateIndex = 0;
-    }
+    final selectedDayName = _weekDays[_selectedDateIndex];
 
-    var selectedDayData = _schedulesData[_selectedDateIndex];
-    String selectedDayName = selectedDayData['day'];
-    List<dynamic> lectures = selectedDayData['lectures'];
+    // find lectures for this day from API data (may be empty)
+    final dayData = _schedulesData.firstWhere(
+      (d) => d['day'] == selectedDayName,
+      orElse: () => {'day': selectedDayName, 'lectures': []},
+    );
+    final List<dynamic> lectures = dayData['lectures'] ?? [];
 
     List<Widget> currentSchedule = lectures.asMap().entries.map((entry) {
       int index = entry.key;
       var lecture = entry.value;
       bool isLast = index == lectures.length - 1;
-
-      // 🌟 التحقق هل هذه المحاضرة هي المحددة حالياً؟
       bool isLectureSelected = index == _selectedLectureIndex;
 
       List<String> timeParts = lecture['start_time'].toString().split(' ');
@@ -350,17 +319,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ? (timeParts[1] == 'AM' ? 'ص' : 'م')
           : '';
 
-      // 🌟 تم تغليف الكرت بـ GestureDetector لتغيير اللون عند الضغط
       return GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedLectureIndex = index;
-          });
-        },
+        onTap: () => setState(() => _selectedLectureIndex = index),
         child: _buildTimelineItem(
           time: timeStr,
           amPm: amPmStr,
-          isCurrentTime: isLectureSelected, // تفعيل اللون الأصفر للوقت
+          isCurrentTime: isLectureSelected,
           isLast: isLast,
           card: _buildClassCard(
             title: lecture['course_name'],
@@ -370,10 +334,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             tagText: lecture['duration'] ?? 'محاضرة',
             icon: Icons.menu_book,
             iconColor: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-            iconBgColor: isDark
-                ? Colors.blue.withAlpha(30)
-                : Colors.blue.shade50,
-            isActive: isLectureSelected, // تفعيل الإطار الأصفر للكرت
+            iconBgColor: isDark ? Colors.blue.withAlpha(30) : Colors.blue.shade50,
+            isActive: isLectureSelected,
           ),
         ),
       );
@@ -388,15 +350,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
-            children: List.generate(_schedulesData.length, (index) {
-              String dayName = _schedulesData[index]['day'];
-              String calculatedDate = _getDateForDayName(dayName);
-
-              return _buildDateCircle(
-                day: dayName,
-                date: calculatedDate,
-                index: index,
-              );
+            children: List.generate(_weekDays.length, (index) {
+              return _buildDayCircle(day: _weekDays[index], index: index);
             }),
           ),
         ),
@@ -417,18 +372,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withAlpha(25)
-                      : const Color(0xFFEBEBEB),
+                  color: isDark ? Colors.white.withAlpha(25) : const Color(0xFFEBEBEB),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
-                  '${currentSchedule.length} حصص',
+                  '${lectures.length} حصص',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -443,12 +393,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         const SizedBox(height: 20),
 
         Expanded(
-          child: ListView(
-            key: ValueKey<int>(_selectedDateIndex),
-            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 120),
-            physics: const BouncingScrollPhysics(),
-            children: currentSchedule,
-          ),
+          child: lectures.isEmpty
+              ? Center(
+                  child: Text(
+                    'لا توجد حصص ليوم $selectedDayName',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                )
+              : ListView(
+                  key: ValueKey<int>(_selectedDateIndex),
+                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 120),
+                  physics: const BouncingScrollPhysics(),
+                  children: currentSchedule,
+                ),
         ),
       ],
     );
@@ -631,24 +588,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   // دوال الرسم والتصميم المساعدة
   // =======================================================================
 
-  Widget _buildDateCircle({
-    required String day,
-    required String date,
-    required int index,
-  }) {
+  Widget _buildDayCircle({required String day, required int index}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isSelected = _selectedDateIndex == index;
     return GestureDetector(
       onTap: () => setState(() {
         _selectedDateIndex = index;
-        _selectedLectureIndex =
-            0; // 🌟 إعادة تصفير الإطار الأصفر عند تغيير اليوم
+        _selectedLectureIndex = 0;
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         margin: const EdgeInsets.only(left: 12),
         width: 70,
-        height: 95,
+        height: 70,
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFFFFCC00)
@@ -657,54 +609,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           border: isSelected
               ? null
               : Border.all(
-                  color: isDark
-                      ? Colors.white.withAlpha(20)
-                      : Colors.grey.shade200,
+                  color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade200,
                 ),
           boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFFFCC00).withAlpha(100),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
+              ? [BoxShadow(color: const Color(0xFFFFCC00).withAlpha(100), blurRadius: 10, offset: const Offset(0, 4))]
               : [],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              day,
-              style: TextStyle(
-                color: isSelected ? Colors.black87 : Colors.grey,
-                fontSize: 11,
-              ),
+        child: Center(
+          child: Text(
+            day,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.black87 : (isDark ? Colors.grey.shade300 : Colors.grey),
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
-            const SizedBox(height: 5),
-            Text(
-              date,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.black
-                    : (isDark ? Colors.white : Colors.black),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 5),
-            if (isSelected)
-              Container(
-                width: 4,
-                height: 4,
-                decoration: const BoxDecoration(
-                  color: Colors.black,
-                  shape: BoxShape.circle,
-                ),
-              )
-            else
-              const SizedBox(height: 4),
-          ],
+          ),
         ),
       ),
     );
