@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/calendar/calendar_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activities/activities_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/vacations/vacations_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/accounts/accounts_screen.dart';
 class AffairsOfficerSpeedDial extends StatefulWidget {
   const AffairsOfficerSpeedDial({super.key});
 
@@ -89,28 +93,48 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
                               Icons.calendar_month_outlined,
                               Colors.orange,
                               22.5, 0.0, 0.4, itemTextColor,
-                                  () {},
+                                  () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AffairsOfficerCalendarScreen()),
+                                );
+                              },
                             ),
                             _buildMenuItem(
                               'الأنشطة',
                               Icons.local_activity_outlined,
                               Colors.green,
                               67.5, 0.2, 0.6, itemTextColor,
-                                  () {},
+                                  () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AffairsOfficerActivitiesScreen()),
+                                );
+                              },
                             ),
                             _buildMenuItem(
                               'الأذون',
                               Icons.assignment_turned_in_outlined,
                               Colors.blue,
                               112.5, 0.4, 0.8, itemTextColor,
-                                  () {},
+                                  () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AffairsOfficerVacationsScreen()),
+                                );
+                              },
                             ),
                             _buildMenuItem(
                               'الحسابات',
                               Icons.manage_accounts_outlined,
                               Colors.purple,
                               157.5, 0.6, 1.0, itemTextColor,
-                                  () {},
+                                    () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AffairsOfficerAccountsScreen()),
+                                );
+                              },
                             ),
                           ],
                         ),
