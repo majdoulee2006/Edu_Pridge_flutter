@@ -1,4 +1,4 @@
-import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
+﻿import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -78,7 +78,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text('بدء محادثة جديدة', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),

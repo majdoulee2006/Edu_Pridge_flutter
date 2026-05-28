@@ -80,7 +80,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         title: const Text("إنشاء حساب طالب جديد", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20),
+          icon: const Icon(Icons.arrow_forward, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),

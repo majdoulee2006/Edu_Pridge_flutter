@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -275,7 +275,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(

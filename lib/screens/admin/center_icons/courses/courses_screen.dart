@@ -65,7 +65,7 @@ class CoursesScreen extends StatelessWidget {
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
           ),
           actions: [
             IconButton(

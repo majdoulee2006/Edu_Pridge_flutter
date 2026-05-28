@@ -38,6 +38,8 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     if (mounted) setState(() => _hasUnread = NotificationPolling.unreadCount.value > 0);
   }
 
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   void _onNewNotif() {
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
@@ -57,6 +59,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     NotificationPolling.start('/department-head/notifications');
     NotificationPolling.unreadCount.addListener(_onUnreadChanged);
     NotificationPolling.latestNew.addListener(_onNewNotif);
+    AppSettings.language.addListener(_onLangChange);
   }
 
   @override
@@ -64,6 +67,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     NotificationPolling.unreadCount.removeListener(_onUnreadChanged);
     NotificationPolling.latestNew.removeListener(_onNewNotif);
     NotificationPolling.stop();
+    AppSettings.language.removeListener(_onLangChange);
     super.dispose();
   }
 
@@ -101,85 +105,89 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: RefreshIndicator(
-                  onRefresh: _fetchDashboard,
-                  color: primaryYellow,
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
+        textDirection: AppSettings.language.value == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                // ─── الهيدر الثابت ───
+                Container(
+                  color: cardColor,
+                  child: SafeArea(
+                    bottom: false,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 15),
-                        _buildHeader(context, textColor, cardColor, primaryYellow),
-                        const SizedBox(height: 25),
-                        _buildSectionTitle("آخر الأخبار", textColor),
                         const SizedBox(height: 10),
-                        if (_announcements.isEmpty)
-                          Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 20),
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(25)),
-                            child: const Center(child: Text("لا توجد أخبار حالياً", style: TextStyle(color: Colors.grey))),
-                          )
-                        else
-                          ...List.generate(_announcements.length, (i) {
-                            final a = _announcements[i];
-                            return _buildNewsCard(context, a, _cardColors[i % _cardColors.length], cardColor, textColor);
-                          }),
-                        const SizedBox(height: 150),
+                        _buildHeader(context, textColor, cardColor, primaryYellow),
+                        const SizedBox(height: 14),
+                        _buildSectionTitle(AppSettings.language.value == 'ar' ? "آخر الأخبار" : "Latest News", textColor),
+                        const SizedBox(height: 10),
                       ],
                     ),
                   ),
                 ),
-              ),
-
-              // زر نشر إعلان طائر (مثل زر QR عند الطالب)
-              Positioned(
-                bottom: 100,
-                left: 20,
-                child: GestureDetector(
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const CreateAnnouncementScreen()))
-                      .then((posted) { if (posted == true) _fetchDashboard(); }),
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: primaryYellow,
-                      shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))],
-                    ),
-                    child: const Icon(Icons.add, color: Colors.black, size: 28),
+                // ─── قائمة الإعلانات ───
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _fetchDashboard,
+                    color: primaryYellow,
+                    child: _announcements.isEmpty
+                        ? Center(child: Text(AppSettings.language.value == 'ar' ? "لا توجد أخبار حالياً" : "No news yet", style: const TextStyle(color: Colors.grey, fontSize: 15)))
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(0, 12, 0, 140),
+                            itemCount: _announcements.length,
+                            itemBuilder: (context, i) {
+                              final a = _announcements[i];
+                              return _buildNewsCard(context, a, _cardColors[i % _cardColors.length], cardColor, textColor);
+                            },
+                          ),
                   ),
                 ),
-              ),
+              ],
+            ),
 
-              CustomBottomNav(
-                currentIndex: 0,
-                hasUnread: _hasUnread,
-                centerButton: const Boss_Center_Icon(),
-                onHomeTap: () {},
-                onProfileTap: () => Navigator.pushReplacement(context,
-                    MaterialPageRoute(builder: (_) => const BossProfileScreen())),
-                onNotificationsTap: () => Navigator.pushReplacement(context,
-                    MaterialPageRoute(builder: (_) => const BossNotificationScreen())),
-                onMessagesTap: () => Navigator.pushReplacement(context,
-                    MaterialPageRoute(builder: (_) => const BossMessageScreen())),
+            // ─── زر نشر إعلان طائر ───
+            Positioned(
+              bottom: 100,
+              left: 20,
+              child: GestureDetector(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const CreateAnnouncementScreen()))
+                    .then((posted) { if (posted == true) _fetchDashboard(); }),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: primaryYellow,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: const Icon(Icons.add, color: Colors.black, size: 28),
+                ),
               ),
-            ],
-          ),
+            ),
+
+            CustomBottomNav(
+              currentIndex: 0,
+              hasUnread: _hasUnread,
+              centerButton: const Boss_Center_Icon(),
+              onHomeTap: () {},
+              onProfileTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const BossProfileScreen())),
+              onNotificationsTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const BossNotificationScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const BossMessageScreen())),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context, Color textColor, Color cardColor, Color primaryYellow) {
+    final isAr = AppSettings.language.value == 'ar';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -191,15 +199,15 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
               children: [
                 Text.rich(
                   TextSpan(
-                    text: "أهلاً، ",
+                    text: isAr ? "أهلاً، " : "Hello, ",
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
                     children: [
                       TextSpan(text: _bossName, style: const TextStyle(color: Color(0xFFCCAA00))),
                     ],
                   ),
                 ),
-                const Text("لوحة تحكم إدارة القسم",
-                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(isAr ? "لوحة تحكم إدارة القسم" : "Department Dashboard",
+                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
           ),
@@ -254,27 +262,17 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: headerColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 12, right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-                      child: const Text('إعلان',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
-                    ),
-                  ),
-                  const Center(child: Icon(Icons.campaign_outlined, size: 45, color: Colors.white60)),
-                ],
-              ),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+              child: (a['image_url'] as String?)?.isNotEmpty == true
+                  ? Image.network(
+                      a['image_url'] as String,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _announcementPlaceholder(headerColor),
+                    )
+                  : _announcementPlaceholder(headerColor),
             ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -306,6 +304,27 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _announcementPlaceholder(Color headerColor) {
+    return Container(
+      height: 150,
+      width: double.infinity,
+      color: headerColor,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 12, right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+              child: const Text('إعلان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
+            ),
+          ),
+          const Center(child: Icon(Icons.campaign_outlined, size: 45, color: Colors.white60)),
+        ],
       ),
     );
   }

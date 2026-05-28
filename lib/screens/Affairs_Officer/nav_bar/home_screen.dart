@@ -36,6 +36,20 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  void _onLangChange() { if (mounted) setState(() {}); }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // 🌟 نفس ألوان SettingsScreen بالضبط
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -44,8 +58,9 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
     final Color textColor = isDark ? Colors.white : Colors.black;
     final Color subColor  = isDark ? Colors.grey.shade400 : Colors.grey;
 
+    final isAr = AppSettings.language.value == 'ar';
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
@@ -64,17 +79,17 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "أهلاً، محمد المحمد",
-                              style: TextStyle(
+                              isAr ? "أهلاً، محمد المحمد" : "Hello, Mohammed",
+                              style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFFFFCC00),
+                                color: Color(0xFFFFCC00),
                                 fontFamily: 'Noto Sans Arabic',
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "لوحة تحكم الطلاب",
+                              isAr ? "لوحة تحكم الطلاب" : "Student Affairs Dashboard",
                               style: TextStyle(
                                 fontSize: 14,
                                 color: subColor,

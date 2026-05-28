@@ -8,6 +8,7 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_p
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import '../../../widgets/boss_center_icon.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import '../center_icons/leave_requests_screen.dart';
 import '../center_icons/request_reports_screen.dart';
 
@@ -36,9 +37,10 @@ class BossNotification {
     this.leaveStatus,
   });
 
-  bool get isLeaveRequest => type == 'leave_request';
-  bool get isPendingLeave => isLeaveRequest && (leaveStatus == null || leaveStatus == 'pending_hod');
-  bool get isResolvedLeave => isLeaveRequest && (leaveStatus == 'approved' || leaveStatus == 'pending_parent' || leaveStatus == 'rejected');
+  bool get isLeaveRequest   => type == 'leave_request';
+  bool get isPendingParent  => isLeaveRequest && leaveStatus == 'pending_parent';
+  bool get isPendingLeave   => isLeaveRequest && (leaveStatus == null || leaveStatus == 'pending_hod');
+  bool get isResolvedLeave  => isLeaveRequest && (leaveStatus == 'approved' || leaveStatus == 'rejected');
 }
 
 class BossNotificationScreen extends StatefulWidget {
@@ -169,7 +171,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (mounted) {
-        final newStatus = status == 'approved' ? 'pending_parent' : 'rejected';
+        final newStatus = status == 'approved' ? 'approved' : 'rejected';
         setState(() {
           notifications[index] = BossNotification(
             id: n.id, title: n.title, description: n.description, time: n.time,
@@ -199,6 +201,11 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     final messageCtrl = TextEditingController();
     String target = 'students';
     bool isSending = false;
+    final targets = [
+      {'value': 'students',          'label': 'الطلاب فقط'},
+      {'value': 'students_teachers', 'label': 'الطلاب والمعلمين'},
+      {'value': 'all',               'label': 'الكل'},
+    ];
 
     showModalBottomSheet(
       context: context,
@@ -254,54 +261,34 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                   const SizedBox(height: 16),
                   const Text('إرسال إلى:', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setSheet(() => target = 'students'),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: target == 'students'
-                                  ? const Color(0xFFCCAA00)
-                                  : Colors.grey.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Center(
-                              child: Text('الطلاب فقط',
+                  Column(
+                    children: targets.map((t) {
+                      final isActive = target == t['value'];
+                      return GestureDetector(
+                        onTap: () => setSheet(() => target = t['value']!),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: isActive ? const Color(0xFFCCAA00) : Colors.grey.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(isActive ? Icons.radio_button_checked : Icons.radio_button_off,
+                                  size: 18, color: isActive ? Colors.black : Colors.grey),
+                              const SizedBox(width: 10),
+                              Text(t['label']!,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: target == 'students' ? Colors.black : Colors.grey,
+                                    color: isActive ? Colors.black : Colors.grey,
                                   )),
-                            ),
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setSheet(() => target = 'all'),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: target == 'all'
-                                  ? const Color(0xFFCCAA00)
-                                  : Colors.grey.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Center(
-                              child: Text('الطلاب والمعلمين',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: target == 'all' ? Colors.black : Colors.grey,
-                                  )),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   ),
                   const SizedBox(height: 20),
                   SizedBox(
@@ -409,12 +396,28 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                                         onTap: () {
                                           _markAsRead(e.value.id, e.key);
                                           final n = e.value;
-                                          if (n.isLeaveRequest) {
+                                          if (n.type == 'announcement') {
                                             Navigator.push(context, MaterialPageRoute(
-                                                builder: (_) => const LeaveRequestsScreen()));
+                                              builder: (_) => AnnouncementDetailScreen(announcement: {
+                                                'title':      n.title,
+                                                'content':    n.description,
+                                                'time_ago':   n.time,
+                                                'created_at': n.time,
+                                                'author_name': 'الإدارة',
+                                              }),
+                                            ));
                                           } else if (n.type == 'report') {
                                             Navigator.push(context, MaterialPageRoute(
                                                 builder: (_) => const ReportRequestScreen()));
+                                          } else if (n.isLeaveRequest) {
+                                            Navigator.push(context, MaterialPageRoute(
+                                              builder: (_) => LeaveRequestsScreen(
+                                                fromSource: "notification",
+                                                highlightId: n.relatedId,
+                                              ),
+                                            )).then((refreshed) {
+                                              if (refreshed == true) _fetchNotifications();
+                                            });
                                           }
                                         },
                                         child: _buildNotificationCard(e.value, cardColor, isDark, e.key),
@@ -637,7 +640,24 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
 
                   if (n.isLeaveRequest) ...[
                     const SizedBox(height: 14),
-                    if (n.isPendingLeave)
+                    if (n.isPendingParent)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.blue),
+                            SizedBox(width: 6),
+                            Text('بانتظار موافقة ولي الأمر', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                        ),
+                      )
+                    else if (n.isPendingLeave)
                       Row(
                         children: [
                           Expanded(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'screens/onboarding/onboarding_one.dart';
 import 'screens/student/nav_bar/student_home_screen.dart';
@@ -8,8 +10,13 @@ import 'screens/teacher/teacher_home.dart';
 import 'screens/parents/nav_bar/parent_home.dart';
 import 'screens/Head of department/nav_bar/boss_home.dart';
 import 'screens/Affairs_Officer/nav_bar/home_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Firebase غير مدعوم على الويب بدون إعداد إضافي
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+  }
   await AppSettings.loadFromPrefs();
   runApp(const EduBridgeApp());
 }

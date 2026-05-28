@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'otp_screen.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -34,15 +35,32 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _studentIdController = TextEditingController();
   final _studentPasswordController = TextEditingController();
   final _studentConfirmPasswordController = TextEditingController();
+  final _studentTelegramController = TextEditingController(text: '7821980919');
 
   final _parentNameController = TextEditingController();
   final _parentEmailController = TextEditingController();
   final _parentPhoneController = TextEditingController();
   final _parentPasswordController = TextEditingController();
   final _parentConfirmPasswordController = TextEditingController();
+  final _parentTelegramController = TextEditingController(text: '7821980919');
 
   int _selectedChildrenCount = 1;
   final List<TextEditingController> _parentChildIdControllers = [TextEditingController()];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedTelegramId();
+  }
+
+  Future<void> _loadSavedTelegramId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('telegram_chat_id') ?? '';
+    if (saved.isNotEmpty) {
+      _studentTelegramController.text = saved;
+      _parentTelegramController.text  = saved;
+    }
+  }
 
   Future<void> _pickDate() async {
     DateTime? picked = await showDatePicker(
@@ -70,7 +88,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     if (p1 != p2) { _showSnackBar('كلمات المرور غير متطابقة!'); return; }
 
     String email = isStudent ? _studentEmailController.text.trim() : _parentEmailController.text.trim();
+    String phone = isStudent ? _studentPhoneController.text.trim() : _parentPhoneController.text.trim();
+
     if (email.isEmpty) { _showSnackBar('يرجى إدخال البريد الإلكتروني'); return; }
+    if (phone.isEmpty) { _showSnackBar('يرجى إدخال رقم الهاتف'); return; }
 
     if (isStudent && (selectedDept == null || selectedBranch == null || selectedGender == null || selectedYear == null || selectedBirthDate == null)) {
       _showSnackBar('يرجى إكمال كافة البيانات المطلوبة'); return;
@@ -80,12 +101,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
     try {
       Dio dio = Dio();
-      String url = "http://127.0.0.1:8000/api/register";
+      const url = "http://127.0.0.1:8000/api/register";
 
       Map<String, dynamic> data = isStudent ? {
         "full_name": _studentNameController.text.trim(),
-        "email": _studentEmailController.text.trim(),
-        "phone": _studentPhoneController.text.trim(),
+        "email": email,
+        "phone": phone,
         "university_id": _studentIdController.text.trim(),
         "gender": selectedGender,
         "birth_date": selectedBirthDate.toString().split(' ')[0],
@@ -94,28 +115,48 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         "branch": selectedBranch,
         "password": _studentPasswordController.text,
         "role": "student",
+        if (_studentTelegramController.text.trim().isNotEmpty)
+          "telegram_username": _studentTelegramController.text.trim().replaceAll('@', ''),
       } : {
         "full_name": _parentNameController.text.trim(),
-        "email": _parentEmailController.text.trim(),
-        "phone": _parentPhoneController.text.trim(),
+        "email": email,
+        "phone": phone,
         "children_ids": _parentChildIdControllers.map((c) => c.text.trim()).toList(),
         "password": _parentPasswordController.text,
         "role": "parent",
+        if (_parentTelegramController.text.trim().isNotEmpty)
+          "telegram_username": _parentTelegramController.text.trim().replaceAll('@', ''),
       };
 
       var response = await dio.post(url, data: data);
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OTPScreen(
-              email: email,
-              appBarTitle: "التحقق من الحساب",
+      if ((response.statusCode == 201 || response.statusCode == 200) && mounted) {
+        // احفظ chat_id للمرة القادمة
+        final tgId = isStudent ? _studentTelegramController.text.trim() : _parentTelegramController.text.trim();
+        if (tgId.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('telegram_chat_id', tgId);
+        }
+        final otpDev = response.data['otp_dev']?.toString();
+        if (otpDev != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('رمز التحقق: $otpDev', textAlign: TextAlign.center,
+                  style: const TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+              backgroundColor: const Color(0xFFF6E300),
+              duration: const Duration(seconds: 10),
+              behavior: SnackBarBehavior.floating,
             ),
-          ),
-        );
+          );
+          await Future.delayed(const Duration(seconds: 2));
+        }
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => OTPScreen(email: email, appBarTitle: "التحقق من الحساب")),
+            (route) => false,
+          );
+        }
       }
     } on DioException catch (e) {
       _showSnackBar(e.response?.data['message'] ?? "خطأ في تسجيل البيانات");
@@ -264,6 +305,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         ),
         _buildInputField(label: 'كلمة المرور', hint: '........', icon: Icons.lock_outline, controller: _studentPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'تأكيد كلمة المرور', hint: '........', icon: Icons.check_circle_outline, controller: _studentConfirmPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        _buildInputField(label: 'رقم تيليغرام (Chat ID)', hint: 'مثال: 7821980919', icon: Icons.send, controller: _studentTelegramController, textColor: textColor, cardColor: cardColor, isDark: isDark),
       ],
     );
   }
@@ -291,6 +333,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         ...List.generate(_selectedChildrenCount, (index) => _buildInputField(label: 'الرقم الجامعي للابن ${index + 1}', hint: 'أدخل الرقم الجامعي', controller: _parentChildIdControllers[index], icon: Icons.badge_outlined, textColor: textColor, cardColor: cardColor, isDark: isDark)),
         _buildInputField(label: 'كلمة المرور', hint: '........', icon: Icons.lock_outline, controller: _parentPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'تأكيد كلمة المرور', hint: '........', icon: Icons.check_circle_outline, controller: _parentConfirmPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        _buildInputField(label: 'رقم تيليغرام (Chat ID)', hint: 'مثال: 7821980919', icon: Icons.send, controller: _parentTelegramController, textColor: textColor, cardColor: cardColor, isDark: isDark),
       ],
     );
   }

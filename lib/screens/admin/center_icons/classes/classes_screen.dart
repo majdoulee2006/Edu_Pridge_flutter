@@ -67,7 +67,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
         appBar: AppBar(
           title: const Text("الفصول الدراسية والمواد", style: TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
-          leading: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back)),
+          leading: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_forward)),
           actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.settings_outlined))],
         ),
 

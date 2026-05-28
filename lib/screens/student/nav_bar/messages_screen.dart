@@ -77,7 +77,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC),
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentHomeScreen())),
           ),
           title: Text('الرسائل', style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),

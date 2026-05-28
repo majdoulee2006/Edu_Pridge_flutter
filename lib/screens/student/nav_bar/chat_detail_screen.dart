@@ -198,7 +198,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           backgroundColor: appBarColor,
           elevation: isDark ? 0 : 1,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(

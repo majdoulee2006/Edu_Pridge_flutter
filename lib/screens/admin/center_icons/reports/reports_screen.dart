@@ -68,7 +68,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           centerTitle: true,
           leading: IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back)),
+              icon: const Icon(Icons.arrow_forward)),
           actions: [
             IconButton(onPressed: () {}, icon: const Icon(Icons.settings_outlined))
           ],

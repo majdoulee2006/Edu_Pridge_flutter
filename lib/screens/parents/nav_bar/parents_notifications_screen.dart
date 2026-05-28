@@ -11,6 +11,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_screen/permissions_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/reports_screen/reports_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/performance_screen/performance_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 class ParentsNotificationsScreen extends StatefulWidget {
@@ -92,6 +93,18 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
   void _onNotificationTap(Map<String, dynamic> n) {
     final type = n['type']?.toString() ?? '';
     switch (type) {
+      case 'announcement':
+      case 'administrative':
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => AnnouncementDetailScreen(announcement: {
+            'title':       n['title']?.toString() ?? '',
+            'content':     n['message']?.toString() ?? n['body']?.toString() ?? '',
+            'time_ago':    n['created_at']?.toString().split('T')[0] ?? '',
+            'created_at':  n['created_at']?.toString() ?? '',
+            'author_name': 'الإدارة',
+          }),
+        ));
+        break;
       case 'leave_request':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const PermissionsScreen()));
         break;

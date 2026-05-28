@@ -145,7 +145,7 @@ class _OTPScreenState extends State<OTPScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context, false),
           ),
         ),

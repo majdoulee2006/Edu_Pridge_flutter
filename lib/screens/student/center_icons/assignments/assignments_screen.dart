@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
 // مسارات شاشات الـ nav_bar
@@ -21,7 +22,7 @@ class AssignmentsScreen extends StatefulWidget {
 }
 
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
-  int _selectedFilter = 0; // 0=الكل, 1=المكتملة, 2=فائتة
+  int _selectedFilter = 0; // 0=الكل, 1=مكتملة, 2=فائتة, 3=قيد التنفيذ
 
   // 🌟 متغيرات السيرفر 🌟
   bool _isLoading = true;
@@ -56,10 +57,13 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   List<Widget> _getFilteredAssignments() {
     // تصفية المصفوفة الأساسية بناءً على التاب المحدد
     List<dynamic> filteredData = _assignmentsList.where((assignment) {
-      String status =
-          assignment['status'] ?? 'pending'; // pending, completed, missed
-      if (_selectedFilter == 1) return status == 'completed';
-      if (_selectedFilter == 2) return status == 'missed';
+      final s = (assignment['status'] ?? '').toString();
+      final isCompleted = s == 'مكتملة' || s == 'completed';
+      final isMissed    = s == 'فائتة'  || s == 'missed';
+      final isPending   = !isCompleted && !isMissed;
+      if (_selectedFilter == 1) return isCompleted;
+      if (_selectedFilter == 2) return isMissed;
+      if (_selectedFilter == 3) return isPending;
       return true; // 0 = الكل
     }).toList();
 
@@ -81,25 +85,21 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       int index = entry.key;
       var assignment = entry.value;
 
-      String status = assignment['status'] ?? 'pending';
+      final rawStatus = (assignment['status'] ?? '').toString();
+      final isCompleted = rawStatus == 'مكتملة' || rawStatus == 'completed';
+      final isMissed    = rawStatus == 'فائتة'  || rawStatus == 'missed';
 
-      // متغيرات الكرت الافتراضية
-      Color statusColor = Colors.blue;
-      String statusText = 'قيد الانتظار';
-      String tagText = 'جديد';
-      Color tagColor = Colors.blue;
-      IconData tagIcon = Icons.access_time;
-      bool showSubmitForm = true;
-      String fileTypeStr = assignment['type'] == 'project'
-          ? 'مشروع'
-          : 'ملف PDF';
-      IconData fileTypeIcon = assignment['type'] == 'project'
-          ? Icons.folder
-          : Icons.description_outlined;
+      Color statusColor;
+      String statusText;
+      String tagText;
+      Color tagColor;
+      IconData tagIcon;
+      bool showSubmitForm;
+      String fileTypeStr = assignment['type'] == 'project' ? 'مشروع' : 'ملف PDF';
+      IconData fileTypeIcon = assignment['type'] == 'project' ? Icons.folder : Icons.description_outlined;
       Color? fileTypeColor;
 
-      // تخصيص الكرت بناءً على الحالة
-      if (status == 'completed') {
+      if (isCompleted) {
         statusText = 'تم الحل';
         statusColor = Colors.green;
         tagText = 'مكتمل';
@@ -111,7 +111,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           fileTypeColor = Colors.green;
           fileTypeIcon = Icons.grade;
         }
-      } else if (status == 'missed') {
+      } else if (isMissed) {
         statusText = 'انتهى الوقت';
         statusColor = Colors.red;
         tagText = 'فائتة';
@@ -119,8 +119,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         tagIcon = Icons.error;
         showSubmitForm = false;
       } else {
-        // Pending
-        statusText = 'متبقي وقت';
+        statusText = 'قيد التنفيذ';
         statusColor = Colors.orange;
         tagText = 'مطلوب';
         tagColor = Colors.orange;
@@ -128,15 +127,17 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         showSubmitForm = true;
       }
 
+      final teacherFilePath = assignment['file_url']?.toString();
+      final teacherFileName = assignment['file_name']?.toString();
+
       return _AssignmentCard(
-        assignmentId: assignment['id'] is int
-            ? assignment['id']
-            : int.tryParse(assignment['id'].toString()) ?? 0,
+        assignmentId: assignment['assignment_id'] is int
+            ? assignment['assignment_id']
+            : int.tryParse(assignment['assignment_id']?.toString() ?? '0') ?? 0,
         title: assignment['title'] ?? 'بدون عنوان',
-        subtitle:
-            '${assignment['course_name']} • ${assignment['teacher_name']}',
-        dueDate: 'آخر موعد: ${assignment['due_date']}',
-        dueDateColor: status == 'missed' ? Colors.red : null,
+        subtitle: '${assignment['course_name'] ?? ''}',
+        dueDate: 'آخر موعد: ${assignment['due_date'] ?? ''}',
+        dueDateColor: isMissed ? Colors.red : null,
         status: statusText,
         statusColor: statusColor,
         tagText: tagText,
@@ -147,20 +148,20 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         fileTypeColor: fileTypeColor,
         iconData: icons[index % icons.length],
         imageBgColor: bgColors[index % bgColors.length],
-        initiallyExpanded:
-            index == 0 && status == 'pending',
+        initiallyExpanded: index == 0 && !isCompleted && !isMissed,
         showSubmitForm: showSubmitForm,
-        detailText:
-            assignment['description'] ??
+        teacherFilePath: teacherFilePath,
+        teacherFileName: teacherFileName,
+        detailText: assignment['description'] ??
             'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
         onSubmitSuccess: () async {
           await _fetchAssignments();
           if (mounted) setState(() => _selectedFilter = 1);
         },
-        grade: assignment['submission']?['grade'] != null
-            ? double.tryParse(assignment['submission']['grade'].toString())
+        grade: assignment['grade'] != null
+            ? double.tryParse(assignment['grade'].toString())
             : null,
-        feedback: assignment['submission']?['feedback'] as String?,
+        feedback: null,
       );
     }).toList();
   }
@@ -182,7 +183,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -222,21 +223,11 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                     children: [
                       _buildFilterChip('الكل', 0, null, null, isDark),
                       const SizedBox(width: 10),
-                      _buildFilterChip(
-                        'المكتملة',
-                        1,
-                        Icons.check_circle,
-                        Colors.green,
-                        isDark,
-                      ),
+                      _buildFilterChip('قيد التنفيذ', 3, Icons.access_time, Colors.orange, isDark),
                       const SizedBox(width: 10),
-                      _buildFilterChip(
-                        'فائتة',
-                        2,
-                        Icons.access_time_filled,
-                        Colors.red,
-                        isDark,
-                      ),
+                      _buildFilterChip('مكتملة', 1, Icons.check_circle, Colors.green, isDark),
+                      const SizedBox(width: 10),
+                      _buildFilterChip('فائتة', 2, Icons.access_time_filled, Colors.red, isDark),
                     ],
                   ),
                 ),
@@ -419,6 +410,8 @@ class _AssignmentCard extends StatefulWidget {
   final VoidCallback? onSubmitSuccess;
   final double? grade;
   final String? feedback;
+  final String? teacherFilePath;
+  final String? teacherFileName;
 
   const _AssignmentCard({
     required this.assignmentId,
@@ -438,6 +431,8 @@ class _AssignmentCard extends StatefulWidget {
     required this.imageBgColor,
     this.initiallyExpanded = false,
     this.showSubmitForm = false,
+    this.teacherFilePath,
+    this.teacherFileName,
     this.detailText =
         'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
     this.onSubmitSuccess,
@@ -898,6 +893,55 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 ),
               ),
             ],
+            const SizedBox(height: 5),
+          ],
+
+          // زر عرض ملف المعلم — يظهر لكل الحالات إذا رفع المعلم ملفاً
+          if (isExpanded && widget.teacherFilePath != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
+            ),
+            Row(
+              children: [
+                Container(width: 4, height: 18, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
+                const SizedBox(width: 8),
+                Text('ملف الواجب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () async {
+                final uri = Uri.parse(widget.teacherFilePath!);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withAlpha(isDark ? 40 : 20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withAlpha(60)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.insert_drive_file_rounded, color: Colors.blue, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        widget.teacherFileName ?? 'عرض ملف الواجب',
+                        style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Icons.open_in_new, color: Colors.blue, size: 16),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 5),
           ],
 

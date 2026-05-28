@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -11,10 +11,10 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_m
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
 
 class LeaveRequestsScreen extends StatefulWidget {
-  // 🚀 استقبال مصدر الدخول (home أو profile)
   final String fromSource;
+  final int? highlightId; // ID الإجازة المراد تحديدها
 
-  const LeaveRequestsScreen({super.key, this.fromSource = "home"});
+  const LeaveRequestsScreen({super.key, this.fromSource = "home", this.highlightId});
 
   @override
   State<LeaveRequestsScreen> createState() => _LeaveRequestsScreenState();
@@ -24,10 +24,13 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
   bool isDailyLeave = true;
   bool _isLoading = true;
   List<Map<String, dynamic>> allRequests = [];
+  final ScrollController _scrollController = ScrollController();
 
   void _handleBackNavigation(BuildContext context) {
     if (widget.fromSource == "profile") {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossProfileScreen()));
+    } else if (widget.fromSource == "notification") {
+      Navigator.pop(context, true); // إرجاع true لتحديث الإشعارات
     } else {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen()));
     }
@@ -37,6 +40,12 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
   void initState() {
     super.initState();
     _fetchLeaveRequests();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<String> _getToken() async {
@@ -71,12 +80,44 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
             };
           }).toList();
         });
+
+        // إذا في highlightId، حدد التبويب الصح ثم اسكرول
+        if (widget.highlightId != null) {
+          _jumpToHighlighted();
+        }
       }
     } catch (e) {
       debugPrint('⛔ Leave Requests Error: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _jumpToHighlighted() {
+    final req = allRequests.firstWhere(
+      (r) => r['id'] == widget.highlightId,
+      orElse: () => {},
+    );
+    if (req.isEmpty) return;
+
+    // فتح التبويب الصح
+    final isDaily = req['isDaily'] as bool? ?? true;
+    if (isDailyLeave != isDaily) {
+      setState(() => isDailyLeave = isDaily);
+    }
+
+    // اسكرول بعد بناء الـ UI
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final filtered = allRequests.where((r) => r['isDaily'] == isDaily).toList();
+      final idx = filtered.indexWhere((r) => r['id'] == widget.highlightId);
+      if (idx >= 0 && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          idx * 200.0,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _respondToRequest(int requestId, String status) async {
@@ -88,10 +129,19 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (mounted) {
+        // تحديث فوري بدون إعادة تحميل
+        setState(() {
+          final idx = allRequests.indexWhere((r) => r['id'] == requestId);
+          if (idx != -1) {
+            allRequests[idx] = {...allRequests[idx], 'status': status};
+          }
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(status == 'approved' ? '✅ تمت الموافقة' : '❌ تم الرفض')),
+          SnackBar(
+            content: Text(status == 'approved' ? '✅ تمت الموافقة' : '❌ تم الرفض'),
+            backgroundColor: status == 'approved' ? Colors.green : Colors.red,
+          ),
         );
-        _fetchLeaveRequests();
       }
     } catch (e) {
       debugPrint('⛔ Respond Error: $e');
@@ -111,7 +161,6 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     final filteredRequests = allRequests.where((req) => req['isDaily'] == isDailyLeave).toList();
-
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -136,12 +185,15 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
                                 onRefresh: _fetchLeaveRequests,
                                 color: const Color(0xFFCCAA00),
                                 child: ListView.builder(
+                                  controller: _scrollController,
                                   padding: const EdgeInsets.symmetric(horizontal: 20),
                                   itemCount: filteredRequests.length,
                                   itemBuilder: (context, index) {
+                                    final req = filteredRequests[index];
+                                    final isHighlighted = widget.highlightId != null && req['id'] == widget.highlightId;
                                     return Padding(
                                       padding: const EdgeInsets.only(bottom: 15),
-                                      child: _buildLeaveCard(isDark, cardColor, textColor, filteredRequests[index]),
+                                      child: _buildLeaveCard(isDark, cardColor, textColor, req, isHighlighted),
                                     );
                                   },
                                 ),
@@ -151,9 +203,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
                 ],
               ),
 
-              // 🌟 التعديل الأساسي هنا لضبط تلوين الأيقونات
               CustomBottomNav(
-                // يتلون البروفايل (1) إذا كنتِ جاية منه، وإلا يتلون الهوم (0)
                 currentIndex: widget.fromSource == "profile" ? 1 : 0,
                 centerButton: const Boss_Center_Icon(),
                 onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
@@ -187,7 +237,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
           Text("طلبات الإجازة", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
           IconButton(
             icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
-            onPressed: () => _handleBackNavigation(context), // 🚀 العودة للمصدر الصحيح
+            onPressed: () => _handleBackNavigation(context),
           ),
         ],
       ),
@@ -230,13 +280,20 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
     );
   }
 
-  Widget _buildLeaveCard(bool isDark, Color cardColor, Color textColor, Map<String, dynamic> data) {
-    return Container(
+  Widget _buildLeaveCard(bool isDark, Color cardColor, Color textColor, Map<String, dynamic> data, bool isHighlighted) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10)],
+        border: isHighlighted ? Border.all(color: const Color(0xFFFFCC00), width: 2.5) : null,
+        boxShadow: [
+          if (isHighlighted)
+            const BoxShadow(color: Color(0x55FFCC00), blurRadius: 15, spreadRadius: 1)
+          else
+            BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), blurRadius: 10),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,7 +305,8 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
                 backgroundColor: const Color(0xFFCCAA00),
                 backgroundImage: (data['image'] as String).isNotEmpty ? NetworkImage(data['image'] as String) : null,
                 child: (data['image'] as String).isEmpty
-                    ? Text((data['name'] as String).isNotEmpty ? (data['name'] as String)[0] : '؟', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))
+                    ? Text((data['name'] as String).isNotEmpty ? (data['name'] as String)[0] : '؟',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))
                     : null,
               ),
               const SizedBox(width: 12),
@@ -317,9 +375,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
               ),
               child: Center(
                 child: Text(
-                  data['status'] == 'rejected'
-                      ? '❌ تم رفض الطلب'
-                      : '✅ تمت الموافقة - في انتظار ولي الأمر',
+                  data['status'] == 'rejected' ? '❌ تم رفض الطلب' : '✅ تمت الموافقة',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: data['status'] == 'rejected' ? Colors.red : Colors.green,

@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -116,7 +116,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text('المحاضرات',
@@ -260,7 +260,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                 ),
                 _actionIcon(
                   icon: Icons.edit_outlined,
-                  color: Colors.blue,
+                  color: const Color(0xFFFFCC00),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => AddLectureScreen(lecture: l)),
@@ -268,7 +268,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                     if (refreshed == true) _fetchLectures();
                   }),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 _actionIcon(
                   icon: Icons.delete_outline_rounded,
                   color: Colors.redAccent,

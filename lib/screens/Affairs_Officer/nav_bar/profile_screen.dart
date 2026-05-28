@@ -9,6 +9,7 @@ import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_
 
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 class AffairsOfficerProfileScreen extends StatefulWidget {
   const AffairsOfficerProfileScreen({super.key});
 
@@ -55,21 +56,24 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                         Align(
                           alignment: Alignment.centerRight,
                           child: IconButton(
-                            icon: const Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.white,
-                              size: 22,
-                            ),
+                            icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 22),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
                         const Text(
                           "الملف الشخصي",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontFamily: 'Noto Sans Arabic',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Noto Sans Arabic'),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 22),
+                            onPressed: () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => SettingsScreen(
+                                  userName: officerData['name'] as String? ?? '',
+                                  userRole: officerData['role'] as String? ?? 'موظف شؤون',
+                                  onProfileTap: () => Navigator.pop(context),
+                                ))),
                           ),
                         ),
                       ],

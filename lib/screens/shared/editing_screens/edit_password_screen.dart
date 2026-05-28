@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'otp_screen.dart';
 
 class EditPasswordScreen extends StatefulWidget {
   const EditPasswordScreen({super.key});
@@ -18,8 +19,20 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
+  String _telegramChatId = '';
 
   static const _base = "http://127.0.0.1:8000/api";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTelegramId();
+  }
+
+  Future<void> _loadTelegramId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _telegramChatId = prefs.getString('telegram_chat_id') ?? '');
+  }
 
   // ── قوة كلمة المرور ──
   _PasswordStrength _getStrength(String p) {
@@ -55,15 +68,20 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
       _showSnack("كلمتا المرور غير متطابقتين", isError: true);
       return;
     }
+    if (_telegramChatId.isEmpty) {
+      _showSnack("لم يتم العثور على Chat ID — سجّل الدخول من جديد", isError: true);
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
+      // أرسل OTP عبر تيليغرام أولاً
       await Dio().post(
-        '$_base/profile/update',
-        data: {'current_password': current, 'password': newPass},
+        '$_base/profile/send-otp',
+        data: {'telegram_chat_id': _telegramChatId},
         options: Options(headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -72,10 +90,60 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
       );
 
       if (!mounted) return;
-      _showSuccessDialog();
+
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OTPScreen(
+            appBarTitle: "تأكيد تغيير كلمة المرور",
+            message: "تم إرسال رمز التحقق عبر تيليغرام\nأدخله للمتابعة",
+            icon: Icons.lock_person_rounded,
+            onVerify: (otp) async {
+              final t = prefs.getString('token') ?? '';
+              try {
+                await Dio().post(
+                  '$_base/profile/verify-otp',
+                  data: {'otp': otp},
+                  options: Options(headers: {
+                    'Authorization': 'Bearer $t',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                  }),
+                );
+                await Dio().post(
+                  '$_base/profile/update',
+                  data: {'current_password': current, 'password': newPass},
+                  options: Options(headers: {
+                    'Authorization': 'Bearer $t',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                  }),
+                );
+                return null;
+              } on DioException catch (e) {
+                return e.response?.data['message']?.toString() ??
+                    'الرمز غير صحيح أو منتهي الصلاحية';
+              }
+            },
+            onResend: () async {
+              final t = prefs.getString('token') ?? '';
+              await Dio().post(
+                '$_base/profile/send-otp',
+                data: {'telegram_chat_id': _telegramChatId},
+                options: Options(headers: {
+                  'Authorization': 'Bearer $t',
+                  'Accept': 'application/json',
+                }),
+              );
+            },
+          ),
+        ),
+      );
+
+      if (result == true && mounted) _showSuccessDialog();
     } on DioException catch (e) {
       final msg = e.response?.data['message']?.toString() ??
-          'حدث خطأ أثناء تحديث كلمة المرور';
+          'حدث خطأ أثناء إرسال رمز التحقق';
       _showSnack(msg, isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -202,7 +270,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
+            icon: Icon(Icons.arrow_forward,
                 color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),

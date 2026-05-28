@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -153,31 +153,23 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
 
       if (_isEditing) {
         final id = widget.lecture!['id'];
+        final formMap = <String, dynamic>{
+          'title':       _titleController.text.trim(),
+          'course_id':   _selectedCourseId,
+          'description': _descController.text.trim(),
+        };
         if (_pickedFile != null && _pickedFile!.bytes != null) {
-          await Dio().post(
-            "${ApiService().baseUrl}/teacher/lessons/$id",
-            data: FormData.fromMap({
-              'title':        _titleController.text.trim(),
-              'course_id':    _selectedCourseId,
-              'description':  _descController.text.trim(),
-              '_method':      'PUT',
-              'content_file': MultipartFile.fromBytes(_pickedFile!.bytes!,
-                  filename: _pickedFile!.name,
-                  contentType: DioMediaType.parse(_mime(_pickedFile!.name))),
-            }),
-            options: Options(headers: {"Authorization": "Bearer $token"}),
-          );
-        } else {
-          await Dio().put(
-            "${ApiService().baseUrl}/teacher/lessons/$id",
-            data: {
-              'title':       _titleController.text.trim(),
-              'course_id':   _selectedCourseId,
-              'description': _descController.text.trim(),
-            },
-            options: Options(headers: {"Authorization": "Bearer $token", 'Content-Type': 'application/json'}),
+          formMap['content_file'] = MultipartFile.fromBytes(
+            _pickedFile!.bytes!,
+            filename: _pickedFile!.name,
+            contentType: DioMediaType.parse(_mime(_pickedFile!.name)),
           );
         }
+        await Dio().post(
+          "${ApiService().baseUrl}/teacher/lessons/$id",
+          data: FormData.fromMap(formMap),
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
         if (mounted) { _snack('✅ تم تحديث المحاضرة'); Navigator.pop(context, true); }
       } else {
         await Dio().post(
@@ -237,7 +229,7 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(

@@ -164,7 +164,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             backgroundColor: cardColor,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
+              icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
             title: Text('الواجبات والمشاريع',

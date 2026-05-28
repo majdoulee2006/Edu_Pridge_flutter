@@ -53,7 +53,7 @@ class NotificationPolling {
       final count = unread.length;
       unreadCount.value = count;
 
-      if (_lastKnownCount >= 0 && count > _lastKnownCount && unread.isNotEmpty) {
+      if (unread.isNotEmpty && (_lastKnownCount < 0 || count > _lastKnownCount)) {
         latestNew.value = Map<String, dynamic>.from(unread.first as Map);
       }
       _lastKnownCount = count;

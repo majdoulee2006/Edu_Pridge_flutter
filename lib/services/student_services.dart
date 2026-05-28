@@ -354,7 +354,11 @@ class StudentServices {
         return true;
       }
     } catch (e) {
-      debugPrint("❌ Leave Request Error: $e");
+      if (e is DioException && e.response != null) {
+        debugPrint("❌ Leave Request Error ${e.response?.statusCode}: ${e.response?.data}");
+      } else {
+        debugPrint("❌ Leave Request Error: $e");
+      }
       rethrow;
     }
     return false;

@@ -119,7 +119,7 @@ class _AffairsOfficerNotificationsScreenState extends State<AffairsOfficerNotifi
                           alignment: Alignment.centerRight,
                           child: IconButton(
                             icon: Icon(
-                              Icons.arrow_back,
+                              Icons.arrow_forward,
                               color: textColor,
                               size: 28,
                             ),

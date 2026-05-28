@@ -71,9 +71,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Future<void> _submitLeaveRequest() async {
     final reason = _leaveReasonController.text.trim();
     final date = _dateController.text.trim();
-    if (date.isEmpty || reason.isEmpty) {
+    if (date.isEmpty || reason.isEmpty || reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى ملء جميع الحقول المطلوبة')),
+        const SnackBar(content: Text('يرجى ملء جميع الحقول (السبب 3 أحرف على الأقل)')),
       );
       return;
     }
@@ -272,6 +272,185 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
+  void _showLeaveRequestSheet() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    int sheetLeaveType = _leaveType;
+    final dateCtrl   = TextEditingController(text: _dateController.text);
+    final timeCtrl   = TextEditingController(text: _timeController.text);
+    final reasonCtrl = TextEditingController();
+    bool sending = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 40, height: 4,
+                        decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2))),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('طلب إجازة جديد',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  // نوع الإجازة
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(child: GestureDetector(
+                          onTap: () => setSheet(() => sheetLeaveType = 0),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: sheetLeaveType == 0 ? const Color(0xFFFFCC00) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(child: Text('يوم كامل',
+                                style: TextStyle(fontWeight: FontWeight.bold,
+                                    color: sheetLeaveType == 0 ? Colors.black : Colors.grey))),
+                          ),
+                        )),
+                        Expanded(child: GestureDetector(
+                          onTap: () => setSheet(() => sheetLeaveType = 1),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: sheetLeaveType == 1 ? const Color(0xFFFFCC00) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(child: Text('ساعية',
+                                style: TextStyle(fontWeight: FontWeight.bold,
+                                    color: sheetLeaveType == 1 ? Colors.black : Colors.grey))),
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // التاريخ / الوقت
+                  TextField(
+                    controller: sheetLeaveType == 0 ? dateCtrl : timeCtrl,
+                    readOnly: true,
+                    onTap: () async {
+                      if (sheetLeaveType == 0) {
+                        final picked = await showDatePicker(
+                          context: ctx,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2030),
+                        );
+                        if (picked != null) {
+                          setSheet(() => dateCtrl.text =
+                              "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}");
+                        }
+                      } else {
+                        final picked = await showTimePicker(
+                            context: ctx, initialTime: TimeOfDay.now());
+                        if (picked != null) {
+                          setSheet(() => timeCtrl.text = picked.format(ctx));
+                        }
+                      }
+                    },
+                    decoration: InputDecoration(
+                      hintText: sheetLeaveType == 0 ? 'اختر التاريخ...' : 'اختر الوقت...',
+                      suffixIcon: Icon(sheetLeaveType == 0
+                          ? Icons.calendar_today_outlined
+                          : Icons.access_time_outlined, size: 20),
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // السبب
+                  TextField(
+                    controller: reasonCtrl,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'سبب الإجازة...',
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFFFCC00), width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: sending ? null : () async {
+                        final reason = reasonCtrl.text.trim();
+                        final date   = sheetLeaveType == 0 ? dateCtrl.text.trim() : timeCtrl.text.trim();
+                        if (date.isEmpty || reason.length < 3) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('يرجى ملء جميع الحقول (السبب 3 أحرف على الأقل)')),
+                          );
+                          return;
+                        }
+                        setSheet(() => sending = true);
+                        try {
+                          final type = sheetLeaveType == 0 ? 'full_day' : 'hourly';
+                          final ok = await StudentServices().submitLeaveRequest(type, date, reason);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (ok && mounted) {
+                            _showSuccessDialog('تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً');
+                            _fetchMyLeaveRequests();
+                          }
+                        } catch (_) {
+                          setSheet(() => sending = false);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('حدث خطأ، يرجى المحاولة مرة أخرى')),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFCC00),
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: sending
+                          ? const SizedBox(width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                          : const Text('إرسال الطلب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -289,7 +468,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -312,6 +491,30 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   ),
                 ),
               ],
+            ),
+            // زر طلب إجازة سريع
+            Positioned(
+              bottom: 95,
+              left: 20,
+              child: GestureDetector(
+                onTap: _showLeaveRequestSheet,
+                child: Container(
+                  height: 52,
+                  width: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCCAA00),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFCCAA00).withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.add, size: 28, color: Colors.black),
+                ),
+              ),
             ),
             CustomBottomNav(
               currentIndex: -1,

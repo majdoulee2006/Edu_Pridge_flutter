@@ -8,6 +8,7 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_p
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/organization/exam_schedule_screen/create_exam_schedule_screen.dart';
 import 'package:edu_pridge_flutter/widgets/boss_center_icon.dart';
 
 class MainOrganizationInterfaceScreen extends StatefulWidget {
@@ -75,8 +76,9 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
     }
   }
 
-  Future<void> _fetchExams() async {
-    if (_isLoadingExams || _examsFetched) return;
+  Future<void> _fetchExams({bool force = false}) async {
+    if (_isLoadingExams) return;
+    if (_examsFetched && !force) return;
     setState(() => _isLoadingExams = true);
     try {
       final res = await Dio().get(
@@ -379,48 +381,275 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
   String _trimTime(String t) => t.length >= 5 ? t.substring(0, 5) : t;
 
   // ─── تبويب الجداول الامتحانية ────────────────────────────────────
-  Widget _buildExamsTab(Color cardColor, Color textColor, bool isDark) {
-    if (_isLoadingExams) return const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)));
-    if (_exams.isEmpty) return Center(child: Text('لا توجد جداول امتحانية', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontFamily: 'Cairo')));
+  int _examSelectedYear = 1;
+  int? _examSelectedProgramId;
 
-    return RefreshIndicator(
-      onRefresh: _fetchExams,
-      color: const Color(0xFFFFCC00),
-      child: ListView.builder(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        itemCount: _exams.length,
-        itemBuilder: (_, i) {
-          final e = _exams[i];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(18),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 8, offset: const Offset(0, 3))]),
-            child: Row(
-              children: [
-                Container(width: 44, height: 44,
-                    decoration: BoxDecoration(color: Colors.deepPurple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.assignment_outlined, color: Colors.deepPurple, size: 22)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(e['exam_name'] as String? ?? '—', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor, fontFamily: 'Cairo')),
-                    const SizedBox(height: 2),
-                    Text(e['course_name'] as String? ?? '—', style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
-                    const SizedBox(height: 4),
-                    Text('التاريخ: ${e['exam_date'] ?? '—'}', style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
-                  ]),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.deepPurple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                  child: Text('${e['max_score'] ?? '—'} علامة', style: const TextStyle(color: Colors.deepPurple, fontSize: 12, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-                ),
-              ],
+  List<Map<String, dynamic>> get _filteredExams {
+    final selectedProgName = _examSelectedProgramId == null ? null
+        : _programs.firstWhere((p) => p['id'] == _examSelectedProgramId, orElse: () => {})['name'] as String?;
+    return _exams.where((e) {
+      final prog = e['program_name'] as String? ?? '';
+      final year = (e['year'] as num?)?.toInt() ?? 1;
+      final programMatch = selectedProgName == null || prog == selectedProgName;
+      final yearMatch = year == _examSelectedYear;
+      return programMatch && yearMatch;
+    }).toList();
+  }
+
+  Widget _buildExamsTab(Color cardColor, Color textColor, bool isDark) {
+    if (_isLoadingExams) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)));
+    }
+
+    const yellow = Color(0xFFFFCC00);
+
+    // تهيئة الاختيار الافتراضي
+    if (_examSelectedProgramId == null && _programs.isNotEmpty) {
+      _examSelectedProgramId = _programs.first['id'] as int?;
+    }
+
+    final byDate = <String, List<Map<String, dynamic>>>{};
+    for (final exam in _filteredExams) {
+      final date = (exam['exam_date'] as String? ?? '').split('T').first;
+      byDate.putIfAbsent(date, () => []).add(exam);
+    }
+    final sortedDates = byDate.keys.toList()..sort();
+
+    return Column(
+      children: [
+        // ── تبويبات الدورات (معلوماتية / اتصالات / ...) ──
+        if (_programs.isNotEmpty)
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _programs.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final prog = _programs[i];
+                final active = _examSelectedProgramId == prog['id'];
+                return GestureDetector(
+                  onTap: () => setState(() {
+                    _examSelectedProgramId = prog['id'] as int?;
+                  }),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: active ? yellow : cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6)],
+                    ),
+                    child: Text(prog['name'] as String? ?? '',
+                        style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13,
+                            color: active ? Colors.black : Colors.grey)),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        const SizedBox(height: 10),
+
+        // ── تبويب السنة ──
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            _examYearToggle(1, yellow, cardColor),
+            const SizedBox(width: 10),
+            _examYearToggle(2, yellow, cardColor),
+            const Spacer(),
+            GestureDetector(
+              onTap: () async {
+                final added = await Navigator.push<bool>(context,
+                    MaterialPageRoute(builder: (_) => const CreateExamScheduleScreen()));
+                if (added == true && mounted) {
+                  setState(() => _examsFetched = false);
+                  await _fetchExams(force: true);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(10)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.add, color: Colors.black, size: 16),
+                  SizedBox(width: 4),
+                  Text('إضافة', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12, fontFamily: 'Cairo')),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 10),
+
+        // ── المحتوى ──
+        Expanded(
+          child: sortedDates.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.event_busy_outlined, size: 52, color: Colors.grey.shade400),
+                      const SizedBox(height: 10),
+                      Text('لا توجد امتحانات لهذا القسم والسنة',
+                          style: TextStyle(color: textColor.withValues(alpha: 0.5), fontFamily: 'Cairo')),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    setState(() => _examsFetched = false);
+                    await _fetchExams(force: true);
+                  },
+                  color: yellow,
+                  child: ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    itemCount: sortedDates.length,
+                    itemBuilder: (_, i) => _buildExamDateCard(
+                      sortedDates[i], byDate[sortedDates[i]]!,
+                      cardColor, textColor, isDark,
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _examYearToggle(int year, Color yellow, Color cardColor) {
+    final active = _examSelectedYear == year;
+    return GestureDetector(
+      onTap: () => setState(() => _examSelectedYear = year),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? yellow : cardColor,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
+        ),
+        child: Text('السنة $year',
+            style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13,
+                color: active ? Colors.black : Colors.grey)),
+      ),
+    );
+  }
+
+  Widget _buildExamDateCard(
+    String date,
+    List<Map<String, dynamic>> exams,
+    Color cardColor,
+    Color textColor,
+    bool isDark,
+  ) {
+    // تنسيق التاريخ: 2025-01-15 → الثلاثاء 15 يناير 2025
+    String formattedDate = date;
+    String dayName = '';
+    try {
+      final dt = DateTime.parse(date);
+      const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      const months = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+          'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      dayName = days[dt.weekday % 7];
+      formattedDate = '${dt.day} ${months[dt.month]} ${dt.year}';
+    } catch (_) {}
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(
+          color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
+          blurRadius: 8, offset: const Offset(0, 3),
+        )],
+      ),
+      child: Column(
+        children: [
+          // ── رأس التاريخ ──────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE65100).withValues(alpha: 0.10),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.event_outlined, color: Color(0xFFE65100), size: 18),
+              const SizedBox(width: 8),
+              Text(dayName,
+                  style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFE65100))),
+              const SizedBox(width: 8),
+              Text(formattedDate,
+                  style: TextStyle(fontFamily: 'Cairo', fontSize: 12, color: Colors.grey.shade500)),
+            ]),
+          ),
+
+          // ── الامتحانات ───────────────────────────────────
+          ...exams.asMap().entries.map((entry) {
+            final idx  = entry.key;
+            final e    = entry.value;
+            final start = _trimTime(e['start_time'] as String? ?? '');
+            final end   = _trimTime(e['end_time']   as String? ?? '');
+            final hasTime = start.isNotEmpty && end.isNotEmpty;
+            final hall    = e['hall'] as String? ?? e['room'] as String?;
+            final period  = e['period'] as String?;
+            final examType = e['exam_type'] as String? ?? e['exam_name'] as String?;
+
+            return Container(
+              decoration: BoxDecoration(
+                border: idx < exams.length - 1
+                    ? Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1)))
+                    : null,
+              ),
+              child: ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                leading: Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text('${idx + 1}',
+                        style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+                ),
+                title: Text(
+                  e['course_name'] as String? ?? '—',
+                  style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (examType != null && examType.isNotEmpty)
+                      Text(examType,
+                          style: const TextStyle(color: Color(0xFFE65100), fontSize: 11, fontFamily: 'Cairo')),
+                    if (period != null && period.isNotEmpty)
+                      Text(period,
+                          style: TextStyle(color: Colors.orange.shade700, fontSize: 11, fontFamily: 'Cairo')),
+                    if (hasTime)
+                      Text('$start - $end',
+                          style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Cairo')),
+                  ],
+                ),
+                trailing: hall != null && hall.isNotEmpty
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(hall,
+                            style: const TextStyle(color: Colors.orange, fontSize: 12, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                      )
+                    : null,
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

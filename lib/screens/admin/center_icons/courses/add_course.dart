@@ -138,7 +138,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+          icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 26),
           onPressed: () => Navigator.pop(context),
         ),
         Text(

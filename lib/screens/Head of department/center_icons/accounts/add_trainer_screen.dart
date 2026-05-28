@@ -148,7 +148,7 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedSpecialization,
-                      hint: const Text('اختر الاختصاص'),
+                      hint: const Text('القسم الذي يدرس فيه'),
                       isExpanded: true,
                       items: _specializations
                           .map((s) => DropdownMenuItem(value: s, child: Text(s)))

@@ -13,8 +13,21 @@ class EditPhoneScreen extends StatefulWidget {
 class _EditPhoneScreenState extends State<EditPhoneScreen> {
   final _phoneController = TextEditingController();
   String _selectedCode = '+966';
+  String _telegramChatId = '';
+  bool _isLoading = false;
 
   static const _base = "http://127.0.0.1:8000/api";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTelegramId();
+  }
+
+  Future<void> _loadTelegramId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _telegramChatId = prefs.getString('telegram_chat_id') ?? '');
+  }
 
   final List<Map<String, String>> _countries = [
     {'code': '+966', 'flag': '🇸🇦', 'name': 'السعودية'},
@@ -35,47 +48,91 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
       _showSnack("يرجى إدخال رقم هاتف صحيح", isError: true);
       return;
     }
+    if (_telegramChatId.isEmpty) {
+      _showSnack("لم يتم العثور على Chat ID — سجّل الدخول من جديد", isError: true);
+      return;
+    }
 
     final fullPhone = '$_selectedCode$phone';
+    setState(() => _isLoading = true);
 
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OTPScreen(
-          appBarTitle: "تأكيد رقم الهاتف",
-          message: "أدخل رمز التحقق المكون من 6 أرقام\nلتأكيد رقمك الجديد",
-          icon: Icons.phone_iphone_rounded,
-          onVerify: (otp) async {
-            // رمز ثابت للتطوير
-            if (otp != "123456") {
-              return "الرمز غير صحيح، حاول مجدداً";
-            }
-            try {
-              final prefs = await SharedPreferences.getInstance();
-              final token = prefs.getString('token') ?? '';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      await Dio().post(
+        '$_base/profile/send-otp',
+        data: {'telegram_chat_id': _telegramChatId},
+        options: Options(headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }),
+      );
+
+      if (!mounted) return;
+
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OTPScreen(
+            appBarTitle: "تأكيد رقم الهاتف",
+            message: "تم إرسال رمز التحقق عبر تيليغرام\nأدخله لتأكيد رقمك الجديد",
+            icon: Icons.phone_iphone_rounded,
+            onVerify: (otp) async {
+              final t = prefs.getString('token') ?? '';
+              try {
+                await Dio().post(
+                  '$_base/profile/verify-otp',
+                  data: {'otp': otp},
+                  options: Options(headers: {
+                    'Authorization': 'Bearer $t',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                  }),
+                );
+                // OTP صحيح — حدّث الرقم
+                await Dio().post(
+                  '$_base/profile/update',
+                  data: {'phone': fullPhone},
+                  options: Options(headers: {
+                    'Authorization': 'Bearer $t',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                  }),
+                );
+                return null;
+              } on DioException catch (e) {
+                return e.response?.data['message']?.toString() ??
+                    'الرمز غير صحيح أو منتهي الصلاحية';
+              }
+            },
+            onResend: () async {
+              final t = prefs.getString('token') ?? '';
               await Dio().post(
-                '$_base/profile/update',
-                data: {'phone': fullPhone},
+                '$_base/profile/send-otp',
+                data: {'telegram_chat_id': _telegramChatId},
                 options: Options(headers: {
-                  'Authorization': 'Bearer $token',
+                  'Authorization': 'Bearer $t',
                   'Accept': 'application/json',
-                  'Content-Type': 'application/json',
                 }),
               );
-              return null; // نجاح
-            } on DioException catch (e) {
-              return e.response?.data['message']?.toString() ??
-                  'حدث خطأ أثناء تحديث الرقم';
-            }
-          },
+            },
+          ),
         ),
-      ),
-    );
+      );
 
-    if (result == true && mounted) {
-      _showSnack("تم تغيير رقم الهاتف بنجاح ✓", isError: false);
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) Navigator.pop(context, true);
+      if (result == true && mounted) {
+        _showSnack("تم تغيير رقم الهاتف بنجاح ✓", isError: false);
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) Navigator.pop(context, true);
+      }
+    } on DioException catch (e) {
+      final msg = e.response?.data['message']?.toString() ??
+          'حدث خطأ أثناء إرسال رمز التحقق';
+      _showSnack(msg, isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -126,7 +183,7 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
+            icon: Icon(Icons.arrow_forward,
                 color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
@@ -267,7 +324,7 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
 
               const SizedBox(height: 16),
 
-              // ── تنبيه dev ──
+              // ── تنبيه تيليغرام ──
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 12),
@@ -281,12 +338,12 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded,
+                    Icon(Icons.telegram_rounded,
                         color: Colors.blue.shade400, size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        "رمز التحقق في بيئة التطوير: 123456",
+                        "سيصلك رمز التحقق عبر تيليغرام (@edubridge_otp_bot)",
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.blue.shade400,
@@ -304,14 +361,21 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                 width: double.infinity,
                 height: 58,
                 child: ElevatedButton(
-                  onPressed: _handleSendOtp,
+                  onPressed: _isLoading ? null : _handleSendOtp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: yellow,
+                    disabledBackgroundColor: yellow.withValues(alpha: 0.5),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18)),
                   ),
-                  child: const Row(
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                              color: Colors.black, strokeWidth: 2.5))
+                      : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.send_rounded,

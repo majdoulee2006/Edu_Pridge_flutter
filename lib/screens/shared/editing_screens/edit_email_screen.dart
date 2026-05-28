@@ -13,8 +13,20 @@ class EditEmailScreen extends StatefulWidget {
 class _EditEmailScreenState extends State<EditEmailScreen> {
   final _emailController = TextEditingController();
   bool _isLoading = false;
+  String _telegramChatId = '';
 
   static const _base = "http://127.0.0.1:8000/api";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTelegramId();
+  }
+
+  Future<void> _loadTelegramId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _telegramChatId = prefs.getString('telegram_chat_id') ?? '');
+  }
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -33,13 +45,18 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
       _showSnack("يرجى إدخال بريد إلكتروني صحيح", isError: true);
       return;
     }
+    if (_telegramChatId.isEmpty) {
+      _showSnack("لم يتم العثور على Chat ID — سجّل الدخول من جديد", isError: true);
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
       final token = await _getToken();
+
       await Dio().post(
-        '$_base/profile/request-change-email',
-        data: {'email': newEmail},
+        '$_base/profile/send-otp',
+        data: {'telegram_chat_id': _telegramChatId},
         options: Options(headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -54,21 +71,32 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
         MaterialPageRoute(
           builder: (_) => OTPScreen(
             appBarTitle: "تأكيد البريد الجديد",
-            message: "تم إرسال رمز التحقق إلى\n$newEmail",
+            message: "تم إرسال رمز التحقق عبر تيليغرام\nأدخله لتأكيد بريدك الجديد",
             icon: Icons.mark_email_read_outlined,
             onVerify: (otp) async {
               final t = await _getToken();
               try {
+                // تحقق من OTP
                 await Dio().post(
-                  '$_base/profile/confirm-change-email',
-                  data: {'email': newEmail, 'otp': otp},
+                  '$_base/profile/verify-otp',
+                  data: {'otp': otp},
                   options: Options(headers: {
                     'Authorization': 'Bearer $t',
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                   }),
                 );
-                return null; // نجاح
+                // OTP صحيح — حدّث الإيميل مباشرةً
+                await Dio().post(
+                  '$_base/profile/update',
+                  data: {'email': newEmail},
+                  options: Options(headers: {
+                    'Authorization': 'Bearer $t',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                  }),
+                );
+                return null;
               } on DioException catch (e) {
                 return e.response?.data['message']?.toString() ??
                     'الرمز غير صحيح أو منتهي الصلاحية';
@@ -77,8 +105,8 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
             onResend: () async {
               final t = await _getToken();
               await Dio().post(
-                '$_base/profile/request-change-email',
-                data: {'email': newEmail},
+                '$_base/profile/send-otp',
+                data: {'telegram_chat_id': _telegramChatId},
                 options: Options(headers: {
                   'Authorization': 'Bearer $t',
                   'Accept': 'application/json',
@@ -96,7 +124,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
       }
     } on DioException catch (e) {
       final msg = e.response?.data['message']?.toString() ??
-          'حدث خطأ، تأكد من البريد الإلكتروني وحاول مجدداً';
+          'حدث خطأ أثناء إرسال رمز التحقق';
       _showSnack(msg, isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -147,7 +175,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
+            icon: Icon(Icons.arrow_forward,
                 color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
@@ -191,7 +219,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                       fontFamily: 'Cairo')),
               const SizedBox(height: 10),
               Text(
-                "سيتم إرسال رمز تحقق مكون من 6 أرقام\nإلى بريدك الإلكتروني الجديد للتأكيد",
+                "سيتم إرسال رمز تحقق مكون من 6 أرقام\nعبر تيليغرام (@edubridge_otp_bot)",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 14,
@@ -249,7 +277,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
 
               const SizedBox(height: 16),
 
-              // ── تنبيه ──
+              // ── تنبيه تيليغرام ──
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 12),
@@ -263,12 +291,12 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded,
+                    Icon(Icons.telegram_rounded,
                         color: Colors.blue.shade400, size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        "الرمز المكون من 6 أرقام في بيئة التطوير هو: 123456",
+                        "سيصلك رمز التحقق عبر تيليغرام (@edubridge_otp_bot)",
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.blue.shade400,

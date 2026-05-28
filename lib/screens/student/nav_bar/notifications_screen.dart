@@ -7,6 +7,7 @@ import 'package:edu_pridge_flutter/models/notification_model.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
@@ -70,6 +71,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _navigateForNotification(BuildContext ctx, AppNotification notify) {
     switch (notify.type) {
+      case 'announcement':
+      case 'administrative':
+        Navigator.push(ctx, MaterialPageRoute(
+          builder: (_) => AnnouncementDetailScreen(announcement: {
+            'title':       notify.title,
+            'content':     notify.message,
+            'time_ago':    notify.timeAgo,
+            'created_at':  notify.timeAgo,
+            'author_name': 'الإدارة',
+          }),
+        ));
+        break;
       case 'leave_request':
       case 'attendance':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
