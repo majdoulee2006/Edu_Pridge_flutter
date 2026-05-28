@@ -7,6 +7,9 @@ class AppNotification {
   final String type;
   bool isRead;
   final String timeAgo;
+  final String? imageUrl;
+  final String? linkUrl;
+  final int? relatedId;
 
   AppNotification({
     required this.id,
@@ -15,6 +18,9 @@ class AppNotification {
     required this.type,
     required this.isRead,
     required this.timeAgo,
+    this.imageUrl,
+    this.linkUrl,
+    this.relatedId,
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
@@ -25,6 +31,9 @@ class AppNotification {
       type: json['type'] ?? 'general',
       isRead: json['is_read'] == 1 || json['is_read'] == true,
       timeAgo: json['time_ago'] ?? '',
+      imageUrl: json['image_url'] as String?,
+      linkUrl: json['link_url'] as String?,
+      relatedId: json['related_id'] is int ? json['related_id'] as int : null,
     );
   }
 

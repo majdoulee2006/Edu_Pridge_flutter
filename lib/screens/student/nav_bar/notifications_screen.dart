@@ -7,6 +7,7 @@ import 'package:edu_pridge_flutter/models/notification_model.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lectures_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 
 import 'student_home_screen.dart';
@@ -77,20 +78,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           builder: (_) => AnnouncementDetailScreen(announcement: {
             'title':       notify.title,
             'content':     notify.message,
+            'body':        notify.message,
             'time_ago':    notify.timeAgo,
             'created_at':  notify.timeAgo,
             'author_name': 'الإدارة',
+            if (notify.imageUrl != null) 'image_url': notify.imageUrl,
+            if (notify.linkUrl != null) 'link_url': notify.linkUrl,
           }),
         ));
+        break;
+      case 'assignment':
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));
+        break;
+      case 'lecture':
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const LecturesScreen()));
         break;
       case 'leave_request':
       case 'attendance':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
         break;
       default:
-        if (notify.title.contains('وظيفة') || notify.title.contains('واجب') || notify.title.contains('assignment')) {
-          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));
-        }
+        break;
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import '../shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import '../../widgets/teacher_speed_dial.dart';
 import 'messages_screen.dart';
 import 'notifications_screen.dart';
@@ -140,10 +141,12 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               final a = _announcements[index];
                               return _buildCard(
                                 context,
+                                announcementData: Map<String, dynamic>.from(a),
                                 title: a['title'] as String? ?? '',
                                 content: a['content'] as String? ?? '',
                                 timeAgo: a['time_ago'] as String? ?? '',
                                 course: a['course'] as String?,
+                                imageUrl: a['image_url'] as String?,
                                 headerColor: _cardColors[index % _cardColors.length],
                                 textColor: textColor,
                                 cardColor: cardColor,
@@ -180,15 +183,21 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
   Widget _buildCard(
     BuildContext context, {
+    required Map<String, dynamic> announcementData,
     required String title,
     required String content,
     required String timeAgo,
     required String? course,
+    required String? imageUrl,
     required Color headerColor,
     required Color textColor,
     required Color cardColor,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(
+        builder: (_) => AnnouncementDetailScreen(announcement: announcementData),
+      )),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: cardColor,
@@ -204,36 +213,17 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 110,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: headerColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      course ?? 'إعلان عام',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black),
-                    ),
-                  ),
-                ),
-                const Center(
-                  child: Icon(Icons.campaign_outlined, size: 42, color: Colors.white70),
-                ),
-              ],
-            ),
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: imageUrl != null && imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    height: 110,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, e, st) => _headerPlaceholder(headerColor, course),
+                  )
+                : _headerPlaceholder(headerColor, course),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -261,6 +251,29 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    ));
+  }
+
+  Widget _headerPlaceholder(Color headerColor, String? course) {
+    return Container(
+      height: 110,
+      width: double.infinity,
+      color: headerColor,
+      child: Stack(
+        children: [
+          const Center(child: Icon(Icons.campaign_outlined, size: 42, color: Colors.white70)),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+              child: Text(course ?? 'إعلان عام',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
             ),
           ),
         ],

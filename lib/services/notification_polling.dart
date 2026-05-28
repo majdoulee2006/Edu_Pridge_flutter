@@ -39,8 +39,16 @@ class NotificationPolling {
       if (data is List) {
         raw = data;
       } else if (data is Map) {
-        if (data['data'] is List) raw = data['data'];
-        else if (data['academic'] is List) {
+        if (data['data'] is List) {
+          raw = data['data'];
+        } else if (data['data'] is Map) {
+          final inner = data['data'] as Map;
+          if (inner['all'] is List) {
+            raw = inner['all'] as List;
+          } else {
+            raw = [...(inner['academic'] as List? ?? []), ...(inner['administrative'] as List? ?? [])];
+          }
+        } else if (data['academic'] is List) {
           raw = [...(data['academic'] as List), ...(data['administrative'] as List? ?? [])];
         }
       }

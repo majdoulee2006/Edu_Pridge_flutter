@@ -436,18 +436,35 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         children: [
           Stack(
             children: [
-              Container(
-                height: 140,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                  gradient: LinearGradient(
-                    colors: gradientColors,
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
-                ),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: announcementData['image_url'] != null && (announcementData['image_url'] as String).isNotEmpty
+                    ? Image.network(
+                        announcementData['image_url'] as String,
+                        height: 140,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, e) => Container(
+                          height: 140,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: gradientColors,
+                              begin: Alignment.topRight,
+                              end: Alignment.bottomLeft,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        height: 140,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: gradientColors,
+                            begin: Alignment.topRight,
+                            end: Alignment.bottomLeft,
+                          ),
+                        ),
+                      ),
               ),
               Positioned(
                 top: 12,

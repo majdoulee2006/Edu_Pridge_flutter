@@ -2,6 +2,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class AddAssignmentScreen extends StatefulWidget {
@@ -27,6 +28,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   DateTime?     _dueDate;
   TimeOfDay?    _dueTime;
   PlatformFile? _pickedFile;
+  String?       _existingFileUrl;
+  String?       _existingFileName;
   bool _isLoadingData = false;
   bool _isSaving      = false;
 
@@ -45,6 +48,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     _descController.text      = a['description']?.toString() ?? '';
     _maxPointsController.text = a['max_points']?.toString() ?? '100';
     _selectedCourseId         = a['course_id']?.toString();
+    _existingFileUrl          = a['file_url']?.toString();
+    _existingFileName         = a['file_name']?.toString();
     final raw = a['due_date']?.toString();
     if (raw != null) {
       try {
@@ -414,6 +419,46 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
                     // مرفق
                     _label("مرفق (اختياري)", textColor),
+
+                    // عرض الملف الحالي عند التعديل
+                    if (_isEditing && _existingFileUrl != null && _pickedFile == null) ...[
+                      InkWell(
+                        onTap: () async {
+                          final uri = Uri.parse(_existingFileUrl!);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.insert_drive_file_rounded, color: Colors.blue, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _existingFileName ?? 'الملف الحالي',
+                                  style: const TextStyle(color: Colors.blue, fontSize: 13, fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.open_in_new, color: Colors.blue, size: 15),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('اضغط أدناه لاستبدال الملف', style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5))),
+                      const SizedBox(height: 8),
+                    ],
+
                     InkWell(
                       onTap: _pickFile,
                       borderRadius: BorderRadius.circular(15),
@@ -437,7 +482,9 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              _pickedFile != null ? _pickedFile!.name : 'اضغط لرفع ملف (PDF، صورة)',
+                              _pickedFile != null
+                                  ? _pickedFile!.name
+                                  : (_isEditing ? 'اضغط لاستبدال الملف' : 'اضغط لرفع ملف (PDF، صورة)'),
                               textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

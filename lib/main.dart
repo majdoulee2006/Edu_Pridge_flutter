@@ -11,6 +11,8 @@ import 'screens/parents/nav_bar/parent_home.dart';
 import 'screens/Head of department/nav_bar/boss_home.dart';
 import 'screens/Affairs_Officer/nav_bar/home_screen.dart';
 
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Firebase غير مدعوم على الويب بدون إعداد إضافي
@@ -78,6 +80,7 @@ class EduBridgeApp extends StatelessWidget {
               valueListenable: AppSettings.language,
               builder: (context, lang, _) {
                 return MaterialApp(
+                  navigatorKey: appNavigatorKey,
                   debugShowCheckedModeBanner: false,
                   title: 'Edu-Bridge',
                   locale: Locale(lang),

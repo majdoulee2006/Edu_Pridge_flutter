@@ -99,9 +99,11 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
           builder: (_) => AnnouncementDetailScreen(announcement: {
             'title':       n['title']?.toString() ?? '',
             'content':     n['message']?.toString() ?? n['body']?.toString() ?? '',
+            'body':        n['message']?.toString() ?? n['body']?.toString() ?? '',
             'time_ago':    n['created_at']?.toString().split('T')[0] ?? '',
             'created_at':  n['created_at']?.toString() ?? '',
             'author_name': 'الإدارة',
+            if (n['image_url'] != null) 'image_url': n['image_url'].toString(),
           }),
         ));
         break;
@@ -119,6 +121,9 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
 
   Map<String, dynamic> _getStyleByType(String? type) {
     switch (type?.toLowerCase()) {
+      case 'announcement':
+      case 'administrative':
+        return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': 'إعلان'};
       case 'report':
         return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': 'تقرير أداء'};
       case 'attendance':

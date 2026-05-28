@@ -137,19 +137,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('telegram_chat_id', tgId);
         }
-        final otpDev = response.data['otp_dev']?.toString();
-        if (otpDev != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('رمز التحقق: $otpDev', textAlign: TextAlign.center,
-                  style: const TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-              backgroundColor: const Color(0xFFF6E300),
-              duration: const Duration(seconds: 10),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          await Future.delayed(const Duration(seconds: 2));
-        }
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,

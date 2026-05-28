@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/notification_polling.dart';
@@ -248,7 +250,60 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     );
   }
 
+  Future<String> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token') ?? '';
+  }
+
+  Future<void> _deleteAnnouncement(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف الإعلان'),
+        content: const Text('هل أنت متأكد من حذف هذا الإعلان؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final token = await _getToken();
+      await Dio().delete(
+        "${ApiService().baseUrl}/department-head/announcements/$id",
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حذف الإعلان'), backgroundColor: Colors.green),
+        );
+        _fetchDashboard();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('حدث خطأ أثناء الحذف'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _showEditSheet(Map<String, dynamic> a) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditAnnouncementSheet(
+        announcement: a,
+        onUpdated: () { Navigator.pop(context); _fetchDashboard(); },
+      ),
+    );
+  }
+
   Widget _buildNewsCard(BuildContext context, Map<String, dynamic> a, Color headerColor, Color cardColor, Color textColor) {
+    final isMine = a['is_mine'] == true;
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(
           builder: (_) => AnnouncementDetailScreen(announcement: a))),
@@ -270,32 +325,49 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                       height: 150,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _announcementPlaceholder(headerColor),
+                      errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
                     )
                   : _announcementPlaceholder(headerColor),
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(a['title'] as String? ?? '',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(a['title'] as String? ?? '',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                      ),
+                      if (isMine)
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert, color: textColor.withValues(alpha: 0.5), size: 20),
+                          onSelected: (v) {
+                            if (v == 'edit') _showEditSheet(a);
+                            if (v == 'delete') _deleteAnnouncement(a['id'] as int);
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(value: 'edit',   child: Row(children: [Icon(Icons.edit_outlined,  size: 18), SizedBox(width: 8), Text('تعديل')])),
+                            const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text('حذف', style: TextStyle(color: Colors.red))])),
+                          ],
+                        ),
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   Text(a['body'] as String? ?? a['content'] as String? ?? '',
                       style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
                       maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(a['time_ago'] as String? ?? a['created_at'] as String? ?? '',
                           style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle),
-                        child: Icon(Icons.arrow_back_ios_new, size: 13, color: textColor),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Icon(Icons.arrow_back_ios_new, size: 13, color: textColor.withValues(alpha: 0.4)),
                       ),
                     ],
                   ),
@@ -340,6 +412,203 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
         child: Icon(icon, color: const Color(0xFFF1C40F), size: 26),
       ),
+    );
+  }
+}
+
+// ─── Edit Announcement Sheet ───────────────────────────────────────────────
+
+class _EditAnnouncementSheet extends StatefulWidget {
+  final Map<String, dynamic> announcement;
+  final VoidCallback onUpdated;
+  const _EditAnnouncementSheet({required this.announcement, required this.onUpdated});
+
+  @override
+  State<_EditAnnouncementSheet> createState() => _EditAnnouncementSheetState();
+}
+
+class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _contentCtrl;
+  late final TextEditingController _linkCtrl;
+  File? _pickedImage;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleCtrl   = TextEditingController(text: widget.announcement['title']?.toString() ?? '');
+    _contentCtrl = TextEditingController(text: widget.announcement['body']?.toString() ?? widget.announcement['content']?.toString() ?? '');
+    _linkCtrl    = TextEditingController(text: widget.announcement['link_url']?.toString() ?? '');
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _contentCtrl.dispose();
+    _linkCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) setState(() => _pickedImage = File(picked.path));
+  }
+
+  Future<void> _submit() async {
+    if (_titleCtrl.text.trim().isEmpty || _contentCtrl.text.trim().isEmpty) return;
+    setState(() => _isSaving = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final id    = widget.announcement['id'];
+      debugPrint('🔧 Edit announcement id=$id url=${ApiService().baseUrl}/department-head/announcements/$id');
+
+      final formData = FormData.fromMap({
+        'title':    _titleCtrl.text.trim(),
+        'content':  _contentCtrl.text.trim(),
+        'link_url': _linkCtrl.text.trim(),
+        if (_pickedImage != null)
+          'image': await MultipartFile.fromFile(
+            _pickedImage!.path,
+            filename: 'image.jpg',
+          ),
+      });
+
+      await Dio().post(
+        "${ApiService().baseUrl}/department-head/announcements/$id",
+        data: formData,
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+
+      if (mounted) widget.onUpdated();
+    } catch (e) {
+      debugPrint('Edit announcement error: $e');
+      String msg = 'حدث خطأ أثناء التحديث';
+      if (e is DioException && e.response?.data != null) {
+        final d = e.response!.data;
+        if (d is Map && d['message'] != null) { msg = d['message'].toString(); }
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) { setState(() => _isSaving = false); }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).cardColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isDark    = Theme.of(context).brightness == Brightness.dark;
+    const yellow    = Color(0xFFFFCC00);
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: EdgeInsets.only(
+          top: 20, left: 24, right: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(width: 40, height: 4,
+                    decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2))),
+              ),
+              const SizedBox(height: 16),
+              Text('تعديل الإعلان',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+              const SizedBox(height: 16),
+
+              _field('العنوان', _titleCtrl, 'عنوان الإعلان', isDark, textColor),
+              const SizedBox(height: 12),
+              _field('المحتوى', _contentCtrl, 'تفاصيل الإعلان...', isDark, textColor, maxLines: 4),
+              const SizedBox(height: 12),
+              _field('الرابط (اختياري)', _linkCtrl, 'https://...', isDark, textColor),
+              const SizedBox(height: 12),
+
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: _pickedImage != null ? 140 : 60,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: _pickedImage != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.file(_pickedImage!, fit: BoxFit.cover))
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.image_outlined, color: Colors.grey.shade500),
+                            const SizedBox(width: 8),
+                            Text('تغيير الصورة', style: TextStyle(color: Colors.grey.shade500)),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              GestureDetector(
+                onTap: _isSaving ? null : _submit,
+                child: Container(
+                  width: double.infinity,
+                  height: 52,
+                  decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(26)),
+                  child: Center(
+                    child: _isSaving
+                        ? const CircularProgressIndicator(color: Colors.black)
+                        : const Text('حفظ التعديلات',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _field(String label, TextEditingController ctrl, String hint, bool isDark, Color textColor, {int maxLines = 1}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor)),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: TextField(
+            controller: ctrl,
+            maxLines: maxLines,
+            style: TextStyle(color: textColor),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

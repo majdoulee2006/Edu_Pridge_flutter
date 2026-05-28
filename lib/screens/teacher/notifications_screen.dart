@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/teacher_report_evaluation_screen.dart';
 import '../../widgets/teacher_speed_dial.dart';
@@ -133,6 +134,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'assignment':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));
         break;
+      case 'lecture':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const LecturesScreen()));
+        break;
     }
   }
 
@@ -140,7 +144,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   _NotifStyle _styleForType(String? type) {
     switch (type) {
       case 'academic':
-        return _NotifStyle(Icons.book_outlined, const Color(0xFFFFCC00), const Color(0xFF3D3A00));
+      case 'assignment':
+        return _NotifStyle(Icons.assignment_outlined, const Color(0xFFFFCC00), const Color(0xFF3D3A00));
+      case 'lecture':
+        return _NotifStyle(Icons.play_circle_outline, Colors.teal, const Color(0xFF003333));
+      case 'announcement':
+        return _NotifStyle(Icons.campaign_outlined, const Color(0xFFCCAA00), const Color(0xFF3D2D00));
       case 'attendance':
         return _NotifStyle(Icons.how_to_reg_outlined, Colors.blue, const Color(0xFF003366));
       case 'administrative':

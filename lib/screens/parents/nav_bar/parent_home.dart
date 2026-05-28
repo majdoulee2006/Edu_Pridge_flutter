@@ -444,6 +444,19 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     Color(0xFF42A5F5),
   ];
 
+  Widget _parentHeaderPlaceholder(Color headerColor) {
+    return Container(
+      height: 130,
+      width: double.infinity,
+      color: headerColor,
+      child: const Stack(
+        children: [
+          Center(child: Icon(Icons.campaign_outlined, size: 45, color: Colors.white60)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNewsSection(Color cardColor, Color textColor) {
     if (_announcements.isEmpty) {
       return Container(
@@ -471,26 +484,17 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  height: 130,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: headerColor,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: 12, right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-                          child: const Text('إعلان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
-                        ),
-                      ),
-                      const Center(child: Icon(Icons.campaign_outlined, size: 45, color: Colors.white60)),
-                    ],
-                  ),
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                  child: ann['image_url'] != null && (ann['image_url'] as String).isNotEmpty
+                      ? Image.network(
+                          ann['image_url'] as String,
+                          height: 130,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
+                        )
+                      : _parentHeaderPlaceholder(headerColor),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),

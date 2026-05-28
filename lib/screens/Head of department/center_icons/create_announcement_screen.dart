@@ -95,9 +95,15 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
         Navigator.pop(context, true);
       }
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] as String? ?? 'حدث خطأ، حاول مجدداً';
+      final msg = e.response?.data?['message'] as String?
+          ?? e.response?.data?.toString()
+          ?? 'حدث خطأ: ${e.message}';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ غير متوقع: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

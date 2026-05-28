@@ -1,4 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
+import 'package:path_provider/path_provider.dart';
 
 class AnnouncementDetailScreen extends StatefulWidget {
   final Map<String, dynamic> announcement;
@@ -9,9 +12,44 @@ class AnnouncementDetailScreen extends StatefulWidget {
 }
 
 class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
-  @override
-  void initState() {
-    super.initState();
+  bool _isSavingImage = false;
+
+  Future<void> _saveImage(String imageUrl) async {
+    if (_isSavingImage) return;
+    setState(() => _isSavingImage = true);
+    try {
+      final dir      = await getTemporaryDirectory();
+      final fileName = 'announcement_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final filePath = '${dir.path}/$fileName';
+
+      await Dio().download(imageUrl, filePath);
+
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) await Gal.requestAccess();
+
+      await Gal.putImage(filePath);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ الصورة في المعرض ✓'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      debugPrint('Save image error: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر حفظ الصورة: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isSavingImage = false);
+    }
+  }
+
+  void _openFullScreen(String imageUrl) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => _FullScreenImageViewer(
+        imageUrl: imageUrl,
+        onSave: () => _saveImage(imageUrl),
+      ),
+    ));
   }
 
   @override
@@ -113,14 +151,32 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
 
               // الصورة
               if (imageUrl.isNotEmpty) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    imageUrl,
-                    width: double.infinity,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, e, _) => const SizedBox(),
+                GestureDetector(
+                  onTap: () => _openFullScreen(imageUrl),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      children: [
+                        Image.network(
+                          imageUrl,
+                          width: double.infinity,
+                          height: 200,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, e, s) => const SizedBox(),
+                        ),
+                        Positioned(
+                          bottom: 8, left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(Icons.fullscreen, color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -179,5 +235,45 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
       case 'all':      return 'الجميع';
       default:         return '';
     }
+  }
+}
+
+// ─── Full Screen Image Viewer ──────────────────────────────────────────────
+
+class _FullScreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+  final VoidCallback onSave;
+  const _FullScreenImageViewer({required this.imageUrl, required this.onSave});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_rounded, color: Colors.white),
+            tooltip: 'حفظ / مشاركة',
+            onPressed: onSave,
+          ),
+        ],
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            errorBuilder: (_, e, s) => const Icon(Icons.broken_image, color: Colors.white54, size: 80),
+          ),
+        ),
+      ),
+    );
   }
 }

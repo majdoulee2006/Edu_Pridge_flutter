@@ -130,6 +130,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       final teacherFilePath = assignment['file_url']?.toString();
       final teacherFileName = assignment['file_name']?.toString();
 
+      final submission = assignment['submission'] as Map?;
       return _AssignmentCard(
         assignmentId: assignment['assignment_id'] is int
             ? assignment['assignment_id']
@@ -152,16 +153,21 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         showSubmitForm: showSubmitForm,
         teacherFilePath: teacherFilePath,
         teacherFileName: teacherFileName,
+        submissionFilePath: submission?['file_path']?.toString(),
+        submissionFileName: submission?['file_path'] != null
+            ? submission!['file_path'].toString().split('/').last
+            : null,
+        submittedAt: submission?['submitted_at']?.toString(),
         detailText: assignment['description'] ??
             'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
         onSubmitSuccess: () async {
           await _fetchAssignments();
           if (mounted) setState(() => _selectedFilter = 1);
         },
-        grade: assignment['grade'] != null
-            ? double.tryParse(assignment['grade'].toString())
+        grade: submission?['grade'] != null
+            ? double.tryParse(submission!['grade'].toString())
             : null,
-        feedback: null,
+        feedback: submission?['feedback']?.toString(),
       );
     }).toList();
   }
@@ -412,6 +418,9 @@ class _AssignmentCard extends StatefulWidget {
   final String? feedback;
   final String? teacherFilePath;
   final String? teacherFileName;
+  final String? submissionFilePath;
+  final String? submissionFileName;
+  final String? submittedAt;
 
   const _AssignmentCard({
     required this.assignmentId,
@@ -433,6 +442,9 @@ class _AssignmentCard extends StatefulWidget {
     this.showSubmitForm = false,
     this.teacherFilePath,
     this.teacherFileName,
+    this.submissionFilePath,
+    this.submissionFileName,
+    this.submittedAt,
     this.detailText =
         'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
     this.onSubmitSuccess,
@@ -896,8 +908,8 @@ class _AssignmentCardState extends State<_AssignmentCard> {
             const SizedBox(height: 5),
           ],
 
-          // زر عرض ملف المعلم — يظهر لكل الحالات إذا رفع المعلم ملفاً
-          if (isExpanded && widget.teacherFilePath != null) ...[
+          // ملفات الواجب — ملف المعلم وملف الطالب
+          if (isExpanded && (widget.teacherFilePath != null || widget.submissionFilePath != null)) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 15),
               child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
@@ -906,42 +918,36 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               children: [
                 Container(width: 4, height: 18, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
                 const SizedBox(width: 8),
-                Text('ملف الواجب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                Text('الملفات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
               ],
             ),
             const SizedBox(height: 12),
-            InkWell(
-              onTap: () async {
-                final uri = Uri.parse(widget.teacherFilePath!);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withAlpha(isDark ? 40 : 20),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withAlpha(60)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.insert_drive_file_rounded, color: Colors.blue, size: 22),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        widget.teacherFileName ?? 'عرض ملف الواجب',
-                        style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 13),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Icon(Icons.open_in_new, color: Colors.blue, size: 16),
-                  ],
-                ),
+
+            // ملف المعلم
+            if (widget.teacherFilePath != null)
+              _FileButton(
+                label: widget.teacherFileName ?? 'ملف الواجب',
+                sublabel: 'ملف المعلم',
+                color: Colors.blue,
+                icon: Icons.menu_book_rounded,
+                url: widget.teacherFilePath!,
+                isDark: isDark,
               ),
-            ),
+
+            if (widget.teacherFilePath != null && widget.submissionFilePath != null)
+              const SizedBox(height: 8),
+
+            // ملف الطالب المُرسَل
+            if (widget.submissionFilePath != null)
+              _FileButton(
+                label: widget.submissionFileName ?? 'ملف الحل',
+                sublabel: widget.submittedAt != null ? 'تسليمك — ${widget.submittedAt}' : 'ملف تسليمك',
+                color: Colors.green,
+                icon: Icons.task_alt_rounded,
+                url: widget.submissionFilePath!,
+                isDark: isDark,
+              ),
+
             const SizedBox(height: 5),
           ],
 
@@ -1137,6 +1143,76 @@ class _AssignmentCardState extends State<_AssignmentCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FileButton extends StatelessWidget {
+  final String label;
+  final String sublabel;
+  final Color color;
+  final IconData icon;
+  final String url;
+  final bool isDark;
+
+  const _FileButton({
+    required this.label,
+    required this.sublabel,
+    required this.color,
+    required this.icon,
+    required this.url,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: color.withAlpha(isDark ? 40 : 20),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withAlpha(60)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    sublabel,
+                    style: TextStyle(
+                      color: color.withAlpha(180),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.open_in_new, color: color, size: 15),
+          ],
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_profile.dart';
@@ -59,6 +60,17 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
   void initState() {
     super.initState();
     _fetchNotifications();
+    NotificationPolling.latestNew.addListener(_onNewNotif);
+  }
+
+  @override
+  void dispose() {
+    NotificationPolling.latestNew.removeListener(_onNewNotif);
+    super.dispose();
+  }
+
+  void _onNewNotif() {
+    if (mounted) _fetchNotifications();
   }
 
   Future<String> _getToken() async {

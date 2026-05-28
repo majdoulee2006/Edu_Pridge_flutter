@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/main.dart' show appNavigatorKey;
 
 OverlayEntry? _currentBanner;
 
 void showInAppBanner(BuildContext context, String title, String message, {VoidCallback? onTap}) {
+  final overlayState = appNavigatorKey.currentState?.overlay ?? Overlay.of(context);
   _currentBanner?.remove();
   late OverlayEntry entry;
   entry = OverlayEntry(
@@ -17,7 +19,7 @@ void showInAppBanner(BuildContext context, String title, String message, {VoidCa
     ),
   );
   _currentBanner = entry;
-  Overlay.of(context).insert(entry);
+  overlayState.insert(entry);
   Future.delayed(const Duration(seconds: 4), () {
     if (entry.mounted) {
       entry.remove();

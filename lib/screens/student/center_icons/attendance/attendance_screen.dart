@@ -364,10 +364,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}");
                         }
                       } else {
+                        final now = TimeOfDay.now();
                         final picked = await showTimePicker(
-                            context: ctx, initialTime: TimeOfDay.now());
+                            context: ctx, initialTime: now);
                         if (picked != null) {
-                          setSheet(() => timeCtrl.text = picked.format(ctx));
+                          final today = DateTime.now();
+                          final selectedDate = dateCtrl.text.trim();
+                          final isToday = selectedDate ==
+                              "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+                          if (isToday &&
+                              (picked.hour < now.hour ||
+                                  (picked.hour == now.hour && picked.minute <= now.minute))) {
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(content: Text('لا يمكن طلب إجازة لوقت مضى — اختر وقتاً لاحقاً')),
+                              );
+                            }
+                          } else {
+                            setSheet(() => timeCtrl.text = picked.format(ctx));
+                          }
                         }
                       }
                     },
@@ -404,7 +419,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     child: ElevatedButton(
                       onPressed: sending ? null : () async {
                         final reason = reasonCtrl.text.trim();
-                        final date   = sheetLeaveType == 0 ? dateCtrl.text.trim() : timeCtrl.text.trim();
+                        final date   = dateCtrl.text.trim();
                         if (date.isEmpty || reason.length < 3) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('يرجى ملء جميع الحقول (السبب 3 أحرف على الأقل)')),
@@ -492,8 +507,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               ],
             ),
-            // زر طلب إجازة سريع
-            Positioned(
+            // زر طلب إجازة سريع - يظهر فقط في تبويب طلب إجازة
+            if (_selectedTab == 1) Positioned(
               bottom: 95,
               left: 20,
               child: GestureDetector(
@@ -782,7 +797,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
       children: [
-        // ── تاريخ الطلبات ──
         if (_isLoadingRequests)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
@@ -836,180 +850,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           Divider(color: isDark ? Colors.white12 : Colors.grey.shade200),
           const SizedBox(height: 10),
         ],
-
-        // ── نموذج طلب جديد ──
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isDark ? Theme.of(context).cardColor : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withAlpha(50)
-                    : Colors.black.withAlpha(8),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'نوع الإجازة',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey.shade400 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withAlpha(15)
-                      : const Color(0xFFF5F6F8),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Row(
-                  children: [
-                    _buildToggleBtn('إجازة يوم كامل', 0),
-                    _buildToggleBtn('إجازة ساعية', 1),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              Text(
-                _leaveType == 0 ? 'التاريخ' : 'الوقت',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey.shade400 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              if (_leaveType == 0)
-                TextField(
-                  controller: _dateController,
-                  readOnly: true,
-                  onTap: () => _selectDate(context),
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    hintText: 'اختر التاريخ...',
-                    hintStyle: TextStyle(
-                      color: isDark ? Colors.grey.shade600 : Colors.grey,
-                      fontSize: 13,
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? Colors.white.withAlpha(15)
-                        : const Color(0xFFF5F6F8),
-                    suffixIcon: Icon(
-                      Icons.calendar_today_outlined,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey,
-                      size: 20,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                )
-              else
-                TextField(
-                  controller: _timeController,
-                  readOnly: true,
-                  onTap: () => _selectTime(context),
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    hintText: 'اختر الوقت...',
-                    hintStyle: TextStyle(
-                      color: isDark ? Colors.grey.shade600 : Colors.grey,
-                      fontSize: 13,
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? Colors.white.withAlpha(15)
-                        : const Color(0xFFF5F6F8),
-                    suffixIcon: Icon(
-                      Icons.access_time_outlined,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey,
-                      size: 20,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-
-              Text(
-                'سبب الإجازة',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey.shade400 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _leaveReasonController,
-                maxLines: 4,
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                decoration: InputDecoration(
-                  hintText: 'اذكر سبب طلب الإجازة...',
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.grey.shade600 : Colors.grey,
-                    fontSize: 13,
-                  ),
-                  filled: true,
-                  fillColor: isDark
-                      ? Colors.white.withAlpha(15)
-                      : const Color(0xFFF5F6F8),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFCC00),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: _isSubmittingLeave ? null : _submitLeaveRequest,
-                  child: _isSubmittingLeave
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.send_rounded, color: Colors.black, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'إرسال الطلب',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-            ],
+        Center(
+          child: Text(
+            'اضغط زر + لطلب إجازة جديدة',
+            style: TextStyle(
+              color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+              fontSize: 13,
+            ),
           ),
         ),
       ],
