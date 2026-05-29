@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'services/fcm_service.dart';
 import 'screens/onboarding/onboarding_one.dart';
 import 'screens/student/nav_bar/student_home_screen.dart';
 import 'screens/teacher/teacher_home.dart';
@@ -15,9 +16,9 @@ final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase غير مدعوم على الويب بدون إعداد إضافي
   if (!kIsWeb) {
     await Firebase.initializeApp();
+    await FcmService.init();
   }
   await AppSettings.loadFromPrefs();
   runApp(const EduBridgeApp());
