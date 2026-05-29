@@ -378,8 +378,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     backgroundColor: Colors.red, elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.pop(context);
+                    // مسح بيانات الجلسة
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.remove('token');
+                    await prefs.remove('role');
+                    await prefs.remove('user_role');
+                    await prefs.remove('user_id');
+                    await prefs.remove('user_name');
+                    if (!context.mounted) return;
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(builder: (_) => const LoginScreen()),

@@ -182,6 +182,8 @@ class _LoginScreenState extends State<LoginScreen> {
       nextScreen = const TeacherHomeScreen();
     } else if (r == 'boss' || r == 'head' || r == 'department_head') {
       nextScreen = const DeptHeadHomeScreen();
+    } else if (r == 'affairs' || r == 'affairs_officer') {
+      nextScreen = const AffairsOfficerHomeScreen();
     } else if (r == 'admin') {
       nextScreen = const AdminHomeScreen();
     } else {

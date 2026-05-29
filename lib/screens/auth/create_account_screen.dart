@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'otp_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'pending_approval_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -46,6 +46,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   int _selectedChildrenCount = 1;
   final List<TextEditingController> _parentChildIdControllers = [TextEditingController()];
+  final _parentChildUniversityIdController = TextEditingController();
 
   @override
   void initState() {
@@ -121,6 +122,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         "full_name": _parentNameController.text.trim(),
         "email": email,
         "phone": phone,
+        "child_university_id": _parentChildUniversityIdController.text.trim(),
         "children_ids": _parentChildIdControllers.map((c) => c.text.trim()).toList(),
         "password": _parentPasswordController.text,
         "role": "parent",
@@ -131,19 +133,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       var response = await dio.post(url, data: data);
 
       if ((response.statusCode == 201 || response.statusCode == 200) && mounted) {
-        // احفظ chat_id للمرة القادمة
-        final tgId = isStudent ? _studentTelegramController.text.trim() : _parentTelegramController.text.trim();
-        if (tgId.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('telegram_chat_id', tgId);
-        }
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => OTPScreen(email: email, appBarTitle: "التحقق من الحساب")),
-            (route) => false,
-          );
-        }
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const PendingApprovalScreen()),
+          (route) => false,
+        );
       }
     } on DioException catch (e) {
       _showSnackBar(e.response?.data['message'] ?? "خطأ في تسجيل البيانات");
@@ -317,7 +311,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             });
           }
         }),
-        ...List.generate(_selectedChildrenCount, (index) => _buildInputField(label: 'الرقم الجامعي للابن ${index + 1}', hint: 'أدخل الرقم الجامعي', controller: _parentChildIdControllers[index], icon: Icons.badge_outlined, textColor: textColor, cardColor: cardColor, isDark: isDark)),
+        _buildInputField(label: 'الرقم الجامعي لابنك/ابنتك', hint: 'الرقم الذي أعطاه موظف الشؤون', icon: Icons.badge_outlined, controller: _parentChildUniversityIdController, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'كلمة المرور', hint: '........', icon: Icons.lock_outline, controller: _parentPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'تأكيد كلمة المرور', hint: '........', icon: Icons.check_circle_outline, controller: _parentConfirmPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'رقم تيليغرام (Chat ID)', hint: 'مثال: 7821980919', icon: Icons.send, controller: _parentTelegramController, textColor: textColor, cardColor: cardColor, isDark: isDark),
