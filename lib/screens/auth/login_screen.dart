@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/fcm_service.dart';
 import 'dart:math';
 
 // استيراد الملف الجديد (تأكدي أن اسم الملف forgot_password_screen.dart صحيح في مشروعك)
@@ -148,6 +149,9 @@ class _LoginScreenState extends State<LoginScreen> {
         if (phone.isNotEmpty) await prefs.setString('user_phone', phone);
 
         debugPrint("✅ تم حفظ التوكن بنجاح: $token");
+
+        // بعت الـ FCM token للسيرفر بعد تسجيل الدخول مباشرة
+        FcmService.sendTokenAfterLogin();
 
         if (!mounted) return;
         _showSnackBar(

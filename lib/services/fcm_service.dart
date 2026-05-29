@@ -68,6 +68,17 @@ class FcmService {
     }
   }
 
+  // يُستدعى بعد تسجيل الدخول مباشرة لضمان وصول الـ token للسيرفر
+  static Future<void> sendTokenAfterLogin() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('fcm_token_sent'); // أجبر إعادة الإرسال
+      await _refreshAndSendToken();
+    } catch (e) {
+      debugPrint('⛔ sendTokenAfterLogin error: $e');
+    }
+  }
+
   static Future<void> deleteToken() async {
     await _messaging.deleteToken();
     final prefs = await SharedPreferences.getInstance();
