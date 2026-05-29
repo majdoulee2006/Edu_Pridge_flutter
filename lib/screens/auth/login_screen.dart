@@ -143,6 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('user_id', userId);
         await prefs.setString('user_name', displayName);
         await prefs.setString('user_role', role);
+        await prefs.setString('role', role);
         final phone = userData['phone']?.toString() ?? '';
         if (phone.isNotEmpty) await prefs.setString('user_phone', phone);
 

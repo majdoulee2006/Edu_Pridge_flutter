@@ -11,6 +11,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/notification_polling.dart';
 import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/qr_scanner/qr_scanner_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
@@ -43,8 +44,31 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         context,
         n['title']?.toString() ?? 'إشعار جديد',
         n['message']?.toString() ?? n['body']?.toString() ?? '',
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+        onTap: () => _navigateForNotif(n),
       );
+    }
+  }
+
+  void _navigateForNotif(Map<String, dynamic> n) {
+    final type = n['type']?.toString() ?? '';
+    switch (type) {
+      case 'assignment':
+      case 'academic':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));
+        break;
+      case 'announcement':
+      case 'administrative':
+        final title   = n['title']?.toString() ?? '';
+        final message = n['message']?.toString() ?? '';
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => AnnouncementDetailScreen(announcement: {
+            'title': title, 'body': message, 'content': message,
+            'created_at': n['created_at'] ?? '', 'author_name': 'الإدارة',
+          }),
+        ));
+        break;
+      default:
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
     }
   }
 

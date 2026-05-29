@@ -107,7 +107,7 @@ class _GradingScreenState extends State<GradingScreen> {
       child: Scaffold(
         backgroundColor: bgColor,
         extendBody: true,
-        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           backgroundColor: cardColor,
           elevation: 0,
