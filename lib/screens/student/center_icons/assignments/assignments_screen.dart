@@ -954,11 +954,32 @@ class _AssignmentCardState extends State<_AssignmentCard> {
           if (isExpanded && widget.showSubmitForm) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 15),
-              child: Divider(
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                thickness: 1,
-              ),
+              child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
             ),
+
+            // ملف المعلم — يظهر دائماً إذا موجود
+            if (widget.teacherFilePath != null) ...[
+              Row(
+                children: [
+                  Container(width: 4, height: 18, decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 8),
+                  Text('ملف الواجب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _FileButton(
+                label: widget.teacherFileName ?? 'ملف الواجب',
+                sublabel: 'اضغط لفتح ملف المعلم',
+                color: Colors.blue,
+                icon: Icons.menu_book_rounded,
+                url: widget.teacherFilePath!,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 15),
+              Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
+              const SizedBox(height: 10),
+            ],
+
             Text(
               'تفاصيل الواجب',
               style: TextStyle(
@@ -978,64 +999,75 @@ class _AssignmentCardState extends State<_AssignmentCard> {
             ),
             const SizedBox(height: 15),
 
-            InkWell(
-              onTap: _showAttachmentOptions,
-              borderRadius: BorderRadius.circular(15),
-              child: Container(
+            if (_pickedFile != null)
+              Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 20),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withAlpha(10)
-                      : const Color(0xFFF9F9F9),
+                  color: Colors.green.withAlpha(isDark ? 40 : 20),
                   borderRadius: BorderRadius.circular(15),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withAlpha(30)
-                        : Colors.grey.shade300,
-                    style: BorderStyle.solid,
-                  ),
+                  border: Border.all(color: Colors.green.withAlpha(80)),
                 ),
-                child: Column(
+                child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.blueGrey.shade800
-                            : Colors.blueGrey.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.cloud_upload,
-                        color: isDark
-                            ? Colors.blueGrey.shade300
-                            : Colors.blueGrey,
+                    const Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_pickedFile!.name,
+                              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                              overflow: TextOverflow.ellipsis),
+                          const Text('ملف محدد — اضغط لتغييره', style: TextStyle(color: Colors.green, fontSize: 11)),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'اضغط لرفع ملف الحل',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'PDF, JPG, Video, ZIP (Max 50MB)',
-                      style: TextStyle(
-                        color: isDark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade500,
-                        fontSize: 10,
-                      ),
+                    IconButton(
+                      icon: Icon(Icons.swap_horiz_rounded, color: Colors.green.withAlpha(180), size: 20),
+                      onPressed: _showAttachmentOptions,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
+              )
+            else
+              InkWell(
+                onTap: _showAttachmentOptions,
+                borderRadius: BorderRadius.circular(15),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withAlpha(10) : const Color(0xFFF9F9F9),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withAlpha(30) : Colors.grey.shade300,
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.blueGrey.shade800 : Colors.blueGrey.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.cloud_upload, color: isDark ? Colors.blueGrey.shade300 : Colors.blueGrey),
+                      ),
+                      const SizedBox(height: 10),
+                      Text('اضغط لرفع ملف الحل',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
+                      const SizedBox(height: 5),
+                      Text('PDF, JPG, Video, ZIP (Max 50MB)',
+                          style: TextStyle(
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade500, fontSize: 10)),
+                    ],
+                  ),
+                ),
               ),
-            ),
             const SizedBox(height: 15),
 
             Text(
