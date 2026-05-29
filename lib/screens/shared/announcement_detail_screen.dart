@@ -5,7 +5,8 @@ import 'package:path_provider/path_provider.dart';
 
 class AnnouncementDetailScreen extends StatefulWidget {
   final Map<String, dynamic> announcement;
-  const AnnouncementDetailScreen({super.key, required this.announcement});
+  final String? screenTitle;
+  const AnnouncementDetailScreen({super.key, required this.announcement, this.screenTitle});
 
   @override
   State<AnnouncementDetailScreen> createState() => _AnnouncementDetailScreenState();
@@ -78,7 +79,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          title: Text('تفاصيل الإعلان',
+          title: Text(widget.screenTitle ?? 'تفاصيل الإعلان',
               style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
           leading: IconButton(
             icon: Icon(Icons.arrow_forward,

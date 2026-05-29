@@ -60,11 +60,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       case 'administrative':
         final title   = n['title']?.toString() ?? '';
         final message = n['message']?.toString() ?? '';
+        final isAnnouncement = type == 'announcement';
         Navigator.push(context, MaterialPageRoute(
-          builder: (_) => AnnouncementDetailScreen(announcement: {
-            'title': title, 'body': message, 'content': message,
-            'created_at': n['created_at'] ?? '', 'author_name': 'الإدارة',
-          }),
+          builder: (_) => AnnouncementDetailScreen(
+            screenTitle: isAnnouncement ? 'تفاصيل الإعلان' : 'تفاصيل الإشعار',
+            announcement: {
+              'title': title, 'body': message, 'content': message,
+              'created_at': n['created_at'] ?? '', 'author_name': 'الإدارة',
+            },
+          ),
         ));
         break;
       default:
