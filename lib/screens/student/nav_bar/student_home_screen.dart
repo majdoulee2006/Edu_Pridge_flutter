@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
@@ -70,33 +71,37 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   Future<void> _loadDashboardData() async {
     setState(() => isLoading = true);
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => offlineName = prefs.getString('user_name') ?? "طالب");
 
-      setState(() {
-        offlineName = prefs.getString('user_name') ?? "طالب";
-      });
-
-      // جلب البيانات بطلب واحد من السيرفيس
-      final data = await StudentServices().getDashboardData();
-
-      if (data != null) {
+    // حمّل الكاش أولاً لتجنب الشاشة الفارغة
+    final cached = prefs.getString('cache_student_dashboard');
+    if (cached != null && dashboardData == null) {
+      try {
+        final c = jsonDecode(cached) as Map<String, dynamic>;
         setState(() {
-          dashboardData = data;
-          latestNews = data['announcements'] ?? [];
+          dashboardData = c;
+          latestNews = c['announcements'] ?? [];
         });
+      } catch (_) {}
+    }
+
+    try {
+      final data = await StudentServices().getDashboardData();
+      if (data != null) {
+        // حفظ آخر نسخة ناجحة
+        prefs.setString('cache_student_dashboard', jsonEncode(data));
+        if (mounted) {
+          setState(() {
+            dashboardData = data;
+            latestNews = data['announcements'] ?? [];
+          });
+        }
       }
     } catch (e) {
       debugPrint("⛔️ Error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("تعذر تحميل البيانات أو انتهت الجلسة")),
-        );
-      }
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 

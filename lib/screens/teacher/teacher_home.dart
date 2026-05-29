@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,8 +75,22 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
 
   Future<void> _fetchDashboard() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // كاش: حمّل آخر بيانات محفوظة قبل الطلب
+    final cached = prefs.getString('cache_teacher_dashboard');
+    if (cached != null && _announcements.isEmpty) {
+      try {
+        final c = jsonDecode(cached) as Map<String, dynamic>;
+        setState(() {
+          _teacherName   = c['name'] as String? ?? '';
+          _announcements = (c['announcements'] as List<dynamic>? ?? [])
+              .map((a) => Map<String, dynamic>.from(a as Map)).toList();
+        });
+      } catch (_) {}
+    }
+
     try {
-      final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
       final res = await Dio().get(
         "${ApiService().baseUrl}/teacher/dashboard",
@@ -84,10 +99,18 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       if (res.statusCode == 200 && res.data['success'] == true) {
         final d = res.data['data'] as Map<String, dynamic>;
         final announcements = d['recent_announcements'] as List<dynamic>? ?? [];
-        setState(() {
-          _teacherName   = d['teacher']?['name'] as String? ?? '';
-          _announcements = announcements.map((a) => Map<String, dynamic>.from(a as Map)).toList();
-        });
+        final name = d['teacher']?['name'] as String? ?? '';
+        // حفظ نسخة ناجحة
+        prefs.setString('cache_teacher_dashboard', jsonEncode({
+          'name': name,
+          'announcements': announcements,
+        }));
+        if (mounted) {
+          setState(() {
+            _teacherName   = name;
+            _announcements = announcements.map((a) => Map<String, dynamic>.from(a as Map)).toList();
+          });
+        }
       }
     } catch (e) {
       debugPrint('⛔ Dashboard Error: $e');

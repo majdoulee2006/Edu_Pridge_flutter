@@ -106,7 +106,8 @@ class _GradingScreenState extends State<GradingScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: bgColor,
-        resizeToAvoidBottomInset: false,
+        extendBody: true,
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           backgroundColor: cardColor,
           elevation: 0,
@@ -116,92 +117,74 @@ class _GradingScreenState extends State<GradingScreen> {
           ),
           title: Text(
             'تفاصيل الرد',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
           actions: [
             IconButton(
               icon: Icon(Icons.settings_outlined, color: textColor),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                );
-              },
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
             ),
           ],
         ),
-        bottomNavigationBar: Column(
-          mainAxisSize: MainAxisSize.min,
+        body: Stack(
           children: [
-            // زر الحفظ الثابت
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryYellow,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    elevation: 4,
+            // المحتوى القابل للتمرير
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStudentHeaderCard(context, cardColor, textColor),
+                  const SizedBox(height: 20),
+                  if ((widget.submission['file_path'] as String?) != null) ...[
+                    _buildSectionTitle("المرفقات", textColor),
+                    _buildAttachmentItem(context, widget.submission['file_path'] as String, "",
+                        Icons.attach_file, Colors.blue, cardColor, textColor),
+                    const SizedBox(height: 10),
+                  ],
+                  const SizedBox(height: 15),
+                  _buildGradingSection(context, primaryYellow, cardColor, textColor, isDark),
+                  const SizedBox(height: 16),
+                  // زر الحفظ داخل السكرول
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryYellow,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        elevation: 4,
+                      ),
+                      onPressed: _isSaving ? null : _submitGrade,
+                      child: _isSaving
+                          ? const CircularProgressIndicator(color: Colors.black)
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle_outline, color: Colors.black),
+                                SizedBox(width: 10),
+                                Text('اعتماد وحفظ التصحيح',
+                                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                              ],
+                            ),
+                    ),
                   ),
-                  onPressed: _isSaving ? null : _submitGrade,
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.black)
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle_outline, color: Colors.black),
-                            SizedBox(width: 10),
-                            Text('اعتماد وحفظ التصحيح',
-                                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-                          ],
-                        ),
-                ),
+                  const SizedBox(height: 100),
+                ],
               ),
             ),
-            // الشريط السفلي الموحد
+            // الشريط السفلي
             CustomBottomNav(
               currentIndex: -1,
               centerButton: const CustomSpeedDialEduBridge(),
-              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen())),
-              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
-              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen())),
+              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MessagesScreen())),
             ),
           ],
-        ),
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStudentHeaderCard(context, cardColor, textColor),
-              const SizedBox(height: 20),
-              if ((widget.submission['file_path'] as String?) != null) ...[
-                _buildSectionTitle("المرفقات", textColor),
-                _buildAttachmentItem(
-                  context,
-                  widget.submission['file_path'] as String,
-                  "",
-                  Icons.attach_file,
-                  Colors.blue,
-                  cardColor,
-                  textColor,
-                ),
-                const SizedBox(height: 10),
-              ],
-              const SizedBox(height: 15),
-              _buildGradingSection(context, primaryYellow, cardColor, textColor, isDark),
-              const SizedBox(height: 20),
-            ],
-          ),
         ),
       ),
     );

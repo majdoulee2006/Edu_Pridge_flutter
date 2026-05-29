@@ -150,19 +150,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     switch (type) {
       case 'academic':
       case 'assignment':
-        return _NotifStyle(Icons.assignment_outlined, const Color(0xFFFFCC00), const Color(0xFF3D3A00));
+        return _NotifStyle(Icons.assignment_outlined, const Color(0xFFFFCC00), const Color(0xFF3D3A00), 'واجب');
       case 'lecture':
-        return _NotifStyle(Icons.play_circle_outline, Colors.teal, const Color(0xFF003333));
+        return _NotifStyle(Icons.play_circle_outline, Colors.teal, const Color(0xFF003333), 'محاضرة');
       case 'announcement':
-        return _NotifStyle(Icons.campaign_outlined, const Color(0xFFCCAA00), const Color(0xFF3D2D00));
+        return _NotifStyle(Icons.campaign_outlined, const Color(0xFFCCAA00), const Color(0xFF3D2D00), 'إعلان');
       case 'attendance':
-        return _NotifStyle(Icons.how_to_reg_outlined, Colors.blue, const Color(0xFF003366));
+        return _NotifStyle(Icons.how_to_reg_outlined, Colors.blue, const Color(0xFF003366), 'حضور وغياب');
       case 'administrative':
-        return _NotifStyle(Icons.admin_panel_settings_outlined, Colors.purple, const Color(0xFF2E0047));
+        return _NotifStyle(Icons.admin_panel_settings_outlined, Colors.purple, const Color(0xFF2E0047), 'إداري');
       case 'leave_request':
-        return _NotifStyle(Icons.event_busy_outlined, Colors.red, const Color(0xFF3D0000));
+        return _NotifStyle(Icons.event_busy_outlined, Colors.red, const Color(0xFF3D0000), 'طلب إجازة');
+      case 'report':
+      case 'report_request':
+        return _NotifStyle(Icons.assessment_outlined, Colors.orange, const Color(0xFF3D1A00), 'تقرير');
       default:
-        return _NotifStyle(Icons.notifications_outlined, Colors.orange, const Color(0xFF3D1A00));
+        return _NotifStyle(Icons.notifications_outlined, Colors.grey, const Color(0xFF1A1A1A), 'إشعار');
     }
   }
 
@@ -325,93 +328,73 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     required Color cardColor,
     required Color textColor,
   }) {
+    final dateStr = time.contains('T') ? time.split('T')[0] : time.split(' ')[0];
     return GestureDetector(
       onTap: () {
         _markAsRead(id, index);
         _navigateForNotif(_notifications[index]);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
         decoration: BoxDecoration(
           color: cardColor,
-          borderRadius: BorderRadius.circular(18),
-          border: isRead
-              ? null
-              : Border.all(
-                  color: style.color.withValues(alpha: 0.4), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: isRead
-                  ? Colors.black.withValues(alpha: 0.04)
-                  : style.color.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // أيقونة النوع
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: style.color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(style.icon, color: style.color, size: 22),
-            ),
-            const SizedBox(width: 12),
-
-            // النص
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: textColor,
-                          ),
-                        ),
-                      ),
-                      if (!isRead)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: style.color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    message,
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.6),
-                      fontSize: 12,
-                      height: 1.5,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: Stack(
+            children: [
+              Positioned(right: 0, top: 0, bottom: 0, child: Container(width: 5, color: style.color)),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: style.color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      child: Icon(style.icon, color: style.color, size: 24),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    time,
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
-                  ),
-                ],
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Flexible(
+                                child: Text(title,
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor),
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                              const SizedBox(width: 8),
+                              if (!isRead)
+                                Container(width: 8, height: 8,
+                                    decoration: BoxDecoration(color: style.color, shape: BoxShape.circle)),
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: textColor.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
+                                child: Text(dateStr, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 10)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(message,
+                              style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: 13, height: 1.4),
+                              maxLines: 2, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 6),
+                          Text(style.label,
+                              style: TextStyle(color: style.color, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -422,5 +405,6 @@ class _NotifStyle {
   final IconData icon;
   final Color color;
   final Color bgDark;
-  const _NotifStyle(this.icon, this.color, this.bgDark);
+  final String label;
+  const _NotifStyle(this.icon, this.color, this.bgDark, [this.label = 'إشعار']);
 }
