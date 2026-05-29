@@ -171,10 +171,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
 
                         const SizedBox(height: 25),
-                        _sectionTitle(isAr ? "اللغة" : "Language", subColor),
-                        _languageTile(context, cardColor, textColor, subColor, lang, isAr),
-
-                        const SizedBox(height: 25),
                         _sectionTitle(isAr ? "الإشعارات والصوت" : "Notifications & Sound", subColor),
 
                         ValueListenableBuilder<bool>(
@@ -294,91 +290,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(isAr ? "كبير" : "Large", style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Language Tile ─────────────────────────────────────────────────────────
-  Widget _languageTile(BuildContext context, Color cardColor, Color textColor, Color subColor, String lang, bool isAr) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
-      child: ListTile(
-        leading: Icon(Icons.language, color: textColor),
-        title: Text(isAr ? "لغة التطبيق" : "App Language",
-            style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFCCAA00).withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(lang == 'ar' ? "العربية" : "English",
-              style: const TextStyle(color: Color(0xFFCCAA00), fontWeight: FontWeight.bold)),
-        ),
-        onTap: () => _showLanguageSheet(context, lang, isAr, cardColor, textColor, subColor),
-      ),
-    );
-  }
-
-  void _showLanguageSheet(BuildContext context, String current, bool isAr, Color cardColor, Color textColor, Color subColor) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: cardColor,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (_) => Directionality(
-        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
-        child: Padding(
-          padding: const EdgeInsets.all(25),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(isAr ? "اختر اللغة" : "Select Language",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-              const SizedBox(height: 20),
-              _langOption(context, 'ar', current, "العربية", "Arabic", "🇸🇦", cardColor, textColor),
-              const SizedBox(height: 12),
-              _langOption(context, 'en', current, "English", "الإنجليزية", "🇺🇸", cardColor, textColor),
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _langOption(BuildContext context, String code, String current, String label, String sub, String flag, Color cardColor, Color textColor) {
-    final isSelected = current == code;
-    return GestureDetector(
-      onTap: () {
-        AppSettings.setLanguage(code);
-        AppSettings.triggerHaptic();
-        Navigator.pop(context);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFCCAA00).withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: isSelected ? const Color(0xFFCCAA00) : Colors.grey.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          children: [
-            Text(flag, style: const TextStyle(fontSize: 28)),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
-                  Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
-              ),
-            ),
-            if (isSelected) const Icon(Icons.check_circle, color: Color(0xFFCCAA00)),
           ],
         ),
       ),

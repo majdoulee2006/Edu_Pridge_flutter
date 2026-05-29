@@ -648,6 +648,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           
           String date = _translateDate(record['date'] ?? '');
 
+          final time = record['time']?.toString();
+
           if (status == 'absent') {
             return _buildRecordCard(
               date: date,
@@ -656,6 +658,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               statusColor: isDark ? Colors.red.shade300 : Colors.red,
               bgColor: isDark ? Colors.red.withAlpha(30) : const Color(0xFFFFEBEE),
               icon: Icons.close,
+              time: time,
             );
           }
 
@@ -688,6 +691,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             statusColor: statusColor,
             bgColor: bgColor,
             icon: icon,
+            time: time,
           );
         },
       ),
@@ -701,6 +705,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     required Color statusColor,
     required Color bgColor,
     required IconData icon,
+    String? time,
   }) {
     return Builder(
       builder: (context) {
@@ -735,10 +740,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      subject,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Text(subject, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        if (time != null) ...[
+                          const Text('  •  ', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          Icon(Icons.access_time, size: 11, color: Colors.grey.shade500),
+                          const SizedBox(width: 3),
+                          Text(time, style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                        ],
+                      ],
                     ),
                   ],
                 ),

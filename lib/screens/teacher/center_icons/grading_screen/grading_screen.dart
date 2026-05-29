@@ -106,7 +106,7 @@ class _GradingScreenState extends State<GradingScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: bgColor,
-        extendBody: true,
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           backgroundColor: cardColor,
           elevation: 0,
@@ -135,80 +135,73 @@ class _GradingScreenState extends State<GradingScreen> {
             ),
           ],
         ),
-        body: Stack(
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox.expand(),
-            // 1. المحتوى القابل للتمرير
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // كارد معلومات الطالب
-                  _buildStudentHeaderCard(context, cardColor, textColor),
-                  const SizedBox(height: 20),
-
-                  // المرفقات
-                  if ((widget.submission['file_path'] as String?) != null) ...[
-                    _buildSectionTitle("المرفقات", textColor),
-                    _buildAttachmentItem(
-                      context,
-                      widget.submission['file_path'] as String,
-                      "",
-                      Icons.attach_file,
-                      Colors.blue,
-                      cardColor,
-                      textColor,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  const SizedBox(height: 15),
-
-                  // قسم التصحيح
-                  _buildGradingSection(
-                    context,
-                    primaryYellow,
-                    cardColor,
-                    textColor,
-                    isDark,
+            // زر الحفظ الثابت
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryYellow,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    elevation: 4,
                   ),
-
-                  const SizedBox(height: 120), // مساحة لتجنب الشريط السفلي
-                ],
+                  onPressed: _isSaving ? null : _submitGrade,
+                  child: _isSaving
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_outline, color: Colors.black),
+                            SizedBox(width: 10),
+                            Text('اعتماد وحفظ التصحيح',
+                                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                          ],
+                        ),
+                ),
               ),
             ),
-
-            // 2. الشريط السفلي الموحد
+            // الشريط السفلي الموحد
             CustomBottomNav(
               currentIndex: -1,
               centerButton: const CustomSpeedDialEduBridge(),
-              onHomeTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TeacherHomeScreen(),
-                ),
-              ),
-              onProfileTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
-              ),
-              onNotificationsTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationsScreen(),
-                ),
-              ),
-              onMessagesTap: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MessagesScreen(),
-                ),
-              ),
+              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TeacherHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen())),
+              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MessagesScreen())),
             ),
           ],
+        ),
+        body: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStudentHeaderCard(context, cardColor, textColor),
+              const SizedBox(height: 20),
+              if ((widget.submission['file_path'] as String?) != null) ...[
+                _buildSectionTitle("المرفقات", textColor),
+                _buildAttachmentItem(
+                  context,
+                  widget.submission['file_path'] as String,
+                  "",
+                  Icons.attach_file,
+                  Colors.blue,
+                  cardColor,
+                  textColor,
+                ),
+                const SizedBox(height: 10),
+              ],
+              const SizedBox(height: 15),
+              _buildGradingSection(context, primaryYellow, cardColor, textColor, isDark),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -403,39 +396,6 @@ class _GradingScreenState extends State<GradingScreen> {
             fillColor: cardColor,
             border: inputBorder,
             enabledBorder: inputBorder,
-          ),
-        ),
-        const SizedBox(height: 25),
-        SizedBox(
-          width: double.infinity,
-          height: 60,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: btnColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              elevation: 5,
-              shadowColor: btnColor.withValues(alpha: 0.4),
-            ),
-            onPressed: _isSaving ? null : _submitGrade,
-            child: _isSaving
-                ? const CircularProgressIndicator(color: Colors.black)
-                : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle_outline, color: Colors.black),
-                      SizedBox(width: 10),
-                      Text(
-                        "اعتماد وحفظ التصحيح",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
           ),
         ),
       ],

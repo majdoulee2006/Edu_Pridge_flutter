@@ -13,7 +13,8 @@ import 'add_assignment.dart';
 import '../grading_screen/grading_screen.dart';
 
 class AssignmentsScreen extends StatefulWidget {
-  const AssignmentsScreen({super.key});
+  final int? openSubmissionsForId;
+  const AssignmentsScreen({super.key, this.openSubmissionsForId});
 
   @override
   State<AssignmentsScreen> createState() => _AssignmentsScreenState();
@@ -27,6 +28,17 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   void initState() {
     super.initState();
     _fetchAssignments();
+  }
+
+  Future<void> _autoOpenSubmissions() async {
+    if (widget.openSubmissionsForId == null) return;
+    final assignment = _assignments.firstWhere(
+      (a) => a['id'].toString() == widget.openSubmissionsForId.toString(),
+      orElse: () => {},
+    );
+    if (assignment.isNotEmpty && mounted) {
+      _showSubmissions(context, assignment);
+    }
   }
 
   Future<void> _fetchAssignments() async {
@@ -44,6 +56,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList();
         });
+        WidgetsBinding.instance.addPostFrameCallback((_) => _autoOpenSubmissions());
       }
     } catch (e) {
       debugPrint('⛔ Assignments Error: $e');
@@ -584,13 +597,11 @@ class _SubmissionsBottomSheetState extends State<_SubmissionsBottomSheet> {
             'assignment_title': s['assignment_title'] ?? widget.assignmentTitle,
             'course_name':      s['course_name']      ?? widget.courseName,
           };
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (ctx) => GradingScreen(submission: enriched),
-            ),
-          );
+          final nav = Navigator.of(context);
+          nav.pop();
+          nav.push(MaterialPageRoute(
+            builder: (ctx) => GradingScreen(submission: enriched),
+          ));
         },
       ),
     );

@@ -132,7 +132,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case 'academic':
       case 'assignment':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));
+        final relatedId = notif['related_id'];
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => AssignmentsScreen(
+            openSubmissionsForId: relatedId != null ? int.tryParse(relatedId.toString()) : null,
+          ),
+        ));
         break;
       case 'lecture':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const LecturesScreen()));

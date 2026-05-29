@@ -149,7 +149,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         fileTypeColor: fileTypeColor,
         iconData: icons[index % icons.length],
         imageBgColor: bgColors[index % bgColors.length],
-        initiallyExpanded: index == 0 && !isCompleted && !isMissed,
+        initiallyExpanded: false,
         showSubmitForm: showSubmitForm,
         teacherFilePath: teacherFilePath,
         teacherFileName: teacherFileName,
