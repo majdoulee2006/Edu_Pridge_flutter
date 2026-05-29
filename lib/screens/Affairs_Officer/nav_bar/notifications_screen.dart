@@ -3,6 +3,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
 
@@ -121,7 +122,7 @@ class _AffairsOfficerNotificationsScreenState extends State<AffairsOfficerNotifi
                             icon: Icon(
                               Icons.arrow_forward,
                               color: textColor,
-                              size: 28,
+                              size: 26,
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
@@ -190,8 +191,9 @@ class _AffairsOfficerNotificationsScreenState extends State<AffairsOfficerNotifi
                 );
               },
               onMessagesTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('قريباً...'), duration: Duration(seconds: 1)),
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AffairsOfficerMessagesScreen()),
                 );
               },
             ),

@@ -7,6 +7,7 @@ import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_scr
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_screen.dart';
 
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
@@ -56,7 +57,11 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                         Align(
                           alignment: Alignment.centerRight,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 22),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.white,
+                              size: 26,
+                            ),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
@@ -329,7 +334,12 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
             MaterialPageRoute(builder: (context) => const AffairsOfficerNotificationsScreen()),
             );
             },
-            onMessagesTap: () {},
+              onMessagesTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AffairsOfficerMessagesScreen()),
+                );
+              },
             ),
           ],
         ),
