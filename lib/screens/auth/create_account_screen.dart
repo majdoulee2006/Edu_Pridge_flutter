@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'pending_approval_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -35,33 +35,16 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _studentIdController = TextEditingController();
   final _studentPasswordController = TextEditingController();
   final _studentConfirmPasswordController = TextEditingController();
-  final _studentTelegramController = TextEditingController(text: '7821980919');
 
   final _parentNameController = TextEditingController();
   final _parentEmailController = TextEditingController();
   final _parentPhoneController = TextEditingController();
   final _parentPasswordController = TextEditingController();
   final _parentConfirmPasswordController = TextEditingController();
-  final _parentTelegramController = TextEditingController(text: '7821980919');
 
   int _selectedChildrenCount = 1;
   final List<TextEditingController> _parentChildIdControllers = [TextEditingController()];
   final _parentChildUniversityIdController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedTelegramId();
-  }
-
-  Future<void> _loadSavedTelegramId() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('telegram_chat_id') ?? '';
-    if (saved.isNotEmpty) {
-      _studentTelegramController.text = saved;
-      _parentTelegramController.text  = saved;
-    }
-  }
 
   Future<void> _pickDate() async {
     DateTime? picked = await showDatePicker(
@@ -102,7 +85,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
     try {
       Dio dio = Dio();
-      const url = "http://127.0.0.1:8000/api/register";
+      final url = "${ApiService().baseUrl}/register";
 
       Map<String, dynamic> data = isStudent ? {
         "full_name": _studentNameController.text.trim(),
@@ -116,8 +99,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         "branch": selectedBranch,
         "password": _studentPasswordController.text,
         "role": "student",
-        if (_studentTelegramController.text.trim().isNotEmpty)
-          "telegram_username": _studentTelegramController.text.trim().replaceAll('@', ''),
       } : {
         "full_name": _parentNameController.text.trim(),
         "email": email,
@@ -126,8 +107,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         "children_ids": _parentChildIdControllers.map((c) => c.text.trim()).toList(),
         "password": _parentPasswordController.text,
         "role": "parent",
-        if (_parentTelegramController.text.trim().isNotEmpty)
-          "telegram_username": _parentTelegramController.text.trim().replaceAll('@', ''),
       };
 
       var response = await dio.post(url, data: data);
@@ -286,7 +265,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         ),
         _buildInputField(label: 'كلمة المرور', hint: '........', icon: Icons.lock_outline, controller: _studentPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'تأكيد كلمة المرور', hint: '........', icon: Icons.check_circle_outline, controller: _studentConfirmPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
-        _buildInputField(label: 'رقم تيليغرام (Chat ID)', hint: 'مثال: 7821980919', icon: Icons.send, controller: _studentTelegramController, textColor: textColor, cardColor: cardColor, isDark: isDark),
       ],
     );
   }
@@ -314,7 +292,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         _buildInputField(label: 'الرقم الجامعي لابنك/ابنتك', hint: 'الرقم الذي أعطاه موظف الشؤون', icon: Icons.badge_outlined, controller: _parentChildUniversityIdController, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'كلمة المرور', hint: '........', icon: Icons.lock_outline, controller: _parentPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'تأكيد كلمة المرور', hint: '........', icon: Icons.check_circle_outline, controller: _parentConfirmPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
-        _buildInputField(label: 'رقم تيليغرام (Chat ID)', hint: 'مثال: 7821980919', icon: Icons.send, controller: _parentTelegramController, textColor: textColor, cardColor: cardColor, isDark: isDark),
       ],
     );
   }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
@@ -14,6 +15,7 @@ class FcmService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
   static Future<void> init() async {
+    if (kIsWeb) return; // FCM غير مدعوم على الويب بهذه الطريقة
     // طلب الصلاحية
     final settings = await _messaging.requestPermission(
       alert: true,
@@ -70,6 +72,7 @@ class FcmService {
 
   // يُستدعى بعد تسجيل الدخول مباشرة لضمان وصول الـ token للسيرفر
   static Future<void> sendTokenAfterLogin() async {
+    if (kIsWeb) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('fcm_token_sent'); // أجبر إعادة الإرسال

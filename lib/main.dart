@@ -95,9 +95,14 @@ class EduBridgeApp extends StatelessWidget {
                   theme: ThemeData(
                     primarySwatch: Colors.green,
                     fontFamily: 'Tajawal',
-                    scaffoldBackgroundColor: const Color(0xFFF9F9F9),
-                    cardColor: Colors.white,
+                    scaffoldBackgroundColor: const Color(0xFFE8E8EE), // خلفية رمادية دافئة
+                    cardColor: const Color(0xFFF2F2F7),              // كارد أغمق من الأبيض
                     brightness: Brightness.light,
+                    dividerColor: const Color(0xFFD0D0DA),
+                    textTheme: const TextTheme(
+                      bodyLarge: TextStyle(color: Color(0xFF1C1C1E)),
+                      bodyMedium: TextStyle(color: Color(0xFF3A3A3C)),
+                    ),
                   ),
                   darkTheme: ThemeData(
                     primarySwatch: Colors.green,

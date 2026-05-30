@@ -15,23 +15,30 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 
 class AssignmentsScreen extends StatefulWidget {
-  const AssignmentsScreen({super.key});
+  final int? highlightId;
+  const AssignmentsScreen({super.key, this.highlightId});
 
   @override
   State<AssignmentsScreen> createState() => _AssignmentsScreenState();
 }
 
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
-  int _selectedFilter = 0; // 0=الكل, 1=مكتملة, 2=فائتة, 3=قيد التنفيذ
-
-  // 🌟 متغيرات السيرفر 🌟
+  int _selectedFilter = 0;
   bool _isLoading = true;
   List<dynamic> _assignmentsList = [];
+  int? _highlightedId;
 
   @override
   void initState() {
     super.initState();
+    _highlightedId = widget.highlightId;
     _fetchAssignments();
+    // يُزيل الإطار الأصفر بعد 3 ثواني
+    if (widget.highlightId != null) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _highlightedId = null);
+      });
+    }
   }
 
   // 🌟 دالة جلب الواجبات من الباك إند
@@ -131,10 +138,13 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       final teacherFileName = assignment['file_name']?.toString();
 
       final submission = assignment['submission'] as Map?;
+      final cardId = assignment['assignment_id'] is int
+          ? assignment['assignment_id'] as int
+          : int.tryParse(assignment['assignment_id']?.toString() ?? '0') ?? 0;
+
       return _AssignmentCard(
-        assignmentId: assignment['assignment_id'] is int
-            ? assignment['assignment_id']
-            : int.tryParse(assignment['assignment_id']?.toString() ?? '0') ?? 0,
+        assignmentId: cardId,
+        highlighted: _highlightedId != null && _highlightedId == cardId,
         title: assignment['title'] ?? 'بدون عنوان',
         subtitle: '${assignment['course_name'] ?? ''}',
         dueDate: 'آخر موعد: ${assignment['due_date'] ?? ''}',
@@ -396,6 +406,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 // ============================================================================
 class _AssignmentCard extends StatefulWidget {
   final int assignmentId;
+  final bool highlighted;
   final String title;
   final String subtitle;
   final String dueDate;
@@ -424,6 +435,7 @@ class _AssignmentCard extends StatefulWidget {
 
   const _AssignmentCard({
     required this.assignmentId,
+    this.highlighted = false,
     required this.title,
     required this.subtitle,
     required this.dueDate,
@@ -710,13 +722,23 @@ class _AssignmentCardState extends State<_AssignmentCard> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: widget.highlighted
+            ? Border.all(color: const Color(0xFFFFCC00), width: 2.5)
+            : null,
         boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withAlpha(50)
-                : Colors.black.withAlpha(8),
-            blurRadius: 10,
-          ),
+          if (widget.highlighted)
+            const BoxShadow(
+              color: Color(0x55FFCC00),
+              blurRadius: 16,
+              spreadRadius: 2,
+            )
+          else
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withAlpha(50)
+                  : Colors.black.withAlpha(8),
+              blurRadius: 10,
+            ),
         ],
       ),
       child: Column(

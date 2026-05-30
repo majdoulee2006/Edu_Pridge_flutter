@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/models/message_model.dart';
@@ -46,7 +47,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       Dio dio = Dio();
       // الرابط الحقيقي تبع اللارافل
-      String url = "http://127.0.0.1:8000/api/student/messages/history/${widget.receiverId}";
+      String url = "${ApiService().baseUrl}/student/messages/history/${widget.receiverId}";
 
       var response = await dio.get(
         url,
@@ -93,7 +94,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       String? token = prefs.getString('token');
 
       Dio dio = Dio();
-      String url = "http://127.0.0.1:8000/api/student/messages/send";
+      String url = "${ApiService().baseUrl}/student/messages/send";
 
       var response = await dio.post(
         url,

@@ -7,21 +7,23 @@ class ApiService {
   // ==========================================
   // 🌟 تعديل الرابط ليكون ديناميكي وذكي
   // ==========================================
+  static const String _serverIp = '10.52.14.113';
+
   String get baseUrl {
     if (kIsWeb) {
       return "http://127.0.0.1:8000/api";
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      return "http://localhost:8000/api";
     } else {
-      return "http://127.0.0.1:8000/api";
+      return "http://$_serverIp:8000/api";
     }
   }
 
-  // تصليح روابط الميديا الراجعة من السيرفر (127.0.0.1 → localhost على الأندرويد)
+  // تصليح روابط الميديا الراجعة من السيرفر
   static String? fixMediaUrl(String? url) {
     if (url == null || url.isEmpty) return null;
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return url.replaceFirst('http://127.0.0.1:', 'http://localhost:');
+    if (!kIsWeb) {
+      return url
+          .replaceFirst('http://127.0.0.1:', 'http://$_serverIp:')
+          .replaceFirst('http://localhost:', 'http://$_serverIp:');
     }
     return url;
   }

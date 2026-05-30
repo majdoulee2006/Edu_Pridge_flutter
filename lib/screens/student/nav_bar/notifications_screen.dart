@@ -88,7 +88,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ));
         break;
       case 'assignment':
-        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));
+        Navigator.push(ctx, MaterialPageRoute(
+          builder: (_) => AssignmentsScreen(highlightId: notify.relatedId),
+        ));
         break;
       case 'lecture':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const LecturesScreen()));
@@ -322,17 +324,19 @@ class _NotificationsListView extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          // تمييز الإشعار غير المقروء بخلفية أفتح
           color: notify.isRead
               ? (isDark ? Theme.of(context).cardColor : Colors.white)
               : (isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.shade50),
           borderRadius: BorderRadius.circular(20),
+          border: notify.isRead
+              ? null
+              : Border.all(color: const Color(0xFFFFCC00), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: isDark
-                  ? Colors.black.withAlpha(50)
-                  : Colors.black.withAlpha(5),
-              blurRadius: 15,
+              color: notify.isRead
+                  ? (isDark ? Colors.black.withAlpha(50) : Colors.black.withAlpha(5))
+                  : const Color(0x33FFCC00),
+              blurRadius: notify.isRead ? 15 : 20,
               offset: const Offset(0, 5),
             ),
           ],

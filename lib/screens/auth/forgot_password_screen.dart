@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'otp_screen.dart';
 
@@ -24,7 +25,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       await Dio().post(
-        'http://127.0.0.1:8000/api/forgot-password',
+        '${ApiService().baseUrl}/forgot-password',
         data: {'email': email},
         options: Options(headers: {'Accept': 'application/json'}),
       );

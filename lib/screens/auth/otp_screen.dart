@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'login_screen.dart';
@@ -78,7 +79,7 @@ class _OTPScreenState extends State<OTPScreen> {
 
     try {
       final response = await Dio().post(
-        "http://127.0.0.1:8000/api/verify-otp",
+        "${ApiService().baseUrl}/verify-otp",
         data: {"email": widget.email, "otp": otpCode},
         options: Options(headers: {
           "Accept": "application/json",
@@ -114,7 +115,7 @@ class _OTPScreenState extends State<OTPScreen> {
     setState(() => _isResending = true);
     try {
       await Dio().post(
-        "http://127.0.0.1:8000/api/resend-otp",
+        "${ApiService().baseUrl}/resend-otp",
         data: {"email": widget.email},
         options: Options(headers: {
           "Accept": "application/json",

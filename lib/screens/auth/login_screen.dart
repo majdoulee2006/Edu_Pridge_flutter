@@ -420,89 +420,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 40),
-                  const Divider(),
-                  const Center(
-                    child: Text(
-                      "أدوات المطور - دخول سريع",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                        fontFamily: 'Cairo',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildDevButton(
-                          "شؤون",
-                          Icons.supervised_user_circle_outlined,
-                              () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AffairsOfficerHomeScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 15),
-                        _buildDevButton(
-                          "رئيس قسم",
-                          Icons.admin_panel_settings,
-                              () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const DeptHeadHomeScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 15),
-                        _buildDevButton("معلم", Icons.person_pin, () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const TeacherHomeScreen(),
-                            ),
-                          );
-                        }),
-                        const SizedBox(width: 15),
-                        _buildDevButton("طالب", Icons.school, () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const StudentHomeScreen(),
-                            ),
-                          );
-                        }),
-                        const SizedBox(width: 15),
-                        _buildDevButton("أهل", Icons.family_restroom, () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ParentsHomeScreen(),
-                            ),
-                          );
-                        }),
-                        const SizedBox(width: 15),
-                        _buildDevButton("إدارة", Icons.admin_panel_settings, () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AdminHomeScreen(),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
                   const SizedBox(height: 30),
+                  // ── DEV TOOLS (معلّقة مؤقتاً) ──────────────────────
+                  // const SizedBox(height: 40),
+                  // const Divider(),
+                  // const Center(child: Text("أدوات المطور - دخول سريع", style: TextStyle(color: Colors.grey, fontSize: 12))),
+                  // const SizedBox(height: 15),
+                  // SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  //   _buildDevButton("شؤون", Icons.supervised_user_circle_outlined, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AffairsOfficerHomeScreen()))),
+                  //   _buildDevButton("رئيس قسم", Icons.admin_panel_settings, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen()))),
+                  //   _buildDevButton("معلم", Icons.person_pin, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TeacherHomeScreen()))),
+                  //   _buildDevButton("طالب", Icons.school, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const StudentHomeScreen()))),
+                  //   _buildDevButton("أهل", Icons.family_restroom, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
+                  //   _buildDevButton("إدارة", Icons.admin_panel_settings, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()))),
+                  // ])),
+                  // ─────────────────────────────────────────────────────
                 ],
               ),
             ),

@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'otp_screen.dart';
@@ -16,7 +17,7 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
   String _telegramChatId = '';
   bool _isLoading = false;
 
-  static const _base = "http://127.0.0.1:8000/api";
+  static String get _base => ApiService().baseUrl;
 
   @override
   void initState() {

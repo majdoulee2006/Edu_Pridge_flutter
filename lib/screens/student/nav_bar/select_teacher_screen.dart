@@ -1,4 +1,5 @@
 ﻿import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,7 +33,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
 
       Dio dio = Dio();
       // رابط الـ API لجلب المدرسين (سنقوم بإنشائه في اللارافل)
-      String url = "http://127.0.0.1:8000/api/student/teachers";
+      String url = "${ApiService().baseUrl}/student/teachers";
 
       var response = await dio.get(
         url,
