@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,7 +7,6 @@ import 'api_service.dart';
 
 class NotificationPolling {
   static Timer? _timer;
-  static int _lastKnownCount = -1;
   static final ValueNotifier<int> unreadCount = ValueNotifier(0);
   static final ValueNotifier<Map<String, dynamic>?> latestNew = ValueNotifier(null);
 
@@ -19,6 +19,13 @@ class NotificationPolling {
   static void stop() {
     _timer?.cancel();
     _timer = null;
+  }
+
+  // مفتاح خاص بكل مستخدم
+  static Future<String> _shownKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id') ?? prefs.getInt('user_id')?.toString() ?? 'guest';
+    return 'notif_last_shown_id_$userId';
   }
 
   static Future<void> _fetch(String apiPath) async {
@@ -34,6 +41,7 @@ class NotificationPolling {
 
       if (res.statusCode != 200) return;
 
+      // جمع كل الإشعارات
       List raw = [];
       final data = res.data;
       if (data is List) {
@@ -46,25 +54,60 @@ class NotificationPolling {
           if (inner['all'] is List) {
             raw = inner['all'] as List;
           } else {
-            raw = [...(inner['academic'] as List? ?? []), ...(inner['administrative'] as List? ?? [])];
+            raw = [
+              ...(inner['academic']       as List? ?? []),
+              ...(inner['administrative'] as List? ?? []),
+            ];
           }
         } else if (data['academic'] is List) {
-          raw = [...(data['academic'] as List), ...(data['administrative'] as List? ?? [])];
+          raw = [
+            ...(data['academic']       as List),
+            ...(data['administrative'] as List? ?? []),
+          ];
         }
       }
 
+      // الإشعارات غير المقروءة
       final unread = raw.where((n) {
         final r = n['is_read'];
         return r == false || r == 0;
       }).toList();
 
-      final count = unread.length;
-      unreadCount.value = count;
+      unreadCount.value = unread.length;
 
-      if (unread.isNotEmpty && (_lastKnownCount < 0 || count > _lastKnownCount)) {
-        latestNew.value = Map<String, dynamic>.from(unread.first as Map);
+      if (unread.isEmpty) return;
+
+      // أعلى ID بين الإشعارات غير المقروءة
+      final maxId = unread
+          .map((n) => (n['id'] as num?)?.toInt() ?? 0)
+          .reduce(max);
+
+      final key = await _shownKey();
+      final lastShownId = prefs.getInt(key);
+
+      // أول مرة (بعد تنصيب أو تسجيل دخول) → احفظ الـ ID بصمت بدون بانر
+      if (lastShownId == null) {
+        await prefs.setInt(key, maxId);
+        return;
       }
-      _lastKnownCount = count;
+
+      // فقط إذا وصل إشعار بـ ID أحدث → اعرضه
+      if (maxId > lastShownId) {
+        final newest = unread.reduce((a, b) {
+          final idA = (a['id'] as num?)?.toInt() ?? 0;
+          final idB = (b['id'] as num?)?.toInt() ?? 0;
+          return idA >= idB ? a : b;
+        });
+        latestNew.value = Map<String, dynamic>.from(newest as Map);
+        await prefs.setInt(key, maxId);
+      }
     } catch (_) {}
+  }
+
+  // مسح عند تسجيل الخروج
+  static Future<void> clearLastShownId() async {
+    final key = await _shownKey();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
   }
 }

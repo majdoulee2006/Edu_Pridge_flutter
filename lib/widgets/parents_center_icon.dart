@@ -1,6 +1,7 @@
 ﻿import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_screen/permissions_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/reports_screen/reports_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 
 import '../screens/parents/center_icons/parents_assignments_screen/parents_assignment_screen.dart';
@@ -127,17 +128,24 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               Icons.verified_outlined,
                               Colors.purpleAccent,
                               67.5,
-                              0.2, // يبدأ متأخراً قليلاً
+                              0.2,
                               0.6,
                               itemTextColor,
-                              () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const PermissionsScreen(),
-                                  ),
-                                );
+                              () async {
+                                final prefs = await SharedPreferences.getInstance();
+                                final studentId   = prefs.getInt('selected_student_id');
+                                final studentName = prefs.getString('selected_student_name');
+                                if (context.mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PermissionsScreen(
+                                        studentId:   studentId,
+                                        studentName: studentName,
+                                      ),
+                                    ),
+                                  );
+                                }
                               },
                             ),
                             _buildMenuItem(

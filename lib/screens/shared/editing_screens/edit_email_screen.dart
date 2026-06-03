@@ -13,8 +13,8 @@ class EditEmailScreen extends StatefulWidget {
 
 class _EditEmailScreenState extends State<EditEmailScreen> {
   final _emailController = TextEditingController();
+  final _chatIdController = TextEditingController();
   bool _isLoading = false;
-  String _telegramChatId = '';
 
   static String get _base => ApiService().baseUrl;
 
@@ -26,7 +26,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
 
   Future<void> _loadTelegramId() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _telegramChatId = prefs.getString('telegram_chat_id') ?? '');
+    setState(() => _chatIdController.text = prefs.getString('telegram_chat_id') ?? '');
   }
 
   Future<String?> _getToken() async {
@@ -46,18 +46,21 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
       _showSnack("يرجى إدخال بريد إلكتروني صحيح", isError: true);
       return;
     }
-    if (_telegramChatId.isEmpty) {
-      _showSnack("لم يتم العثور على Chat ID — سجّل الدخول من جديد", isError: true);
+    final chatId = _chatIdController.text.trim();
+    if (chatId.isEmpty) {
+      _showSnack("يرجى إدخال Telegram Chat ID", isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       final token = await _getToken();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('telegram_chat_id', chatId);
 
       await Dio().post(
         '$_base/profile/send-otp',
-        data: {'telegram_chat_id': _telegramChatId},
+        data: {'telegram_chat_id': chatId},
         options: Options(headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -107,7 +110,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
               final t = await _getToken();
               await Dio().post(
                 '$_base/profile/send-otp',
-                data: {'telegram_chat_id': _telegramChatId},
+                data: {'telegram_chat_id': chatId},
                 options: Options(headers: {
                   'Authorization': 'Bearer $t',
                   'Accept': 'application/json',
@@ -147,6 +150,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
   @override
   void dispose() {
     _emailController.dispose();
+    _chatIdController.dispose();
     super.dispose();
   }
 
@@ -278,33 +282,47 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
 
               const SizedBox(height: 16),
 
-              // ── تنبيه تيليغرام ──
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.blue.withValues(alpha: 0.1)
-                      : Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.3)),
+              // ── حقل Chat ID ──
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 4, bottom: 8),
+                  child: Text("Telegram Chat ID",
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: textColor,
+                          fontFamily: 'Cairo')),
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.telegram_rounded,
-                        color: Colors.blue.shade400, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        "سيصلك رمز التحقق عبر تيليغرام (@edubridge_otp_bot)",
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue.shade400,
-                            fontFamily: 'Cairo'),
-                      ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.grey.shade300),
+                ),
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: TextField(
+                    controller: _chatIdController,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(color: textColor, fontSize: 15),
+                    decoration: InputDecoration(
+                      hintText: "أدخل Chat ID",
+                      hintStyle: TextStyle(
+                          color: textColor.withValues(alpha: 0.35),
+                          fontSize: 14),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 18),
+                      prefixIcon: Icon(Icons.telegram_rounded,
+                          color: Colors.blue.shade400, size: 22),
                     ),
-                  ],
+                  ),
                 ),
               ),
 

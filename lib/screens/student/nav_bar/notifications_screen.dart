@@ -100,6 +100,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
         break;
       default:
+        // عرض تفاصيل الإشعار العام
+        Navigator.push(ctx, MaterialPageRoute(
+          builder: (_) => AnnouncementDetailScreen(announcement: {
+            'title':       notify.title,
+            'content':     notify.message,
+            'body':        notify.message,
+            'time_ago':    notify.timeAgo,
+            'created_at':  notify.timeAgo,
+            'author_name': 'الإدارة',
+          }),
+        ));
         break;
     }
   }
@@ -260,8 +271,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         // 🌟 التابات الأكاديمية على اليمين (index 0) والإدارية على اليسار (index 1)
         tabs: const [
-          Tab(text: 'رسائل أكاديمية'),
-          Tab(text: 'رسائل إدارية'),
+          Tab(text: 'إشعارات أكاديمية'),
+          Tab(text: 'إشعارات إدارية'),
         ],
         dividerColor: Colors.transparent,
       ),

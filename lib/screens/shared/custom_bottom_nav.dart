@@ -82,7 +82,7 @@ class CustomBottomNav extends StatelessWidget {
                         currentIndex == 3
                             ? Icons.chat_bubble
                             : Icons.chat_bubble_outline,
-                        'إشعارات',
+                        'رسائل',
                         3,
                         onMessagesTap,
                         activeColor,

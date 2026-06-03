@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/auth/login_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
 
 // ─── AppSettings ───────────────────────────────────────────────────────────
 class AppSettings {
@@ -381,6 +382,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onPressed: () async {
                     Navigator.pop(context);
                     // مسح بيانات الجلسة
+                    NotificationPolling.stop();
+                    await NotificationPolling.clearLastShownId();
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.remove('token');
                     await prefs.remove('role');

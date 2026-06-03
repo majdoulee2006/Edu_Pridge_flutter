@@ -108,7 +108,18 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         ));
         break;
       case 'leave_request':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const PermissionsScreen()));
+        final ctx = context;
+        SharedPreferences.getInstance().then((prefs) {
+          if (!mounted) return;
+          final studentId   = prefs.getInt('selected_student_id');
+          final studentName = prefs.getString('selected_student_name');
+          Navigator.push(ctx, MaterialPageRoute(
+            builder: (_) => PermissionsScreen(
+              studentId:   studentId,
+              studentName: studentName,
+            ),
+          ));
+        });
         break;
       case 'report':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));

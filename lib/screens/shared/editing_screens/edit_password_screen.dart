@@ -19,8 +19,8 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  final _chatIdController = TextEditingController();
   bool _isLoading = false;
-  String _telegramChatId = '';
 
   static String get _base => ApiService().baseUrl;
 
@@ -32,7 +32,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
 
   Future<void> _loadTelegramId() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _telegramChatId = prefs.getString('telegram_chat_id') ?? '');
+    setState(() => _chatIdController.text = prefs.getString('telegram_chat_id') ?? '');
   }
 
   // ── قوة كلمة المرور ──
@@ -69,8 +69,9 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
       _showSnack("كلمتا المرور غير متطابقتين", isError: true);
       return;
     }
-    if (_telegramChatId.isEmpty) {
-      _showSnack("لم يتم العثور على Chat ID — سجّل الدخول من جديد", isError: true);
+    final chatId = _chatIdController.text.trim();
+    if (chatId.isEmpty) {
+      _showSnack("يرجى إدخال Telegram Chat ID", isError: true);
       return;
     }
 
@@ -78,11 +79,12 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
+      await prefs.setString('telegram_chat_id', chatId);
 
       // أرسل OTP عبر تيليغرام أولاً
       await Dio().post(
         '$_base/profile/send-otp',
-        data: {'telegram_chat_id': _telegramChatId},
+        data: {'telegram_chat_id': chatId},
         options: Options(headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -130,7 +132,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
               final t = prefs.getString('token') ?? '';
               await Dio().post(
                 '$_base/profile/send-otp',
-                data: {'telegram_chat_id': _telegramChatId},
+                data: {'telegram_chat_id': chatId},
                 options: Options(headers: {
                   'Authorization': 'Bearer $t',
                   'Accept': 'application/json',
@@ -243,6 +245,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
     _currentCtrl.dispose();
     _newCtrl.dispose();
     _confirmCtrl.dispose();
+    _chatIdController.dispose();
     super.dispose();
   }
 
@@ -377,6 +380,53 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                     ? Colors.green
                     : Colors.redAccent,
                 onChanged: (_) => setState(() {}),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── حقل Chat ID ──
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 4, bottom: 8),
+                  child: Text("Telegram Chat ID",
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: textColor,
+                          fontFamily: 'Cairo')),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.grey.shade300),
+                ),
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: TextField(
+                    controller: _chatIdController,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(color: textColor, fontSize: 15),
+                    decoration: InputDecoration(
+                      hintText: "أدخل Chat ID",
+                      hintStyle: TextStyle(
+                          color: textColor.withValues(alpha: 0.35),
+                          fontSize: 14),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 18),
+                      prefixIcon: Icon(Icons.telegram_rounded,
+                          color: Colors.blue.shade400, size: 22),
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 44),

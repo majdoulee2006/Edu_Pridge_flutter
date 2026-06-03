@@ -7,7 +7,7 @@ class ApiService {
   // ==========================================
   // 🌟 تعديل الرابط ليكون ديناميكي وذكي
   // ==========================================
-  static const String _serverIp = '10.52.14.113';
+  static const String _serverIp = '10.219.119.82';
 
   String get baseUrl {
     if (kIsWeb) {

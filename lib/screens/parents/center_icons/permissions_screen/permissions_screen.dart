@@ -12,7 +12,9 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PermissionsScreen extends StatefulWidget {
-  const PermissionsScreen({super.key});
+  final int? studentId;
+  final String? studentName;
+  const PermissionsScreen({super.key, this.studentId, this.studentName});
 
   @override
   State<PermissionsScreen> createState() => _PermissionsScreenState();
@@ -40,8 +42,12 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       final token = await _getToken();
       if (token.isEmpty) { setState(() => isLoading = false); return; }
 
+      final url = widget.studentId != null
+          ? "${ApiService().baseUrl}/parent/leave-requests?student_id=${widget.studentId}"
+          : "${ApiService().baseUrl}/parent/leave-requests";
+
       var response = await Dio().get(
-        "${ApiService().baseUrl}/parent/leave-requests",
+        url,
         options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
       );
 
@@ -422,7 +428,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      title: Text("أذونات الطالب", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+      title: Text(
+        widget.studentName != null ? "أذونات ${widget.studentName}" : "أذونات الطالب",
+        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       leading: IconButton(
         icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/calendar/calendar_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activities/activities_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/vacations/vacations_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/accounts/accounts_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications_screen.dart';
@@ -113,6 +116,23 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                     ),
                   ),
 
+                  // --- اختصارات سريعة (سكرول أفقي) ---
+                  SizedBox(
+                    height: 105,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        _buildShortcut(context, Icons.manage_accounts_outlined, 'الحسابات',  const Color(0xFFFFCC00), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AffairsOfficerAccountsScreen()))),
+                        _buildShortcut(context, Icons.event_available_outlined,  'الإجازات',  const Color(0xFF4DB6AC), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AffairsOfficerVacationsScreen()))),
+                        _buildShortcut(context, Icons.calendar_month_outlined,   'التقويم',   const Color(0xFF7E57C2), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AffairsOfficerCalendarScreen()))),
+                        _buildShortcut(context, Icons.local_activity_outlined,   'الأنشطة',   const Color(0xFFEF5350), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AffairsOfficerActivitiesScreen()))),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
                   // --- كل المحتوى داخل ListView ---
                   Expanded(
                     child: RefreshIndicator(
@@ -189,6 +209,51 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                   MaterialPageRoute(builder: (context) => const AffairsOfficerMessagesScreen()),
                 );
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShortcut(BuildContext context, IconData icon, String label, Color color, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

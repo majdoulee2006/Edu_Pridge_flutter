@@ -148,6 +148,9 @@ class _LoginScreenState extends State<LoginScreen> {
         final phone = userData['phone']?.toString() ?? '';
         if (phone.isNotEmpty) await prefs.setString('user_phone', phone);
 
+        final telegramChatId = userData['telegram_chat_id']?.toString() ?? '';
+        if (telegramChatId.isNotEmpty) await prefs.setString('telegram_chat_id', telegramChatId);
+
         debugPrint("✅ تم حفظ التوكن بنجاح: $token");
 
         // بعت الـ FCM token للسيرفر بعد تسجيل الدخول مباشرة

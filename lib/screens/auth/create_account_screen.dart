@@ -23,10 +23,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   static const Color primaryYellow = Color(0xFFF6E300);
 
   final Map<String, List<String>> _departmentData = {
-    'نظم المعلومات': ['ذكاء صنعي', 'الكترون', 'معلوماتية', 'اتصالات'],
-    'طبي': ['مساعد صيدلي', 'مساعد مخبري'],
-    'تجاري': ['محاسبة', 'مصارف', 'إدارة اعمال', 'تجارة الكترونية'],
-    'هندسي': ['مساعد مهندس ديكور', 'مساعد مهندس مدني', 'ديكور واعلان'],
+    'نظم معلومات': ['معلوماتية', 'اتصالات'],
+    'طبي':         ['صيدلة', 'مخابر'],
+    'تجاري':       ['ادارة اعمال', 'محاسبة'],
+    'هندسي':       ['هندسة عمارة', 'ديكور'],
   };
 
   final _studentNameController = TextEditingController();
