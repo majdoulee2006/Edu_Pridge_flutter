@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart'; // 👈 1. ضفنا هالمكتبة المهمة جداً
 
@@ -7,7 +7,7 @@ class ApiService {
   // ==========================================
   // 🌟 تعديل الرابط ليكون ديناميكي وذكي
   // ==========================================
-  static const String _serverIp = '10.219.119.82';
+  static const String _serverIp = '172.16.135.249';
 
   String get baseUrl {
     if (kIsWeb) {
