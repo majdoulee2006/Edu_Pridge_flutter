@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -319,11 +319,53 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ? (timeParts[1] == 'AM' ? 'ص' : 'م')
           : '';
 
+      String endTimeStr = '';
+      String endAmPmStr = '';
+      try {
+        String startFull = lecture['start_time'].toString();
+        List<String> parts = startFull.trim().split(' ');
+        List<String> timeSplit = parts[0].split(':');
+        int hour = int.parse(timeSplit[0]);
+        int minute = int.parse(timeSplit[1]);
+
+        if (parts.length > 1) {
+          String amPm = parts[1].toUpperCase();
+          if (amPm == 'PM' && hour < 12) {
+            hour += 12;
+          } else if (amPm == 'AM' && hour == 12) {
+            hour = 0;
+          }
+        }
+
+        final startDT = DateTime(2026, 1, 1, hour, minute);
+        final endDT = startDT.add(const Duration(minutes: 90));
+
+        int endHour = endDT.hour;
+        int endMinute = endDT.minute;
+        String endAmPm = 'AM';
+        if (endHour >= 12) {
+          endAmPm = 'PM';
+          if (endHour > 12) {
+            endHour -= 12;
+          }
+        } else if (endHour == 0) {
+          endHour = 12;
+        }
+
+        endTimeStr = "${endHour.toString().padLeft(2, '0')}:${endMinute.toString().padLeft(2, '0')}";
+        endAmPmStr = endAmPm == 'AM' ? 'ص' : 'م';
+      } catch (e) {
+        endTimeStr = '';
+        endAmPmStr = '';
+      }
+
       return GestureDetector(
         onTap: () => setState(() => _selectedLectureIndex = index),
         child: _buildTimelineItem(
           time: timeStr,
           amPm: amPmStr,
+          endTime: endTimeStr,
+          endAmPm: endAmPmStr,
           isCurrentTime: isLectureSelected,
           isLast: isLast,
           card: _buildClassCard(
@@ -633,6 +675,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget _buildTimelineItem({
     required String time,
     required String amPm,
+    required String endTime,
+    required String endAmPm,
     required bool isCurrentTime,
     required Widget card,
     bool isBreak = false,
@@ -643,23 +687,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 55,
+          width: 70,
           child: Column(
             children: [
+              // Start Time
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: isCurrentTime
                     ? BoxDecoration(
                         color: const Color(0xFFFFCC00),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(8),
                       )
                     : null,
                 child: Text(
                   time,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 13,
                     color: isCurrentTime
                         ? Colors.black
                         : (isDark ? Colors.white : Colors.black),
@@ -668,7 +713,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               Text(
                 amPm,
-                style: const TextStyle(color: Colors.grey, fontSize: 11),
+                style: const TextStyle(color: Colors.grey, fontSize: 10),
+              ),
+              const SizedBox(height: 2),
+              Icon(
+                Icons.arrow_downward,
+                size: 11,
+                color: isCurrentTime
+                    ? const Color(0xFFFFCC00)
+                    : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+              ),
+              const SizedBox(height: 2),
+              // End Time
+              Text(
+                endTime,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              Text(
+                endAmPm,
+                style: const TextStyle(color: Colors.grey, fontSize: 10),
               ),
               const SizedBox(height: 5),
               if (!isLast)
@@ -680,7 +747,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ],
           ),
         ),
-        const SizedBox(width: 15),
+        const SizedBox(width: 10),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(bottom: 20),
