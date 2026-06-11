@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:excel/excel.dart' as xl;
@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/teacher_speed_dial.dart';
@@ -31,13 +32,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   // كل المواد من الـ API
   List<Map<String, dynamic>> _allCourses = [];
-
-  // الدورات
   List<Map<String, dynamic>> _allPrograms = [];
-  String? _selectedProgramId;
 
-  // السنة الدراسية: 1 أو 2
-  int? _selectedYear;
+  // مفتاح مدمج للدورة والسنة: "programId_year"
+  String? _selectedProgramYearKey;
+
+  // حالة التبويبات الداخلية في صفحة "تسجيل الحضور"
+  String _attendanceTabFilter = "إعداد الجلسة";
+  
+  // فلترة سجل الحضور
+  String _historyScope = 'my_courses'; // my_courses, advisor_class
+  String? _historyProgramYearKey;
+  String? _historyCourseId;
+  String _historyPeriod = "today"; // today, week, month, semester
 
   // المواد المفلترة بعد اختيار الدورة والسنة
   List<Map<String, dynamic>> _filteredCourses = [];
@@ -56,10 +63,42 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   int _presentCount = 0;
   int _totalCount = 0;
 
+  // التقارير المولدة محلياً
+  List<File> _generatedReports = [];
+
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadGeneratedReports();
+  }
+
+  Future<void> _loadGeneratedReports() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.get('user_id')?.toString() ?? 'unknown';
+
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final files = dir.listSync();
+      debugPrint('Found \${files.length} items in \${dir.path}');
+      setState(() {
+        _generatedReports = files
+            .whereType<File>()
+            .where((f) => f.path.contains('attendance_report_') && f.path.endsWith('.pdf'))
+            .toList();
+        // ترتيب من الأحدث للأقدم
+        _generatedReports.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+      });
+    } catch (e) {
+      debugPrint('Error listing files: $e');
+    }
+  }
+
+  Future<void> _deleteReport(File file) async {
+    if (await file.exists()) {
+      await file.delete();
+      await _loadGeneratedReports();
+    }
   }
 
   Future<String> _getToken() async {
@@ -103,19 +142,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   void _applyFilter() {
-    if (_selectedProgramId == null || _selectedYear == null) {
+    if (_selectedProgramYearKey == null) {
       setState(() { _filteredCourses = []; _selectedCourseId = null; });
       return;
     }
-    final filtered = _allCourses.where((c) =>
-      c['program_id'] == _selectedProgramId &&
-      c['year'] == _selectedYear,
-    ).toList();
+    final parts = _selectedProgramYearKey!.split('_');
+    final pid = parts[0];
+    final yr = int.tryParse(parts[1]) ?? 1;
+
     setState(() {
-      _filteredCourses  = filtered;
-      _selectedCourseId = filtered.any((c) => c['id'] == _selectedCourseId)
-          ? _selectedCourseId
-          : null;
+      _filteredCourses = _allCourses.where((c) {
+        return c['program_id'].toString() == pid && c['year'] == yr;
+      }).toList();
+      _selectedCourseId = null;
     });
   }
 
@@ -313,8 +352,118 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
+  // تصدير PDF للمادة المحددة طوال الفصل
+  Future<void> _exportPdf() async {
+    if (_selectedCourseId == null) {
+      _showSnack('اختر المادة أولاً لتصدير كشف PDF الشامل');
+      return;
+    }
+    _showSnack('جاري تجهيز التقرير، يرجى الانتظار...');
+
+    try {
+      final token = await _getToken();
+      final url = "${ApiService().baseUrl}/teacher/attendance/export-pdf?course_id=$_selectedCourseId&period=semester";
+      
+      final res = await Dio().get(
+        url,
+        options: Options(
+          headers: {"Authorization": "Bearer $token"},
+          responseType: ResponseType.bytes, // Important for downloading files
+        ),
+      );
+
+      if (res.statusCode == 200) {
+        Directory? dir;
+        try {
+          dir = await getDownloadsDirectory();
+        } catch (_) {}
+        dir ??= await getApplicationDocumentsDirectory();
+
+        final safeDate = DateTime.now().toString().split(' ')[0];
+        final filePath = '${dir.path}/attendance_report_$safeDate.pdf';
+        
+        final file = File(filePath);
+        await file.writeAsBytes(res.data);
+
+        _showSnack('تم التحميل! جاري الفتح...');
+        await OpenFilex.open(filePath);
+      } else {
+        _showSnack('فشل تحميل التقرير');
+      }
+    } catch (e) {
+      debugPrint('⛔ PDF Export Error: $e');
+      _showSnack('حدث خطأ أثناء تحميل التقرير');
+    }
+  }
+
   void _showSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  // تصدير PDF مفلتر بناءً على تبويب "سجل الحضور"
+  Future<void> _exportHistoryPdf() async {
+    _showSnack('جاري تجهيز التقرير، يرجى الانتظار...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.get('user_id')?.toString() ?? 'unknown';
+      final token = await _getToken();
+      String url = "${ApiService().baseUrl}/teacher/attendance/export-pdf?";
+      
+      url += "scope=$_historyScope";
+
+      if (_historyScope == 'my_courses') {
+        if (_historyCourseId != null && _historyCourseId != 'all') {
+          url += "&course_id=$_historyCourseId";
+        } else if (_historyProgramYearKey != null) {
+          final parts = _historyProgramYearKey!.split('_');
+          url += "&program_id=${parts[0]}&year=${parts[1]}";
+        }
+      }
+      url += "&period=$_historyPeriod";
+      
+      final res = await Dio().get(
+        url,
+        options: Options(
+          headers: {"Authorization": "Bearer $token"},
+          responseType: ResponseType.bytes, // Important for downloading files
+        ),
+      );
+
+      if (res.statusCode == 200) {
+        final dir = await getApplicationDocumentsDirectory();
+
+        final safeDate = DateTime.now().toString().split(' ')[0];
+        final safeTime = DateTime.now().millisecondsSinceEpoch;
+        final filePath = '${dir.path}/attendance_report_${safeDate}_$safeTime.pdf';
+        
+        final file = File(filePath);
+        await file.writeAsBytes(res.data);
+        await _loadGeneratedReports();
+
+        _showSnack('تم التحميل! جاري الفتح...');
+        await OpenFilex.open(filePath);
+      } else {
+        _showSnack('فشل تحميل التقرير');
+      }
+    } catch (e) {
+      debugPrint('⛔ PDF Export Error: $e');
+      if (e is DioException) {
+        if (e.response?.statusCode == 404) {
+          _showSnack('لا توجد جلسات حضور في هذه الفترة لتوليد تقرير.');
+        } else {
+          // محاولة قراءة الخطأ من السيرفر (لو كان JSON بالرغم من أننا طلبنا bytes)
+          String errorMsg = 'خطأ خادم: ${e.response?.statusCode}';
+          try {
+            if (e.response?.data != null) {
+               errorMsg = 'خطأ خادم: ${String.fromCharCodes(e.response!.data)}';
+            }
+          } catch (_) {}
+          _showSnack(errorMsg);
+        }
+      } else {
+        _showSnack('حدث خطأ أثناء تحميل التقرير: $e');
+      }
+    }
   }
 
   void _showAbsentSheet() {
@@ -462,51 +611,37 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: bgColor,
-        extendBody: true,
-        appBar: AppBar(
-          backgroundColor: cardColor,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text(
-            'تسجيل الحضور والغياب',
-            style: TextStyle(
-                color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          centerTitle: true,
-          actions: [
-            IconButton(
-              icon: Icon(Icons.settings_outlined, color: textColor),
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen())),
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: bgColor,
+          extendBody: true,
+          appBar: AppBar(
+            backgroundColor: cardColor,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+              onPressed: () => Navigator.pop(context),
             ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            const SizedBox.expand(),
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildSessionSettingsCard(cardColor, textColor, isDark),
-                  const SizedBox(height: 25),
-                  if (_sessionActive && _qrToken != null) ...[
-                    _buildDividerWithText('الرمز النشط', textColor),
-                    const SizedBox(height: 15),
-                    _buildQRCodeCard(cardColor, textColor, isDark),
-                  ],
-                  const SizedBox(height: 120),
-                ],
+            title: Text(
+              'تسجيل الحضور',
+              style: TextStyle(
+                  color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.settings_outlined, color: textColor),
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen())),
               ),
-            ),
-            CustomBottomNav(
+            ],
+
+          ),
+          body: Stack(
+            children: [
+              const SizedBox.expand(),
+              _buildAttendanceTab(cardColor, textColor, isDark),
+              CustomBottomNav(
                 currentIndex: -1,
                 centerButton: const CustomSpeedDialEduBridge(),
                 onHomeTap: () => Navigator.pushReplacement(context,
@@ -521,14 +656,418 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     MaterialPageRoute(
                         builder: (_) => const MessagesScreen())),
             ),
-          ],
+            ],
+          ),
         ),
+    );
+  }
+
+  Widget _buildAttendanceTab(Color cardColor, Color textColor, bool isDark) {
+    return Column(
+      children: [
+        // أزرار التبديل العلوية (Filter Tabs)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+          child: Row(
+            children: [
+              _buildAttendanceFilterBtn("إعداد الجلسة", isDark),
+              const SizedBox(width: 12),
+              _buildAttendanceFilterBtn("سجل الحضور", isDark),
+            ],
+          ),
+        ),
+
+        // المحتوى المتغير
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+              return Stack(
+                alignment: Alignment.topCenter,
+                children: <Widget>[
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
+                ],
+              );
+            },
+            child: _attendanceTabFilter == "إعداد الجلسة"
+                ? SingleChildScrollView(
+                    key: const ValueKey("SessionSettings"),
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildSessionSettingsCard(cardColor, textColor, isDark),
+                        const SizedBox(height: 25),
+                        if (_sessionActive && _qrToken != null) ...[
+                          _buildDividerWithText('الرمز النشط', textColor),
+                          const SizedBox(height: 15),
+                          _buildQRCodeCard(cardColor, textColor, isDark),
+                        ],
+                        const SizedBox(height: 120),
+                      ],
+                    ),
+                  )
+                : SingleChildScrollView(
+                    key: const ValueKey("AttendanceHistory"),
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildAttendanceHistoryForm(cardColor, textColor, isDark),
+                        const SizedBox(height: 120),
+                      ],
+                    ),
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAttendanceFilterBtn(String text, bool isDark) {
+    bool isActive = _attendanceTabFilter == text;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _attendanceTabFilter = text),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive
+                ? const Color(0xFFFFCC00)
+                : (isDark ? Colors.white10 : const Color(0xFFF5F5F5)),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFFCC00).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Center(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontFamily: 'Tajawal',
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: isActive ? Colors.black : Colors.grey,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttendanceHistoryForm(Color cardColor, Color textColor, bool isDark) {
+    String? historyPid;
+    int? historyYr;
+    if (_historyProgramYearKey != null) {
+      final parts = _historyProgramYearKey!.split('_');
+      historyPid = parts[0];
+      historyYr = int.tryParse(parts[1]) ?? 1;
+    }
+
+    final filteredHistoryCourses = _allCourses.where((c) =>
+      c['program_id'].toString() == historyPid &&
+      c['year'] == historyYr,
+    ).toList();
+
+    // استخراج الدورات المميزة (دورة + سنة)
+    final uniqueProgramYears = <String, Map<String, dynamic>>{};
+    for (var c in _allCourses) {
+      final pid = c['program_id'].toString();
+      final year = c['year'];
+      final key = '${pid}_$year';
+      if (!uniqueProgramYears.containsKey(key)) {
+        final pName = _allPrograms.firstWhere(
+          (p) => p['id'].toString() == pid, 
+          orElse: () => {'name': 'غير معروف'}
+        )['name'];
+        uniqueProgramYears[key] = {
+          'key': key,
+          'display': '$pName - السنة ${year == 1 ? "الأولى" : "الثانية"}',
+        };
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.history, color: _yellow, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'توليد سجل الحضور (كشف PDF)',
+                style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          // نطاق التقرير (Scope)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[850] : Colors.grey[100],
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: _historyScope,
+                hint: const Text('نطاق التقرير', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                dropdownColor: cardColor,
+                icon: const Icon(Icons.keyboard_arrow_down, color: _yellow),
+                items: const [
+                  DropdownMenuItem(value: 'my_courses', child: Text('المواد الموكلة إلي')),
+                  DropdownMenuItem(value: 'advisor_class', child: Text('دورتي الإشرافية')),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _historyScope = val;
+                      _historyProgramYearKey = null;
+                      _historyCourseId = null;
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          
+          if (_historyScope == 'my_courses') ...[
+            // الدورة والسنة
+            _buildFieldLabel('الدورة والسنة', textColor),
+            _buildDropdown(
+              hint: 'اختر الدورة والسنة',
+              value: _historyProgramYearKey,
+              items: uniqueProgramYears.values.map((p) => DropdownMenuItem<String>(
+                value: p['key'] as String,
+                child: Text(p['display'] as String, overflow: TextOverflow.ellipsis),
+              )).toList(),
+              onChanged: (val) {
+                setState(() {
+                  _historyProgramYearKey = val;
+                  _historyCourseId = null; // reset course
+                });
+              },
+              isDark: isDark,
+            ),
+            const SizedBox(height: 15),
+
+            // المادة
+            _buildFieldLabel('المادة', textColor),
+            _buildDropdown(
+              hint: 'اختر المادة (أو جميع المواد)',
+              value: _historyCourseId,
+              items: [
+                const DropdownMenuItem<String>(
+                  value: 'all',
+                  child: Text('جميع المواد'),
+                ),
+                ...filteredHistoryCourses.map((c) => DropdownMenuItem<String>(
+                  value: c['id'] as String,
+                  child: Text(c['title'] as String, overflow: TextOverflow.ellipsis),
+                )),
+              ],
+              onChanged: (val) {
+                setState(() => _historyCourseId = val);
+              },
+              isDark: isDark,
+            ),
+            const SizedBox(height: 15),
+          ],
+
+          // المدة (الفلترة)
+          _buildFieldLabel('الفترة الزمنية', textColor),
+          _buildDropdown(
+            hint: 'الفترة الزمنية',
+            value: _historyPeriod,
+            items: const [
+              DropdownMenuItem(value: 'today', child: Text('اليوم')),
+              DropdownMenuItem(value: 'week', child: Text('أسبوع')),
+              DropdownMenuItem(value: 'month', child: Text('شهر')),
+              DropdownMenuItem(value: 'semester', child: Text('من بداية الفصل')),
+            ],
+            onChanged: (val) {
+              setState(() => _historyPeriod = val ?? 'today');
+            },
+            isDark: isDark,
+          ),
+          const SizedBox(height: 25),
+
+          // زر التصدير
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _yellow,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                elevation: 0,
+              ),
+              onPressed: () {
+                if (_historyScope == 'my_courses') {
+                  if (_historyProgramYearKey == null) {
+                    _showSnack('الرجاء اختيار الدورة والسنة');
+                    return;
+                  }
+                  if (_historyCourseId == null) {
+                    _showSnack('الرجاء اختيار المادة');
+                    return;
+                  }
+                }
+                _exportHistoryPdf();
+              },
+              icon: const Icon(Icons.picture_as_pdf, color: Colors.black),
+              label: const Text(
+                'توليد الكشف (PDF)',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 30),
+          
+          // التقارير المولدة سابقا
+          if (_generatedReports.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.folder_special, color: _yellow, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'التقارير المولدة سابقاً (${_generatedReports.length})',
+                  style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _generatedReports.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (ctx, idx) {
+                final file = _generatedReports[idx];
+                final fileName = file.path.split('/').last;
+                final dateModified = file.lastModifiedSync();
+                // تنسيق مبسط للتاريخ
+                final displayDate = "${dateModified.year}-${dateModified.month.toString().padLeft(2,'0')}-${dateModified.day.toString().padLeft(2,'0')} ${dateModified.hour.toString().padLeft(2,'0')}:${dateModified.minute.toString().padLeft(2,'0')}";
+                
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[850] : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: const Icon(Icons.picture_as_pdf, color: Colors.redAccent, size: 30),
+                    title: Text('سجل حضور', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text(displayDate, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove_red_eye, color: Colors.blue),
+                          onPressed: () => OpenFilex.open(file.path),
+                          tooltip: 'فتح الملف',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.download, color: Colors.green),
+                          onPressed: () {
+                            Share.shareXFiles([XFile(file.path)], text: 'تقرير الحضور');
+                          },
+                          tooltip: 'مشاركة/تنزيل',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('تأكيد الحذف'),
+                                content: const Text('هل أنت متأكد من حذف هذا التقرير؟'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('إلغاء'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _deleteReport(file);
+                                    },
+                                    child: const Text('حذف', style: TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          tooltip: 'حذف التقرير',
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
       ),
     );
   }
 
   Widget _buildSessionSettingsCard(
       Color cardColor, Color textColor, bool isDark) {
+    // استخراج الدورات المميزة
+    final uniqueProgramYears = <String, Map<String, dynamic>>{};
+    for (var c in _allCourses) {
+      final pid = c['program_id'].toString();
+      final year = c['year'];
+      final key = '${pid}_$year';
+      if (!uniqueProgramYears.containsKey(key)) {
+        final pName = _allPrograms.firstWhere(
+          (p) => p['id'].toString() == pid, 
+          orElse: () => {'name': 'غير معروف'}
+        )['name'];
+        uniqueProgramYears[key] = {
+          'key': key,
+          'display': '$pName - السنة ${year == 1 ? "الأولى" : "الثانية"}',
+        };
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -556,7 +1095,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
           const SizedBox(height: 20),
 
-          // الدورة + السنة جنب بعض
+          // الدورة والسنة معاً
           _isLoadingCourses
               ? const Center(
                   child: Padding(
@@ -564,50 +1103,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     child: CircularProgressIndicator(color: _yellow, strokeWidth: 2),
                   ),
                 )
-              : Row(
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildFieldLabel('الدورة', textColor),
-                          _buildDropdown(
-                            hint: 'اختر الدورة',
-                            value: _selectedProgramId,
-                            items: _allPrograms.map((p) => DropdownMenuItem<String>(
-                              value: p['id'] as String,
-                              child: Text(p['name'] as String, overflow: TextOverflow.ellipsis),
-                            )).toList(),
-                            onChanged: _sessionActive ? null : (val) {
-                              setState(() => _selectedProgramId = val);
-                              _applyFilter();
-                            },
-                            isDark: isDark,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildFieldLabel('السنة', textColor),
-                          _buildDropdown(
-                            hint: 'السنة',
-                            value: _selectedYear?.toString(),
-                            items: const [
-                              DropdownMenuItem(value: '1', child: Text('السنة الأولى')),
-                              DropdownMenuItem(value: '2', child: Text('السنة الثانية')),
-                            ],
-                            onChanged: _sessionActive ? null : (val) {
-                              setState(() => _selectedYear = int.tryParse(val ?? ''));
-                              _applyFilter();
-                            },
-                            isDark: isDark,
-                          ),
-                        ],
-                      ),
+                    _buildFieldLabel('الدورة والسنة', textColor),
+                    _buildDropdown(
+                      hint: 'اختر الدورة والسنة',
+                      value: _selectedProgramYearKey,
+                      items: uniqueProgramYears.values.map((p) => DropdownMenuItem<String>(
+                        value: p['key'] as String,
+                        child: Text(p['display'] as String, overflow: TextOverflow.ellipsis),
+                      )).toList(),
+                      onChanged: _sessionActive ? null : (val) {
+                        setState(() => _selectedProgramYearKey = val);
+                        _applyFilter();
+                      },
+                      isDark: isDark,
                     ),
                   ],
                 ),
@@ -615,7 +1126,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           const SizedBox(height: 16),
 
           // المادة الدراسية (تظهر بعد اختيار الدورة والسنة)
-          if (_selectedProgramId != null && _selectedYear != null) ...[
+          if (_selectedProgramYearKey != null) ...[
             _buildFieldLabel('المادة الدراسية', textColor),
             _filteredCourses.isEmpty
                 ? Container(
@@ -776,7 +1287,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             child: OutlinedButton.icon(
               icon: const Icon(Icons.table_chart_outlined, color: Colors.green),
               label: const Text(
-                'تصدير كشف Excel',
+                'تصدير جلسة اليوم (Excel)',
                 style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
               ),
               style: OutlinedButton.styleFrom(
@@ -784,6 +1295,26 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               ),
               onPressed: _exportExcel,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // زر تصدير PDF الشامل
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
+              label: const Text(
+                'تصدير كشف المادة الشامل (PDF)',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              onPressed: _exportPdf,
             ),
           ),
 
