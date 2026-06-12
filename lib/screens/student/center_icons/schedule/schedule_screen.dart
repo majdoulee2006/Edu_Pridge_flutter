@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -313,32 +313,36 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       bool isLast = index == lectures.length - 1;
       bool isLectureSelected = index == _selectedLectureIndex;
 
-      List<String> timeParts = lecture['start_time'].toString().split(' ');
-      String timeStr = timeParts[0];
-      String amPmStr = timeParts.length > 1
-          ? (timeParts[1] == 'AM' ? 'ص' : 'م')
-          : '';
-
-      return GestureDetector(
-        onTap: () => setState(() => _selectedLectureIndex = index),
-        child: _buildTimelineItem(
-          time: timeStr,
-          amPm: amPmStr,
-          isCurrentTime: isLectureSelected,
-          isLast: isLast,
-          card: _buildClassCard(
-            title: lecture['course_name'],
-            instructor: lecture['teacher'],
-            instructorId: lecture['teacher_id'] ?? 1,
-            location: lecture['room'],
-            tagText: lecture['duration'] ?? 'محاضرة',
-            icon: Icons.menu_book,
-            iconColor: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-            iconBgColor: isDark ? Colors.blue.withAlpha(30) : Colors.blue.shade50,
-            isActive: isLectureSelected,
+        List<String> timeParts = lecture['start_time'].toString().split(' ');
+        String startTimeStr = timeParts[0];
+        String startAmPmStr = timeParts.length > 1 ? (timeParts[1] == 'AM' ? 'ص' : 'م') : '';
+        // Parse end time
+        List<String> endParts = lecture['end_time']?.toString().split(' ') ?? [];
+        String endTimeStr = endParts.isNotEmpty ? endParts[0] : '';
+        String endAmPmStr = endParts.length > 1 ? (endParts[1] == 'AM' ? 'ص' : 'م') : '';
+        
+        return GestureDetector(
+          onTap: () => setState(() => _selectedLectureIndex = index),
+          child: _buildTimelineItem(
+            time: startTimeStr,
+            amPm: startAmPmStr,
+            endTime: endTimeStr,
+            endAmPm: endAmPmStr,
+            isCurrentTime: isLectureSelected,
+            isLast: isLast,
+            card: _buildClassCard(
+              title: lecture['course_name'],
+              instructor: lecture['teacher'],
+              instructorId: lecture['teacher_id'] ?? 1,
+              location: lecture['room'],
+              tagText: lecture['duration'] ?? 'محاضرة',
+              icon: Icons.menu_book,
+              iconColor: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+              iconBgColor: isDark ? Colors.blue.withAlpha(30) : Colors.blue.shade50,
+              isActive: isLectureSelected,
+            ),
           ),
-        ),
-      );
+        );
     }).toList();
 
     return Column(
@@ -633,12 +637,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget _buildTimelineItem({
     required String time,
     required String amPm,
+    String? endTime,
+    String? endAmPm,
     required bool isCurrentTime,
     required Widget card,
     bool isBreak = false,
     bool isLast = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Combine start and end times for display
+    String timeLabel = time;
+    String amPmLabel = amPm;
+    if (endTime != null && endTime.isNotEmpty) {
+      timeLabel = '$time - $endTime';
+      amPmLabel = '$amPm - ${endAmPm ?? ''}'.trim();
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -656,7 +669,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       )
                     : null,
                 child: Text(
-                  time,
+                  timeLabel,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -667,16 +680,38 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
               Text(
-                amPm,
+                amPmLabel,
                 style: const TextStyle(color: Colors.grey, fontSize: 11),
               ),
               const SizedBox(height: 5),
-              if (!isLast)
+              if (!isLast) ...[
                 Container(
                   width: 1.5,
-                  height: isBreak ? 70 : 130,
+                  height: isBreak ? 50 : 90,
                   color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
                 ),
+              ],
+              if (isLast && endTime != null && endTime.isNotEmpty) ...[
+                Container(
+                  width: 1.5,
+                  height: isBreak ? 30 : 60,
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  endTime,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
+                ),
+                Text(
+                  endAmPm ?? '',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                const SizedBox(height: 5),
+              ],
             ],
           ),
         ),
