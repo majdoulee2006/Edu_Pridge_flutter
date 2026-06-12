@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -8,7 +8,7 @@ import 'package:edu_pridge_flutter/screens/teacher/center_icons/attendance_scree
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
-import 'package:edu_pridge_flutter/screens/teacher/teacher_report_evaluation_screen.dart';
+
 import '../../widgets/teacher_speed_dial.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
@@ -124,7 +124,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'report_request':
       case 'new_report':
       case 'report':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherReportEvaluationScreen()));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
         break;
       case 'leave_request':
       case 'attendance':

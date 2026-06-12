@@ -46,13 +46,13 @@ class _AppRouterState extends State<_AppRouter> {
     if (token.isEmpty) {
       dest = const OnboardingOne();
     } else {
-      dest = switch (role) {
-        'student'         => const StudentHomeScreen(),
-        'teacher'         => const TeacherHomeScreen(),
-        'parent'          => const ParentsHomeScreen(),
-        'department_head' => const DeptHeadHomeScreen(),
-        'affairs_officer' => const AffairsOfficerHomeScreen(),
-        _                 => const OnboardingOne(),
+      dest = switch (role.toLowerCase()) {
+        'student' => const StudentHomeScreen(),
+        'teacher' => const TeacherHomeScreen(),
+        'parent' => const ParentsHomeScreen(),
+        'department_head' || 'boss' || 'head' => const DeptHeadHomeScreen(),
+        'affairs_officer' || 'affairs' => const AffairsOfficerHomeScreen(),
+        _ => const OnboardingOne(),
       };
     }
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => dest));

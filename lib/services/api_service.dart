@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart'; // 👈 1. ضفنا هالمكتبة المهمة جداً
 
@@ -7,7 +7,7 @@ class ApiService {
   // ==========================================
   // 🌟 تعديل الرابط ليكون ديناميكي وذكي
   // ==========================================
-  static const String _serverIp = '10.219.119.82';
+  static const String _serverIp = '10.205.200.209';
 
   String get baseUrl {
     if (kIsWeb) {
@@ -17,7 +17,7 @@ class ApiService {
     }
   }
 
-  // تصليح روابط الميديا الراجعة من السيرفر
+  // تصليح روابط الميديا الراجعة من السيرفرياحبيبي
   static String? fixMediaUrl(String? url) {
     if (url == null || url.isEmpty) return null;
     if (!kIsWeb) {
@@ -55,6 +55,7 @@ class ApiService {
 
         if (response.data['user'] != null) {
           await prefs.setString('role', response.data['user']['role']);
+          await prefs.setInt('user_id', response.data['user']['user_id']);
         }
         return response.data;
       }

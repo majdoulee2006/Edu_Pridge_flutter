@@ -12,7 +12,6 @@ import '../shared/settings_screen.dart';
 import '../shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';
-import 'teacher_report_evaluation_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -25,7 +24,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   bool _isLoading = true;
   String _teacherName = '';
   List<Map<String, dynamic>> _announcements = [];
-  int _pendingReports = 0;
   bool _hasUnread = false;
 
   static const List<Color> _cardColors = [
@@ -58,7 +56,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   void initState() {
     super.initState();
     _fetchDashboard();
-    _fetchPendingCount();
     NotificationPolling.start('/teacher/notifications');
     NotificationPolling.unreadCount.addListener(_onUnreadChanged);
     NotificationPolling.latestNew.addListener(_onNewNotif);
@@ -117,22 +114,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Future<void> _fetchPendingCount() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
-      final res = await Dio().get(
-        "${ApiService().baseUrl}/teacher/report-requests",
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = res.data['data'] as List<dynamic>? ?? [];
-        final pending = list.where((r) => (r as Map)['status'] == 'pending').length;
-        if (mounted) setState(() => _pendingReports = pending);
-      }
-    } catch (_) {}
   }
 
   @override
@@ -243,45 +224,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               ],
             ),
 
-            // ─── زر التقييم الطائر ───
-            Positioned(
-              bottom: 100,
-              left: 20,
-              child: GestureDetector(
-                onTap: () async {
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherReportEvaluationScreen()));
-                  _fetchPendingCount();
-                },
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFCC00),
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))],
-                      ),
-                      child: const Icon(Icons.assignment_ind_outlined, color: Colors.black, size: 28),
-                    ),
-                    if (_pendingReports > 0)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          width: 20,
-                          height: 20,
-                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                          child: Center(
-                            child: Text('$_pendingReports', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
 
             // ─── الشريط السفلي ───
             CustomBottomNav(
