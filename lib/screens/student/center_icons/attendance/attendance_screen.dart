@@ -29,6 +29,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
   final TextEditingController _leaveReasonController = TextEditingController();
+  // ignore: unused_field
   bool _isSubmittingLeave = false;
   List<dynamic> _myLeaveRequests = [];
   bool _isLoadingRequests = false;
@@ -68,6 +69,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     super.dispose();
   }
 
+  // ignore: unused_element
   Future<void> _submitLeaveRequest() async {
     final reason = _leaveReasonController.text.trim();
     final date = _dateController.text.trim();
@@ -145,6 +147,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return translated;
   }
 
+  // ignore: unused_element
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -181,6 +184,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -875,6 +879,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildToggleBtn(String label, int index) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isActive = _leaveType == index;

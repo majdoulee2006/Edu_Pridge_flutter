@@ -37,7 +37,9 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
   String _notes = '';
 
   // Loading states
+  // ignore: unused_field
   bool _isLoadingTeachers = true;
+  // ignore: unused_field
   bool _isLoadingStudents = true;
   bool _isSubmitting = false;
 
@@ -1171,6 +1173,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildSearchSelectionButton({
     required String hint,
     required List<Map<String, dynamic>> items,

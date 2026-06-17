@@ -447,6 +447,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildDevButton(String title, IconData icon, VoidCallback onTap) {
     return Column(
       children: [
