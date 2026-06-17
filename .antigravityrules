@@ -1,0 +1,1 @@
+Always execute shell commands in the visible integrated terminal. Never use background tasks for serving applications like 'flutter run' or 'php artisan serve'. If multiple commands need to run simultaneously, split the active terminal.

@@ -1,56 +1,74 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/select_teacher_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/models/chat_model.dart';
+import 'package:edu_pridge_flutter/services/chat_service.dart';
 
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 
-class MessagesScreen extends StatefulWidget {
+// 🌟 الغلاف السحري اللي كان ناقص ومسبب الشاشة الحمراء
+class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
 
   @override
-  State<MessagesScreen> createState() => _MessagesScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ChatService(),
+      child: const MessagesView(),
+    );
+  }
 }
 
-class _MessagesScreenState extends State<MessagesScreen> {
+class MessagesView extends StatefulWidget {
+  const MessagesView({super.key});
+
+  @override
+  State<MessagesView> createState() => _MessagesViewState();
+}
+
+class _MessagesViewState extends State<MessagesView> {
   String selectedCategory = 'الكل';
   String searchQuery = '';
-
-  List<ChatModel> allChats = [];
-  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchChats();
-  }
-
-  // 🌟 مجهزة للربط مع API اللارافل
-  Future<void> _fetchChats() async {
-    setState(() => isLoading = true);
-
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    setState(() {
-      allChats = [
-        ChatModel(id: 1, title: 'برمجة الحاسوب 1', lastMessage: 'د. أحمد: تم رفع الأكواد الخاصة بمحاضرة...', time: '10:30 ص', unreadCount: 0, type: 'الجروبات', isOnline: true, isRead: false, isGroup: true, avatarUrl: 'https://i.pravatar.cc/150?u=ahmed1'),
-        ChatModel(id: 2, title: 'د. سارة الأحمد', lastMessage: 'مرحباً أحمد، تفضل ما هو استفسارك؟', time: '10:15 ص', unreadCount: 1, type: 'المدرسين', isOnline: true, isRead: false, isGroup: false, avatarUrl: 'https://i.pravatar.cc/150?u=sarah'),
-        ChatModel(id: 3, title: 'الرياضيات المتقدمة', lastMessage: 'تم تحديد موعد الاختبار النصفي يوم الأحد...', time: 'أمس', unreadCount: 0, type: 'الجروبات', isOnline: false, isRead: true, isGroup: true, avatarUrl: 'https://i.pravatar.cc/150?u=math'),
-        ChatModel(id: 4, title: 'م. خالد العلي', lastMessage: 'تم استلام وظيفتك بنجاح، شكراً لك.', time: 'أمس', unreadCount: 0, type: 'المدرسين', isOnline: false, isRead: true, isGroup: false, avatarUrl: 'https://i.pravatar.cc/150?u=khaled'),
-        ChatModel(id: 5, title: 'الفيزياء العامة', lastMessage: 'تذكير: تسليم تقرير المختبر الثاني غداً', time: 'منذ يومين', unreadCount: 2, type: 'الجروبات', isOnline: false, isRead: false, isGroup: true, avatarUrl: 'https://i.pravatar.cc/150?u=physics'),
-      ];
-      isLoading = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ChatService>().fetchContacts();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chatService = context.watch<ChatService>();
+
+    List<ChatModel> allChats = chatService.contacts.map((contact) {
+      String chatType = 'المدرسين';
+      if (contact['is_group'] == true || contact['type'] == 'group') {
+        chatType = 'الجروبات';
+      }
+
+      return ChatModel(
+        id: contact['id'] ?? 0,
+        title: contact['name'] ?? 'مستخدم غير معروف',
+        lastMessage: contact['last_message'] ?? contact['role'] ?? '',
+        time: contact['time'] ?? 'الآن',
+        unreadCount: contact['unread'] ?? 0,
+        type: chatType,
+        isOnline: contact['is_online'] ?? false,
+        isRead: contact['is_read'] ?? true,
+        isGroup: contact['is_group'] ?? false,
+        avatarUrl: contact['image'] ?? 'https://i.pravatar.cc/150',
+      );
+    }).toList();
 
     List<ChatModel> filteredChats = allChats.where((chat) {
       bool matchesCategory = false;
@@ -64,7 +82,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
       bool matchesSearch =
           chat.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
-              chat.lastMessage.toLowerCase().contains(searchQuery.toLowerCase());
+          chat.lastMessage.toLowerCase().contains(searchQuery.toLowerCase());
 
       return matchesCategory && matchesSearch;
     }).toList();
@@ -78,14 +96,23 @@ class _MessagesScreenState extends State<MessagesScreen> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
-            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentHomeScreen())),
+            onPressed: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const StudentHomeScreen()),
+            ),
           ),
-          title: Text('الرسائل', style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+          title: Text(
+            'الرسائل',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 22),
+          ),
           centerTitle: true,
           actions: [
             IconButton(
               icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              ),
             ),
           ],
         ),
@@ -96,19 +123,22 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 _buildSearchBar(),
                 _buildChatCategories(),
                 Expanded(
-                  child: isLoading
+                  child: chatService.isLoadingContacts
                       ? const Center(child: CircularProgressIndicator(color: Colors.amber))
                       : filteredChats.isEmpty
-                      ? Center(
-                    child: Text('لا توجد رسائل مطابقة للبحث أو الفلتر', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade700)),
-                  )
-                      : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 120, top: 10),
-                    itemCount: filteredChats.length,
-                    itemBuilder: (context, index) {
-                      return _buildChatItem(filteredChats[index]);
-                    },
-                  ),
+                          ? Center(
+                              child: Text(
+                                'لا توجد رسائل مطابقة للبحث أو الفلتر',
+                                style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 120, top: 10),
+                              itemCount: filteredChats.length,
+                              itemBuilder: (context, index) {
+                                return _buildChatItem(filteredChats[index], chatService);
+                              },
+                            ),
                 ),
               ],
             ),
@@ -121,16 +151,28 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 elevation: 4,
                 child: const Icon(Icons.add, color: Colors.black, size: 30),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SelectTeacherScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SelectTeacherScreen()),
+                  );
                 },
               ),
             ),
             CustomBottomNav(
               currentIndex: 3,
               centerButton: const CustomSpeedDialEduBridge(),
-              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const StudentHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen())),
-              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+              onHomeTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const StudentHomeScreen()),
+              ),
+              onProfileTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              ),
+              onNotificationsTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              ),
               onMessagesTap: () {},
             ),
           ],
@@ -205,7 +247,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
-  Widget _buildChatItem(ChatModel chat) {
+  Widget _buildChatItem(ChatModel chat, ChatService chatServiceInstance) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     bool hasUnread = chat.unreadCount > 0;
 
@@ -238,7 +280,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     color: const Color(0xFF25D366),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: hasUnread ? (isDark ? Theme.of(context).cardColor : Colors.white) : (isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC)),
+                      color: hasUnread
+                          ? (isDark ? Theme.of(context).cardColor : Colors.white)
+                          : (isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC)),
                       width: 2.5,
                     ),
                   ),
@@ -295,11 +339,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ChatDetailScreen(
-                receiverId: chat.id, // 🌟 التعديل السحري هنا اللي حل المشكلة
-                name: chat.title,
-                imageUrl: chat.avatarUrl,
-                isGroup: chat.isGroup,
+              builder: (context) => ChangeNotifierProvider.value(
+                value: chatServiceInstance,
+                child: ChatDetailScreen(
+                  receiverId: chat.id,
+                  name: chat.title,
+                  imageUrl: chat.avatarUrl,
+                  isGroup: chat.isGroup,
+                ),
               ),
             ),
           );

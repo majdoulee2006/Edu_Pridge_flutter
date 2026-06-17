@@ -1,7 +1,7 @@
-﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:provider/provider.dart';
+
+// مسارات الشاشات والويدجتس الخاصة بك (التصميم الأصلي)
 import 'teacher_home.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
@@ -9,117 +9,39 @@ import '../shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';
 
-class MessagesScreen extends StatefulWidget {
+// مسارات الربط مع الباك إند
+import 'package:edu_pridge_flutter/services/chat_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart'; // تأكدي من صحة المسار إذا اختلف
+
+class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
 
   @override
-  State<MessagesScreen> createState() => _MessagesScreenState();
+  Widget build(BuildContext context) {
+    // 🌟 تغليف الشاشة بالـ Provider اللي بيحمل اتصال الـ Pusher وجلب البيانات
+    return ChangeNotifierProvider(
+      create: (_) => ChatService(),
+      child: const MessagesView(),
+    );
+  }
 }
 
-class _MessagesScreenState extends State<MessagesScreen> {
-  bool _isLoading = false;
-  String _searchQuery = '';
+class MessagesView extends StatefulWidget {
+  const MessagesView({super.key});
 
-  List<Map<String, dynamic>> _headOfDepartmentChats = [];
-  List<Map<String, dynamic>> _adminChats = [];
-  List<Map<String, dynamic>> _teachersChats = [];
-  List<Map<String, dynamic>> _studentsChats = [];
+  @override
+  State<MessagesView> createState() => _MessagesViewState();
+}
+
+class _MessagesViewState extends State<MessagesView> {
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchMessages();
-  }
-
-  Future<void> _fetchMessages() async {
-    setState(() => _isLoading = true);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
-      final res = await Dio().get(
-        "${ApiService().baseUrl}/teacher/messages",
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-
-      List<Map<String, dynamic>> messages = [];
-
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        messages = (res.data['data'] as List? ?? [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
-      }
-
-      // 💡 خطة طوارئ: إذا كانت البيانات فارغة من الـ API، نضع بيانات وهمية لتري التصميم فوراً
-      if (messages.isEmpty) {
-        messages = [
-          {'other_party': 'د. يوسف (رئيس القسم)', 'message': 'تم اعتماد جدول الامتحانات الجديد', 'sent_at': '2:24 رساَم', 'is_read': false},
-          {'other_party': 'إدارة شؤون الطلاب', 'message': 'يرجى مراجعة طلبات التسجيل المتأخرة', 'sent_at': '2:20 رساَم', 'is_read': true},
-          {'other_party': 'المدرب علي (زميل)', 'message': 'هل انتهيت من تقييم مشاريع فلاتر؟', 'sent_at': '2:11 رساَم', 'is_read': true},
-          {'other_party': 'أحمد خالد (طالب Flutter)', 'message': 'أستاذ، متى موعد تسليم الوظيفة؟', 'sent_at': '12:26 رساَم', 'is_read': false},
-          {'other_party': 'زينب سعيد (طالبة)', 'message': 'شكراً جزيلاً لك أستاذ على الشرح', 'sent_at': 'أمس', 'is_read': true},
-        ];
-      }
-
-      // تجميع الشاتات لضمان عدم التكرار
-      final Map<String, Map<String, dynamic>> convMap = {};
-      for (final msg in messages) {
-        final party = msg['other_party'] as String? ?? 'محادثة عامة';
-        if (!convMap.containsKey(party)) {
-          convMap[party] = {
-            'name':      party,
-            'message':   msg['message'] as String? ?? '',
-            'time':      msg['sent_at'] as String? ?? '',
-            'is_read':   msg['is_read'] == true,
-          };
-        }
-      }
-
-      final allConversations = convMap.values.toList();
-
-      final List<Map<String, dynamic>> headList = [];
-      final List<Map<String, dynamic>> adminList = [];
-      final List<Map<String, dynamic>> teachList = [];
-      final List<Map<String, dynamic>> studList = [];
-
-      for (final conv in allConversations) {
-        final name = (conv['name'] as String? ?? '').toLowerCase();
-        
-        if (name.contains('رئيس') || name.contains('يوسف')) {
-          headList.add(conv);
-        } else if (name.contains('إدارة') || name.contains('اداره') || name.contains('القبول') || name.contains('admin')) {
-          adminList.add(conv);
-        } else if (name.contains('مدرب') || name.contains('زميل') || name.contains('مهندس') || name.contains('teacher')) {
-          teachList.add(conv);
-        } else {
-          studList.add(conv);
-        }
-      }
-
-      setState(() {
-        _headOfDepartmentChats = headList;
-        _adminChats = adminList;
-        _teachersChats = teachList;
-        _studentsChats = studList;
-      });
-
-    } catch (e) {
-      debugPrint('⛔ Messages Error: $e');
-      // حتى لو ضرب الـ Connection بالكامل، تظهر البيانات الوهمية ليعمل التصميم
-      _loadMockData();
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _loadMockData() {
-    setState(() {
-      _headOfDepartmentChats = [{'name': 'د. يوسف (رئيس القسم)', 'message': 'تم اعتماد جدول الامتحانات الجديد', 'time': '2:24 رساَم', 'is_read': false}];
-      _adminChats = [{'name': 'إدارة شؤون الطلاب', 'message': 'يرجى مراجعة طلبات التسجيل المتأخرة', 'time': '2:20 رساَم', 'is_read': true}];
-      _teachersChats = [{'name': 'المدرب علي (زميل)', 'message': 'هل انتهيت من تقييم مشاريع فلاتر؟', 'time': '2:11 رساَم', 'is_read': true}];
-      _studentsChats = [
-        {'name': 'أحمد خالد (طالب Flutter)', 'message': 'أستاذ، متى موعد تسليم الوظيفة؟', 'time': '12:26 رساَم', 'is_read': false},
-        {'name': 'زينب سعيد (طالبة)', 'message': 'شكراً جزيلاً لك أستاذ على الشرح', 'time': 'أمس', 'is_read': true}
-      ];
+    // 🌟 جلب البيانات من السيرفر بمجرد بناء الشاشة
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ChatService>().fetchContacts();
     });
   }
 
@@ -138,10 +60,52 @@ class _MessagesScreenState extends State<MessagesScreen> {
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-    final filteredHead     = _filterList(_headOfDepartmentChats);
-    final filteredAdmins   = _filterList(_adminChats);
-    final filteredTeachers = _filterList(_teachersChats);
-    final filteredStudents = _filterList(_studentsChats);
+    // مراقبة خدمة الشات
+    final chatService = context.watch<ChatService>();
+    final isLoading = chatService.isLoadingContacts;
+
+    // 💡 منطق دمج البيانات: تجهيز القوائم بناءً على المعمارية تبعتك
+    List<Map<String, dynamic>> headList = [];
+    List<Map<String, dynamic>> adminList = [];
+    List<Map<String, dynamic>> teachList = [];
+    List<Map<String, dynamic>> studList = [];
+
+    // جلب البيانات من السيرفر، وإذا كانت فارغة نعرض البيانات الوهمية للتصميم
+    final sourceContacts = chatService.contacts.isNotEmpty
+        ? chatService.contacts
+        : _getMockData(); 
+
+    for (final contact in sourceContacts) {
+      final name = (contact['name'] as String? ?? '').toLowerCase();
+      final role = (contact['role'] as String? ?? '').toLowerCase();
+
+      // تحويل شكل البيانات ليناسب _buildChatTile الخاص بك
+      final conv = {
+        'id': contact['id'] ?? 0,
+        'name': contact['name'] ?? 'مجهول',
+        'message': contact['last_message'] ?? contact['message'] ?? role,
+        'time': contact['time'] ?? contact['sent_at'] ?? 'الآن',
+        'is_read': (contact['unread'] == null || contact['unread'] == 0) && (contact['is_read'] != false),
+        'image': contact['image'],
+        'raw_contact': contact, // 🌟 نحتفظ بالبيانات الأصلية لتمريرها للـ ChatRoomScreen
+      };
+
+      // التصنيف الذكي الخاص بك
+      if (name.contains('رئيس') || name.contains('يوسف') || role.contains('head')) {
+        headList.add(conv);
+      } else if (name.contains('إدارة') || name.contains('اداره') || name.contains('القبول') || name.contains('admin') || role.contains('admin')) {
+        adminList.add(conv);
+      } else if (name.contains('مدرب') || name.contains('زميل') || name.contains('مهندس') || name.contains('teacher') || role.contains('teacher')) {
+        teachList.add(conv);
+      } else {
+        studList.add(conv);
+      }
+    }
+
+    final filteredHead     = _filterList(headList);
+    final filteredAdmins   = _filterList(adminList);
+    final filteredTeachers = _filterList(teachList);
+    final filteredStudents = _filterList(studList);
 
     final bool isAllEmpty = filteredHead.isEmpty && filteredAdmins.isEmpty && filteredTeachers.isEmpty && filteredStudents.isEmpty;
 
@@ -153,7 +117,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
         ),
         title: Text(
           "الرسائل",
@@ -172,12 +136,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
         textDirection: TextDirection.rtl,
         child: Stack(
           children: [
-            _isLoading
+            isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
                   )
                 : RefreshIndicator(
-                    onRefresh: _fetchMessages,
+                    onRefresh: () async {
+                      await context.read<ChatService>().fetchContacts();
+                    },
                     color: const Color(0xFFFFCC00),
                     child: CustomScrollView(
                       physics: const BouncingScrollPhysics(),
@@ -221,7 +187,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 20),
                               sliver: SliverList(
                                 delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildChatTile(context, filteredHead[index], iconData: Icons.person_pin_rounded),
+                                  (context, index) => _buildChatTile(context, filteredHead[index], chatService, iconData: Icons.person_pin_rounded),
                                   childCount: filteredHead.length,
                                 ),
                               ),
@@ -234,7 +200,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 20),
                               sliver: SliverList(
                                 delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildChatTile(context, filteredAdmins[index], iconData: Icons.admin_panel_settings_outlined),
+                                  (context, index) => _buildChatTile(context, filteredAdmins[index], chatService, iconData: Icons.admin_panel_settings_outlined),
                                   childCount: filteredAdmins.length,
                                 ),
                               ),
@@ -247,7 +213,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 20),
                               sliver: SliverList(
                                 delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildChatTile(context, filteredTeachers[index]),
+                                  (context, index) => _buildChatTile(context, filteredTeachers[index], chatService),
                                   childCount: filteredTeachers.length,
                                 ),
                               ),
@@ -260,7 +226,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                               sliver: SliverList(
                                 delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildChatTile(context, filteredStudents[index]),
+                                  (context, index) => _buildChatTile(context, filteredStudents[index], chatService),
                                   childCount: filteredStudents.length,
                                 ),
                               ),
@@ -271,16 +237,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     ),
                   ),
 
-            CustomBottomNav(
-              currentIndex: 3,
-              centerButton: const CustomSpeedDialEduBridge(),
-              onHomeTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen())),
-              onNotificationsTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-              onMessagesTap: () {},
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: CustomBottomNav(
+                currentIndex: 3,
+                centerButton: const CustomSpeedDialEduBridge(),
+                onHomeTap: () => Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                onMessagesTap: () {},
+              ),
             ),
           ],
         ),
@@ -300,7 +269,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
-  Widget _buildChatTile(BuildContext context, Map<String, dynamic> chat, {IconData? iconData}) {
+  Widget _buildChatTile(BuildContext context, Map<String, dynamic> chat, ChatService chatServiceInstance, {IconData? iconData}) {
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final isUnread  = chat['is_read'] != true;
@@ -316,7 +285,20 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ),
       child: ListTile(
         onTap: () {
-          debugPrint("فتح شات الشخص: $name");
+          // 🌟 الربط السحري: تمرير الـ Provider لغرفة الشات
+          if (chat['raw_contact'] != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChangeNotifierProvider.value(
+                  value: chatServiceInstance,
+                  child: ChatRoomScreen(contact: chat['raw_contact']),
+                ),
+              ),
+            );
+          } else {
+            debugPrint("فتح شات الشخص: $name (بيانات وهمية)");
+          }
         },
         leading: CircleAvatar(
           radius: 28,
@@ -347,5 +329,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
         ),
       ),
     );
+  }
+
+  // الدالة الخاصة بك لإرجاع البيانات الوهمية في حال كان السيرفر فارغ
+  List<Map<String, dynamic>> _getMockData() {
+    return [
+      {'name': 'د. يوسف (رئيس القسم)', 'message': 'تم اعتماد جدول الامتحانات الجديد', 'time': '2:24 م', 'is_read': false},
+      {'name': 'إدارة شؤون الطلاب', 'message': 'يرجى مراجعة طلبات التسجيل المتأخرة', 'time': '2:20 م', 'is_read': true},
+      {'name': 'المدرب علي (زميل)', 'message': 'هل انتهيت من تقييم مشاريع فلاتر؟', 'time': '2:11 م', 'is_read': true},
+      {'name': 'أحمد خالد (طالب Flutter)', 'message': 'أستاذ، متى موعد تسليم الوظيفة؟', 'time': '12:26 م', 'is_read': false},
+      {'name': 'زينب سعيد (طالبة)', 'message': 'شكراً جزيلاً لك أستاذ على الشرح', 'time': 'أمس', 'is_read': true}
+    ];
   }
 }
