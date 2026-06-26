@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
@@ -16,6 +18,7 @@ import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.da
 
 // استدعاء ملف الخدمات
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -542,6 +545,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             month: exam['month'],
             dayNumber: exam['day_num'].toString(),
             dayName: exam['day_name'],
+            typeLabel: exam['type_label'] ?? 'نهائي',
+            score: exam['score'],
+            maxScore: exam['max_score'],
+            onTap: exam['event_id'] != null
+                ? () => _showGradeSheet(exam['event_id'] as int, exam['subject'] ?? '')
+                : null,
           );
         }),
         const SizedBox(height: 15),
@@ -1446,6 +1455,79 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  Future<void> _showGradeSheet(int eventId, String subject) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Map<String, dynamic>? info;
+    try {
+      final resp = await Dio().get(
+        '${ApiService().baseUrl}/student/grade-event/$eventId',
+        options: Options(headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}),
+      );
+      if (resp.statusCode == 200) info = resp.data as Map<String, dynamic>;
+    } catch (_) {}
+
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) {
+        final graded  = info?['graded'] == true;
+        final score   = info?['score'];
+        final maxSc   = info?['max_score'];
+        final notes   = info?['notes'];
+        final type    = info?['type_label'] ?? '';
+        final title   = info?['title'] ?? subject;
+        final course  = info?['course'] ?? subject;
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              Text(course, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
+              const SizedBox(height: 4),
+              Text('$type — $title', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              const SizedBox(height: 20),
+              if (info == null)
+                const Center(child: Text('تعذّر تحميل البيانات', style: TextStyle(color: Colors.grey)))
+              else if (!graded)
+                Row(children: [
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.orange.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+                    child: Row(children: [
+                      const Icon(Icons.hourglass_empty, color: Colors.orange, size: 16),
+                      const SizedBox(width: 6),
+                      Text('لم يتم التصحيح بعد', style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold)),
+                    ])),
+                ])
+              else
+                Row(children: [
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(color: const Color(0xFFFFCC00).withAlpha(30), borderRadius: BorderRadius.circular(12)),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                      Text('علامتك', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                      const SizedBox(height: 4),
+                      Text('$score / $maxSc', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Color(0xFFCC9900))),
+                    ])),
+                  if (notes != null && notes.toString().isNotEmpty) ...[
+                    const SizedBox(width: 12),
+                    Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: isDark ? Colors.white.withAlpha(10) : Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
+                      child: Text(notes.toString(), style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.black87)))),
+                  ],
+                ]),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildExamCard({
     required String time,
     required String title,
@@ -1454,124 +1536,93 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     required String month,
     required String dayNumber,
     required String dayName,
+    String typeLabel = 'نهائي',
+    dynamic score,
+    dynamic maxScore,
+    VoidCallback? onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-      decoration: BoxDecoration(
-        color: isDark ? Theme.of(context).cardColor : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withAlpha(50)
-                : Colors.black.withAlpha(8),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Text(
-            time,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+    final Color tagClr = typeLabel == 'مذاكرة' ? Colors.blue : Colors.red;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+        decoration: BoxDecoration(
+          color: isDark ? Theme.of(context).cardColor : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: onTap != null
+              ? Border.all(color: tagClr.withAlpha(60), width: 1)
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withAlpha(50) : Colors.black.withAlpha(8),
+              blurRadius: 10,
             ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.red.withAlpha(30)
-                        : const Color(0xFFFFEBEE),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    'نهائي',
-                    style: TextStyle(
-                      color: isDark ? Colors.red.shade300 : Colors.red,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+          ],
+        ),
+        child: Row(
+          children: [
+            Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDark ? tagClr.withAlpha(40) : tagClr.withAlpha(20),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(typeLabel, style: TextStyle(color: tagClr, fontSize: 9, fontWeight: FontWeight.bold)),
                     ),
+                    if (score != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: const Color(0xFFFFCC00).withAlpha(40), borderRadius: BorderRadius.circular(5)),
+                        child: Text('$score / $maxScore', style: const TextStyle(color: Color(0xFFAA8800), fontSize: 9, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ]),
+                  const SizedBox(height: 5),
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black87)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, size: 12, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(duration, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.location_on_outlined, size: 12, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(location, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time, size: 12, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      duration,
-                      style: const TextStyle(color: Colors.grey, fontSize: 10),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 12,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      location,
-                      style: const TextStyle(color: Colors.grey, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withAlpha(15)
-                  : const Color(0xFFF9F9F9),
-              borderRadius: BorderRadius.circular(15),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withAlpha(15) : const Color(0xFFF9F9F9),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Column(
+                children: [
+                  Text(month, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+                  const SizedBox(height: 2),
+                  Text(dayNumber, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
+                  Text(dayName, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                Text(
-                  month,
-                  style: const TextStyle(color: Colors.grey, fontSize: 9),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  dayNumber,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  dayName,
-                  style: const TextStyle(color: Colors.grey, fontSize: 9),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

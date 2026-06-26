@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/models/notification_model.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedule_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lectures_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
@@ -98,6 +99,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'leave_request':
       case 'attendance':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
+        break;
+      case 'grade':
+      case 'marks':
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen()));
         break;
       default:
         // عرض تفاصيل الإشعار العام

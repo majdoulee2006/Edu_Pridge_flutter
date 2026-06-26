@@ -127,6 +127,10 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       case 'attendance':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
         break;
+      case 'grade':
+      case 'marks':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
+        break;
     }
   }
 
@@ -141,6 +145,8 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         return {'color': Colors.red, 'icon': Icons.person_off, 'label': 'حضور وغياب'};
       case 'leave_request':
         return {'color': Colors.blue, 'icon': Icons.description_outlined, 'label': 'طلب إجازة'};
+      case 'grade':
+        return {'color': Colors.green, 'icon': Icons.grade_rounded, 'label': 'نتيجة علامة'};
       case 'marks':
         return {'color': Colors.amber, 'icon': Icons.grade_rounded, 'label': 'نتائج امتحانات'};
       case 'holiday':

@@ -575,7 +575,13 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     final label = _labelForType(n.type);
     final dateStr = n.time.length >= 10 ? n.time.substring(0, 10) : n.time;
 
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        if (n.type == 'grade_report_ready') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportRequestScreen()));
+        }
+      },
+      child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       decoration: BoxDecoration(
         color: cardColor,
@@ -733,6 +739,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
