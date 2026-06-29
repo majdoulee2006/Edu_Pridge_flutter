@@ -39,19 +39,29 @@ class AppNotification {
 
   // 🌟 الدالة اللي كانت ناقصة وعاملة مشكلة getIcon
   IconData getIcon() {
-    if (title.contains('وظيفة')) return Icons.assignment_outlined;
-    if (title.contains('برنامج') || title.contains('جدول'))
-      return Icons.calendar_month_outlined;
-    if (title.contains('عطلة')) return Icons.celebration_outlined;
-    if (title.contains('قسط') || title.contains('اشتراك'))
-      return Icons.payments_outlined;
+    switch (type) {
+      case 'grade':       return Icons.grade_outlined;
+      case 'assignment':  return Icons.assignment_outlined;
+      case 'lecture':     return Icons.play_circle_outline;
+      case 'attendance':  return Icons.how_to_reg_outlined;
+      case 'academic':    return Icons.school_outlined;
+    }
+    if (title.contains('وظيفة'))   return Icons.assignment_outlined;
+    if (title.contains('جدول'))    return Icons.calendar_month_outlined;
+    if (title.contains('عطلة'))    return Icons.celebration_outlined;
+    if (title.contains('قسط'))     return Icons.payments_outlined;
     return Icons.notifications_none_outlined;
   }
 
-  // 🌟 الدالة اللي كانت ناقصة وعاملة مشكلة getIconColor
   Color getIconColor() {
-    if (type == 'academic') return Colors.blueAccent;
-    if (type == 'administrative') return Colors.purple;
+    switch (type) {
+      case 'grade':          return Colors.green;
+      case 'assignment':     return Colors.orange;
+      case 'lecture':        return Colors.teal;
+      case 'attendance':     return Colors.blue;
+      case 'academic':       return Colors.blueAccent;
+      case 'administrative': return Colors.purple;
+    }
     return Colors.grey;
   }
 }

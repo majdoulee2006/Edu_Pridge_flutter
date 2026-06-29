@@ -37,15 +37,15 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _studentPasswordController  = TextEditingController();
   final _studentConfirmPasswordController = TextEditingController();
 
-  final _parentNameController    = TextEditingController();
-  final _parentEmailController   = TextEditingController();
-  final _parentPhoneController   = TextEditingController();
-  final _parentPasswordController = TextEditingController();
+  final _parentFirstNameController = TextEditingController();
+  final _parentLastNameController  = TextEditingController();
+  final _parentEmailController     = TextEditingController();
+  final _parentPhoneController     = TextEditingController();
+  final _parentPasswordController  = TextEditingController();
   final _parentConfirmPasswordController = TextEditingController();
 
   int _selectedChildrenCount = 1;
   final List<TextEditingController> _parentChildIdControllers = [TextEditingController()];
-  final _parentChildUniversityIdController = TextEditingController();
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -131,22 +131,30 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     }
 
     // ولي أمر
+    final firstName = _parentFirstNameController.text.trim();
+    final lastName  = _parentLastNameController.text.trim();
+    if (firstName.isEmpty || lastName.isEmpty) { _showSnackBar('يرجى إدخال الاسم الأول والأخير'); return; }
+
     final email = _parentEmailController.text.trim();
     if (email.isEmpty) { _showSnackBar('يرجى إدخال البريد الإلكتروني'); return; }
     if (phone.isEmpty) { _showSnackBar('يرجى إدخال رقم الهاتف'); return; }
+
+    final childrenIds = _parentChildIdControllers.map((c) => c.text.trim()).toList();
+    if (childrenIds.any((id) => id.isEmpty)) { _showSnackBar('يرجى إدخال الرقم الجامعي لجميع الأبناء'); return; }
 
     setState(() => isLoading = true);
     try {
       final response = await Dio().post(
         "${ApiService().baseUrl}/register",
         data: {
-          "full_name":            _parentNameController.text.trim(),
-          "email":                email,
-          "phone":                phone,
-          "child_university_id":  _parentChildUniversityIdController.text.trim(),
-          "children_ids":         _parentChildIdControllers.map((c) => c.text.trim()).toList(),
-          "password":             _parentPasswordController.text,
-          "role":                 "parent",
+          "full_name":   '$firstName $lastName',
+          "first_name":  firstName,
+          "last_name":   lastName,
+          "email":       email,
+          "phone":       phone,
+          "children_ids": childrenIds,
+          "password":    _parentPasswordController.text,
+          "role":        "parent",
         },
       );
       if ((response.statusCode == 201 || response.statusCode == 200) && mounted) {
@@ -375,23 +383,46 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   Widget _buildParentForm(Color textColor, Color cardColor, bool isDark) {
     return Column(
       children: [
-        _buildInputField(label: 'الاسم الكامل', hint: 'الاسم الثلاثي', icon: Icons.person_outline, controller: _parentNameController, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        // الاسم الأول والأخير
+        Row(
+          children: [
+            Expanded(child: _buildInputField(label: 'الاسم الأول', hint: 'مثال: أحمد', icon: Icons.person_outline, controller: _parentFirstNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildInputField(label: 'الاسم الأخير', hint: 'مثال: محمد', icon: Icons.person_outline, controller: _parentLastNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
+          ],
+        ),
         _buildInputField(label: 'البريد الإلكتروني', hint: 'parent@example.com', icon: Icons.email_outlined, controller: _parentEmailController, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'رقم الهاتف', hint: 'رقم الموبايل الشخصي', icon: Icons.phone_enabled_outlined, controller: _parentPhoneController, textColor: textColor, cardColor: cardColor, isDark: isDark),
-        _buildInputField(label: 'عدد الأبناء', hint: 'العدد', isDropdown: true, dropdownItems: ['1', '2', '3', '4'], value: _selectedChildrenCount.toString(), textColor: textColor, cardColor: cardColor, isDark: isDark, onChanged: (val) {
-          if (val != null) {
-            setState(() {
-              int newCount = int.parse(val);
-              if (newCount > _parentChildIdControllers.length) {
-                for (int i = _parentChildIdControllers.length; i < newCount; i++) { _parentChildIdControllers.add(TextEditingController()); }
-              } else {
-                for (int i = _parentChildIdControllers.length - 1; i >= newCount; i--) { _parentChildIdControllers.removeAt(i); }
-              }
-              _selectedChildrenCount = newCount;
-            });
-          }
-        }),
-        _buildInputField(label: 'الرقم الجامعي لابنك/ابنتك', hint: 'الرقم الذي أعطاه موظف الشؤون', icon: Icons.badge_outlined, controller: _parentChildUniversityIdController, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        _buildInputField(
+          label: 'عدد الأبناء', hint: 'العدد', isDropdown: true,
+          dropdownItems: ['1', '2', '3', '4'],
+          value: _selectedChildrenCount.toString(),
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                int newCount = int.parse(val);
+                while (_parentChildIdControllers.length < newCount) {
+                  _parentChildIdControllers.add(TextEditingController());
+                }
+                while (_parentChildIdControllers.length > newCount) {
+                  _parentChildIdControllers.removeLast();
+                }
+                _selectedChildrenCount = newCount;
+              });
+            }
+          },
+        ),
+        // حقل رقم جامعي لكل ابن
+        ...List.generate(_selectedChildrenCount, (i) => _buildInputField(
+          label: _selectedChildrenCount == 1
+              ? 'الرقم الجامعي لابنك/ابنتك'
+              : 'الرقم الجامعي للابن ${i + 1}',
+          hint: 'الرقم الذي أعطاه موظف الشؤون',
+          icon: Icons.badge_outlined,
+          controller: _parentChildIdControllers[i],
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        )),
         _buildInputField(label: 'كلمة المرور', hint: '........', icon: Icons.lock_outline, controller: _parentPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'تأكيد كلمة المرور', hint: '........', icon: Icons.check_circle_outline, controller: _parentConfirmPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
       ],
@@ -459,7 +490,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _studentIdController.dispose();
     _studentPasswordController.dispose();
     _studentConfirmPasswordController.dispose();
-    _parentNameController.dispose();
+    _parentFirstNameController.dispose();
+    _parentLastNameController.dispose();
     _parentEmailController.dispose();
     _parentPhoneController.dispose();
     _parentPasswordController.dispose();

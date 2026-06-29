@@ -8,6 +8,7 @@ import 'package:edu_pridge_flutter/screens/teacher/center_icons/attendance_scree
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/center_icons/scedual_screen/scedual_screen.dart';
 
 import '../../widgets/teacher_speed_dial.dart';
 import 'teacher_home.dart';
@@ -141,6 +142,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case 'lecture':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const LecturesScreen()));
+        break;
+      case 'grade_report_request':
+        final reqId = notif['related_id']?.toString() ?? '';
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => TeacherScheduleScreen(gradeReportRequestId: reqId),
+        ));
         break;
     }
   }

@@ -108,8 +108,8 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                           children: [
                             // 🌟 إضافة الأزرار وتمرير لون النص المتجاوب 🌟
                             _buildMenuItem(
-                              'الجدول',
-                              Icons.calendar_month_outlined,
+                              'لوحتي',
+                              Icons.grid_view_rounded,
                               Colors.orange,
                               22.5,
                               0.0, // يبدأ فوراً

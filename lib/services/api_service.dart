@@ -7,13 +7,13 @@ class ApiService {
   // ==========================================
   // 🌟 تعديل الرابط ليكون ديناميكي وذكي
   // ==========================================
-  static const String _serverIp = '127.0.0.1';
+  static const String _serverIp = '10.152.220.82';
 
   String get baseUrl {
     if (kIsWeb) {
-      return "http://127.0.0.1:8000/api";
+      return "http://127.0.0.1:8001/api";
     } else {
-      return "http://$_serverIp:8000/api";
+      return "http://$_serverIp:8001/api";
     }
   }
 

@@ -1,4 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class AddIdTab extends StatefulWidget {
   final Color cardColor;
@@ -22,22 +27,143 @@ class _AddIdTabState extends State<AddIdTab> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  final ApiService _api = ApiService();
+  final Dio _dio = Dio();
 
-  // 🔹 بيانات الأرقام الجامعية
-  List<Map<String, dynamic>> universityIds = [
-    {
-      'name': 'محمد علي حسن',
-      'id': '20241001',
-    },
-    {
-      'name': 'سارة أحمد محمود',
-      'id': '20241002',
-    },
-    {
-      'name': 'عمر فاروق',
-      'id': '20241003',
-    },
-  ];
+  File? _selectedPhoto;
+  bool _isLoading = false;
+
+  List<Map<String, dynamic>> universityIds = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUniversityIds();
+  }
+
+  Future<void> _loadUniversityIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await _dio.get(
+        '${_api.baseUrl}/affairs/university-ids',
+        options: Options(headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        }),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        setState(() {
+          universityIds = List<Map<String, dynamic>>.from(res.data['data']);
+        });
+      }
+    } catch (e) {
+      debugPrint('Load IDs Error: $e');
+    }
+  }
+
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: widget.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('اختر مصدر الصورة',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: widget.textColor,
+                    fontFamily: 'Noto Sans Arabic')),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFFFFCC00)),
+              title: Text('الكاميرا',
+                  style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFFFFCC00)),
+              title: Text('معرض الصور',
+                  style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+    final picked = await picker.pickImage(source: source, maxWidth: 800, imageQuality: 85);
+    if (picked != null) {
+      setState(() => _selectedPhoto = File(picked.path));
+    }
+  }
+
+  Future<void> _addUniversityId() async {
+    if (_nameController.text.isEmpty || _idController.text.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final formData = FormData.fromMap({
+        'full_name': _nameController.text,
+        'university_id': _idController.text,
+        if (_selectedPhoto != null)
+          'photo': await MultipartFile.fromFile(_selectedPhoto!.path,
+              filename: 'student_${_idController.text}.jpg'),
+      });
+
+      final res = await _dio.post(
+        '${_api.baseUrl}/affairs/university-ids',
+        data: formData,
+        options: Options(headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        }),
+      );
+
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        _nameController.clear();
+        _idController.clear();
+        setState(() => _selectedPhoto = null);
+        _loadUniversityIds();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم إضافة الرقم الجامعي بنجاح ✓',
+                  textDirection: TextDirection.rtl),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        _showError(res.data['message'] ?? 'حدث خطأ');
+      }
+    } on DioException catch (e) {
+      _showError(e.response?.data?['message'] ?? 'فشل الاتصال بالسيرفر');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, textDirection: TextDirection.rtl),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -126,6 +252,66 @@ class _AddIdTabState extends State<AddIdTab> {
           ),
           child: Column(
             children: [
+              // ═══════════════════════════════════════
+              // 📸 اختيار صورة الطالب
+              // ═══════════════════════════════════════
+              GestureDetector(
+                onTap: _pickPhoto,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: widget.isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFFFCC00),
+                      width: 2,
+                    ),
+                    image: _selectedPhoto != null
+                        ? DecorationImage(
+                            image: FileImage(_selectedPhoto!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _selectedPhoto == null
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.camera_alt,
+                                color: widget.subColor, size: 28),
+                            const SizedBox(height: 4),
+                            Text(
+                              'صورة الطالب',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: widget.subColor,
+                                fontFamily: 'Noto Sans Arabic',
+                              ),
+                            ),
+                          ],
+                        )
+                      : null,
+                ),
+              ),
+
+              // زر إزالة الصورة
+              if (_selectedPhoto != null)
+                TextButton.icon(
+                  onPressed: () => setState(() => _selectedPhoto = null),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 16),
+                  label: Text(
+                    'إزالة الصورة',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 12,
+                      fontFamily: 'Noto Sans Arabic',
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 12),
+
               // حقل اسم الطالب
               TextField(
                 controller: _nameController,
@@ -183,22 +369,17 @@ class _AddIdTabState extends State<AddIdTab> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    if (_nameController.text.isNotEmpty && _idController.text.isNotEmpty) {
-                      setState(() {
-                        universityIds.add({
-                          'name': _nameController.text,
-                          'id': _idController.text,
-                        });
-                        _nameController.clear();
-                        _idController.clear();
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.add, color: Colors.black),
-                  label: const Text(
-                    'إضافة',
-                    style: TextStyle(
+                  onPressed: _isLoading ? null : _addUniversityId,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.black))
+                      : const Icon(Icons.add, color: Colors.black),
+                  label: Text(
+                    _isLoading ? 'جاري الإضافة...' : 'إضافة',
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
@@ -262,9 +443,13 @@ class _AddIdTabState extends State<AddIdTab> {
   List<Widget> _buildIdList() {
     final filteredList = _searchController.text.isEmpty
         ? universityIds
-        : universityIds.where((item) => item['id'].contains(_searchController.text)).toList();
+        : universityIds.where((item) =>
+            (item['university_id'] ?? item['id'] ?? '').toString().contains(_searchController.text)).toList();
 
     return filteredList.map((item) {
+      final photoUrl = item['photo_url'] as String?;
+      final fixedPhotoUrl = photoUrl != null ? ApiService.fixMediaUrl(photoUrl) : null;
+
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -282,19 +467,27 @@ class _AddIdTabState extends State<AddIdTab> {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              // أيقونة الطالب (يمين)
+              // صورة الطالب أو أيقونة افتراضية
               Container(
                 width: 45,
                 height: 45,
                 decoration: BoxDecoration(
                   color: Colors.blue.withOpacity(0.1),
                   shape: BoxShape.circle,
+                  image: fixedPhotoUrl != null
+                      ? DecorationImage(
+                          image: NetworkImage(fixedPhotoUrl),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
                 ),
-                child: const Icon(
-                  Icons.school_outlined,
-                  color: Colors.blue,
-                  size: 22,
-                ),
+                child: fixedPhotoUrl == null
+                    ? const Icon(
+                        Icons.school_outlined,
+                        color: Colors.blue,
+                        size: 22,
+                      )
+                    : null,
               ),
 
               const SizedBox(width: 12),
@@ -305,7 +498,7 @@ class _AddIdTabState extends State<AddIdTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['name'],
+                      item['full_name'] ?? item['name'] ?? '',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -315,7 +508,7 @@ class _AddIdTabState extends State<AddIdTab> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      item['id'],
+                      item['university_id'] ?? item['id'] ?? '',
                       style: TextStyle(
                         fontSize: 13,
                         color: widget.subColor,
@@ -326,15 +519,13 @@ class _AddIdTabState extends State<AddIdTab> {
                 ),
               ),
 
-              // أزرار التعديل والحذف (يسار)
+              // أزرار التعديل والحذف
               Row(
                 children: [
-                  // تعديل
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.amber, size: 20),
                     onPressed: () => _showEditDialog(item),
                   ),
-                  // حذف
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
                     onPressed: () => _showDeleteDialog(item),
@@ -352,8 +543,8 @@ class _AddIdTabState extends State<AddIdTab> {
   // نافذة التعديل
   // ═══════════════════════════════════════
   void _showEditDialog(Map<String, dynamic> item) {
-    final nameEditController = TextEditingController(text: item['name']);
-    final idEditController = TextEditingController(text: item['id']);
+    final nameEditController = TextEditingController(text: item['full_name'] ?? item['name'] ?? '');
+    final idEditController = TextEditingController(text: item['university_id'] ?? item['id'] ?? '');
 
     showDialog(
       context: context,
@@ -422,7 +613,9 @@ class _AddIdTabState extends State<AddIdTab> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
+                  item['full_name'] = nameEditController.text;
                   item['name'] = nameEditController.text;
+                  item['university_id'] = idEditController.text;
                   item['id'] = idEditController.text;
                 });
                 Navigator.pop(context);
@@ -450,6 +643,7 @@ class _AddIdTabState extends State<AddIdTab> {
   // نافذة تأكيد الحذف
   // ═══════════════════════════════════════
   void _showDeleteDialog(Map<String, dynamic> item) {
+    final name = item['full_name'] ?? item['name'] ?? '';
     showDialog(
       context: context,
       builder: (context) {
@@ -467,7 +661,7 @@ class _AddIdTabState extends State<AddIdTab> {
             ),
           ),
           content: Text(
-            'هل أنت متأكد من حذف ${item['name']}؟',
+            'هل أنت متأكد من حذف $name؟',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: widget.subColor,
@@ -486,11 +680,25 @@ class _AddIdTabState extends State<AddIdTab> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  universityIds.remove(item);
-                });
+              onPressed: () async {
                 Navigator.pop(context);
+                final id = item['id']?.toString() ?? '';
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final token = prefs.getString('token') ?? '';
+                  await _dio.delete(
+                    '${_api.baseUrl}/affairs/university-ids/$id',
+                    options: Options(headers: {
+                      'Accept': 'application/json',
+                      'Authorization': 'Bearer $token',
+                    }),
+                  );
+                  _loadUniversityIds();
+                } catch (e) {
+                  setState(() {
+                    universityIds.remove(item);
+                  });
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

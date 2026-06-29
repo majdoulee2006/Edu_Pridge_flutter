@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as ex;
@@ -1006,14 +1007,20 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
   }
 
   Future<Uint8List> _buildPdf(List<dynamic> entries, String courseTitle) async {
-    final doc  = pw.Document();
-    final font = pw.Font.timesBold();
+    final regularData = await rootBundle.load('assets/fonts/Amiri-Regular.ttf');
+    final boldData    = await rootBundle.load('assets/fonts/Amiri-Bold.ttf');
+    final arabicFont  = pw.Font.ttf(regularData);
+    final arabicBold  = pw.Font.ttf(boldData);
+
+    final doc = pw.Document(
+      theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicBold),
+    );
 
     doc.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4.landscape,
       textDirection: pw.TextDirection.rtl,
       build: (ctx) => [
-        pw.Text(courseTitle, style: pw.TextStyle(font: font, fontSize: 18)),
+        pw.Text(courseTitle, style: pw.TextStyle(font: arabicBold, fontSize: 18)),
         pw.SizedBox(height: 12),
         pw.TableHelper.fromTextArray(
           headers: ['#', 'الاسم', 'الرقم', 'مذاكرة', 'امتحان', 'شفهي', 'المجموع', 'المعدل%', 'الحالة'],
@@ -1024,17 +1031,17 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
               '${i + 1}',
               e['student_name'] ?? '',
               e['university_id'] ?? '',
-              e['quiz']  != null ? '${e['quiz']}/${e['quiz_max']}' : '—',
-              e['exam']  != null ? '${e['exam']}/${e['exam_max']}' : '—',
-              e['oral']  != null ? '${e['oral']}/${e['oral_max']}' : '—',
-              e['total_score'] != null ? '${e['total_score']}/${e['total_max']}' : '—',
-              e['average'] != null ? '${e['average']}%' : '—',
-              e['average'] != null ? (pass ? 'ناجح' : 'راسب') : '—',
+              e['quiz']  != null ? '${e['quiz']}/${e['quiz_max']}' : '-',
+              e['exam']  != null ? '${e['exam']}/${e['exam_max']}' : '-',
+              e['oral']  != null ? '${e['oral']}/${e['oral_max']}' : '-',
+              e['total_score'] != null ? '${e['total_score']}/${e['total_max']}' : '-',
+              e['average'] != null ? '${e['average']}%' : '-',
+              e['average'] != null ? (pass ? 'ناجح' : 'راسب') : '-',
             ];
           }),
-          headerStyle: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.white),
+          headerStyle: pw.TextStyle(font: arabicBold, fontSize: 9, color: PdfColors.white),
           headerDecoration: const pw.BoxDecoration(color: PdfColors.amber800),
-          cellStyle: pw.TextStyle(font: font, fontSize: 8),
+          cellStyle: pw.TextStyle(font: arabicFont, fontSize: 8),
           cellAlignments: {for (var i = 0; i < 9; i++) i: pw.Alignment.center},
           rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
           oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
@@ -1116,13 +1123,23 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                               })
                             else ...[
                               _iconExportBtn(Icons.picture_as_pdf, Colors.red, 'PDF', () async {
-                                final bytes = await _buildPdf(entries, courseTitle);
-                                await _exportFile(bytes, 'علامات_$courseTitle.pdf');
+                                try {
+                                  final bytes = await _buildPdf(entries, courseTitle);
+                                  await _exportFile(bytes, 'علامات_$courseTitle.pdf');
+                                } catch (e) {
+                                  if (ctx2.mounted) ScaffoldMessenger.of(ctx2).showSnackBar(
+                                    SnackBar(content: Text('خطأ PDF: $e'), backgroundColor: Colors.red));
+                                }
                               }),
                               const SizedBox(width: 8),
                               _iconExportBtn(Icons.table_chart, Colors.green, 'Excel', () async {
-                                final bytes = await _buildExcel(entries, courseTitle);
-                                await _exportFile(bytes, 'علامات_$courseTitle.xlsx');
+                                try {
+                                  final bytes = await _buildExcel(entries, courseTitle);
+                                  await _exportFile(bytes, 'علامات_$courseTitle.xlsx');
+                                } catch (e) {
+                                  if (ctx2.mounted) ScaffoldMessenger.of(ctx2).showSnackBar(
+                                    SnackBar(content: Text('خطأ Excel: $e'), backgroundColor: Colors.red));
+                                }
                               }),
                             ],
                           ],

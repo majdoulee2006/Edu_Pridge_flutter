@@ -26,7 +26,9 @@ class AttendanceScreen extends StatefulWidget {
   State<AttendanceScreen> createState() => _AttendanceScreenState();
 }
 
-class _AttendanceScreenState extends State<AttendanceScreen> {
+class _AttendanceScreenState extends State<AttendanceScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _attendanceTabController;
   static const Color _yellow = Color(0xFFFFCC00);
 
   bool _isLoadingCourses = true;
@@ -80,12 +82,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   void initState() {
     super.initState();
+    _attendanceTabController = TabController(length: 2, vsync: this);
+    _attendanceTabController.addListener(() {
+      if (!_attendanceTabController.indexIsChanging) {
+        setState(() {
+          _attendanceTabFilter =
+              _attendanceTabController.index == 0 ? 'إعداد الجلسة' : 'سجل الحضور';
+        });
+      }
+    });
     _loadData();
     _loadGeneratedReports();
   }
 
   @override
   void dispose() {
+    _attendanceTabController.dispose();
     _stopTimers();
     super.dispose();
   }
@@ -147,15 +159,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Future<void> _loadGeneratedReports() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.get('user_id')?.toString() ?? 'unknown';
       final dir = await getApplicationDocumentsDirectory();
       final files = dir.listSync();
-      debugPrint('Found \${files.length} items in \${dir.path}');
       setState(() {
         _generatedReports = files
             .whereType<File>()
-            .where((f) => f.path.contains('attendance_report_') && f.path.endsWith('.pdf'))
+            .where((f) =>
+                f.path.contains('attendance_report_u${userId}_') &&
+                f.path.endsWith('.pdf'))
             .toList();
-        // ترتيب من الأحدث للأقدم
         _generatedReports.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
       });
     } catch (e) {
@@ -495,9 +509,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       );
 
       if (res.statusCode == 200) {
+        final prefs = await SharedPreferences.getInstance();
+        final userId = prefs.get('user_id')?.toString() ?? 'unknown';
         final safeDate = DateTime.now().toString().split(' ')[0];
         final safeTime = DateTime.now().millisecondsSinceEpoch;
-        final fileName = 'attendance_report_${safeDate}_$safeTime.pdf';
+        final fileName = 'attendance_report_u${userId}_${safeDate}_$safeTime.pdf';
         final bytes = Uint8List.fromList(res.data as List<int>);
 
         // حفظ نسخة داخلية للقائمة
@@ -713,12 +729,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     MaterialPageRoute(builder: (_) => const SettingsScreen())),
               ),
             ],
-
+            bottom: TabBar(
+              controller: _attendanceTabController,
+              labelColor: isDark ? _yellow : Colors.black,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: _yellow,
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              tabs: const [
+                Tab(icon: Icon(Icons.settings_outlined, size: 18), text: 'إعداد الجلسة'),
+                Tab(icon: Icon(Icons.history_outlined, size: 18), text: 'سجل الحضور'),
+              ],
+            ),
           ),
           body: Stack(
             children: [
-              const SizedBox.expand(),
-              _buildAttendanceTab(cardColor, textColor, isDark),
+              _buildAttendanceTabView(cardColor, textColor, isDark),
               // زر + لتوليد PDF في تبويب سجل الحضور
               if (_attendanceTabFilter == 'سجل الحضور')
                 Positioned(
@@ -752,112 +778,46 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildAttendanceTab(Color cardColor, Color textColor, bool isDark) {
-    return Column(
+  Widget _buildAttendanceTabView(Color cardColor, Color textColor, bool isDark) {
+    return TabBarView(
+      controller: _attendanceTabController,
       children: [
-        // أزرار التبديل العلوية (Filter Tabs)
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
-          child: Row(
+        // تبويب إعداد الجلسة
+        SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
-              _buildAttendanceFilterBtn("إعداد الجلسة", isDark),
-              const SizedBox(width: 12),
-              _buildAttendanceFilterBtn("سجل الحضور", isDark),
+              _buildSessionSettingsCard(cardColor, textColor, isDark),
+              const SizedBox(height: 25),
+              if (_sessionActive && _qrToken != null) ...[
+                _buildDividerWithText('الرمز النشط', textColor),
+                const SizedBox(height: 15),
+                _buildQRCodeCard(cardColor, textColor, isDark),
+              ],
+              if (_sessionEnded) ...[
+                const SizedBox(height: 25),
+                _buildDividerWithText('تصدير الكشف', textColor),
+                const SizedBox(height: 15),
+                _buildExportCard(cardColor, textColor),
+              ],
+              const SizedBox(height: 120),
             ],
           ),
         ),
-
-        // المحتوى المتغير
-        Expanded(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-              return Stack(
-                alignment: Alignment.topCenter,
-                children: <Widget>[
-                  ...previousChildren,
-                  if (currentChild != null) currentChild,
-                ],
-              );
-            },
-            child: _attendanceTabFilter == "إعداد الجلسة"
-                ? SingleChildScrollView(
-                    key: const ValueKey("SessionSettings"),
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        _buildSessionSettingsCard(cardColor, textColor, isDark),
-                        const SizedBox(height: 25),
-                        if (_sessionActive && _qrToken != null) ...[
-                          _buildDividerWithText('الرمز النشط', textColor),
-                          const SizedBox(height: 15),
-                          _buildQRCodeCard(cardColor, textColor, isDark),
-                        ],
-                        if (_sessionEnded) ...[
-                          const SizedBox(height: 25),
-                          _buildDividerWithText('تصدير الكشف', textColor),
-                          const SizedBox(height: 15),
-                          _buildExportCard(cardColor, textColor),
-                        ],
-                        const SizedBox(height: 120),
-                      ],
-                    ),
-                  )
-                : SingleChildScrollView(
-                    key: const ValueKey("AttendanceHistory"),
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildReportsListOnly(cardColor, textColor, isDark),
-                        const SizedBox(height: 120),
-                      ],
-                    ),
-                  ),
+        // تبويب سجل الحضور
+        SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildReportsListOnly(cardColor, textColor, isDark),
+              const SizedBox(height: 120),
+            ],
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildAttendanceFilterBtn(String text, bool isDark) {
-    bool isActive = _attendanceTabFilter == text;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _attendanceTabFilter = text),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isActive
-                ? const Color(0xFFFFCC00)
-                : (isDark ? Colors.white10 : const Color(0xFFF5F5F5)),
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFFFFCC00).withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontFamily: 'Tajawal',
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: isActive ? Colors.black : Colors.grey,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 

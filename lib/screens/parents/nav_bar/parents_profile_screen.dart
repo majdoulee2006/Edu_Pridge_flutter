@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
@@ -67,7 +67,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
           if (rawAvatar != null && rawAvatar.startsWith('http')) {
             avatarUrl = ApiService.fixMediaUrl(rawAvatar);
           } else if (rawAvatar != null && rawAvatar.isNotEmpty) {
-            avatarUrl = ApiService.fixMediaUrl('http://127.0.0.1:8000/storage/$rawAvatar');
+            avatarUrl = ApiService.fixMediaUrl('http://127.0.0.1:8001/storage/$rawAvatar');
           }
           if (avatarUrl != null) {
             await prefs.setString('parent_avatar_url', avatarUrl);
