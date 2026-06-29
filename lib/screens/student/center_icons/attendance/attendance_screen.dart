@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
@@ -662,6 +662,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               statusColor: isDark ? Colors.red.shade300 : Colors.red,
               bgColor: isDark ? Colors.red.withAlpha(30) : const Color(0xFFFFEBEE),
               icon: Icons.close,
+              time: time,
+            );
+          } else if (status == 'pending') {
+            return _buildRecordCard(
+              date: date,
+              subject: subject,
+              statusText: 'قيد الانتظار',
+              statusColor: isDark ? Colors.orange.shade300 : Colors.orange,
+              bgColor: isDark ? Colors.orange.withAlpha(30) : const Color(0xFFFFF3E0),
+              icon: Icons.hourglass_empty_rounded,
               time: time,
             );
           }

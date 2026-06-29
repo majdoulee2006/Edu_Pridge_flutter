@@ -488,10 +488,10 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
                   child: ann['image_url'] != null && (ann['image_url'] as String).isNotEmpty
                       ? Image.network(
-                          ann['image_url'] as String,
+                          ApiService.fixMediaUrl(ann['image_url'] as String?) ?? '',
                           height: 130,
                           width: double.infinity,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.fill,
                           errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
                         )
                       : _parentHeaderPlaceholder(headerColor),

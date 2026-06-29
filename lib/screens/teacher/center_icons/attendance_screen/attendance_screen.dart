@@ -445,7 +445,8 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
     try {
       final token = await _getToken();
-      final url = "${ApiService().baseUrl}/teacher/attendance/export-pdf?course_id=$_selectedCourseId&period=semester";
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final url = "${ApiService().baseUrl}/teacher/attendance/export-pdf?course_id=$_selectedCourseId&period=semester&_t=$timestamp";
       
       final res = await Dio().get(
         url,
@@ -486,6 +487,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     _showSnack('جاري تجهيز التقرير، يرجى الانتظار...');
     try {
       final token = await _getToken();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       String url = "${ApiService().baseUrl}/teacher/attendance/export-pdf?";
       
       url += "scope=$_historyScope";
@@ -498,7 +500,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
           url += "&program_id=${parts[0]}&year=${parts[1]}";
         }
       }
-      url += "&period=$_historyPeriod";
+      url += "&period=$_historyPeriod&_t=$timestamp";
       
       final res = await Dio().get(
         url,

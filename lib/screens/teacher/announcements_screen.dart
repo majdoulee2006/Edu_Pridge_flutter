@@ -146,7 +146,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                 content: a['content'] as String? ?? '',
                                 timeAgo: a['time_ago'] as String? ?? '',
                                 course: a['course'] as String?,
-                                imageUrl: a['image_url'] as String?,
+                                imageUrl: ApiService.fixMediaUrl(a['image_url'] as String?),
                                 headerColor: _cardColors[index % _cardColors.length],
                                 textColor: textColor,
                                 cardColor: cardColor,
@@ -220,7 +220,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     imageUrl,
                     height: 110,
                     width: double.infinity,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.fill,
                     errorBuilder: (_, e, st) => _headerPlaceholder(headerColor, course),
                   )
                 : _headerPlaceholder(headerColor, course),

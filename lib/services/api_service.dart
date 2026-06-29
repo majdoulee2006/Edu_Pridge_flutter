@@ -1,29 +1,36 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart'; // 👈 1. ضفنا هالمكتبة المهمة جداً
+import 'package:flutter/foundation.dart';
 
 class ApiService {
 
   // ==========================================
-  // 🌟 تعديل الرابط ليكون ديناميكي وذكي
+  // 🌟 تعديل الرابط ليكون ديناميكياً وذكياً
   // ==========================================
-  static const String _serverIp = '10.152.220.82';
+  static const String _serverIp = '10.152.220.209';
+  static const String _port = '45101';
 
   String get baseUrl {
     if (kIsWeb) {
-      return "http://127.0.0.1:8001/api";
+      return "http://127.0.0.1:$_port/api";
     } else {
-      return "http://$_serverIp:8001/api";
+      return "http://$_serverIp:$_port/api";
     }
   }
 
-  // تصليح روابط الميديا الراجعة من السيرفرياحبيبي
+  // تصليح روابط الميديا الراجعة من السيرفر
   static String? fixMediaUrl(String? url) {
     if (url == null || url.isEmpty) return null;
     if (!kIsWeb) {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        String cleanUrl = url.startsWith('/') ? url.substring(1) : url;
+        return 'http://$_serverIp:$_port/$cleanUrl';
+      }
       return url
           .replaceFirst('http://127.0.0.1:', 'http://$_serverIp:')
-          .replaceFirst('http://localhost:', 'http://$_serverIp:');
+          .replaceFirst('http://localhost:', 'http://$_serverIp:')
+          .replaceFirst('http://localhost/', 'http://$_serverIp:$_port/')
+          .replaceFirst('http://127.0.0.1/', 'http://$_serverIp:$_port/');
     }
     return url;
   }

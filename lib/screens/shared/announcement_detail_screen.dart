@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
@@ -67,7 +68,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
                      ?? widget.announcement['publisher']   as String? ?? 'الإدارة';
     final timeAgo     = widget.announcement['time_ago']    as String?
                      ?? widget.announcement['created_at']  as String? ?? '';
-    final imageUrl    = widget.announcement['image_url']   as String? ?? '';
+    final imageUrl    = ApiService.fixMediaUrl(widget.announcement['image_url'] as String?) ?? '';
     final linkUrl     = widget.announcement['link_url']    as String? ?? '';
     final targetLabel = _targetLabel(widget.announcement['target_audience'] as String?);
 
@@ -162,7 +163,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
                           imageUrl,
                           width: double.infinity,
                           height: 200,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.fill,
                           errorBuilder: (ctx, e, s) => const SizedBox(),
                         ),
                         Positioned(

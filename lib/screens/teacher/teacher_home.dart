@@ -269,10 +269,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
               child: (announcementData['image_url'] as String?)?.isNotEmpty == true
                   ? Image.network(
-                      announcementData['image_url'] as String,
+                          ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
                       height: 140,
                       width: double.infinity,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.fill,
                       errorBuilder: (_, e, st) => _teacherAnnouncementPlaceholder(headerColor, tag),
                     )
                   : _teacherAnnouncementPlaceholder(headerColor, tag),

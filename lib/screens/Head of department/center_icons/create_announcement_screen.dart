@@ -188,7 +188,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                             children: [
                               Image.file(_pickedImage!,
                                   width: double.infinity,
-                                  fit: BoxFit.cover),
+                                  fit: BoxFit.fill),
                               Positioned(
                                 top: 8,
                                 left: 8,

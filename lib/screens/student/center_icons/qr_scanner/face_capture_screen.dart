@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:convert';
 import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -160,8 +161,9 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       _hint = 'جارِ التحقق من وجهك...';
     });
 
+    List<double> embedding = [];
     try {
-      final embedding = await _extractPixelEmbedding(face, imagePath);
+      embedding = await _extractPixelEmbedding(face, imagePath);
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -191,11 +193,68 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       );
     } on DioException catch (e) {
       if (!mounted) return;
-      final msg = e.response?.data?['message'] ?? 'تعذر الاتصال بالسيرفر';
-      _showResult(success: false, message: msg);
+
+      bool isOffline = false;
+      if (e.response == null) {
+        isOffline = true;
+      } else {
+        final status = e.response?.statusCode ?? 0;
+        if (status >= 502 && status <= 504) {
+          isOffline = true;
+        }
+      }
+
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.connectionError) {
+        isOffline = true;
+      }
+
+      if (isOffline) {
+        await _saveAttendanceLocally(widget.qrToken, embedding);
+      } else {
+        final msg = e.response?.data?['message'] ?? 'تعذر الاتصال بالسيرفر';
+        _showResult(success: false, message: msg);
+      }
     } catch (_) {
       if (!mounted) return;
       _showResult(success: false, message: 'حدث خطأ غير متوقع');
+    }
+  }
+
+  Future<void> _saveAttendanceLocally(String qrToken, List<double> embedding) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> offlineScans = prefs.getStringList('offline_attendance_scans') ?? [];
+
+      bool alreadyExists = offlineScans.any((scan) {
+        try {
+          final data = jsonDecode(scan);
+          return data['qr_token'] == qrToken;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      if (!alreadyExists) {
+        String scanData = jsonEncode({
+          'qr_token': qrToken,
+          'scanned_at': DateTime.now().toUtc().toIso8601String(),
+          'face_embedding': embedding,
+        });
+        offlineScans.add(scanData);
+        await prefs.setStringList('offline_attendance_scans', offlineScans);
+      }
+
+      if (!mounted) return;
+      _showResult(
+        success: true,
+        message: 'لا يوجد اتصال بالإنترنت. تم حفظ رمز حضورك محلياً بنجاح وسيرسل تلقائياً فور توفر الشبكة! 📡✅',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showResult(success: false, message: 'حدث خطأ أثناء حفظ الحضور محلياً');
     }
   }
 

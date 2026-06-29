@@ -321,10 +321,10 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
               child: (a['image_url'] as String?)?.isNotEmpty == true
                   ? Image.network(
-                      a['image_url'] as String,
+                          ApiService.fixMediaUrl(a['image_url'] as String?) ?? '',
                       height: 150,
                       width: double.infinity,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.fill,
                       errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
                     )
                   : _announcementPlaceholder(headerColor),
@@ -551,7 +551,7 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
                   child: _pickedImage != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: Image.file(_pickedImage!, fit: BoxFit.cover))
+                          child: Image.file(_pickedImage!, fit: BoxFit.fill))
                       : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

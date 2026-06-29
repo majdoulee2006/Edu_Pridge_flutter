@@ -238,13 +238,25 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         const SizedBox(height: 25),
         if (logs.isEmpty) const Center(child: Text("لا توجد سجلات حضور")),
         ...logs.map((log) {
-          bool isPresent = log['status'] == 'present';
+          final status = log['status'] ?? '';
+          String statusText = 'غائب';
+          Color statusColor = Colors.red;
+          if (status == 'present') {
+            statusText = 'حاضر';
+            statusColor = Colors.green;
+          } else if (status == 'late') {
+            statusText = 'متأخر';
+            statusColor = Colors.amber;
+          } else if (status == 'pending') {
+            statusText = 'قيد الانتظار';
+            statusColor = Colors.orange;
+          }
           return _buildLectureRow(
             log['attendance_date']?.toString().split('-').last ?? "00",
             "الشهر",
             log['name'] ?? "",
-            isPresent ? "حاضر" : "غائب",
-            isPresent ? Colors.green : Colors.red,
+            statusText,
+            statusColor,
             textColor,
             cardColor,
           );

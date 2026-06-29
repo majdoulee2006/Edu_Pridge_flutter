@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
@@ -95,8 +96,76 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     super.dispose();
   }
 
+  // مراجعة الحضور المخزن محلياً وإرساله للسيرفر عند توفر الشبكة
+  Future<void> _syncOfflineAttendance() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final offlineScans = prefs.getStringList('offline_attendance_scans') ?? [];
+      debugPrint("🔍 [Offline Sync] Found ${offlineScans.length} offline scans.");
+      if (offlineScans.isEmpty) return;
+
+      final token = prefs.getString('token') ?? '';
+      if (token.isEmpty) {
+        debugPrint("🔍 [Offline Sync] Token is empty, aborting.");
+        return;
+      }
+
+      final dio = Dio();
+      List<String> remainingScans = List.from(offlineScans);
+
+      for (String scanStr in offlineScans) {
+        try {
+          final data = jsonDecode(scanStr);
+          final qrToken = data['qr_token'];
+          final scannedAt = data['scanned_at'];
+          final faceEmbedding = data['face_embedding'];
+
+          final url = "${ApiService().baseUrl}/student/attendance/scan";
+          debugPrint("🔍 [Offline Sync] Sending scan to $url. Token: $qrToken, ScannedAt: $scannedAt");
+
+          final res = await dio.post(
+            url,
+            data: {
+              "qr_token": qrToken,
+              "scanned_at": scannedAt,
+              if (faceEmbedding != null) "face_embedding": faceEmbedding,
+            },
+            options: Options(headers: {
+              "Authorization": "Bearer $token",
+              "Accept": "application/json",
+            }),
+          );
+
+          debugPrint("🔍 [Offline Sync] Response code: ${res.statusCode}. Body: ${res.data}");
+          if (res.statusCode == 200 || res.statusCode == 409 || res.data?['reject_reason'] == 'already_marked') {
+            remainingScans.remove(scanStr);
+          }
+        } on DioException catch (e) {
+          debugPrint("🔍 [Offline Sync] DioException: ${e.message}, Response: ${e.response?.data}");
+          if (e.response != null) {
+            remainingScans.remove(scanStr);
+          }
+          if (e.response == null) {
+            break;
+          }
+        } catch (e) {
+          debugPrint("🔍 [Offline Sync] Error parsing scan: $e");
+          remainingScans.remove(scanStr);
+        }
+      }
+
+      await prefs.setStringList('offline_attendance_scans', remainingScans);
+      debugPrint("🔍 [Offline Sync] Sync cycle finished. Remaining scans: ${remainingScans.length}");
+    } catch (e) {
+      debugPrint("⛔️ Offline Sync Error: $e");
+    }
+  }
+
   // 🌟 الدالة الجديدة النظيفة اللي بتعتمد على الـ Service
   Future<void> _loadDashboardData() async {
+    // محاولة مزامنة الحضور المخزن محلياً أولاً عند تحديث الصفحة أو الدخول إليها
+    await _syncOfflineAttendance();
+
     setState(() => isLoading = true);
 
     final prefs = await SharedPreferences.getInstance();
@@ -473,10 +542,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 child: announcementData['image_url'] != null && (announcementData['image_url'] as String).isNotEmpty
                     ? Image.network(
-                        announcementData['image_url'] as String,
+                          ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
                         height: 140,
                         width: double.infinity,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.fill,
                         errorBuilder: (_, __, e) => Container(
                           height: 140,
                           decoration: BoxDecoration(
