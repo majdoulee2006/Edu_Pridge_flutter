@@ -7,8 +7,7 @@ class ApiService {
   // ==========================================
   // 🌟 تعديل الرابط ليكون ديناميكياً وذكياً
   // ==========================================
-  static const String _serverIp = '10.152.220.209';
-  static const String _port = '45101';
+  static const String _serverIp = '127.0.0.1'; //ppp 127.0.0.1
 
   String get baseUrl {
     if (kIsWeb) {
@@ -62,7 +61,7 @@ class ApiService {
 
         if (response.data['user'] != null) {
           await prefs.setString('role', response.data['user']['role']);
-          await prefs.setInt('user_id', response.data['user']['user_id']);
+          await prefs.setString('user_id', response.data['user']['user_id']?.toString() ?? '');
         }
         return response.data;
       }

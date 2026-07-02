@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
@@ -13,16 +14,12 @@ import 'student_home_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 
-// 🌟 الغلاف السحري اللي كان ناقص ومسبب الشاشة الحمراء
 class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ChatService(),
-      child: const MessagesView(),
-    );
+    return const MessagesView();
   }
 }
 
@@ -40,8 +37,15 @@ class _MessagesViewState extends State<MessagesView> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatService>().fetchContacts();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final chatService = context.read<ChatService>();
+      chatService.fetchContacts();
+      
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id') ?? '';
+      if (userId.isNotEmpty) {
+        chatService.initPusher(userId);
+      }
     });
   }
 
@@ -57,20 +61,26 @@ class _MessagesViewState extends State<MessagesView> {
       }
 
       return ChatModel(
-        id: contact['id'] ?? 0,
+        id: int.tryParse(contact['id']?.toString() ?? '') ?? 0,
         title: contact['name'] ?? 'مستخدم غير معروف',
-        lastMessage: contact['last_message'] ?? contact['role'] ?? '',
+        lastMessage: (contact['last_message'] != null && contact['last_message'].toString().trim().isNotEmpty)
+            ? contact['last_message']
+            : 'انقر لبدء المحادثة...',
         time: contact['time'] ?? 'الآن',
-        unreadCount: contact['unread'] ?? 0,
+        unreadCount: int.tryParse(contact['unread']?.toString() ?? '') ?? 0,
         type: chatType,
         isOnline: contact['is_online'] ?? false,
         isRead: contact['is_read'] ?? true,
         isGroup: contact['is_group'] ?? false,
         avatarUrl: contact['image'] ?? 'https://i.pravatar.cc/150',
+        role: contact['role'] ?? '',
       );
     }).toList();
 
     List<ChatModel> filteredChats = allChats.where((chat) {
+      if (chat.lastMessage == 'انقر لبدء المحادثة...') {
+        return false;
+      }
       bool matchesCategory = false;
       if (selectedCategory == 'الكل') {
         matchesCategory = true;
@@ -315,6 +325,28 @@ class _MessagesViewState extends State<MessagesView> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            if (chat.role.isNotEmpty) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  chat.role,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFD4AC0D),
+                  ),
+                ),
+              ),
+            ],
             Text(
               chat.time,
               style: TextStyle(
@@ -323,8 +355,8 @@ class _MessagesViewState extends State<MessagesView> {
                 fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
               ),
             ),
-            const SizedBox(height: 5),
-            if (hasUnread)
+            if (hasUnread) ...[
+              const SizedBox(height: 5),
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
@@ -333,6 +365,7 @@ class _MessagesViewState extends State<MessagesView> {
                   style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
               ),
+            ],
           ],
         ),
         onTap: () {

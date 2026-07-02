@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import 'dart:convert';
@@ -7,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // --- Configuration Constants ---
 // You can easily update these constants for your production environment
-const String BASE_URL = 'http://192.168.9.116:8000/api';
+const String BASE_URL = 'http://10.0.2.2:8000/api'; // 👈 10.0.2.2 لمحاكي الأندرويد، استبدله بـ IP الشبكة للهاتف الحقيقي
 const String PUSHER_APP_KEY = '7ddc52d35c1e7beb4c83';
 const String PUSHER_CLUSTER = 'eu';
 
@@ -48,7 +49,7 @@ class ChatService extends ChangeNotifier {
       final token = await _getToken();
       
       final response = await _dio.get(
-        '/contacts', // Note: Endpoint missing in Laravel, assuming /contacts
+        '/contacts',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       
@@ -81,6 +82,18 @@ class ChatService extends ChangeNotifier {
         final List<dynamic> data = response.data['data'] ?? [];
         _messages = data.map((e) => ChatMessage.fromJson(e, _currentUserId ?? '')).toList();
       }
+
+      // Mark messages from this contact as read
+      try {
+        await _dio.put(
+          '/messages/$contactId/mark-read',
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
+        // Refresh contacts to clear the unread badge
+        fetchContacts();
+      } catch (e) {
+        debugPrint("Mark Read API Error: $e");
+      }
     } catch (e) {
       debugPrint("Fetch Messages Error: $e");
     } finally {
@@ -90,13 +103,20 @@ class ChatService extends ChangeNotifier {
   }
 
   /// Send a message to a specific chat
-  Future<void> sendMessage(String contactId, String text) async {
+  Future<void> sendMessage(
+    String contactId,
+    String text, {
+    String? filePath,
+    List<int>? fileBytes,
+    String? fileName,
+  }) async {
     // Optimistic UI Update for instant feedback
     final tempMsg = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      text: text,
+      message: text,
       isMe: true,
       timestamp: DateTime.now(),
+      attachment: filePath ?? fileName,
     );
     _messages.insert(0, tempMsg);
     notifyListeners();
@@ -104,15 +124,44 @@ class ChatService extends ChangeNotifier {
     try {
       final token = await _getToken();
 
-      await _dio.post(
-        '/send-message',
-        data: {
-          'sender_id': _currentUserId, // Required by Laravel ChatController
+      dynamic postData;
+      if (fileBytes != null || filePath != null) {
+        MultipartFile multipartFile;
+        if (kIsWeb) {
+          final resolvedFileName = fileName ?? filePath?.split('/').last ?? 'attachment';
+          multipartFile = MultipartFile.fromBytes(
+            fileBytes ?? [],
+            filename: resolvedFileName,
+          );
+        } else {
+          multipartFile = await MultipartFile.fromFile(
+            filePath!,
+            filename: fileName ?? filePath.split('/').last,
+          );
+        }
+
+        postData = FormData.fromMap({
+          'sender_id': _currentUserId,
           'receiver_id': contactId,
           'message': text,
-        },
+          'attachment': multipartFile,
+        });
+      } else {
+        postData = {
+          'sender_id': _currentUserId,
+          'receiver_id': contactId,
+          'message': text,
+        };
+      }
+
+      await _dio.post(
+        '/send-message',
+        data: postData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
+
+      // Refresh contacts to update the last message and timestamp in the contact list
+      fetchContacts();
     } catch (e) {
       debugPrint("Send Message Error: $e");
       // Revert optimistic update on failure
@@ -121,10 +170,80 @@ class ChatService extends ChangeNotifier {
     }
   }
 
+  /// Edit a specific message
+  Future<void> editMessage(String messageId, String newText) async {
+    try {
+      final token = await _getToken();
+      await _dio.put(
+        '/messages/$messageId/edit',
+        data: {'message': newText},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      
+      // Update locally
+      final index = _messages.indexWhere((m) => m.id == messageId);
+      if (index != -1) {
+        _messages[index].message = newText;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Edit Message Error: $e");
+      throw Exception("فشل تعديل الرسالة");
+    }
+  }
+
+  /// Delete a specific message
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      final token = await _getToken();
+      await _dio.delete(
+        '/messages/$messageId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      
+      // Update locally
+      _messages.removeWhere((m) => m.id == messageId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Delete Message Error: $e");
+      throw Exception("فشل حذف الرسالة");
+    }
+  }
+
+  /// Search messages within a specific chat
+  Future<void> searchMessages(String contactId, String query) async {
+    if (query.trim().isEmpty) {
+      return fetchMessages(contactId);
+    }
+    
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      final token = await _getToken();
+      final response = await _dio.get(
+        '/messages/$contactId/search',
+        queryParameters: {'q': query},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        _messages = data.map((e) => ChatMessage.fromJson(e, _currentUserId ?? '')).toList();
+      }
+    } catch (e) {
+      debugPrint("Search Messages Error: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // --- Real-time Pusher Integration ---
 
   /// Initialize Pusher and subscribe to the user's private channel
   Future<void> initPusher(String userId) async {
+    if (_currentUserId == userId) return; // Prevent multiple connections for the same user
     _currentUserId = userId;
     _pusher = PusherChannelsFlutter.getInstance();
     
@@ -133,7 +252,7 @@ class ChatService extends ChangeNotifier {
         apiKey: PUSHER_APP_KEY,
         cluster: PUSHER_CLUSTER,
         onEvent: _onEvent,
-        authEndpoint: "$BASE_URL/broadcasting/auth", // Laravel standard auth endpoint
+        authEndpoint: BASE_URL.replaceAll('/api', '/broadcasting/auth'), // Fix: remove /api
         onAuthorizer: _onAuthorizer,
       );
       
@@ -166,19 +285,43 @@ class ChatService extends ChangeNotifier {
 
   /// Handle incoming Pusher events
   void _onEvent(dynamic event) {
-    // Check for standard Laravel Echo event name or simple new-message
+    if (event.eventName == 'App\\Events\\MessagesMarkedAsRead' || 
+        event.eventName == 'MessagesMarkedAsRead') {
+      bool updated = false;
+      for (var msg in _messages) {
+        if (!msg.isRead) {
+          msg.isRead = true;
+          updated = true;
+        }
+      }
+      if (updated) notifyListeners();
+      return;
+    }
+
     if (event.eventName == 'App\\Events\\MessageSent' || 
         event.eventName == 'MessageSent' || 
         event.eventName == 'new-message') {
       try {
         final data = jsonDecode(event.data);
-        // Extract payload (Laravel broadcasts often nest data inside 'message')
-        final payload = data['message'] ?? data;
+        Map<String, dynamic> payload;
+        if (data is Map) {
+          final nested = data['message'];
+          if (nested is Map) {
+            payload = Map<String, dynamic>.from(nested);
+          } else {
+            payload = Map<String, dynamic>.from(data);
+          }
+        } else {
+          return;
+        }
         
         final newMessage = ChatMessage.fromJson(payload, _currentUserId ?? '');
         
         // Dynamically append the new message
         _messages.insert(0, newMessage); // Insert at 0 because ListView is reversed
+        
+        // Refresh contacts to update the unread count/last message in the UI list
+        fetchContacts();
         
         // Notify listeners so UI updates instantly
         notifyListeners();

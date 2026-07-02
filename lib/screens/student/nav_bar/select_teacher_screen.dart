@@ -1,9 +1,11 @@
-﻿import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/models/teacher_model.dart';
+import 'package:provider/provider.dart';
+import 'package:edu_pridge_flutter/services/chat_service.dart';
 
 class SelectTeacherScreen extends StatefulWidget {
   const SelectTeacherScreen({super.key});
@@ -27,28 +29,86 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
   Future<void> _fetchTeachers() async {
     setState(() => isLoading = true);
 
+    // 1. Try to load from ChatService contacts if they exist (already filtered/loaded successfully in main list)
+    try {
+      final chatService = context.read<ChatService>();
+      if (chatService.contacts.isNotEmpty) {
+        final teacherContacts = chatService.contacts.where((c) {
+          final isGroup = c['is_group'] == true || c['type'] == 'group';
+          return !isGroup;
+        }).toList();
+
+        if (teacherContacts.isNotEmpty) {
+          setState(() {
+            allTeachers = teacherContacts.map((c) {
+              return TeacherModel(
+                id: int.tryParse(c['id']?.toString() ?? '') ?? 0,
+                name: c['name'] ?? 'مستخدم غير معروف',
+                subject: c['role'] ?? c['subject'] ?? 'مدرس',
+                isOnline: c['is_online'] ?? false,
+                imageUrl: c['image'] ?? 'https://i.pravatar.cc/150',
+              );
+            }).toList();
+            isLoading = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint("⚠️ Failed to load teachers from ChatService: $e");
+    }
+
+    // 2. Fetch from backend APIs as fallback
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
       Dio dio = Dio();
-      // رابط الـ API لجلب المدرسين (سنقوم بإنشائه في اللارافل)
-      String url = "${ApiService().baseUrl}/student/teachers";
-
-      var response = await dio.get(
-        url,
-        options: Options(
-            headers: {
-              "Authorization": "Bearer $token",
-              "Accept": "application/json",
-            }
-        ),
-      );
+      
+      // Try /contacts since we know it works for main list
+      String url = "${ApiService().baseUrl}/contacts";
+      Response response;
+      try {
+        response = await dio.get(
+          url,
+          options: Options(headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          }),
+        );
+      } catch (_) {
+        // Fallback to /student/teachers
+        url = "${ApiService().baseUrl}/student/teachers";
+        response = await dio.get(
+          url,
+          options: Options(headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          }),
+        );
+      }
 
       if (response.statusCode == 200) {
-        var data = response.data['data'] as List;
+        var responseData = response.data;
+        List<dynamic> data = [];
+        if (responseData is Map && responseData['data'] != null) {
+          data = responseData['data'] as List;
+        } else if (responseData is List) {
+          data = responseData;
+        }
+
         setState(() {
-          allTeachers = data.map((e) => TeacherModel.fromJson(e)).toList();
+          allTeachers = data.map((e) {
+            final isGroup = e['is_group'] == true || e['type'] == 'group';
+            if (isGroup) return null;
+            return TeacherModel(
+              id: int.tryParse(e['id']?.toString() ?? '') ?? 0,
+              name: e['name'] ?? 'مستخدم غير معروف',
+              subject: e['role'] ?? e['subject'] ?? 'مدرس',
+              isOnline: e['is_online'] ?? false,
+              imageUrl: e['image'] ?? e['image_url'] ?? 'https://i.pravatar.cc/150',
+            );
+          }).whereType<TeacherModel>().toList();
           isLoading = false;
         });
       }
@@ -174,14 +234,18 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
         subtitle: Text(teacher.subject, style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12)),
         trailing: Icon(Icons.arrow_forward_ios, size: 16, color: isDark ? Colors.grey.shade600 : Colors.grey),
         onTap: () {
+          final chatServiceInstance = context.read<ChatService>();
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ChatDetailScreen(
-                receiverId: teacher.id, // 🌟 التعديل الجوهري لتعمل شاشة المحادثة بدون أخطاء
-                name: teacher.name,
-                imageUrl: teacher.imageUrl,
-                isGroup: false,
+              builder: (context) => ChangeNotifierProvider.value(
+                value: chatServiceInstance,
+                child: ChatDetailScreen(
+                  receiverId: teacher.id, // 🌟 التعديل الجوهري لتعمل شاشة المحادثة بدون أخطاء
+                  name: teacher.name,
+                  imageUrl: teacher.imageUrl,
+                  isGroup: false,
+                ),
               ),
             ),
           );

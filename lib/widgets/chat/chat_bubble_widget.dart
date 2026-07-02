@@ -3,18 +3,22 @@ import 'package:flutter/material.dart';
 class ChatBubbleWidget extends StatelessWidget {
   final String text;
   final bool isSender;
+  final VoidCallback? onLongPress;
 
   const ChatBubbleWidget({
     Key? key,
     required this.text,
     required this.isSender,
+    this.onLongPress,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: Align(
+        alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(

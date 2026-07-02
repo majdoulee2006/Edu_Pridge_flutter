@@ -31,13 +31,13 @@ class StudentChatScreen extends StatelessWidget {
                 ),
               ),
               ChatInputWidget(
-                onSend: (text) => chatService.sendMessage(chatId, text),
-                onAttachmentPressed: () {
-                  // Allow student to send standard attachments
-                },
-                onVoiceRecordPressed: () {
-                  // Handle student voice record
-                },
+                onSend: (text, {filePath, fileBytes, fileName}) => chatService.sendMessage(
+                  chatId,
+                  text,
+                  filePath: filePath,
+                  fileBytes: fileBytes,
+                  fileName: fileName,
+                ),
               ),
             ],
           );

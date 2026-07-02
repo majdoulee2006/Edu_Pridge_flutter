@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // مسارات الشاشات والويدجتس الخاصة بك (التصميم الأصلي)
 import 'teacher_home.dart';
@@ -18,11 +19,7 @@ class MessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 تغليف الشاشة بالـ Provider اللي بيحمل اتصال الـ Pusher وجلب البيانات
-    return ChangeNotifierProvider(
-      create: (_) => ChatService(),
-      child: const MessagesView(),
-    );
+    return const MessagesView();
   }
 }
 
@@ -39,9 +36,15 @@ class _MessagesViewState extends State<MessagesView> {
   @override
   void initState() {
     super.initState();
-    // 🌟 جلب البيانات من السيرفر بمجرد بناء الشاشة
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatService>().fetchContacts();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final chatService = context.read<ChatService>();
+      chatService.fetchContacts();
+      
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id') ?? '';
+      if (userId.isNotEmpty) {
+        chatService.initPusher(userId);
+      }
     });
   }
 
@@ -83,12 +86,23 @@ class _MessagesViewState extends State<MessagesView> {
       final conv = {
         'id': contact['id'] ?? 0,
         'name': contact['name'] ?? 'مجهول',
-        'message': contact['last_message'] ?? contact['message'] ?? role,
+        'message': (contact['last_message'] != null && contact['last_message'].toString().trim().isNotEmpty)
+            ? contact['last_message']
+            : (contact['message'] != null && contact['message'].toString().trim().isNotEmpty)
+                ? contact['message']
+                : 'انقر لبدء المحادثة...',
         'time': contact['time'] ?? contact['sent_at'] ?? 'الآن',
         'is_read': (contact['unread'] == null || contact['unread'] == 0) && (contact['is_read'] != false),
         'image': contact['image'],
         'raw_contact': contact, // 🌟 نحتفظ بالبيانات الأصلية لتمريرها للـ ChatRoomScreen
+        'role': contact['role'] ?? '',
       };
+
+      // 💡 تصفية المحادثات الفارغة: لا نعرض جهات الاتصال التي لم تبدأ معها محادثة بعد
+      // ملاحظة: نسمح للمحاكاة (Mock Data) بالمرور لتسهيل عملية التطوير/التصميم
+      if (conv['message'] == 'انقر لبدء المحادثة...' && chatService.contacts.isNotEmpty) {
+        continue;
+      }
 
       // التصنيف الذكي الخاص بك
       if (name.contains('رئيس') || name.contains('يوسف') || role.contains('head')) {
@@ -316,15 +330,39 @@ class _MessagesViewState extends State<MessagesView> {
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(chat['time'] as String? ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
-            if (isUnread)
+            if (chat['role'] != null && (chat['role'] as String).isNotEmpty) ...[
               Container(
-                margin: const EdgeInsets.only(top: 5),
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  chat['role'] as String,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFD4AC0D),
+                  ),
+                ),
+              ),
+            ],
+            Text(chat['time'] as String? ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            if (isUnread) ...[
+              const SizedBox(height: 5),
+              Container(
                 width: 10,
                 height: 10,
                 decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
               ),
+            ],
           ],
         ),
       ),

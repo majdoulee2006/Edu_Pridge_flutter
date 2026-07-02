@@ -14,6 +14,11 @@ class ChatRoomScreen extends StatefulWidget {
 }
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
+  final TextEditingController _inputController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  String? _editingMessageId;
+
   @override
   void initState() {
     super.initState();
@@ -34,28 +39,56 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         titleSpacing: 0,
         backgroundColor: Theme.of(context).cardColor,
         elevation: 1,
-        title: Directionality(
-          textDirection: TextDirection.rtl,
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundImage: widget.contact['image'] != null ? NetworkImage(widget.contact['image']) : null,
-                child: widget.contact['image'] == null ? Text(widget.contact['name'][0]) : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                decoration: InputDecoration(
+                  hintText: 'البحث في المحادثة...',
+                  hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  border: InputBorder.none,
+                ),
+                onSubmitted: (val) {
+                  context.read<ChatService>().searchMessages(widget.contact['id'].toString(), val);
+                },
+              )
+            : Directionality(
+                textDirection: TextDirection.rtl,
+                child: Row(
                   children: [
-                    Text(widget.contact['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(widget.contact['role'], style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 12)),
+                    CircleAvatar(
+                      backgroundImage: widget.contact['image'] != null ? NetworkImage(widget.contact['image']) : null,
+                      child: widget.contact['image'] == null ? Text(widget.contact['name'][0]) : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.contact['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(widget.contact['role'], style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 12)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
         iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchController.clear();
+                  context.read<ChatService>().searchMessages(widget.contact['id'].toString(), '');
+                }
+              });
+            },
+          ),
+        ],
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
@@ -76,14 +109,67 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               return ChatBubbleWidget(
                                 text: msg.text,
                                 isSender: msg.isMe,
+                                onLongPress: msg.isMe && msg.attachment == null && msg.text != '[Voice Note]'
+                                    ? () {
+                                        showModalBottomSheet(
+                                          context: context,
+                                          builder: (ctx) => SafeArea(
+                                            child: Wrap(
+                                              children: [
+                                                ListTile(
+                                                  leading: const Icon(Icons.edit, color: Colors.blue),
+                                                  title: const Text('تعديل الرسالة'),
+                                                  onTap: () {
+                                                    Navigator.pop(ctx);
+                                                    setState(() {
+                                                      _editingMessageId = msg.id;
+                                                      _inputController.text = msg.text;
+                                                    });
+                                                  },
+                                                ),
+                                                ListTile(
+                                                  leading: const Icon(Icons.delete, color: Colors.red),
+                                                  title: const Text('حذف الرسالة'),
+                                                  onTap: () {
+                                                    Navigator.pop(ctx);
+                                                    chatService.deleteMessage(msg.id);
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    : null,
                               );
                             },
                           ),
                   ),
                   ChatInputWidget(
-                    onSend: (text) => chatService.sendMessage(widget.contact['id'], text),
-                    onAttachmentPressed: () {},
-                    onVoiceRecordPressed: () {},
+                    controller: _inputController,
+                    isEditing: _editingMessageId != null,
+                    onCancelEdit: () {
+                      setState(() {
+                        _editingMessageId = null;
+                        _inputController.clear();
+                      });
+                    },
+                    onSend: (text, {filePath, fileBytes, fileName}) {
+                      if (_editingMessageId != null) {
+                        chatService.editMessage(_editingMessageId!, text);
+                        setState(() {
+                          _editingMessageId = null;
+                        });
+                      } else {
+                        chatService.sendMessage(
+                          widget.contact['id'].toString(),
+                          text,
+                          filePath: filePath,
+                          fileBytes: fileBytes,
+                          fileName: fileName,
+                        );
+                      }
+                    },
                   ),
                 ],
               );

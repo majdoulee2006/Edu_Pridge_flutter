@@ -1,18 +1,20 @@
-﻿import 'package:flutter/material.dart';
-import 'package:edu_pridge_flutter/services/api_service.dart';
-import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:edu_pridge_flutter/models/message_model.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
+import 'package:edu_pridge_flutter/services/chat_service.dart';
+import 'package:edu_pridge_flutter/models/chat_message_model.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ChatDetailScreen extends StatefulWidget {
-  final int receiverId; // 🌟 ضفنا الـ ID تبع الشخص اللي عم نحكي معه (ضروري للسيرفر)
+  final int receiverId;
   final String name;
   final String imageUrl;
   final bool isGroup;
 
   const ChatDetailScreen({
     super.key,
-    required this.receiverId, // 🌟 صار مطلوب
+    required this.receiverId,
     required this.name,
     required this.imageUrl,
     this.isGroup = false,
@@ -26,99 +28,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  List<MessageModel> messages = [];
-  bool isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    _fetchMessages();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ChatService>().fetchMessages(widget.receiverId.toString());
+    });
   }
 
-  // 🌟 دالة جلب سجل الرسائل الحقيقي من السيرفر
-  Future<void> _fetchMessages() async {
-    setState(() => isLoading = true);
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
-      // نجلب الـ ID تبع الطالب الحالي لنعرف مين المرسل ومين المستقبل
-      int currentUserId = int.tryParse(prefs.get('user_id').toString()) ?? 0;
-
-      Dio dio = Dio();
-      // الرابط الحقيقي تبع اللارافل
-      String url = "${ApiService().baseUrl}/student/messages/history/${widget.receiverId}";
-
-      var response = await dio.get(
-        url,
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-
-      if (response.statusCode == 200) {
-        var data = response.data['data'] as List;
-        setState(() {
-          // تحويل البيانات الجاية من اللارافل لموديل الفلاتر
-          messages = data.map((e) => MessageModel.fromJson(e, currentUserId)).toList();
-          isLoading = false;
-        });
-        _scrollToBottom();
-      }
-    } catch (e) {
-      debugPrint("❌ خطأ في جلب الرسائل: $e");
-      if (mounted) setState(() => isLoading = false);
-    }
+  String _formatTime(DateTime dt) {
+    final localDt = dt.toLocal();
+    final hour = localDt.hour > 12 ? localDt.hour - 12 : (localDt.hour == 0 ? 12 : localDt.hour);
+    final amPm = localDt.hour >= 12 ? 'م' : 'ص';
+    final minute = localDt.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $amPm';
   }
 
-  // 🌟 دالة إرسال رسالة حقيقية للسيرفر
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
 
     final String text = _messageController.text;
 
-    // 1. إضافة الرسالة محلياً فوراً (عشان سرعة الواجهة)
     setState(() {
-      messages.add(MessageModel(
-        id: DateTime.now().millisecondsSinceEpoch,
-        text: text,
-        isMe: true,
-        time: 'الآن',
-      ));
       _messageController.clear();
     });
 
-    _scrollToBottom();
-
-    // 2. إرسالها للارافل في الخلفية
     try {
-      final prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
-
-      Dio dio = Dio();
-      String url = "${ApiService().baseUrl}/student/messages/send";
-
-      var response = await dio.post(
-        url,
-        data: {
-          "receiver_id": widget.receiverId,
-          "message": text,
-        },
-        options: Options(
-            headers: {
-              "Authorization": "Bearer $token",
-              "Accept": "application/json",
-            }
-        ),
-      );
-
-      if (response.statusCode == 201) {
-        debugPrint("✅ تم إرسال الرسالة للسيرفر بنجاح");
-      }
+      await context.read<ChatService>().sendMessage(widget.receiverId.toString(), text);
     } catch (e) {
       debugPrint("❌ خطأ في إرسال الرسالة: $e");
     }
   }
 
-  // 🌟 النزول لآخر رسالة في المحادثة
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -154,9 +95,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildAttachmentOption(Icons.image, 'صورة', Colors.purple, isDark, textColor),
-                  _buildAttachmentOption(Icons.videocam, 'فيديو', Colors.pink, isDark, textColor),
-                  _buildAttachmentOption(Icons.insert_drive_file, 'مستند', Colors.blue, isDark, textColor),
+                  _buildAttachmentOption(Icons.image, 'صورة', Colors.purple, isDark, textColor, 'image'),
+                  _buildAttachmentOption(Icons.videocam, 'فيديو', Colors.pink, isDark, textColor, 'video'),
+                  _buildAttachmentOption(Icons.insert_drive_file, 'مستند', Colors.blue, isDark, textColor, 'file'),
                 ],
               ),
               const SizedBox(height: 10),
@@ -167,9 +108,56 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildAttachmentOption(IconData icon, String title, Color color, bool isDark, Color textColor) {
+  Widget _buildAttachmentOption(IconData icon, String title, Color color, bool isDark, Color textColor, String type) {
     return GestureDetector(
-      onTap: () => Navigator.pop(context),
+      onTap: () async {
+        Navigator.pop(context);
+        String? filePath;
+        List<int>? fileBytes;
+        String? fileName;
+        try {
+          if (type == 'image') {
+            final picker = ImagePicker();
+            final image = await picker.pickImage(source: ImageSource.gallery);
+            if (image != null) {
+              filePath = image.path;
+              fileName = image.name;
+              fileBytes = await image.readAsBytes();
+            }
+          } else if (type == 'video') {
+            final picker = ImagePicker();
+            final video = await picker.pickVideo(source: ImageSource.gallery);
+            if (video != null) {
+              filePath = video.path;
+              fileName = video.name;
+              fileBytes = await video.readAsBytes();
+            }
+          } else {
+            final result = await FilePicker.platform.pickFiles(
+              type: FileType.custom,
+              allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'],
+              withData: true,
+            );
+            if (result != null) {
+              filePath = result.files.single.path;
+              fileName = result.files.single.name;
+              fileBytes = result.files.single.bytes;
+            }
+          }
+
+          if (fileBytes != null || filePath != null) {
+            await context.read<ChatService>().sendMessage(
+              widget.receiverId.toString(),
+              "[Attachment]",
+              filePath: filePath,
+              fileBytes: fileBytes,
+              fileName: fileName,
+            );
+          }
+        } catch (e) {
+          debugPrint("Picking attachment error: $e");
+        }
+      },
       child: Column(
         children: [
           Container(
@@ -190,6 +178,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final bgColor = isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC);
     final appBarColor = isDark ? Theme.of(context).cardColor : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
+
+    final chatService = context.watch<ChatService>();
+    final messages = chatService.messages;
+    final isLoading = chatService.isLoading;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -235,15 +227,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               child: isLoading
                   ? const Center(child: CircularProgressIndicator(color: Colors.amber))
                   : ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(20),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final msg = messages[index];
-                  bool isMe = widget.isGroup ? false : msg.isMe;
-                  return _buildMessageBubble(msg.text, isMe, msg.time, isDark);
-                },
-              ),
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.all(20),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = messages[index];
+                        bool isMe = widget.isGroup ? false : msg.isMe;
+                        return _buildMessageBubble(msg.text, isMe, _formatTime(msg.timestamp), isDark);
+                      },
+                    ),
             ),
             if (widget.isGroup)
               _buildReadOnlyBanner(isDark)
@@ -297,12 +290,44 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         color: isDark ? Theme.of(context).cardColor : Colors.white,
         boxShadow: [BoxShadow(color: isDark ? Colors.black45 : Colors.black12, blurRadius: 10)],
       ),
-      child: Text(
-        'هذه المجموعة مخصصة للإعلانات، يقتصر الإرسال على المدرب.',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
+      child: const Center(
+        child: Text(
+          'هذه المجموعة مغلقة ولا يمكنك إرسال رسائل فيها',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
       ),
     );
+  }
+
+  Future<void> _showVoiceNotePicker() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp3', 'wav', 'm4a', 'ogg', 'aac'],
+        withData: true,
+      );
+      if (result != null) {
+        final path = result.files.single.path;
+        final bytes = result.files.single.bytes;
+        final name = result.files.single.name;
+        
+        if (bytes != null || path != null) {
+          await context.read<ChatService>().sendMessage(
+            widget.receiverId.toString(),
+            "[Voice Note]",
+            filePath: path,
+            fileBytes: bytes,
+            fileName: name,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error sending voice note: $e");
+    }
   }
 
   Widget _buildMessageInput(bool isDark) {
@@ -312,6 +337,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      // 🌟 الإصلاح هنا: وضعنا الـ color والـ boxShadow بداخل BoxDecoration
       decoration: BoxDecoration(
         color: bgColor,
         boxShadow: [BoxShadow(color: isDark ? Colors.black45 : Colors.black12, blurRadius: 10)],
@@ -319,21 +345,36 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       child: SafeArea(
         child: Row(
           children: [
-            IconButton(
-              icon: Icon(Icons.attach_file, color: isDark ? Colors.grey.shade400 : Colors.grey, size: 26),
-              onPressed: () => _showAttachmentOptions(context),
-            ),
             Expanded(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
-                decoration: BoxDecoration(color: inputBgColor, borderRadius: BorderRadius.circular(25)),
+                decoration: BoxDecoration(
+                  color: inputBgColor,
+                  borderRadius: BorderRadius.circular(30),
+                ),
                 child: TextField(
                   controller: _messageController,
                   style: TextStyle(color: textColor),
                   decoration: InputDecoration(
                     hintText: 'اكتب رسالتك...',
-                    hintStyle: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade500 : Colors.grey),
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey.shade500 : Colors.grey,
+                    ),
                     border: InputBorder.none,
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.mic, color: isDark ? Colors.grey.shade400 : Colors.grey, size: 22),
+                          onPressed: _showVoiceNotePicker,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.attach_file, color: isDark ? Colors.grey.shade400 : Colors.grey, size: 22),
+                          onPressed: () => _showAttachmentOptions(context),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -342,9 +383,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             GestureDetector(
               onTap: _sendMessage,
               child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
-                child: const Icon(Icons.send_rounded, color: Colors.black, size: 24),
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFCC00),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_upward,
+                  color: Colors.black,
+                  size: 24,
+                ),
               ),
             ),
           ],

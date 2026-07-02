@@ -11,6 +11,8 @@ import 'screens/teacher/teacher_home.dart';
 import 'screens/parents/nav_bar/parent_home.dart';
 import 'screens/Head of department/nav_bar/boss_home.dart';
 import 'screens/Affairs_Officer/nav_bar/home_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:edu_pridge_flutter/services/chat_service.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -21,7 +23,12 @@ void main() async {
     await FcmService.init();
   }
   await AppSettings.loadFromPrefs();
-  runApp(const EduBridgeApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ChatService(),
+      child: const EduBridgeApp(),
+    ),
+  );
 }
 
 class _AppRouter extends StatefulWidget {
@@ -41,7 +48,15 @@ class _AppRouterState extends State<_AppRouter> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
     final role  = prefs.getString('role')  ?? '';
+    final userId = prefs.getString('user_id') ?? '';
+    
     if (!mounted) return;
+    
+    // Initialize Pusher if logged in
+    if (token.isNotEmpty && userId.isNotEmpty) {
+      context.read<ChatService>().initPusher(userId);
+    }
+
     final Widget dest;
     if (token.isEmpty) {
       dest = const OnboardingOne();

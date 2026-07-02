@@ -487,7 +487,7 @@ class _OtpVerifyScreenState extends State<_OtpVerifyScreen> {
       await prefs.setString('user_role', userData['role']?.toString() ?? '');
       await prefs.setString('role',      userData['role']?.toString() ?? '');
       if (userData['parent_id'] != null) {
-        await prefs.setInt('parent_id', userData['parent_id']);
+        await prefs.setString('parent_id', userData['parent_id'].toString());
       }
 
       if (!mounted) return;
