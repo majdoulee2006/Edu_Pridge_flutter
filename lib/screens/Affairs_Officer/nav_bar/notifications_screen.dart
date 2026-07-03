@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-import 'package:edu_pridge_flutter/services/affairs_services.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
@@ -12,110 +15,149 @@ class AffairsOfficerNotificationsScreen extends StatefulWidget {
   const AffairsOfficerNotificationsScreen({super.key});
 
   @override
-  State<AffairsOfficerNotificationsScreen> createState() => _AffairsOfficerNotificationsScreenState();
+  State<AffairsOfficerNotificationsScreen> createState() =>
+      _AffairsOfficerNotificationsScreenState();
 }
 
-class _AffairsOfficerNotificationsScreenState extends State<AffairsOfficerNotificationsScreen> {
-  final AffairsServices _affairsServices = AffairsServices();
+class _AffairsOfficerNotificationsScreenState
+    extends State<AffairsOfficerNotificationsScreen> {
   bool _isLoading = true;
-  List<dynamic> _notifications = [];
+  bool _isMarkingAll = false;
+  List<Map<String, dynamic>> _notifications = [];
 
   @override
   void initState() {
     super.initState();
-    _loadNotifications();
+    _fetchNotifications();
   }
 
-  Future<void> _loadNotifications() async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
+  Future<String> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token') ?? '';
+  }
 
+  Future<void> _fetchNotifications() async {
+    setState(() => _isLoading = true);
     try {
-      final data = await _affairsServices.getNotifications();
-      if (mounted) {
+      final token = await _getToken();
+      if (token.isEmpty) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/affairs/notifications",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token"
+        }),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final raw = res.data;
+        final List list = raw is List ? raw : (raw['data'] ?? []);
         setState(() {
-          _notifications = data ?? [];
+          _notifications =
+              list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint("Error loading notifications: $e");
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      debugPrint("⛔ Affairs notifications error: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _markAsRead(int id, int index) async {
+    if (_notifications[index]['is_read'] == true) return;
+    try {
+      final token = await _getToken();
+      await Dio().put(
+        "${ApiService().baseUrl}/affairs/notifications/$id/read",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token"
+        }),
+      );
+      if (mounted) setState(() => _notifications[index]['is_read'] = true);
+    } catch (e) {
+      debugPrint("⛔ Affairs mark read error: $e");
     }
   }
 
   Future<void> _markAllAsRead() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFCC00)),
-        ),
-      ),
-    );
+    if (_isMarkingAll) return;
+    setState(() => _isMarkingAll = true);
+    try {
+      final token = await _getToken();
+      await Dio().put(
+        "${ApiService().baseUrl}/affairs/notifications/read-all",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token"
+        }),
+      );
+      if (mounted) {
+        setState(() {
+          for (final n in _notifications) {
+            n['is_read'] = true;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("⛔ Affairs mark all read error: $e");
+    } finally {
+      if (mounted) setState(() => _isMarkingAll = false);
+    }
+  }
 
-    final success = await _affairsServices.markAllNotificationsRead();
-    if (!mounted) return;
-    Navigator.pop(context); // Pop loading
+  int get _unreadCount =>
+      _notifications.where((n) => n['is_read'] != true).length;
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم تحديد جميع الإشعارات كمقروءة ✓', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
-          backgroundColor: Colors.green,
+  void _onTap(Map<String, dynamic> n, int index) {
+    final int id = (n['id'] as num?)?.toInt() ?? 0;
+    _markAsRead(id, index);
+
+    final type = n['type']?.toString() ?? '';
+    if (type == 'announcement' || type == 'administrative') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AnnouncementDetailScreen(announcement: {
+            'title': n['title']?.toString() ?? '',
+            'content': n['message']?.toString() ?? '',
+            'body': n['message']?.toString() ?? '',
+            'time_ago': n['created_at']?.toString().split('T')[0] ?? '',
+            'created_at': n['created_at']?.toString() ?? '',
+            'author_name': 'الإدارة',
+          }),
         ),
       );
-      _loadNotifications();
     }
   }
 
-  Future<void> _markAsRead(int notificationId) async {
-    final success = await _affairsServices.markNotificationRead(notificationId);
-    if (success && mounted) {
-      _loadNotifications();
-    }
-  }
-
-  Color _getTypeColor(String? type) {
+  Map<String, dynamic> _styleFor(String? type) {
     switch (type) {
+      case 'announcement':
       case 'administrative':
-        return const Color(0xFF2196F3);
-      case 'urgent':
-        return const Color(0xFFFF9800);
+        return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': 'إعلان'};
+      case 'leave_request':
+        return {'color': Colors.blue, 'icon': Icons.description_outlined, 'label': 'طلب إجازة'};
+      case 'report':
+        return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': 'تقرير'};
+      case 'attendance':
+        return {'color': Colors.red, 'icon': Icons.person_off, 'label': 'حضور وغياب'};
       case 'message':
-        return const Color(0xFF9C27B0);
-      case 'report_request':
-        return const Color(0xFF607D8B);
+        return {'color': Colors.teal, 'icon': Icons.chat_bubble_outline, 'label': 'رسالة'};
       default:
-        return const Color(0xFF2196F3);
-    }
-  }
-
-  IconData _getTypeIcon(String? type) {
-    switch (type) {
-      case 'administrative':
-        return Icons.campaign_outlined;
-      case 'urgent':
-        return Icons.warning_amber_outlined;
-      case 'message':
-        return Icons.chat_bubble_outline_rounded;
-      case 'report_request':
-        return Icons.assignment_outlined;
-      default:
-        return Icons.notifications_none_rounded;
+        return {'color': Colors.blueGrey, 'icon': Icons.notifications_active, 'label': 'إشعار'};
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color bgColor   = isDark ? const Color(0xFF121212) : const Color(0xFFF9F9F9);
+    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F9F9);
     final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDark ? Colors.white : Colors.black;
-    final Color subColor  = isDark ? Colors.grey.shade400 : Colors.grey;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -126,100 +168,74 @@ class _AffairsOfficerNotificationsScreenState extends State<AffairsOfficerNotifi
             SafeArea(
               child: Column(
                 children: [
-                  // الهيدر
+                  // Header
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
-                    child: Stack(
-                      alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.settings,
-                              color: isDark ? const Color(0xFFFFCC00) : const Color(0xFFFFA000),
-                              size: 28,
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                              ).then((_) => _loadNotifications());
-                            },
-                          ),
+                        IconButton(
+                          icon: Icon(Icons.settings, color: isDark ? const Color(0xFFFFCC00) : const Color(0xFFFFA000), size: 26),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
                         ),
-                        Text(
-                          "الإشعارات",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                            fontFamily: 'Noto Sans Arabic',
-                          ),
+                        Row(
+                          children: [
+                            Text("الإشعارات", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+                            if (_unreadCount > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(10)),
+                                child: Text('$_unreadCount', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ],
                         ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.arrow_back,
-                              color: textColor,
-                              size: 26,
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                          ),
+                        Row(
+                          children: [
+                            if (_unreadCount > 0)
+                              _isMarkingAll
+                                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00)))
+                                  : TextButton(
+                                      onPressed: _markAllAsRead,
+                                      child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                                    )
+                            else
+                              IconButton(
+                                icon: Icon(Icons.arrow_forward, color: textColor, size: 26),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                          ],
                         ),
                       ],
                     ),
                   ),
 
-                  // زر تحديد الكل كمقروء
-                  if (_notifications.any((n) => n['is_read'] == 0 || n['is_read'] == false))
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: _markAllAsRead,
-                          icon: const Icon(Icons.done_all, size: 18, color: Color(0xFFFFCC00)),
-                          label: const Text(
-                            'تحديد الكل كمقروء',
-                            style: TextStyle(
-                              color: Color(0xFFFFCC00),
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Noto Sans Arabic',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
                   Expanded(
                     child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFCC00)),
-                            ),
-                          )
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                         : RefreshIndicator(
-                            onRefresh: _loadNotifications,
+                            onRefresh: _fetchNotifications,
                             color: const Color(0xFFFFCC00),
                             child: _notifications.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'لا توجد إشعارات حالياً',
-                                      style: TextStyle(color: subColor, fontSize: 14, fontFamily: 'Noto Sans Arabic'),
-                                    ),
-                                  )
+                                ? ListView(children: [
+                                    SizedBox(
+                                      height: 400,
+                                      child: Center(
+                                        child: Text("لا توجد إشعارات حالياً",
+                                            style: TextStyle(color: textColor.withValues(alpha: 0.5))),
+                                      ),
+                                    )
+                                  ])
                                 : ListView.builder(
-                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    physics: const BouncingScrollPhysics(),
                                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
                                     itemCount: _notifications.length,
                                     itemBuilder: (context, index) {
-                                      return _buildNotificationCard(
-                                        _notifications[index],
-                                        cardColor,
-                                        textColor,
-                                        subColor,
+                                      final n = _notifications[index];
+                                      return GestureDetector(
+                                        onTap: () => _onTap(n, index),
+                                        child: _buildCard(n, cardColor, textColor, isDark),
                                       );
                                     },
                                   ),
@@ -232,24 +248,10 @@ class _AffairsOfficerNotificationsScreenState extends State<AffairsOfficerNotifi
             CustomBottomNav(
               currentIndex: 2,
               centerButton: AffairsOfficerSpeedDial(),
-              onHomeTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AffairsOfficerHomeScreen()),
-                );
-              },
-              onProfileTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AffairsOfficerProfileScreen()),
-                );
-              },
-              onMessagesTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AffairsOfficerMessagesScreen()),
-                );
-              },
+              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AffairsOfficerHomeScreen())),
+              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AffairsOfficerProfileScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AffairsOfficerMessagesScreen())),
+              onNotificationsTap: () {},
             ),
           ],
         ),
@@ -257,130 +259,85 @@ class _AffairsOfficerNotificationsScreenState extends State<AffairsOfficerNotifi
     );
   }
 
-  Widget _buildNotificationCard(
-    Map<String, dynamic> data,
-    Color cardColor,
-    Color textColor,
-    Color subColor,
-  ) {
-    final String type = data['type'] ?? 'administrative';
-    final Color typeColor = _getTypeColor(type);
-    final IconData iconData = _getTypeIcon(type);
-    final bool isUnread = data['is_read'] == 0 || data['is_read'] == false;
-    final int notificationId = data['id'] ?? 0;
+  Widget _buildCard(Map<String, dynamic> n, Color cardColor, Color textColor, bool isDark) {
+    final style = _styleFor(n['type']?.toString());
+    final Color color = style['color'] as Color;
+    final bool isUnread = n['is_read'] != true;
+    final String dateStr = (n['created_at']?.toString() ?? '').split('T')[0];
 
-    return GestureDetector(
-      onTap: () {
-        if (isUnread) {
-          _markAsRead(notificationId);
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: isUnread ? cardColor : cardColor.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(isUnread ? 12 : 4),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isUnread
+            ? (isDark ? color.withValues(alpha: 0.08) : color.withValues(alpha: 0.05))
+            : cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: isUnread ? Border.all(color: color.withValues(alpha: 0.3), width: 1) : null,
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: const BorderRadius.only(topRight: Radius.circular(16), bottomRight: Radius.circular(16)),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(dateStr, style: TextStyle(fontSize: 10, color: textColor.withValues(alpha: 0.5))),
+                          const SizedBox(height: 4),
+                          Text(
+                            n['title']?.toString() ?? 'إشعار',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            n['message']?.toString() ?? '',
+                            style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.6), height: 1.4),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(style['label'] as String, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                          child: Icon(style['icon'] as IconData, color: color, size: 19),
+                        ),
+                        if (isUnread) ...[
+                          const SizedBox(height: 6),
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFF5722), shape: BoxShape.circle)),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
-          border: isUnread ? Border.all(color: typeColor.withOpacity(0.2), width: 1) : null,
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: 4,
-                decoration: BoxDecoration(
-                  color: isUnread ? typeColor : subColor.withOpacity(0.5),
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  data['created_at'] != null
-                                      ? data['created_at'].toString().split('T')[0]
-                                      : '',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: subColor,
-                                    fontFamily: 'Noto Sans Arabic',
-                                  ),
-                                ),
-                                if (isUnread) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFFFCC00),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ]
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              data['title'] ?? '',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-                                color: textColor,
-                                fontFamily: 'Noto Sans Arabic',
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              data['message'] ?? '',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: subColor,
-                                height: 1.4,
-                                fontFamily: 'Noto Sans Arabic',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: typeColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          iconData,
-                          color: typeColor,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

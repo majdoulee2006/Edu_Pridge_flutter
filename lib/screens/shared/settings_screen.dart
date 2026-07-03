@@ -356,6 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         AppSettings.triggerHaptic();
         showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (_) => Directionality(
             textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
             child: AlertDialog(

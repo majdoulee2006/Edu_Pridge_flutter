@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "694471131449",
-    "project_id": "edubridge-78429",
-    "storage_bucket": "edubridge-78429.firebasestorage.app"
+    "project_number": "1087208747554",
+    "project_id": "edu-bridge-246fd",
+    "storage_bucket": "edu-bridge-246fd.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:694471131449:android:1a078b98314d7b14f528e8",
+        "mobilesdk_app_id": "1:1087208747554:android:ddb51f983ddd08c2f9107b",
         "android_client_info": {
           "package_name": "com.example.edu_pridge_flutter"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCjrmleAbmzNMvckPvd3z4X3U7g3dec0C4"
+          "current_key": "AIzaSyDP-yaL2DwcCLP9qPiupNhzo5BDDWaz7yk"
         }
       ],
       "services": {

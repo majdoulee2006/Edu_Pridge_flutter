@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
@@ -26,6 +26,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification> academicNotifications = [];
   List<AppNotification> administrativeNotifications = [];
   bool isLoading = true;
+  bool _isMarkingAll = false;
   String _userName = '';
   String _avatarUrl = '';
 
@@ -122,15 +123,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   // 🌟 دالة تحويل الإشعار لمقروء
   Future<void> _markAsRead(AppNotification notify) async {
-    if (notify.isRead) return; // إذا مقروء مسبقاً، ما بنعمل طلب للسيرفر
-
+    if (notify.isRead) return;
     bool success = await StudentServices().markNotificationAsRead(notify.id);
     if (success) {
       setState(() {
-        notify.isRead = true; // تحديث حالة الإشعار بالواجهة ليختفي اللون الغامق
+        notify.isRead = true;
       });
     }
   }
+
+  Future<void> _markAllAsRead() async {
+    if (_isMarkingAll) return;
+    setState(() => _isMarkingAll = true);
+    final success = await StudentServices().markAllNotificationsAsRead();
+    if (success && mounted) {
+      setState(() {
+        for (final n in academicNotifications) { n.isRead = true; }
+        for (final n in administrativeNotifications) { n.isRead = true; }
+      });
+    }
+    if (mounted) setState(() => _isMarkingAll = false);
+  }
+
+  int get _unreadCount =>
+      academicNotifications.where((n) => !n.isRead).length +
+      administrativeNotifications.where((n) => !n.isRead).length;
 
   @override
   Widget build(BuildContext context) {
@@ -170,22 +187,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             centerTitle: true,
             actions: [
-              IconButton(
-                icon: Icon(
-                  Icons.settings_outlined,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SettingsScreen(
-                      userName: _userName,
-                      userRole: 'طالب',
-                      profileImageUrl: _avatarUrl,
-                    ),
+              if (_unreadCount > 0)
+                _isMarkingAll
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00))),
+                      )
+                    : TextButton(
+                        onPressed: _markAllAsRead,
+                        child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                      )
+              else
+                IconButton(
+                  icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SettingsScreen(
+                      userName: _userName, userRole: 'طالب', profileImageUrl: _avatarUrl,
+                    )),
                   ),
                 ),
-              ),
             ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(70),

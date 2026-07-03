@@ -18,7 +18,20 @@ final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (!kIsWeb) {
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyAgT4rvWSyvaDbHujMmZTDDUZn2xMnts5M",
+        authDomain: "edu-bridge-246fd.firebaseapp.com",
+        projectId: "edu-bridge-246fd",
+        storageBucket: "edu-bridge-246fd.firebasestorage.app",
+        messagingSenderId: "1087208747554",
+        appId: "1:1087208747554:web:ab689779c18d1872f9107b",
+        measurementId: "G-7NNSYEDPYB",
+      ),
+    );
+    await FcmService.initWeb();
+  } else {
     await Firebase.initializeApp();
     await FcmService.init();
   }

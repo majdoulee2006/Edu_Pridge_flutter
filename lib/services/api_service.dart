@@ -7,8 +7,8 @@ class ApiService {
   // ==========================================
   // 🌟 تعديل الرابط ليكون ديناميكياً وذكياً
   // ==========================================
-  static const String _serverIp = '127.0.0.1'; //ppp 127.0.0.1
-  static const String _port = '8000';
+  static const String _serverIp = '127.0.0.1';
+  static const String _port = '45101';
 
   String get baseUrl {
     if (kIsWeb) {
