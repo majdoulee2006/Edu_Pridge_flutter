@@ -19,15 +19,16 @@ class ChatBubbleWidget extends StatelessWidget {
       child: Align(
         alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSender ? Colors.blueAccent : Colors.grey[300],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(color: isSender ? Colors.white : Colors.black87),
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isSender ? Colors.blueAccent : Colors.grey[300],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(color: isSender ? Colors.white : Colors.black87),
+          ),
         ),
       ),
     );

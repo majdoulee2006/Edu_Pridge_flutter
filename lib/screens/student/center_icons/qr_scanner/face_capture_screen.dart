@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class FaceCaptureScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   bool _isFaceDetected = false;
   bool _isCapturing    = false;
   bool _isSubmitting   = false;
+  bool _isInitializingReference = false;
   String _hint         = 'وجّه كاميرتك الأمامية نحو وجهك';
 
   Timer? _captureTimer;
@@ -33,13 +35,13 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   @override
   void initState() {
     super.initState();
-    _initCamera();
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         enableLandmarks: true,
         performanceMode: FaceDetectorMode.accurate,
       ),
     );
+    _checkAndInitializeFace();
   }
 
   Future<void> _initCamera() async {
@@ -54,6 +56,89 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     if (!mounted) return;
     setState(() {});
     _startFaceDetectionLoop();
+  }
+
+  Future<void> _checkAndInitializeFace() async {
+    setState(() => _isInitializingReference = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      // 1. جلب بيانات الملف الشخصي لمعرفة حالة البصمة ورابط صورة الشؤون
+      final resProfile = await Dio().get(
+        "${ApiService().baseUrl}/student/profile",
+        options: Options(headers: {"Authorization": "Bearer $token", "Accept": "application/json"}),
+      );
+
+      final profileData = resProfile.data['data'];
+      final bool hasFace = profileData['has_face_embedding'] == true;
+      final String? photoUrl = profileData['reference_photo_url'];
+
+      if (!hasFace) {
+        if (photoUrl == null || photoUrl.isEmpty) {
+          _showErrorDialog("صورة الشؤون غير متوفرة. يرجى مراجعة إدارة شؤون الطلاب لتسجيل صورتك الرسمية.");
+          return;
+        }
+
+        setState(() => _hint = "جاري تهيئة بصمة وجهك من صورة الشؤون المرجعية...");
+
+        // 2. تحميل صورة الشؤون مؤقتاً
+        final tempDir = await getTemporaryDirectory();
+        final tempPath = "${tempDir.path}/ref_photo.jpg";
+        await Dio().download(photoUrl, tempPath);
+
+        // 3. معالجة الصورة واستخراج البصمة
+        final inputImage = InputImage.fromFilePath(tempPath);
+        final faces = await _faceDetector!.processImage(inputImage);
+
+        if (faces.isEmpty) {
+          _showErrorDialog("فشل العثور على وجه في صورتك الرسمية المرفوعة من الشؤون. يرجى مراجعة شؤون الطلاب لتحديثها.");
+          return;
+        }
+
+        final embedding = await _extractPixelEmbedding(faces.first, tempPath);
+
+        if (embedding.isEmpty) {
+          _showErrorDialog("فشل استخراج بصمة وجهك من الصورة. يرجى التواصل مع الدعم الفني.");
+          return;
+        }
+
+        // 4. رفع البصمة لتثبيتها في قاعدة البيانات
+        await Dio().post(
+          "${ApiService().baseUrl}/student/profile/initialize-face",
+          data: {"face_embedding": embedding},
+          options: Options(headers: {"Authorization": "Bearer $token", "Accept": "application/json"}),
+        );
+      }
+
+      // بعد انتهاء التهيئة بنجاح، يتم تشغيل الكاميرا
+      await _initCamera();
+    } catch (e) {
+      _showErrorDialog("حدث خطأ أثناء الاتصال بالخادم لتهيئة الوجه: $e");
+    } finally {
+      setState(() => _isInitializingReference = false);
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text("تنبيه أمني", textDirection: TextDirection.rtl),
+        content: Text(message, textDirection: TextDirection.rtl),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context); // الخروج من شاشة الحضور
+            },
+            child: const Text("موافق"),
+          )
+        ],
+      ),
+    );
   }
 
   void _startFaceDetectionLoop() {
@@ -78,6 +163,22 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       if (!mounted) return;
 
       if (faces.isNotEmpty) {
+        final face = faces.first;
+
+        // التأكد من أن الطالب ينظر مباشرة للكاميرا بشكل مستقيم لضمان دقة المطابقة
+        final double yaw = face.headEulerAngleY ?? 0;
+        final double pitch = face.headEulerAngleX ?? 0;
+
+        if (yaw.abs() > 12 || pitch.abs() > 12) {
+          setState(() {
+            _isFaceDetected = false;
+            _hint = 'انظر مباشرة إلى الكاميرا بشكل مستقيم ⚠️';
+            _isCapturing = false;
+          });
+          _captureTimer?.cancel();
+          return;
+        }
+
         if (!_isFaceDetected) {
           setState(() {
             _isFaceDetected = true;
@@ -88,7 +189,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         if (!_isCapturing) {
           _isCapturing = true;
           _captureTimer = Timer(const Duration(seconds: 1), () {
-            _captureAndSubmit(faces.first, image.path);
+            _captureAndSubmit(face, image.path);
           });
         }
       } else {
@@ -104,14 +205,14 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     } catch (_) {}
   }
 
-  // مقارنة pixels الوجه — أدق بكثير من landmark distances
+  // مقارنة pixels الوجه بدقة 64×64 وتعديل الدوران لزيادة الدقة
   Future<List<double>> _extractPixelEmbedding(Face face, String imagePath) async {
     try {
       final bytes = await File(imagePath).readAsBytes();
       img.Image? image = img.decodeImage(bytes);
       if (image == null) return [];
 
-      // تصحيح اتجاه الصورة (EXIF)
+      // تصحيح اتجاه الصورة من الـ EXIF
       image = img.bakeOrientation(image);
 
       final box = face.boundingBox;
@@ -125,23 +226,30 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
       if (w <= 0 || h <= 0) return [];
 
-      // قص منطقة الوجه، تصغير لـ 32×32، تحويل لرمادي
-      final cropped = img.copyCrop(image, x: x, y: y, width: w, height: h);
-      final resized = img.copyResize(cropped, width: 32, height: 32);
+      // قص منطقة الوجه
+      var cropped = img.copyCrop(image, x: x, y: y, width: w, height: h);
+
+      // تعديل زاوية دوران الوجه (Alignment/Roll Correction) لرفع الدقة
+      if (face.headEulerAngleZ != null && face.headEulerAngleZ != 0) {
+        cropped = img.copyRotate(cropped, angle: -face.headEulerAngleZ!);
+      }
+
+      // تصغير لـ 64×64 لزيادة ميزات التعرف
+      final resized = img.copyResize(cropped, width: 64, height: 64);
       final gray    = img.grayscale(resized);
 
-      // استخراج قيم البكسلات
+      // استخراج قيم البكسلات (سيكون الطول الإجمالي 4096 قيمة)
       final pixels = <double>[];
       double sum = 0;
-      for (int py = 0; py < 32; py++) {
-        for (int px = 0; px < 32; px++) {
+      for (int py = 0; py < 64; py++) {
+        for (int px = 0; px < 64; px++) {
           final val = gray.getPixel(px, py).r.toDouble();
           pixels.add(val);
           sum += val;
         }
       }
 
-      // تطبيع: mean=0, std=1 (يزيل أثر الإضاءة)
+      // تطبيع البيانات لإزالة أثر الإضاءة
       final mean = sum / pixels.length;
       double variance = 0;
       for (final v in pixels) variance += (v - mean) * (v - mean);
@@ -359,9 +467,27 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: Stack(
-          children: [
-            // معاينة الكاميرا
+        body: _isInitializingReference
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                      SizedBox(height: 20),
+                      Text(
+                        'جاري تهيئة بصمة وجهك من صورتك الرسمية بالجامعة...\nالرجاء الانتظار.',
+                        style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.5, fontFamily: 'Noto Sans Arabic'),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : Stack(
+                children: [
+                  // معاينة الكاميرا
             if (_cameraController != null && _cameraController!.value.isInitialized)
               Positioned.fill(
                 child: FittedBox(
