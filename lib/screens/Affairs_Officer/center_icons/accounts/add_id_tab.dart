@@ -611,14 +611,42 @@ class _AddIdTabState extends State<AddIdTab> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  item['full_name'] = nameEditController.text;
-                  item['name'] = nameEditController.text;
-                  item['university_id'] = idEditController.text;
-                  item['id'] = idEditController.text;
-                });
+              onPressed: () async {
                 Navigator.pop(context);
+                final id = item['id']?.toString() ?? '';
+                setState(() => _isLoading = true);
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final token = prefs.getString('token') ?? '';
+                  final res = await _dio.post(
+                    '${_api.baseUrl}/affairs/university-ids/$id/update',
+                    data: {
+                      'full_name': nameEditController.text,
+                      'university_id': idEditController.text,
+                    },
+                    options: Options(headers: {
+                      'Accept': 'application/json',
+                      'Authorization': 'Bearer $token',
+                    }),
+                  );
+                  if (res.statusCode == 200 && res.data['success'] == true) {
+                    _loadUniversityIds();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('تم تعديل البيانات بنجاح ✓', textDirection: TextDirection.rtl),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } else {
+                    _showError(res.data['message'] ?? 'فشل التعديل');
+                  }
+                } on DioException catch (e) {
+                  _showError(e.response?.data?['message'] ?? 'فشل الاتصال بالسيرفر');
+                } finally {
+                  setState(() => _isLoading = false);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFFCC00),

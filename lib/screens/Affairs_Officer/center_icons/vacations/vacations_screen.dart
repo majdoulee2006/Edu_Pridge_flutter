@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
@@ -17,65 +18,19 @@ class AffairsOfficerVacationsScreen extends StatefulWidget {
 
 class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsScreen>
     with SingleTickerProviderStateMixin {
-
   late TabController _tabController;
+  final AffairsServices _affairsServices = AffairsServices();
 
-  // 🔹 بيانات الإجازات اليومية
-  final List<Map<String, dynamic>> dailyVacations = [
-    {
-      'name': 'خالد عبدالرحمن',
-      'major': 'علوم الحاسب - المستوى 3',
-      'avatar': 'https://i.pravatar.cc/150?img=11',
-      'date': '15 أكتوبر',
-      'day': 'الثلاثاء',
-      'reason': 'ظروف صحية طارئة تستدعي الراحة التامة حسب التقرير الطبي المرفق.',
-      'deptHeadStatus': 'موافق', // رأي رئيس القسم
-      'parentStatus': 'موافق',    // رأي الأهل
-      'timeAgo': 'منذ 2 ساعة',
-    },
-    {
-      'name': 'سارة العمري',
-      'major': 'هندسة برمجيات - المستوى 4',
-      'avatar': 'https://i.pravatar.cc/150?img=5',
-      'date': '18 أكتوبر',
-      'day': 'الجمعة',
-      'reason': 'موعد مراجعة في المستشفى الجامعي لتجديد الملف الطبي.',
-      'deptHeadStatus': 'غير موافق',
-      'parentStatus': 'موافق',
-      'timeAgo': 'أمس',
-    },
-  ];
-
-  // 🔹 بيانات الإجازات الساعية
-  final List<Map<String, dynamic>> hourlyVacations = [
-    {
-      'name': 'أحمد يوسف',
-      'major': 'طب الأسنان - المستوى 2',
-      'avatar': 'https://i.pravatar.cc/150?img=3',
-      'time': '12:30', // الساعة فقط
-      'duration': 'ساعتين',
-      'reason': 'موعد عائلي طارئ يتطلب المغادرة مبكراً.',
-      'deptHeadStatus': 'موافق',
-      'parentStatus': 'غير موافق',
-      'timeAgo': 'منذ ساعة',
-    },
-    {
-      'name': 'نورة سعد',
-      'major': 'التمريض - المستوى 3',
-      'avatar': 'https://i.pravatar.cc/150?img=9',
-      'time': '09:00',
-      'duration': 'ساعة واحدة',
-      'reason': 'مراجعة شخصية عاجلة.',
-      'deptHeadStatus': 'موافق',
-      'parentStatus': 'موافق',
-      'timeAgo': 'منذ 3 ساعات',
-    },
-  ];
+  bool _isLoading = true;
+  List<dynamic> _allLeaves = [];
+  List<dynamic> _pendingLeaves = [];
+  List<dynamic> _historyLeaves = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadLeaves();
   }
 
   @override
@@ -84,9 +39,67 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
     super.dispose();
   }
 
+  Future<void> _loadLeaves() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final data = await _affairsServices.getLeaves();
+      if (mounted) {
+        setState(() {
+          _allLeaves = data ?? [];
+          _pendingLeaves = _allLeaves.where((l) => l['status'] == 'pending').toList();
+          _historyLeaves = _allLeaves.where((l) => l['status'] != 'pending').toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading leaves: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleUpdateStatus(int leaveId, String status) async {
+    final bool isApprove = status == 'approved';
+    final String label = isApprove ? 'موافقة' : 'رفض';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFCC00)),
+        ),
+      ),
+    );
+
+    final success = await _affairsServices.updateLeaveStatus(leaveId, status);
+
+    if (!mounted) return;
+    Navigator.pop(context); // Pop loading dialog
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تم تسجيل الـ $label بنجاح ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+          backgroundColor: isApprove ? Colors.green : Colors.orange,
+        ),
+      );
+      _loadLeaves();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('فشل تسجيل الـ $label، يرجى المحاولة لاحقاً', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 🌟 نفس ألوان وثيم باقي المشروع
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F9F9);
     final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
@@ -102,15 +115,12 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
             SafeArea(
               child: Column(
                 children: [
-                  // ═══════════════════════════════════════
-                  // الهيدر: زر رجوع (يمين) | العنوان (وسط) | إعدادات (يسار)
-                  // ═══════════════════════════════════════
+                  // الهيدر
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // ✅ زر الإعدادات على اليسار
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
@@ -123,11 +133,10 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                              );
+                              ).then((_) => _loadLeaves());
                             },
                           ),
                         ),
-                        // عنوان "طلبات إجازة الطلاب" بالمنتصف - حجم 20
                         Text(
                           "طلبات إجازة الطلاب",
                           style: TextStyle(
@@ -137,7 +146,6 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                             fontFamily: 'Noto Sans Arabic',
                           ),
                         ),
-                        // ✅ زر الرجوع على اليمين - سهم للخلف
                         Align(
                           alignment: Alignment.centerRight,
                           child: IconButton(
@@ -153,9 +161,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                     ),
                   ),
 
-                  // ═══════════════════════════════════════
-                  // التبويبات: يومية | ساعية
-                  // ═══════════════════════════════════════
+                  // التبويبات: طلبات معلقة | سجل الإجازات
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
@@ -190,49 +196,49 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: Colors.transparent,
                       tabs: const [
-                        Tab(text: 'إجازات يومية'),
-                        Tab(text: 'إجازات ساعية'),
+                        Tab(text: 'طلبات معلقة'),
+                        Tab(text: 'سجل الإجازات'),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 8),
 
-                  // ═══════════════════════════════════════
-                  // محتوى التبويبات (قابل للسحب)
-                  // ═══════════════════════════════════════
+                  // محتوى التبويبات
                   Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        // 🔹 تبويب الإجازات اليومية
-                        _buildVacationList(
-                          dailyVacations,
-                          isDaily: true,
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          subColor: subColor,
-                          isDark: isDark,
-                        ),
-                        // 🔹 تبويب الإجازات الساعية
-                        _buildVacationList(
-                          hourlyVacations,
-                          isDaily: false,
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          subColor: subColor,
-                          isDark: isDark,
-                        ),
-                      ],
-                    ),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFCC00)),
+                            ),
+                          )
+                        : TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildVacationList(
+                                _pendingLeaves,
+                                isHistory: false,
+                                cardColor: cardColor,
+                                textColor: textColor,
+                                subColor: subColor,
+                                isDark: isDark,
+                              ),
+                              _buildVacationList(
+                                _historyLeaves,
+                                isHistory: true,
+                                cardColor: cardColor,
+                                textColor: textColor,
+                                subColor: subColor,
+                                isDark: isDark,
+                              ),
+                            ],
+                          ),
                   ),
                 ],
               ),
             ),
 
-            // ═══════════════════════════════════════
-            // الشريط السفلي الجاهز
-            // ═══════════════════════════════════════
+            // شريط التنقل السفلي
             CustomBottomNav(
               currentIndex: 0,
               centerButton: AffairsOfficerSpeedDial(),
@@ -267,47 +273,67 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
     );
   }
 
-  // ═══════════════════════════════════════
-  // بناء قائمة الإجازات
-  // ═══════════════════════════════════════
   Widget _buildVacationList(
-      List<Map<String, dynamic>> vacations, {
-        required bool isDaily,
-        required Color cardColor,
-        required Color textColor,
-        required Color subColor,
-        required bool isDark,
-      }) {
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
-      itemCount: vacations.length,
-      itemBuilder: (context, index) {
-        return _buildVacationCard(
-          vacations[index],
-          isDaily: isDaily,
-          cardColor: cardColor,
-          textColor: textColor,
-          subColor: subColor,
-          isDark: isDark,
-        );
-      },
+    List<dynamic> leaves, {
+    required bool isHistory,
+    required Color cardColor,
+    required Color textColor,
+    required Color subColor,
+    required bool isDark,
+  }) {
+    if (leaves.isEmpty) {
+      return Center(
+        child: Text(
+          isHistory ? "سجل الإجازات فارغ" : "لا توجد طلبات إجازة معلقة حالياً",
+          style: TextStyle(color: subColor, fontSize: 14, fontFamily: 'Noto Sans Arabic'),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadLeaves,
+      color: const Color(0xFFFFCC00),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
+        itemCount: leaves.length,
+        itemBuilder: (context, index) {
+          return _buildVacationCard(
+            leaves[index],
+            isHistory: isHistory,
+            cardColor: cardColor,
+            textColor: textColor,
+            subColor: subColor,
+            isDark: isDark,
+          );
+        },
+      ),
     );
   }
 
-  // ═══════════════════════════════════════
-  // بطاقة الإجازة
-  // ═══════════════════════════════════════
   Widget _buildVacationCard(
-      Map<String, dynamic> data, {
-        required bool isDaily,
-        required Color cardColor,
-        required Color textColor,
-        required Color subColor,
-        required bool isDark,
-      }) {
-    final bool isDeptApproved = data['deptHeadStatus'] == 'موافق';
-    final bool isParentApproved = data['parentStatus'] == 'موافق';
+    Map<String, dynamic> data, {
+    required bool isHistory,
+    required Color cardColor,
+    required Color textColor,
+    required Color subColor,
+    required bool isDark,
+  }) {
+    final String initial = data['student_name'] != null && data['student_name'].isNotEmpty
+        ? data['student_name'][0]
+        : 'ط';
+    final int leaveId = data['id'] ?? 0;
+    final String status = data['status'] ?? 'pending';
+
+    Color statusColor = Colors.orange;
+    String statusLabel = 'قيد المراجعة';
+    if (status == 'approved') {
+      statusColor = Colors.green;
+      statusLabel = 'مقبول';
+    } else if (status == 'rejected') {
+      statusColor = Colors.red;
+      statusLabel = 'مرفوض';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -327,10 +353,8 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ═══ الصف الأول: الوقت + الاسم + الصورة ═══
             Row(
               children: [
-                // الوقت (منذ كذا)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -338,7 +362,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    data['timeAgo'],
+                    data['created_at'] ?? '',
                     style: TextStyle(
                       fontSize: 11,
                       color: subColor,
@@ -347,12 +371,11 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                   ),
                 ),
                 const Spacer(),
-                // الاسم + التخصص
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      data['name'],
+                      data['student_name'] ?? 'طالب غير معروف',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -362,7 +385,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      data['major'],
+                      'معرف الطالب: ${data['student_id']}',
                       style: TextStyle(
                         fontSize: 12,
                         color: subColor,
@@ -372,18 +395,24 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                   ],
                 ),
                 const SizedBox(width: 10),
-                // الصورة الشخصية
                 CircleAvatar(
                   radius: 24,
-                  backgroundImage: NetworkImage(data['avatar']),
-                  backgroundColor: Colors.grey.shade300,
+                  backgroundColor: statusColor.withOpacity(0.1),
+                  child: Text(
+                    initial,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                      fontFamily: 'Noto Sans Arabic',
+                    ),
+                  ),
                 ),
               ],
             ),
 
             const SizedBox(height: 14),
 
-            // ═══ المدة (يومية أو ساعية) ═══
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
@@ -394,17 +423,16 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // المدة
                   Row(
                     children: [
                       Icon(
-                        isDaily ? Icons.calendar_today_outlined : Icons.access_time,
+                        Icons.calendar_today_outlined,
                         size: 18,
                         color: subColor,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'المدة: ',
+                        'التاريخ المستهدف: ',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -413,9 +441,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                         ),
                       ),
                       Text(
-                        isDaily
-                            ? '${data['day']} (${data['date']})'
-                            : '${data['time']} (${data['duration']})',
+                        data['date'] ?? 'غير محدد',
                         style: TextStyle(
                           fontSize: 13,
                           color: textColor,
@@ -425,7 +451,6 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // السبب
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -454,139 +479,79 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
 
             const SizedBox(height: 14),
 
-            // ═══ الآراء: رئيس القسم + الأهل ═══
-            Row(
-              children: [
-                // رأي رئيس القسم
-                Expanded(
-                  child: _buildStatusChip(
-                    label: 'رأي رئيس القسم:',
-                    status: data['deptHeadStatus'],
-                    isApproved: isDeptApproved,
+            if (isHistory)
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
                   ),
-                ),
-                const SizedBox(width: 10),
-                // رأي الأهل
-                Expanded(
-                  child: _buildStatusChip(
-                    label: 'رأي الأهل:',
-                    status: data['parentStatus'],
-                    isApproved: isParentApproved,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // ═══ أزرار القرار (موافقة / رفض) ═══
-            Row(
-              children: [
-                // رفض
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.close, color: Colors.red, size: 18),
-                    label: const Text(
-                      'رفض',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                        fontFamily: 'Noto Sans Arabic',
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'الحالة: $statusLabel',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                      fontFamily: 'Noto Sans Arabic',
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                // موافقة
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.check, color: Colors.white, size: 18),
-                    label: const Text(
-                      'موافقة',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontFamily: 'Noto Sans Arabic',
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _handleUpdateStatus(leaveId, 'rejected'),
+                      icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                      label: const Text(
+                        'رفض الإجازة',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                          fontFamily: 'Noto Sans Arabic',
+                        ),
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _handleUpdateStatus(leaveId, 'approved'),
+                      icon: const Icon(Icons.check, color: Colors.white, size: 18),
+                      label: const Text(
+                        'قبول الإجازة',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontFamily: 'Noto Sans Arabic',
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
-    );
-  }
-
-  // ═══════════════════════════════════════
-  // شريحة الحالة (موافق / غير موافق)
-  // ═══════════════════════════════════════
-  Widget _buildStatusChip({
-    required String label,
-    required String status,
-    required bool isApproved,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade500,
-            fontFamily: 'Noto Sans Arabic',
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: isApproved
-                ? Colors.green.withOpacity(0.1)
-                : Colors.red.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isApproved ? Icons.check_circle : Icons.cancel,
-                size: 16,
-                color: isApproved ? Colors.green : Colors.red,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                status,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isApproved ? Colors.green : Colors.red,
-                  fontFamily: 'Noto Sans Arabic',
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -11,6 +11,7 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.d
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
+import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 class AffairsOfficerCalendarScreen extends StatefulWidget {
   const AffairsOfficerCalendarScreen({super.key});
@@ -20,111 +21,406 @@ class AffairsOfficerCalendarScreen extends StatefulWidget {
 }
 
 class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScreen> {
-  // 🔹 التقويم الحقيقي
+  final AffairsServices _affairsServices = AffairsServices();
+
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  // 🔹 أحداث الشهر (مثال - تقدر تربطها بـ API)
-  final Map<DateTime, List<Map<String, dynamic>>> _events = {
-    DateTime(2026, 5, 15): [
-      {
-        'title': 'بدء تسجيل المواد',
-        'subtitle': 'الفصل الدراسي الثاني لجميع التخصصات',
-        'type': 'التسجيل',
-        'color': Colors.blue,
-      },
-    ],
-    DateTime(2026, 5, 25): [
-      {
-        'title': 'اختبارات المستوى',
-        'subtitle': 'تحديد مستوى اللغة الإنجليزية للمستجدين',
-        'type': 'الامتحانات',
-        'color': Colors.orange,
-      },
-    ],
-    DateTime(2026, 5, 30): [
-      {
-        'title': 'آخر موعد للانسحاب',
-        'subtitle': 'الموعد النهائي للانسحاب من المقررات',
-        'type': 'هام',
-        'color': Colors.red,
-      },
-    ],
-  };
-
-  // 🔹 الحصول على الأحداث ليوم معين
-  List<Map<String, dynamic>> _getEventsForDay(DateTime day) {
-    return _events[DateTime(day.year, day.month, day.day)] ?? [];
-  }
+  bool _isLoading = true;
+  List<dynamic> _rawEvents = [];
+  final Map<DateTime, List<Map<String, dynamic>>> _events = {};
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    _loadEvents();
+  }
+
+  Future<void> _loadEvents() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final data = await _affairsServices.getCalendarEvents();
+      if (mounted) {
+        setState(() {
+          _rawEvents = data ?? [];
+          _events.clear();
+
+          for (var item in _rawEvents) {
+            final dateStr = item['event_date'] as String?;
+            if (dateStr != null) {
+              final date = DateTime.tryParse(dateStr);
+              if (date != null) {
+                final key = DateTime(date.year, date.month, date.day);
+                if (_events[key] == null) {
+                  _events[key] = [];
+                }
+                _events[key]!.add({
+                  'id': item['id'],
+                  'title': item['title'] ?? '',
+                  'subtitle': item['location'] ?? item['event_time'] ?? '',
+                  'location': item['location'] ?? '',
+                  'event_time': item['event_time'] ?? '',
+                  'type': 'حدث',
+                  'color': Colors.blue,
+                });
+              }
+            }
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading calendar events: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _getEventsForDay(DateTime day) {
+    return _events[DateTime(day.year, day.month, day.day)] ?? [];
+  }
+
+  Future<void> _showAddEventDialog() async {
+    final titleController = TextEditingController();
+    final locationController = TextEditingController();
+    final timeController = TextEditingController();
+    DateTime selectedDate = _selectedDay ?? DateTime.now();
+
+    final isAr = AppSettings.language.value == 'ar';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Directionality(
+          textDirection: ui.TextDirection.rtl,
+          child: AlertDialog(
+            title: Text(isAr ? 'إضافة حدث جديد' : 'Add New Event', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: isAr ? 'عنوان الحدث *' : 'Event Title *',
+                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: locationController,
+                    decoration: InputDecoration(
+                      labelText: isAr ? 'الموقع / الوصف' : 'Location / Description',
+                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: timeController,
+                    decoration: InputDecoration(
+                      labelText: isAr ? 'الوقت (اختياري)' : 'Time (Optional)',
+                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                      hintText: 'مثال: 10:00 AM',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(isAr ? 'التاريخ: ' : 'Date: '),
+                      const Spacer(),
+                      TextButton.icon(
+                        icon: const Icon(Icons.calendar_today, size: 18),
+                        label: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                          );
+                          if (date != null) {
+                            setDialogState(() {
+                              selectedDate = date;
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (titleController.text.trim().isEmpty) return;
+
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFFFFCC00)))),
+                  );
+
+                  final result = await _affairsServices.addCalendarEvent({
+                    'title': titleController.text.trim(),
+                    'location': locationController.text.trim(),
+                    'event_time': timeController.text.trim(),
+                    'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                  });
+
+                  if (mounted) {
+                    Navigator.pop(context); // Pop loading
+                    if (result != null) {
+                      _loadEvents();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(isAr ? 'تم إضافة الحدث بنجاح ✓' : 'Event added successfully ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
+                child: Text(isAr ? 'حفظ' : 'Save', style: const TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.black, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showEditEventDialog(Map<String, dynamic> event) async {
+    final titleController = TextEditingController(text: event['title']);
+    final locationController = TextEditingController(text: event['location']);
+    final timeController = TextEditingController(text: event['event_time']);
+    DateTime selectedDate = event['date'] ?? DateTime.now();
+
+    final isAr = AppSettings.language.value == 'ar';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Directionality(
+          textDirection: ui.TextDirection.rtl,
+          child: AlertDialog(
+            title: Text(isAr ? 'تعديل الحدث' : 'Edit Event', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: isAr ? 'عنوان الحدث *' : 'Event Title *',
+                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: locationController,
+                    decoration: InputDecoration(
+                      labelText: isAr ? 'الموقع / الوصف' : 'Location / Description',
+                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: timeController,
+                    decoration: InputDecoration(
+                      labelText: isAr ? 'الوقت (اختياري)' : 'Time (Optional)',
+                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(isAr ? 'التاريخ: ' : 'Date: '),
+                      const Spacer(),
+                      TextButton.icon(
+                        icon: const Icon(Icons.calendar_today, size: 18),
+                        label: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                          );
+                          if (date != null) {
+                            setDialogState(() {
+                              selectedDate = date;
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (titleController.text.trim().isEmpty) return;
+
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFFFFCC00)))),
+                  );
+
+                  final result = await _affairsServices.updateCalendarEvent(event['id'], {
+                    'title': titleController.text.trim(),
+                    'location': locationController.text.trim(),
+                    'event_time': timeController.text.trim(),
+                    'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                  });
+
+                  if (mounted) {
+                    Navigator.pop(context); // Pop loading
+                    if (result != null) {
+                      _loadEvents();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(isAr ? 'تم تعديل الحدث بنجاح ✓' : 'Event updated successfully ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
+                child: Text(isAr ? 'حفظ' : 'Save', style: const TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.black, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleDeleteEvent(int eventId) async {
+    final isAr = AppSettings.language.value == 'ar';
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: ui.TextDirection.rtl,
+        child: AlertDialog(
+          title: Text(isAr ? 'حذف الحدث' : 'Delete Event', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+          content: Text(isAr ? 'هل أنت متأكد من حذف هذا الحدث؟' : 'Are you sure you want to delete this event?', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(isAr ? 'إلغاء' : 'Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(isAr ? 'حذف' : 'Delete', style: const TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirm != true) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFFFFCC00)))),
+    );
+
+    final success = await _affairsServices.deleteCalendarEvent(eventId);
+
+    if (mounted) {
+      Navigator.pop(context); // Pop loading
+      if (success) {
+        _loadEvents();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isAr ? 'تم حذف الحدث بنجاح ✓' : 'Event deleted successfully ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 نفس ألوان وثيم باقي المشروع
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor   = isDark ? const Color(0xFF121212) : const Color(0xFFF9F9F9);
     final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDark ? Colors.white : Colors.black;
     final Color subColor  = isDark ? Colors.grey.shade400 : Colors.grey;
 
+    final isAr = AppSettings.language.value == 'ar';
+
     return Directionality(
-        textDirection: ui.TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl,
       child: Scaffold(
         backgroundColor: bgColor,
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 90),
+          child: FloatingActionButton(
+            onPressed: _showAddEventDialog,
+            backgroundColor: const Color(0xFFFFCC00),
+            foregroundColor: Colors.black,
+            child: const Icon(Icons.add, size: 28),
+          ),
+        ),
         body: Stack(
           children: [
             SafeArea(
               child: Column(
                 children: [
-                  // ═══════════════════════════════════════
-                  // الهيدر: زر رجوع (يمين) | العنوان (وسط) | إعدادات (يسار)
-                  // ═══════════════════════════════════════
+                  // الهيدر
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // ✅ زر الإعدادات على اليسار
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
-                            icon: Icon(
-                              Icons.settings,
-                              color: textColor,
-                              size: 26,
-                            ),
+                            icon: Icon(Icons.settings, color: textColor, size: 26),
                             onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                              );
+                              ).then((_) => _loadEvents());
                             },
                           ),
                         ),
-                        // عنوان "تقويم" بالمنتصف - حجم 20
                         Text(
-                          "تقويم",
+                          isAr ? "التقويم الأكاديمي" : "Academic Calendar",
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: textColor,
                             fontFamily: 'Noto Sans Arabic',
                           ),
                         ),
-                        // ✅ زر الرجوع على اليمين - سهم للخلف
                         Align(
                           alignment: Alignment.centerRight,
                           child: IconButton(
-                            icon: Icon(
-                              Icons.arrow_back,
-                              color: textColor,
-                              size: 26,
-                            ),
+                            icon: Icon(Icons.arrow_back, color: textColor, size: 26),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
@@ -132,203 +428,114 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                     ),
                   ),
 
-                  // ═══════════════════════════════════════
-                  // التقويم الحقيقي
-                  // ═══════════════════════════════════════
+                  // المحتوى
                   Expanded(
-                    child: ListView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
-                      children: [
-                        // بطاقة التقويم
-                        Container(
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withAlpha(isDark ? 30 : 8),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: TableCalendar(
-                              firstDay: DateTime.utc(2020, 1, 1),
-                              lastDay: DateTime.utc(2030, 12, 31),
-                              focusedDay: _focusedDay,
-                              selectedDayPredicate: (day) {
-                                return isSameDay(_selectedDay, day);
-                              },
-                              onDaySelected: (selectedDay, focusedDay) {
-                                setState(() {
-                                  _selectedDay = selectedDay;
-                                  _focusedDay = focusedDay;
-                                });
-                              },
-                              onPageChanged: (focusedDay) {
-                                _focusedDay = focusedDay;
-                              },
-                              calendarFormat: CalendarFormat.month,
-                              availableCalendarFormats: const {
-                                CalendarFormat.month: 'شهر',
-                              },
-                              startingDayOfWeek: StartingDayOfWeek.saturday, // السبت أول يوم
-                              locale: 'ar', // عربي
-                              // ═══ تنسيق الهيدر (اسم الشهر + أزرار التنقل) ═══
-                              headerStyle: HeaderStyle(
-                                formatButtonVisible: false,
-                                titleCentered: true,
-                                titleTextStyle: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                  fontFamily: 'Noto Sans Arabic',
-                                ),
-                                leftChevronIcon: Icon(
-                                  Icons.arrow_back_ios,
-                                  color: textColor,
-                                  size: 20,
-                                ),
-                                rightChevronIcon: Icon(
-                                  Icons.arrow_forward_ios,
-                                  color: textColor,
-                                  size: 20,
-                                ),
-                                headerPadding: const EdgeInsets.symmetric(vertical: 8),
-                              ),
-                              // ═══ تنسيق أيام الأسبوع ═══
-                              daysOfWeekStyle: DaysOfWeekStyle(
-                                weekdayStyle: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: subColor,
-                                  fontFamily: 'Noto Sans Arabic',
-                                ),
-                                weekendStyle: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: subColor,
-                                  fontFamily: 'Noto Sans Arabic',
-                                ),
-                              ),
-                              // ═══ تنسيق الخلايا ═══
-                              calendarStyle: CalendarStyle(
-                                outsideDaysVisible: true,
-                                weekendTextStyle: TextStyle(
-                                  fontSize: 15,
-                                  color: textColor,
-                                  fontFamily: 'Noto Sans Arabic',
-                                ),
-                                defaultTextStyle: TextStyle(
-                                  fontSize: 15,
-                                  color: textColor,
-                                  fontFamily: 'Noto Sans Arabic',
-                                ),
-                                outsideTextStyle: TextStyle(
-                                  fontSize: 15,
-                                  color: subColor.withOpacity(0.5),
-                                  fontFamily: 'Noto Sans Arabic',
-                                ),
-                                todayDecoration: BoxDecoration(
-                                  color: const Color(0xFFFFCC00).withOpacity(0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                                todayTextStyle: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                  fontFamily: 'Noto Sans Arabic',
-                                ),
-                                selectedDecoration: const BoxDecoration(
-                                  color: Color(0xFF2196F3),
-                                  shape: BoxShape.circle,
-                                ),
-                                selectedTextStyle: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  fontFamily: 'Noto Sans Arabic',
-                                ),
-                                cellMargin: const EdgeInsets.all(4),
-                              ),
-                              // ═══ علامات الأحداث (النقاط الملونة) ═══
-                              calendarBuilders: CalendarBuilders(
-                                markerBuilder: (context, date, events) {
-                                  final dayEvents = _getEventsForDay(date);
-                                  if (dayEvents.isEmpty) return const SizedBox.shrink();
-
-                                  return Positioned(
-                                    bottom: 1,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: dayEvents.take(3).map((event) {
-                                        return Container(
-                                          width: 5,
-                                          height: 5,
-                                          margin: const EdgeInsets.symmetric(horizontal: 1),
-                                          decoration: BoxDecoration(
-                                            color: event['color'] as Color,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        );
-                                      }).toList(),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFCC00)),
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadEvents,
+                            color: const Color(0xFFFFCC00),
+                            child: ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
+                              children: [
+                                // بطاقة التقويم
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: cardColor,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withAlpha(isDark ? 30 : 8),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: TableCalendar(
+                                    locale: isAr ? 'ar' : 'en_US',
+                                    firstDay: DateTime.utc(2020, 10, 16),
+                                    lastDay: DateTime.utc(2030, 3, 14),
+                                    focusedDay: _focusedDay,
+                                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                                    onDaySelected: (selectedDay, focusedDay) {
+                                      setState(() {
+                                        _selectedDay = selectedDay;
+                                        _focusedDay = focusedDay;
+                                      });
+                                    },
+                                    eventLoader: _getEventsForDay,
+                                    headerStyle: HeaderStyle(
+                                      formatButtonVisible: false,
+                                      titleCentered: true,
+                                      titleTextStyle: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
+                                      leftChevronIcon: Icon(Icons.chevron_left, color: textColor),
+                                      rightChevronIcon: Icon(Icons.chevron_right, color: textColor),
                                     ),
-                                  );
-                                },
-                              ),
+                                    calendarStyle: CalendarStyle(
+                                      defaultTextStyle: TextStyle(color: textColor),
+                                      weekendTextStyle: TextStyle(color: textColor.withOpacity(0.6)),
+                                      todayDecoration: BoxDecoration(
+                                        color: const Color(0xFFFFCC00).withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      todayTextStyle: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                                      selectedDecoration: const BoxDecoration(
+                                        color: Color(0xFFFFCC00),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      selectedTextStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                      markerDecoration: const BoxDecoration(
+                                        color: Colors.blue,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+
+                                // عنوان "أحداث الشهر"
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFCC00),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      isAr ? "أحداث الشهر" : "Monthly Events",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: textColor,
+                                        fontFamily: 'Noto Sans Arabic',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+
+                                // قائمة الأحداث
+                                ..._buildEventList(cardColor, textColor, subColor),
+                              ],
                             ),
                           ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // ═══════════════════════════════════════
-                        // عنوان "أحداث الشهر"
-                        // ═══════════════════════════════════════
-                        Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFCC00),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              "أحداث الشهر",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                fontFamily: 'Noto Sans Arabic',
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ═══════════════════════════════════════
-                        // قائمة الأحداث (بدون سهم)
-                        // ═══════════════════════════════════════
-                        ..._buildEventList(cardColor, textColor, subColor),
-                      ],
-                    ),
                   ),
                 ],
               ),
             ),
 
-            // ═══════════════════════════════════════
-            // الشريط السفلي الجاهز
-            // ═══════════════════════════════════════
+            // شريط السفلي
             CustomBottomNav(
-              currentIndex: 0, // الرئيسية (أو تقدر تحط index للتقويم لو عندك)
+              currentIndex: 0,
               centerButton: AffairsOfficerSpeedDial(),
               onHomeTap: () {
                 Navigator.pushReplacement(
@@ -361,11 +568,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
     );
   }
 
-  // ═══════════════════════════════════════
-  // بناء قائمة الأحداث (بدون سهم)
-  // ═══════════════════════════════════════
   List<Widget> _buildEventList(Color cardColor, Color textColor, Color subColor) {
-    // نجمع كل الأحداث
     List<Map<String, dynamic>> allEvents = [];
     _events.forEach((date, events) {
       for (var event in events) {
@@ -376,12 +579,25 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
       }
     });
 
-    // نرتب حسب التاريخ
     allEvents.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+
+    if (allEvents.isEmpty) {
+      return [
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 30),
+            child: Text(
+              AppSettings.language.value == 'ar' ? "لا توجد أحداث هذا الشهر" : "No events this month",
+              style: TextStyle(color: subColor, fontSize: 14),
+            ),
+          ),
+        )
+      ];
+    }
 
     return allEvents.map((event) {
       final DateTime date = event['date'];
-      final String dayName = DateFormat('EEEE', 'ar').format(date);
+      final String dayName = DateFormat('EEEE', AppSettings.language.value == 'ar' ? 'ar' : 'en_US').format(date);
       final int dayNumber = date.day;
       final Color eventColor = event['color'] as Color;
 
@@ -402,7 +618,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // ═══ التاريخ (يمين) ═══
+              // التاريخ (يمين)
               Container(
                 width: 60,
                 height: 60,
@@ -416,17 +632,19 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                     Text(
                       dayName,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         color: eventColor,
                         fontWeight: FontWeight.w600,
                         fontFamily: 'Noto Sans Arabic',
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '$dayNumber',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: eventColor,
                         fontFamily: 'Noto Sans Arabic',
@@ -438,12 +656,11 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
 
               const SizedBox(width: 16),
 
-              // ═══ المحتوى (وسط) ═══
+              // المحتوى (وسط)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // نوع الحدث + النقطة
                     Row(
                       children: [
                         Container(
@@ -467,32 +684,45 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                       ],
                     ),
                     const SizedBox(height: 6),
-                    // عنوان الحدث
                     Text(
                       event['title'],
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: textColor,
                         fontFamily: 'Noto Sans Arabic',
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    // وصف الحدث
-                    Text(
-                      event['subtitle'],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: subColor,
-                        height: 1.4,
-                        fontFamily: 'Noto Sans Arabic',
+                    if (event['subtitle'].toString().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        event['subtitle'],
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: subColor,
+                          height: 1.4,
+                          fontFamily: 'Noto Sans Arabic',
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
 
-              // ❌ شيلنا السهم من هون
+              // تعديل وحذف (يسار)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Colors.amber, size: 20),
+                    onPressed: () => _showEditEventDialog(event),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                    onPressed: () => _handleDeleteEvent(event['id']),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
