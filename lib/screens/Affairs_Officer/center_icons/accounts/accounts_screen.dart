@@ -12,6 +12,7 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_scre
 
 import 'pending_tab.dart';
 import 'add_id_tab.dart';
+import 'photo_requests_tab.dart';
 import 'create_account_screen.dart';
 
 class AffairsOfficerAccountsScreen extends StatefulWidget {
@@ -29,7 +30,7 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
   @override
   void initState() {
     super.initState();
-    _mainTabController = TabController(length: 2, vsync: this);
+    _mainTabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -134,6 +135,7 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                       tabs: const [
                         Tab(text: 'الطلبات المعلقة'),
                         Tab(text: 'إضافة رقم جامعي'),
+                        Tab(text: 'طلبات الصورة'),
                       ],
                     ),
                   ),
@@ -154,6 +156,12 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                           isDark: isDark,
                         ),
                         AddIdTab(
+                          cardColor: cardColor,
+                          textColor: textColor,
+                          subColor: subColor,
+                          isDark: isDark,
+                        ),
+                        PhotoRequestsTab(
                           cardColor: cardColor,
                           textColor: textColor,
                           subColor: subColor,

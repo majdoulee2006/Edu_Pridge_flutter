@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -11,6 +11,7 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_scre
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications_screen.dart';
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
+import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 
 class AffairsOfficerHomeScreen extends StatefulWidget {
   const AffairsOfficerHomeScreen({super.key});
@@ -430,7 +431,14 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
     final String badgeText = data['type'] == 'general' ? 'إعلان عام' : 'إعلان خاص';
     final Color badgeBg = data['type'] == 'general' ? const Color(0xFF0D9488) : Colors.orange;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AnnouncementDetailScreen(announcement: data),
+        ),
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -446,12 +454,27 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if ((data['image_url'] as String?)?.isNotEmpty == true)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: Image.network(
+                ApiService.fixMediaUrl(data['image_url'] as String?) ?? '',
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.fill,
+                errorBuilder: (_, __, ___) => const SizedBox(),
+              ),
+            ),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+              borderRadius: BorderRadius.only(
+                topLeft: (data['image_url'] as String?)?.isNotEmpty == true
+                    ? Radius.zero
+                    : const Radius.circular(20),
+                topRight: (data['image_url'] as String?)?.isNotEmpty == true
+                    ? Radius.zero
+                    : const Radius.circular(20),
               ),
               gradient: LinearGradient(
                 colors: [
@@ -543,6 +566,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }
