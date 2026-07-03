@@ -141,14 +141,12 @@ class ChatService extends ChangeNotifier {
         }
 
         postData = FormData.fromMap({
-          'sender_id': _currentUserId,
           'receiver_id': contactId,
           'message': text,
           'attachment': multipartFile,
         });
       } else {
         postData = {
-          'sender_id': _currentUserId,
           'receiver_id': contactId,
           'message': text,
         };

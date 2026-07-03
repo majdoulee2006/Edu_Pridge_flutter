@@ -31,6 +31,8 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
   String? _selectedCourseId;
 
   PlatformFile? _pickedFile;
+  bool _isUrlMode     = false;
+  final _urlController = TextEditingController();
   bool _isLoadingData = false;
   bool _isSaving      = false;
 
@@ -54,6 +56,7 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _urlController.dispose();
     super.dispose();
   }
 
@@ -142,49 +145,49 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
   Future<void> _submit() async {
     if (_titleController.text.trim().isEmpty) { _snack('يرجى إدخال عنوان المحاضرة'); return; }
     if (_selectedCourseId == null)            { _snack('يرجى اختيار المادة');         return; }
-    if (!_isEditing && (_pickedFile == null || _pickedFile!.bytes == null)) {
-      _snack('يرجى إرفاق ملف المحاضرة');
-      return;
+
+    if (!_isEditing) {
+      if (_isUrlMode) {
+        if (_urlController.text.trim().isEmpty) { _snack('يرجى إدخال رابط الفيديو'); return; }
+      } else {
+        if (_pickedFile == null || _pickedFile!.bytes == null) { _snack('يرجى إرفاق ملف المحاضرة'); return; }
+      }
     }
+
     setState(() => _isSaving = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
-      if (_isEditing) {
-        final id = widget.lecture!['id'];
-        final formMap = <String, dynamic>{
-          'title':       _titleController.text.trim(),
-          'course_id':   _selectedCourseId,
-          'description': _descController.text.trim(),
-        };
-        if (_pickedFile != null && _pickedFile!.bytes != null) {
-          formMap['content_file'] = MultipartFile.fromBytes(
-            _pickedFile!.bytes!,
-            filename: _pickedFile!.name,
-            contentType: DioMediaType.parse(_mime(_pickedFile!.name)),
-          );
-        }
-        await Dio().post(
-          "${ApiService().baseUrl}/teacher/lessons/$id",
-          data: FormData.fromMap(formMap),
-          options: Options(headers: {"Authorization": "Bearer $token"}),
+      final formMap = <String, dynamic>{
+        'title':       _titleController.text.trim(),
+        'course_id':   _selectedCourseId,
+        'description': _descController.text.trim(),
+      };
+
+      if (_isUrlMode && _urlController.text.trim().isNotEmpty) {
+        formMap['video_url'] = _urlController.text.trim();
+      } else if (_pickedFile != null && _pickedFile!.bytes != null) {
+        formMap['content_file'] = MultipartFile.fromBytes(
+          _pickedFile!.bytes!,
+          filename: _pickedFile!.name,
+          contentType: DioMediaType.parse(_mime(_pickedFile!.name)),
         );
-        if (mounted) { _snack('✅ تم تحديث المحاضرة'); Navigator.pop(context, true); }
-      } else {
-        await Dio().post(
-          "${ApiService().baseUrl}/teacher/lessons",
-          data: FormData.fromMap({
-            'title':        _titleController.text.trim(),
-            'course_id':    _selectedCourseId,
-            'description':  _descController.text.trim(),
-            'content_file': MultipartFile.fromBytes(_pickedFile!.bytes!,
-                filename: _pickedFile!.name,
-                contentType: DioMediaType.parse(_mime(_pickedFile!.name))),
-          }),
-          options: Options(headers: {"Authorization": "Bearer $token"}),
-        );
-        if (mounted) { _snack('✅ تم رفع المحاضرة'); Navigator.pop(context, true); }
+      }
+
+      final url = _isEditing
+          ? "${ApiService().baseUrl}/teacher/lessons/${widget.lecture!['id']}"
+          : "${ApiService().baseUrl}/teacher/lessons";
+
+      await Dio().post(
+        url,
+        data: FormData.fromMap(formMap),
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+
+      if (mounted) {
+        _snack(_isEditing ? '✅ تم تحديث المحاضرة' : '✅ تم رفع المحاضرة');
+        Navigator.pop(context, true);
       }
     } catch (e) {
       debugPrint('⛔ Lesson Error: $e');
@@ -335,42 +338,115 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                     _field(controller: _descController, hint: 'أدخل وصفاً للمحاضرة...', maxLines: 3, cardColor: cardColor, textColor: textColor),
                     const SizedBox(height: 24),
 
-                    // ملف المحاضرة
-                    _label(_isEditing ? 'ملف جديد (اختياري)' : 'ملف المحاضرة', textColor),
-                    GestureDetector(
-                      onTap: _pickFile,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _pickedFile != null ? Colors.green : yellow.withValues(alpha: 0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              _pickedFile != null ? Icons.check_circle_outline : Icons.attach_file_rounded,
-                              color: _pickedFile != null ? Colors.green : yellow,
-                              size: 30,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _pickedFile != null ? _pickedFile!.name : 'اضغط لإرفاق ملف (PDF، فيديو)',
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: _pickedFile != null ? Colors.green : textColor.withValues(alpha: 0.6),
-                                fontSize: 13,
+                    // نوع المحتوى — تبديل بين ملف ورابط
+                    _label(_isEditing ? 'المحتوى (اختياري)' : 'محتوى المحاضرة', textColor),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() { _isUrlMode = false; _urlController.clear(); }),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: !_isUrlMode ? yellow : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.attach_file_rounded,
+                                        size: 16, color: !_isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5)),
+                                    const SizedBox(width: 6),
+                                    Text('رفع ملف',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold, fontSize: 13,
+                                          color: !_isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5),
+                                        )),
+                                  ],
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() { _isUrlMode = true; _pickedFile = null; }),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: _isUrlMode ? yellow : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.play_circle_outline_rounded,
+                                        size: 16, color: _isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5)),
+                                    const SizedBox(width: 6),
+                                    Text('رابط يوتيوب',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold, fontSize: 13,
+                                          color: _isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5),
+                                        )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 14),
+
+                    if (_isUrlMode) ...[
+                      _field(
+                        controller: _urlController,
+                        hint: 'https://youtube.com/watch?v=...',
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      ),
+                    ] else ...[
+                      GestureDetector(
+                        onTap: _pickFile,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _pickedFile != null ? Colors.green : yellow.withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                _pickedFile != null ? Icons.check_circle_outline : Icons.attach_file_rounded,
+                                color: _pickedFile != null ? Colors.green : yellow,
+                                size: 30,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _pickedFile != null ? _pickedFile!.name : 'اضغط لإرفاق ملف (PDF، فيديو)',
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: _pickedFile != null ? Colors.green : textColor.withValues(alpha: 0.6),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 40),
 
                     // زر النشر
