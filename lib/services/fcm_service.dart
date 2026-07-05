@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
+import 'package:edu_pridge_flutter/main.dart' show appNavigatorKey;
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
 @pragma('vm:entry-point')
@@ -14,8 +16,38 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
 class FcmService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
+  // VAPID key من Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
+  static const String _vapidKey = "BPYnQg1rycEHNqFlogeie2VW-AfHoxmUkriiP649VN9aTE4l2rb1dmgbcYuXAXtkYZwwZOYch7YsusLihZfjIQg";
+
+  static Future<void> initWeb() async {
+    try {
+      final settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        debugPrint('⛔ Web FCM permission denied');
+        return;
+      }
+      await _refreshAndSendToken(vapidKey: _vapidKey);
+      _messaging.onTokenRefresh.listen(_sendTokenToServer);
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('🔔 Web Foreground FCM: ${message.notification?.title}');
+        final title = message.notification?.title ?? message.data['title'] ?? '';
+        final body  = message.notification?.body  ?? message.data['body']  ?? '';
+        if (title.isNotEmpty || body.isNotEmpty) {
+          final ctx = appNavigatorKey.currentContext;
+          if (ctx != null) showInAppBanner(ctx, title, body);
+        }
+      });
+      debugPrint('✅ Web FCM initialized');
+    } catch (e) {
+      debugPrint('⛔ Web FCM init error: $e');
+    }
+  }
+
   static Future<void> init() async {
-    if (kIsWeb) return; // FCM غير مدعوم على الويب بهذه الطريقة
     // طلب الصلاحية
     final settings = await _messaging.requestPermission(
       alert: true,
@@ -33,15 +65,23 @@ class FcmService {
     // إذا تجدّد الـ token
     _messaging.onTokenRefresh.listen(_sendTokenToServer);
 
-    // إشعار وقت التطبيق مفتوح (foreground)
+    // إشعار وقت التطبيق مفتوح (foreground) — عرض بانر حقيقي
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('🔔 Foreground FCM: ${message.notification?.title}');
+      final title = message.notification?.title ?? message.data['title'] ?? '';
+      final body = message.notification?.body ?? message.data['body'] ?? '';
+      if (title.isNotEmpty || body.isNotEmpty) {
+        final ctx = appNavigatorKey.currentContext;
+        if (ctx != null) {
+          showInAppBanner(ctx, title, body);
+        }
+      }
     });
   }
 
-  static Future<void> _refreshAndSendToken() async {
+  static Future<void> _refreshAndSendToken({String? vapidKey}) async {
     try {
-      final token = await _messaging.getToken();
+      final token = await _messaging.getToken(vapidKey: vapidKey);
       if (token != null) await _sendTokenToServer(token);
     } catch (e) {
       debugPrint('⛔ FCM token error: $e');
@@ -72,11 +112,10 @@ class FcmService {
 
   // يُستدعى بعد تسجيل الدخول مباشرة لضمان وصول الـ token للسيرفر
   static Future<void> sendTokenAfterLogin() async {
-    if (kIsWeb) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('fcm_token_sent'); // أجبر إعادة الإرسال
-      await _refreshAndSendToken();
+      await prefs.remove('fcm_token_sent');
+      await _refreshAndSendToken(vapidKey: kIsWeb ? _vapidKey : null);
     } catch (e) {
       debugPrint('⛔ sendTokenAfterLogin error: $e');
     }

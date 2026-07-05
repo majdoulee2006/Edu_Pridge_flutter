@@ -29,8 +29,28 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>edu_pridge_flutter</title>
+  <title>EduBridge</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase Web SDK for FCM -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyAgT4rvWSyvaDbHujMmZTDDUZn2xMnts5M",
+      authDomain: "edu-bridge-246fd.firebaseapp.com",
+      projectId: "edu-bridge-246fd",
+      storageBucket: "edu-bridge-246fd.firebasestorage.app",
+      messagingSenderId: "1087208747554",
+      appId: "1:1087208747554:web:ab689779c18d1872f9107b",
+      measurementId: "G-7NNSYEDPYB",
+    });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then(reg => console.log('[EduBridge] SW registered:', reg.scope))
+        .catch(err => console.error('[EduBridge] SW error:', err));
+    }
+  </script>
   <style>
     @font-face { font-family: 'Roboto'; src: local('Arial'), local('Helvetica'); }
     @font-face { font-family: 'Tajawal'; src: local('Arial'), local('Helvetica'); }

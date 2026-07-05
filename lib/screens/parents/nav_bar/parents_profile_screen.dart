@@ -89,7 +89,13 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
     if (selectedId != null) {
       try {
         // نرسل طلب للسيرفر يجلب البيانات بـ Join بين الجداول
-        var res = await Dio().get("${ApiService().baseUrl}/student/info/$selectedId");
+        var res = await Dio().get(
+          "${ApiService().baseUrl}/student/info/$selectedId",
+          options: Options(headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          }),
+        );
         if (res.statusCode == 200 && res.data != null) {
           setState(() {
             studentName = res.data['full_name'] ?? studentName;

@@ -1,25 +1,57 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// 🌟 استيراد الشاشات والقطع اللازمة للربط الكامل
+// Shared
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_profile.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
-// 🚀 استدعاء الـ Widget الخاصة برئيس القسم (الأيقونة الوسطى)
 import '../../../widgets/boss_center_icon.dart';
+import '../../../services/chat_service.dart';
+import '../../../widgets/chat/contact_tile_widget.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 
 class BossMessageScreen extends StatelessWidget {
   const BossMessageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return const BossMessageView();
+  }
+}
+
+class BossMessageView extends StatefulWidget {
+  const BossMessageView({super.key});
+
+  @override
+  State<BossMessageView> createState() => _BossMessageViewState();
+}
+
+class _BossMessageViewState extends State<BossMessageView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final chatService = context.read<ChatService>();
+      chatService.fetchContacts();
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id') ?? '';
+      if (userId.isNotEmpty) {
+        chatService.initPusher(userId);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
     final Color cardColor = Theme.of(context).cardColor;
-    const Color primaryYellow = Color(0xFFCCAA00);
-
+    final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
@@ -28,65 +60,54 @@ class BossMessageScreen extends StatelessWidget {
           bottom: false,
           child: Stack(
             children: [
-              // 1. محتوى الرسائل (Header + Search + List)
               Column(
                 children: [
                   _buildHeader(context, isDark),
-                  _buildSearchBar(cardColor, isDark),
-
+                  
+                  // Main Content: Full Screen Contacts List
                   Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 90), // Space for bottom nav
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSectionHeader(primaryYellow),
-
-                          // قائمة المحادثات
-                          _buildChatTile(
-                            context,
-                            cardColor, isDark,
-                            name: "د. محمد العمري",
-                            subject: "بخصوص تقرير الأداء الشهري للمدربين",
-                            lastMsg: "السلام عليكم، هل يمكننا مراجعة النقاط الأخيرة في الاجتماع...",
-                            time: "10:45 ص",
-                            isOnline: true,
-                            image: "https://api.dicebear.com/7.x/avataaars/png?seed=DrMohamed",
-                            hasTimeHighlight: true,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: "بحث عن جهة اتصال...",
+                                prefixIcon: const Icon(Icons.search),
+                                filled: true,
+                                fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
                           ),
+                          Expanded(
+                            child: Consumer<ChatService>(
+                              builder: (context, chatService, child) {
+                                if (chatService.isLoadingContacts) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
+                                
+                                final dynamicContacts = chatService.contacts;
+                                
+                                if (dynamicContacts.isEmpty) {
+                                  return const Center(child: Text('لا توجد جهات اتصال'));
+                                }
 
-                          _buildChatTile(
-                            context,
-                            cardColor, isDark,
-                            name: "أ. سارة خالد",
-                            subject: "طلب إجازة اضطرارية ليوم الخميس",
-                            lastMsg: "أحتاج لإذن مغادرة مبكر يوم الخميس القادم لظرف عائلي...",
-                            time: "أمس",
-                            image: "https://api.dicebear.com/7.x/avataaars/png?seed=Sara",
+                                return ListView.builder(
+                                  itemCount: dynamicContacts.length,
+                                  itemBuilder: (context, index) {
+                                    final contact = dynamicContacts[index];
+                                    return _buildChatTile(context, contact, isDark, cardColor, textColor);
+                                  },
+                                );
+                              },
+                            ),
                           ),
-
-                          _buildChatTile(
-                            context,
-                            cardColor, isDark,
-                            name: "أ. خالد ناصر",
-                            subject: "تحديث محتوى مادة الرياضيات 101",
-                            lastMsg: "تم رفع الملفات الجديدة على السيرفر، يرجى الاعتماد...",
-                            time: "الإثنين",
-                            initials: "خ",
-                            initialsBg: Colors.orange[100]!,
-                          ),
-
-                          _buildChatTile(
-                            context,
-                            cardColor, isDark,
-                            name: "د. يوسف العلي",
-                            subject: "استفسار بخصوص الميزانية",
-                            lastMsg: "نحتاج لشراء بعض الأدوات للمعامل، هل الميزانية تسمح...",
-                            time: "12/05",
-                            image: "https://api.dicebear.com/7.x/avataaars/png?seed=Youssef",
-                          ),
-
-                          const SizedBox(height: 150), // مساحة للـ Nav Bar السفلي
                         ],
                       ),
                     ),
@@ -94,22 +115,171 @@ class BossMessageScreen extends StatelessWidget {
                 ],
               ),
 
-              // 2. 🚀 شريط التنقل السفلي الموحد (تم ضبط currentIndex على 3)
-              CustomBottomNav(
-                currentIndex: 3,
-                centerButton: const Boss_Center_Icon(),
-                onHomeTap: () => Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
-                onProfileTap: () => Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (context) => const BossProfileScreen())),
-                onNotificationsTap: () => Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (context) => const BossNotificationScreen())),
-                onMessagesTap: () {
-                  // نحن هنا بالفعل
-                },
+              // Bottom Navigation Bar
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: CustomBottomNav(
+                  currentIndex: 3,
+                  centerButton: const Boss_Center_Icon(),
+                  onHomeTap: () => Navigator.pushReplacement(
+                      context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
+                  onProfileTap: () => Navigator.pushReplacement(
+                      context, MaterialPageRoute(builder: (context) => const BossProfileScreen())),
+                  onNotificationsTap: () => Navigator.pushReplacement(
+                      context, MaterialPageRoute(builder: (context) => const BossNotificationScreen())),
+                  onMessagesTap: () {},
+                ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor) {
+    final int unreadCount = contact['unread'] ?? 0;
+    final bool hasUnread = unreadCount > 0;
+    final String name = contact['name'] ?? 'مستخدم غير معروف';
+    final String initial = name.isNotEmpty ? name[0] : '؟';
+    final String role = contact['role'] ?? '';
+    final String lastMsg = (contact['last_message'] != null && contact['last_message'].toString().trim().isNotEmpty)
+        ? contact['last_message']
+        : 'انقر لبدء المحادثة...';
+    final String time = contact['time'] ?? 'الآن';
+    final String? avatarUrl = contact['image'];
+    final bool isOnline = contact['is_online'] ?? false;
+    final bool isRead = contact['is_read'] ?? true;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: hasUnread
+            ? [BoxShadow(color: isDark ? Colors.black.withAlpha(40) : Colors.black.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))]
+            : [],
+        border: hasUnread ? Border.all(color: const Color(0xFFFFCC00).withAlpha(102), width: 1) : null,
+      ),
+      child: ListTile(
+        onTap: () {
+          final chatServiceInstance = context.read<ChatService>();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChangeNotifierProvider.value(
+                value: chatServiceInstance,
+                child: ChatRoomScreen(contact: contact),
+              ),
+            ),
+          );
+        },
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
+              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+              child: avatarUrl == null || avatarUrl.isEmpty
+                  ? Text(
+                      initial,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    )
+                  : null,
+            ),
+            if (isOnline)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  height: 14,
+                  width: 14,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF25D366),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: cardColor,
+                      width: 2.5,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        title: Text(
+          name,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+        ),
+        subtitle: Row(
+          children: [
+            if (isRead && !hasUnread) 
+              const Padding(
+                padding: EdgeInsets.only(left: 4), 
+                child: Icon(Icons.done_all, color: Colors.blue, size: 16)
+              ),
+            Expanded(
+              child: Text(
+                lastMsg,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: hasUnread ? (isDark ? Colors.white : Colors.black87) : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                  fontSize: 13,
+                  fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (role.isNotEmpty) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  role,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFD4AC0D),
+                  ),
+                ),
+              ),
+            ],
+            Text(
+              time,
+              style: TextStyle(
+                fontSize: 11,
+                color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
+                fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            if (hasUnread) ...[
+              const SizedBox(height: 5),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
+                child: Text(
+                  '$unreadCount',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -127,129 +297,29 @@ class BossMessageScreen extends StatelessWidget {
                 context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
           ),
           const Text("الرسائل", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const SettingsScreen(userName: "أحمد عبدالله", userRole: "رئيس قسم"),
+          Row(
+            children: [
+              // Broadcast icon successfully removed here!
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(userName: "أحمد عبدالله", userRole: "رئيس قسم"),
+                  ),
+                ),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: const Icon(Icons.settings_outlined, color: Colors.grey, size: 22),
+                ),
               ),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-              ),
-              child: const Icon(Icons.settings_outlined, color: Colors.grey, size: 22),
-            ),
+            ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar(Color cardColor, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
-      ),
-      child: const TextField(
-        textAlign: TextAlign.right,
-        decoration: InputDecoration(
-          hintText: "ابحث عن رسالة أو مدرب...",
-          hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-          border: InputBorder.none,
-          suffixIcon: Icon(Icons.search, color: Colors.grey),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(Color primaryYellow) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text("المحادثات الأخيرة", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          Text("رسالة جديدة", style: TextStyle(color: primaryYellow, fontSize: 12, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChatTile(BuildContext context, Color cardColor, bool isDark,
-      {required String name, required String subject, required String lastMsg,
-        required String time, String? image, String? initials, Color? initialsBg,
-        bool isOnline = false, bool hasTimeHighlight = false}) {
-    return GestureDetector(
-      onTap: () {
-        // يمكنك هنا مستقبلاً التوجه لصفحة الدردشة التفصيلية
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
-        ),
-        child: Row(
-          children: [
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: initialsBg ?? Colors.grey[200],
-                  backgroundImage: image != null ? NetworkImage(image) : null,
-                  child: initials != null ? Text(initials, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange)) : null,
-                ),
-                if (isOnline)
-                  Container(
-                    width: 14, height: 14,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: cardColor, width: 2),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(time, style: TextStyle(
-                          color: hasTimeHighlight ? const Color(0xFFCCAA00) : Colors.grey,
-                          fontSize: 12,
-                          fontWeight: hasTimeHighlight ? FontWeight.bold : FontWeight.normal
-                      )),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(subject, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text(lastMsg,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

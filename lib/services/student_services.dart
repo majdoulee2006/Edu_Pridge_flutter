@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -134,6 +134,23 @@ class StudentServices {
       }
     } catch (e) {
       debugPrint("❌ Mark Notification Read Error: $e");
+    }
+    return false;
+  }
+
+  Future<bool> markAllNotificationsAsRead() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.put(
+        "${ApiService().baseUrl}/student/notifications/read-all",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) return true;
+    } catch (e) {
+      debugPrint("❌ Mark All Notifications Read Error: $e");
     }
     return false;
   }

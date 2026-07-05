@@ -1,4 +1,4 @@
-﻿import 'package:edu_pridge_flutter/screens/admin/nav_bar/home_screen.dart';
+import 'package:edu_pridge_flutter/screens/admin/nav_bar/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -131,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // ✨ إذا كان المستخدم ولي أمر
         if (userData['parent_id'] != null) {
-          await prefs.setInt('parent_id', userData['parent_id']);
+          await prefs.setString('parent_id', userData['parent_id'].toString());
           debugPrint("✅ تم حفظ معرف الأب: ${userData['parent_id']}");
         }
 
@@ -506,9 +506,9 @@ class _LoginScreenState extends State<LoginScreen> {
           suffixIcon: isPassword
               ? IconButton(
             icon: Icon(
-              _obscurePassword ? Icons.visibility_off : Icons.visibility,
-              color: Colors.grey,
-              size: 20,
+              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              color: isDark ? const Color(0xFFFFCC00) : const Color(0xFFD4AC0D),
+              size: 24,
             ),
             onPressed: () =>
                 setState(() => _obscurePassword = !_obscurePassword),

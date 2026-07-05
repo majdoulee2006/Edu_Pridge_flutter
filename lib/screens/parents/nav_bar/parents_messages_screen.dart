@@ -1,243 +1,301 @@
-﻿import 'package:flutter/material.dart';
-// استيراد الملفات اللازمة
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Shared
+import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
+
+// Nav Bar Pages
+import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_notifications_screen.dart';
-import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
-import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../widgets/parents_center_icon.dart';
 
-class ParentsMessagesScreen extends StatefulWidget {
+// Chat Micro-Widgets & Service
+import '../../../services/chat_service.dart';
+import '../../../widgets/chat/contact_tile_widget.dart';
+
+class ParentsMessagesScreen extends StatelessWidget {
   const ParentsMessagesScreen({super.key});
 
   @override
-  State<ParentsMessagesScreen> createState() => _ParentsMessagesScreenState();
+  Widget build(BuildContext context) {
+    return const ParentsMessagesView();
+  }
 }
 
-class _ParentsMessagesScreenState extends State<ParentsMessagesScreen> {
+class ParentsMessagesView extends StatefulWidget {
+  const ParentsMessagesView({super.key});
+
+  @override
+  State<ParentsMessagesView> createState() => _ParentsMessagesViewState();
+}
+
+class _ParentsMessagesViewState extends State<ParentsMessagesView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final chatService = context.read<ChatService>();
+      chatService.fetchContacts();
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id') ?? '';
+      if (userId.isNotEmpty) {
+        chatService.initPusher(userId);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 🎨 تعريف الألوان المتجاوبة مع الثيم
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
-    final cardColor = Theme.of(context).cardColor;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final Color cardColor = Theme.of(context).cardColor;
+    final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: bgColor,
-        body: Stack(
-          children: [
-            Column(
-              children: [
-                _buildChatHeader(context, cardColor, textColor),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      _buildDateTag("اليوم", isDark),
-                      _buildReceiverMessage("السلام عليكم أستاذ، يرجى تزويدي بتقرير الأداء الشهري للطلاب.", cardColor, textColor),
-                      _buildSenderMessage("وعليكم السلام ورحمة الله،،"),
-                      _buildSenderMessage("التقرير جاهز، سأقوم بإرساله الآن.", time: "09:42 ص", isRead: true),
-                      _buildReceiverMessage("ممتاز، بانتظارك.", cardColor, textColor),
-                      _buildFileMessage("تقرير_أكتوبر.pdf", "2.4 MB • PDF", "09:45 ص"),
-                      const SizedBox(height: 120), // مساحة للناف بار
-                    ],
-                  ),
-                ),
-                _buildMessageInput(cardColor, textColor),
-                const SizedBox(height: 100), // مساحة إضافية لرفع حقل الإدخال فوق الـ Nav
-              ],
-            ),
-
-            // 2. الشريط السفلي الموحد (الذي تستخدمه صديقتك)
-            CustomBottomNav(
-              currentIndex: 3, // رقم صفحة الرسائل
-              centerButton: const Parents_Center_Icon(),
-              onHomeTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
-              onNotificationsTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
-              onMessagesTap: () {
-                // نحن هنا بالفعل
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // الهيدر العلوي (معدل ليدعم الألوان)
-  Widget _buildChatHeader(BuildContext context, Color cardColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 50, 20, 15),
-      decoration: BoxDecoration(
-        color: cardColor,
-        border: Border(bottom: BorderSide(color: textColor.withValues(alpha: 0.1))),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
-            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen())),
-          ),
-          const Spacer(),
-          Column(
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          bottom: false,
+          child: Stack(
             children: [
-              const CircleAvatar(
-                radius: 24,
-                backgroundColor: Color(0xFFF0F0F0),
-                child: Icon(Icons.person, color: Colors.grey),
-              ),
-              const SizedBox(height: 4),
-              Text("المدير", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
-            ],
-          ),
-          const Spacer(),
-          IconButton(icon: Icon(Icons.info_outline, color: textColor.withValues(alpha: 0.6)), onPressed: () {}),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDateTag(String text, bool isDark) {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 20),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white10 : const Color(0xFFF5F5F0),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(text, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-      ),
-    );
-  }
-
-  // رسالة الطرف الآخر (معدلة لتناسب اللون الخلفي)
-  Widget _buildReceiverMessage(String message, Color cardColor, Color textColor) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15, left: 60),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            bottomLeft: Radius.circular(25),
-            bottomRight: Radius.circular(25),
-          ),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Text(message, style: TextStyle(fontSize: 14, height: 1.6, color: textColor)),
-      ),
-    );
-  }
-
-  // رسالة المستخدم (تبقى بالأصفر لأنها هوية التطبيق)
-  Widget _buildSenderMessage(String message, {String? time, bool isRead = false}) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 5, right: 60),
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFCC00),
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(25),
-                bottomLeft: Radius.circular(25),
-                bottomRight: Radius.circular(25),
-              ),
-            ),
-            child: Text(message, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black)),
-          ),
-          if (time != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 10, bottom: 10),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              Column(
                 children: [
-                  Text(time, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                  if (isRead) ...[const SizedBox(width: 4), const Icon(Icons.done_all, size: 14, color: Colors.blue)],
+                  _buildHeader(context, isDark),
+                  
+                  // Main Content: Full Screen Contacts List
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 90),
+                      child: Consumer<ChatService>(
+                        builder: (context, chatService, child) {
+                          if (chatService.isLoadingContacts) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          
+                          final dynamicContacts = chatService.contacts;
+                          
+                          if (dynamicContacts.isEmpty) {
+                            return const Center(child: Text('لا توجد جهات اتصال'));
+                          }
+
+                          // Simplified, friendly list without search bar
+                          return ListView.builder(
+                            padding: const EdgeInsets.only(top: 8),
+                            itemCount: dynamicContacts.length,
+                            itemBuilder: (context, index) {
+                              final contact = dynamicContacts[index];
+                              return _buildChatTile(context, contact, isDark, cardColor, textColor);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-        ],
+
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: CustomBottomNav(
+                  currentIndex: 3,
+                  centerButton: const Parents_Center_Icon(),
+                  onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+                  onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+                  onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
+                  onMessagesTap: () {},
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildFileMessage(String fileName, String info, String time) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 240,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(25)),
-            child: Row(
-              children: [
-                const CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.description, color: Colors.black)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(fileName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                      Text(info, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-                    ],
+  Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor) {
+    final int unreadCount = contact['unread'] ?? 0;
+    final bool hasUnread = unreadCount > 0;
+    final String name = contact['name'] ?? 'مستخدم غير معروف';
+    final String initial = name.isNotEmpty ? name[0] : '؟';
+    final String role = contact['role'] ?? '';
+    final String lastMsg = (contact['last_message'] != null && contact['last_message'].toString().trim().isNotEmpty)
+        ? contact['last_message']
+        : 'انقر لبدء المحادثة...';
+    final String time = contact['time'] ?? 'الآن';
+    final String? avatarUrl = contact['image'];
+    final bool isOnline = contact['is_online'] ?? false;
+    final bool isRead = contact['is_read'] ?? true;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: hasUnread
+            ? [BoxShadow(color: isDark ? Colors.black.withAlpha(40) : Colors.black.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))]
+            : [],
+        border: hasUnread ? Border.all(color: const Color(0xFFFFCC00).withAlpha(102), width: 1) : null,
+      ),
+      child: ListTile(
+        onTap: () {
+          final chatServiceInstance = context.read<ChatService>();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChangeNotifierProvider.value(
+                value: chatServiceInstance,
+                child: ChatRoomScreen(contact: contact),
+              ),
+            ),
+          );
+        },
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
+              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+              child: avatarUrl == null || avatarUrl.isEmpty
+                  ? Text(
+                      initial,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    )
+                  : null,
+            ),
+            if (isOnline)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  height: 14,
+                  width: 14,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF25D366),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: cardColor,
+                      width: 2.5,
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          Padding(padding: const EdgeInsets.only(left: 10, top: 5), child: Text(time, style: const TextStyle(fontSize: 10, color: Colors.grey))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageInput(Color cardColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(35),
-          border: Border.all(color: textColor.withValues(alpha: 0.1)),
+              ),
+          ],
         ),
-        child: Row(
+        title: Text(
+          name,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+        ),
+        subtitle: Row(
           children: [
-            const CircleAvatar(
-              backgroundColor: Color(0xFFFFCC00),
-              child: Icon(Icons.send_rounded, color: Colors.black, size: 20),
-            ),
+            if (isRead && !hasUnread) 
+              const Padding(
+                padding: EdgeInsets.only(left: 4), 
+                child: Icon(Icons.done_all, color: Colors.blue, size: 16)
+              ),
             Expanded(
-              child: TextField(
-                style: TextStyle(color: textColor),
-                decoration: const InputDecoration(
-                  hintText: "اكتب رسالة...",
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 15),
+              child: Text(
+                lastMsg,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: hasUnread ? (isDark ? Colors.white : Colors.black87) : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                  fontSize: 13,
+                  fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ),
-            IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.grey), onPressed: () {}),
           ],
         ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (role.isNotEmpty) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  role,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFD4AC0D),
+                  ),
+                ),
+              ),
+            ],
+            Text(
+              time,
+              style: TextStyle(
+                fontSize: 11,
+                color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
+                fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            if (hasUnread) ...[
+              const SizedBox(height: 5),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
+                child: Text(
+                  '$unreadCount',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+          ),
+          const Text("الرسائل", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                ),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: const Icon(Icons.settings_outlined, color: Colors.grey, size: 22),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

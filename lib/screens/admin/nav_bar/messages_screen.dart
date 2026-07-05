@@ -1,244 +1,320 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Shared
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
+
+// Nav Bar Pages
+import 'package:edu_pridge_flutter/screens/admin/nav_bar/home_screen.dart';
+import 'package:edu_pridge_flutter/screens/admin/nav_bar/profile_screen.dart';
+import 'package:edu_pridge_flutter/screens/admin/nav_bar/notifications_screen.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
-import 'home_screen.dart';
-import 'profile_screen.dart';
-import 'notifications_screen.dart';
+// Chat Micro-Widgets & Service
+import '../../../services/chat_service.dart';
+import '../../../widgets/chat/contact_tile_widget.dart';
 
-class AdminMessagesScreen extends StatefulWidget {
+class AdminMessagesScreen extends StatelessWidget {
   const AdminMessagesScreen({super.key});
 
   @override
-  State<AdminMessagesScreen> createState() => _AdminMessagesScreenState();
+  Widget build(BuildContext context) {
+    return const AdminMessagesView();
+  }
 }
 
-class _AdminMessagesScreenState extends State<AdminMessagesScreen> {
-  final TextEditingController searchController = TextEditingController();
-  String searchQuery = "";
-
-  final List<Map<String, dynamic>> chats = [
-    {
-      "name": "د. أحمد الخالدي",
-      "role": "رئيس قسم الكومبيوتر ونظم المعلومات",
-      "lastMessage": "تم اعتماد الجدول الدراسي الجديد",
-      "time": "10:45",
-      "unread": 2,
-    },
-    {
-      "name": "د. فاطمة الزهراء",
-      "role": "رئيسة قسم الطبي",
-      "lastMessage": "هل يمكنك مراجعة تقرير الطلاب؟",
-      "time": "09:30",
-      "unread": 0,
-    },
-    {
-      "name": "د. محمد العتيبي",
-      "role": "رئيس قسم التجاري",
-      "lastMessage": "شكراً على التعميم السابق",
-      "time": "أمس",
-      "unread": 1,
-    },
-    {
-      "name": "أ. خالد الشهري",
-      "role": "موظف الشؤون الإدارية",
-      "lastMessage": "تم إنهاء إجراءات التوظيف الجديدة",
-      "time": "أمس",
-      "unread": 3,
-    },
-    {
-      "name": "د. سارة العمري",
-      "role": "رئيسة قسم اللغة الإنجليزية",
-      "lastMessage": "متى موعد الاجتماع القادم؟",
-      "time": "أمس",
-      "unread": 0,
-    },
-  ];
+class AdminMessagesView extends StatefulWidget {
+  const AdminMessagesView({super.key});
 
   @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
+  State<AdminMessagesView> createState() => _AdminMessagesViewState();
+}
+
+class _AdminMessagesViewState extends State<AdminMessagesView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final chatService = context.read<ChatService>();
+      chatService.fetchContacts();
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id') ?? '';
+      if (userId.isNotEmpty) {
+        chatService.initPusher(userId);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final bgColor = theme.scaffoldBackgroundColor;
-    final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black);
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final Color cardColor = Theme.of(context).cardColor;
+    final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-    final filteredChats = chats.where((chat) {
-      return chat["name"].toString().toLowerCase().contains(searchQuery.toLowerCase()) ||
-          chat["role"].toString().toLowerCase().contains(searchQuery.toLowerCase());
-    }).toList();
-
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: bgColor,
-        body: Stack(
-          children: [
-            SafeArea(
-              child: Column(
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              Column(
                 children: [
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 26),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        const Text(
-                          "الرسائل",
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 26),
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // البحث
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 15),
-                    child: TextField(
-                      controller: searchController,
-                      onChanged: (value) => setState(() => searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: "ابحث في المحادثات...",
-                        prefixIcon: const Icon(Icons.search),
-                        filled: true,
-                        fillColor: isDark ? Colors.grey[900] : Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // قائمة المحادثات
+                  _buildHeader(context, isDark),
+                  
+                  // Main Content: Full Screen Contacts List
                   Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      itemCount: filteredChats.length,
-                      itemBuilder: (context, index) {
-                        final chat = filteredChats[index];
-                        return _buildChatTile(chat, cardColor, textColor);
-                      },
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 90),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: "بحث عن موظف...",
+                                prefixIcon: const Icon(Icons.search),
+                                filled: true,
+                                fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Consumer<ChatService>(
+                              builder: (context, chatService, child) {
+                                if (chatService.isLoadingContacts) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
+                                
+                                final dynamicContacts = chatService.contacts;
+                                
+                                if (dynamicContacts.isEmpty) {
+                                  return const Center(child: Text('لا توجد جهات اتصال'));
+                                }
+
+                                return ListView.builder(
+                                  itemCount: dynamicContacts.length,
+                                  itemBuilder: (context, index) {
+                                    final contact = dynamicContacts[index];
+                                    return _buildChatTile(context, contact, isDark, cardColor, textColor);
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
 
-            CustomBottomNav(
-              currentIndex: 3,
-              centerButton: const AdminSpeedDial(),
-              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminProfileScreen())),
-              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminNotificationsScreen())),
-              onMessagesTap: () {},
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: CustomBottomNav(
+                  currentIndex: 3,
+                  centerButton: const AdminSpeedDial(),
+                  onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen())),
+                  onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminProfileScreen())),
+                  onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminNotificationsScreen())),
+                  onMessagesTap: () {},
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor) {
+    final int unreadCount = contact['unread'] ?? 0;
+    final bool hasUnread = unreadCount > 0;
+    final String name = contact['name'] ?? 'مستخدم غير معروف';
+    final String initial = name.isNotEmpty ? name[0] : '؟';
+    final String role = contact['role'] ?? '';
+    final String lastMsg = (contact['last_message'] != null && contact['last_message'].toString().trim().isNotEmpty)
+        ? contact['last_message']
+        : 'انقر لبدء المحادثة...';
+    final String time = contact['time'] ?? 'الآن';
+    final String? avatarUrl = contact['image'];
+    final bool isOnline = contact['is_online'] ?? false;
+    final bool isRead = contact['is_read'] ?? true;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: hasUnread
+            ? [BoxShadow(color: isDark ? Colors.black.withAlpha(40) : Colors.black.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))]
+            : [],
+        border: hasUnread ? Border.all(color: const Color(0xFFFFCC00).withAlpha(102), width: 1) : null,
+      ),
+      child: ListTile(
+        onTap: () {
+          final chatServiceInstance = context.read<ChatService>();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChangeNotifierProvider.value(
+                value: chatServiceInstance,
+                child: ChatRoomScreen(contact: contact),
+              ),
             ),
+          );
+        },
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
+              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+              child: avatarUrl == null || avatarUrl.isEmpty
+                  ? Text(
+                      initial,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    )
+                  : null,
+            ),
+            if (isOnline)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  height: 14,
+                  width: 14,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF25D366),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: cardColor,
+                      width: 2.5,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        title: Text(
+          name,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+        ),
+        subtitle: Row(
+          children: [
+            if (isRead && !hasUnread) 
+              const Padding(
+                padding: EdgeInsets.only(left: 4), 
+                child: Icon(Icons.done_all, color: Colors.blue, size: 16)
+              ),
+            Expanded(
+              child: Text(
+                lastMsg,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: hasUnread ? (isDark ? Colors.white : Colors.black87) : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                  fontSize: 13,
+                  fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (role.isNotEmpty) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  role,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFD4AC0D),
+                  ),
+                ),
+              ),
+            ],
+            Text(
+              time,
+              style: TextStyle(
+                fontSize: 11,
+                color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
+                fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            if (hasUnread) ...[
+              const SizedBox(height: 5),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
+                child: Text(
+                  '$unreadCount',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildChatTile(Map<String, dynamic> chat, Color cardColor, Color textColor) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            // Avatar
-            const CircleAvatar(
-              radius: 28,
-              backgroundColor: Color(0xFF2A2A2A),
-              child: Icon(Icons.person, color: Colors.white70, size: 32),
-            ),
-
-            const SizedBox(width: 12),
-
-            // النصوص (الجزء الأهم)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    chat['name'],
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      fontSize: 16,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    chat['role'],
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    chat['lastMessage'],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.85),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // الوقت والإشعارات
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  chat['time'],
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+  Widget _buildHeader(BuildContext context, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen())),
+          ),
+          const Text("الرسائل", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
                 ),
-                if (chat['unread'] > 0)
-                  Container(
-                    margin: const EdgeInsets.only(top: 6),
-                    padding: const EdgeInsets.all(5),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFCC00),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      chat['unread'].toString(),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                   ),
-              ],
-            ),
-          ],
-        ),
+                  child: const Icon(Icons.settings_outlined, color: Colors.grey, size: 22),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

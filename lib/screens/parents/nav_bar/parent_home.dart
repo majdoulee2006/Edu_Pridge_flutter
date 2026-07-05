@@ -86,10 +86,11 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
-      if (token.isEmpty) return [];
+      final parentId = prefs.getString('parent_id') ?? '';
+      if (token.isEmpty || parentId.isEmpty) return [];
 
       final res = await Dio().get(
-        "${ApiService().baseUrl}/parent/children",
+        "${ApiService().baseUrl}/parent/children/$parentId",
         options: Options(headers: {
           "Accept": "application/json",
           "Authorization": "Bearer $token",

@@ -23,6 +23,7 @@ class ParentsNotificationsScreen extends StatefulWidget {
 
 class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen> {
   bool _isLoading = true;
+  bool _isMarkingAll = false;
   List<Map<String, dynamic>> _notifications = [];
 
   @override
@@ -58,6 +59,41 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  Future<void> _markAsRead(int id, int index) async {
+    if (_notifications[index]['is_read'] == true) return;
+    try {
+      final token = await _getToken();
+      await Dio().put(
+        "${ApiService().baseUrl}/parent/notifications/$id/read",
+        options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
+      );
+      if (mounted) setState(() => _notifications[index]['is_read'] = true);
+    } catch (e) {
+      debugPrint("⛔ Parent mark read error: $e");
+    }
+  }
+
+  Future<void> _markAllAsRead() async {
+    if (_isMarkingAll) return;
+    setState(() => _isMarkingAll = true);
+    try {
+      final token = await _getToken();
+      await Dio().put(
+        "${ApiService().baseUrl}/parent/notifications/read-all",
+        options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
+      );
+      if (mounted) setState(() {
+        for (final n in _notifications) { n['is_read'] = true; }
+      });
+    } catch (e) {
+      debugPrint("⛔ Parent mark all read error: $e");
+    } finally {
+      if (mounted) setState(() => _isMarkingAll = false);
+    }
+  }
+
+  int get _unreadCount => _notifications.where((n) => n['is_read'] != true).length;
 
   Future<void> _respondLeave(int index, String status) async {
     final n = _notifications[index];
@@ -192,8 +228,12 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                             itemCount: _notifications.length,
                             itemBuilder: (context, index) {
                               final n = _notifications[index];
+                              final int nId = (n['id'] as num?)?.toInt() ?? 0;
                               return GestureDetector(
-                                onTap: () => _onNotificationTap(n),
+                                onTap: () {
+                                  _markAsRead(nId, index);
+                                  _onNotificationTap(n);
+                                },
                                 child: _buildNotificationCard(n, cardColor, textColor, isDark, index),
                               );
                             },
@@ -219,13 +259,37 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      title: Text("الإشعارات", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text("الإشعارات", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+          if (_unreadCount > 0) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(10)),
+              child: Text('$_unreadCount', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ],
+      ),
       leading: IconButton(
         icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
       ),
       actions: [
-        IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
+        if (_unreadCount > 0)
+          _isMarkingAll
+              ? const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00))),
+                )
+              : TextButton(
+                  onPressed: _markAllAsRead,
+                  child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                )
+        else
+          IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
       ],
     );
   }
@@ -238,12 +302,16 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     final isPendingParent = isLeave && leaveStatus == 'pending_parent';
     final isPendingHod    = isLeave && (leaveStatus == null || leaveStatus == 'pending_hod');
     final isResolved      = isLeave && (leaveStatus == 'approved' || leaveStatus == 'rejected');
+    final bool isUnread   = n['is_read'] != true;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: isUnread
+            ? (isDark ? color.withValues(alpha: 0.08) : color.withValues(alpha: 0.05))
+            : cardColor,
         borderRadius: BorderRadius.circular(30),
+        border: isUnread ? Border.all(color: color.withValues(alpha: 0.3), width: 1) : null,
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: ClipRRect(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 class PendingTab extends StatefulWidget {
   final Color cardColor;
@@ -20,53 +21,139 @@ class PendingTab extends StatefulWidget {
 
 class _PendingTabState extends State<PendingTab>
     with SingleTickerProviderStateMixin {
-
   late TabController _subTabController;
+  final AffairsServices _affairsServices = AffairsServices();
 
-  // 🔹 بيانات طلاب
-  final List<Map<String, dynamic>> studentRequests = [
-    {
-      'name': 'محمد علي حسن',
-      'grade': 'الصف الخامس الابتدائي - أ',
-      'timeAgo': 'منذ 15 دقيقة',
-      'idNumber': '1029384756',
-      'birthDate': '2013-05-14',
-      'avatarLetter': 'م',
-      'avatarColor': Colors.blue,
-    },
-    {
-      'name': 'سارة أحمد محمود',
-      'grade': 'الصف الثاني المتوسط - ب',
-      'timeAgo': 'منذ ساعتين',
-      'idNumber': '1092837465',
-      'birthDate': '2010-11-20',
-      'avatarLetter': 'س',
-      'avatarColor': Colors.purple,
-    },
-  ];
-
-  // 🔹 بيانات أولياء الأمور
-  final List<Map<String, dynamic>> parentRequests = [
-    {
-      'name': 'عمر فاروق',
-      'grade': 'الصف الأول الثانوي',
-      'timeAgo': 'أمس',
-      'avatarLetter': 'ع',
-      'avatarColor': Colors.orange,
-      'status': 'قيد المراجعة',
-    },
-  ];
+  bool _isLoading = true;
+  List<dynamic> _allRequests = [];
+  List<dynamic> _studentRequests = [];
+  List<dynamic> _parentRequests = [];
 
   @override
   void initState() {
     super.initState();
     _subTabController = TabController(length: 2, vsync: this);
+    _loadRequests();
   }
 
   @override
   void dispose() {
     _subTabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRequests() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final data = await _affairsServices.getPendingAccounts();
+      if (mounted) {
+        setState(() {
+          _allRequests = data ?? [];
+          _studentRequests = _allRequests.where((r) => r['role'] == 'student').toList();
+          _parentRequests = _allRequests.where((r) => r['role'] == 'parent').toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading pending requests: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleApprove(int userId) async {
+    // Show a loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFCC00)),
+        ),
+      ),
+    );
+
+    final success = await _affairsServices.approveAccount(userId);
+    if (!mounted) return;
+    Navigator.pop(context); // Pop loading dialog
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم تفعيل الحساب والموافقة بنجاح', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadRequests();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('فشل تفعيل الحساب، يرجى المحاولة لاحقاً', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleReject(int userId) async {
+    // Show confirmation dialog first
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('تأكيد الرفض', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          content: const Text('هل أنت متأكد من رفض وحذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('نعم، ارفض', style: TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.red)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirm != true) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFCC00)),
+        ),
+      ),
+    );
+
+    final success = await _affairsServices.rejectAccount(userId);
+    if (!mounted) return;
+    Navigator.pop(context); // Pop loading dialog
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم رفض الطلب وحذفه بنجاح', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      _loadRequests();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('فشل رفض الطلب، يرجى المحاولة لاحقاً', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -90,9 +177,9 @@ class _PendingTabState extends State<PendingTab>
               ),
               const SizedBox(width: 10),
               Text(
-                "طلبات جديدة",
+                "طلبات جديدة معلقة",
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: widget.textColor,
                   fontFamily: 'Noto Sans Arabic',
@@ -106,7 +193,7 @@ class _PendingTabState extends State<PendingTab>
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${studentRequests.length + parentRequests.length} طلبات',
+                  '${_allRequests.length} طلبات',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -168,13 +255,19 @@ class _PendingTabState extends State<PendingTab>
         // محتوى التبويبات السفلية
         // ═══════════════════════════════════════
         Expanded(
-          child: TabBarView(
-            controller: _subTabController,
-            children: [
-              _buildStudentList(),
-              _buildParentList(),
-            ],
-          ),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFCC00)),
+                  ),
+                )
+              : TabBarView(
+                  controller: _subTabController,
+                  children: [
+                    _buildStudentList(),
+                    _buildParentList(),
+                  ],
+                ),
         ),
       ],
     );
@@ -184,13 +277,26 @@ class _PendingTabState extends State<PendingTab>
   // قائمة الطلاب
   // ═══════════════════════════════════════
   Widget _buildStudentList() {
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
-      itemCount: studentRequests.length,
-      itemBuilder: (context, index) {
-        return _buildStudentCard(studentRequests[index]);
-      },
+    if (_studentRequests.isEmpty) {
+      return Center(
+        child: Text(
+          "لا توجد طلبات طلاب معلقة حالياً",
+          style: TextStyle(color: widget.subColor, fontSize: 14, fontFamily: 'Noto Sans Arabic'),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadRequests,
+      color: const Color(0xFFFFCC00),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
+        itemCount: _studentRequests.length,
+        itemBuilder: (context, index) {
+          return _buildStudentCard(_studentRequests[index]);
+        },
+      ),
     );
   }
 
@@ -198,13 +304,26 @@ class _PendingTabState extends State<PendingTab>
   // قائمة أولياء الأمور
   // ═══════════════════════════════════════
   Widget _buildParentList() {
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
-      itemCount: parentRequests.length,
-      itemBuilder: (context, index) {
-        return _buildParentCard(parentRequests[index]);
-      },
+    if (_parentRequests.isEmpty) {
+      return Center(
+        child: Text(
+          "لا توجد طلبات أولياء أمور معلقة حالياً",
+          style: TextStyle(color: widget.subColor, fontSize: 14, fontFamily: 'Noto Sans Arabic'),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadRequests,
+      color: const Color(0xFFFFCC00),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
+        itemCount: _parentRequests.length,
+        itemBuilder: (context, index) {
+          return _buildParentCard(_parentRequests[index]);
+        },
+      ),
     );
   }
 
@@ -212,6 +331,11 @@ class _PendingTabState extends State<PendingTab>
   // بطاقة الطالب
   // ═══════════════════════════════════════
   Widget _buildStudentCard(Map<String, dynamic> data) {
+    final String initial = data['full_name'] != null && data['full_name'].isNotEmpty
+        ? data['full_name'][0]
+        : 'ط';
+    final int userId = data['user_id'] ?? 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -229,37 +353,34 @@ class _PendingTabState extends State<PendingTab>
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // الصف الأول: أيقونة + اسم + نقاط
             Row(
               children: [
-                // أيقونة الحساب (يمين)
                 Container(
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: (data['avatarColor'] as Color).withOpacity(0.1),
+                    color: Colors.blue.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(
-                      data['avatarLetter'],
-                      style: TextStyle(
+                      initial,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: data['avatarColor'] as Color,
+                        color: Colors.blue,
                         fontFamily: 'Noto Sans Arabic',
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                // الاسم + الصف
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        data['name'],
+                        data['full_name'] ?? 'بدون اسم',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -269,7 +390,7 @@ class _PendingTabState extends State<PendingTab>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        data['grade'],
+                        data['email'] ?? 'بدون بريد إلكتروني',
                         style: TextStyle(
                           fontSize: 12,
                           color: widget.subColor,
@@ -282,7 +403,7 @@ class _PendingTabState extends State<PendingTab>
                           Icon(Icons.access_time, size: 12, color: widget.subColor),
                           const SizedBox(width: 4),
                           Text(
-                            data['timeAgo'],
+                            data['created_at'] ?? '',
                             style: TextStyle(
                               fontSize: 11,
                               color: widget.subColor,
@@ -294,17 +415,11 @@ class _PendingTabState extends State<PendingTab>
                     ],
                   ),
                 ),
-                // النقاط الثلاث (يسار)
-                IconButton(
-                  icon: Icon(Icons.more_vert, color: widget.subColor),
-                  onPressed: () {},
-                ),
               ],
             ),
 
             const SizedBox(height: 12),
 
-            // التفاصيل: رقم الهوية + تاريخ الميلاد
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
@@ -312,52 +427,25 @@ class _PendingTabState extends State<PendingTab>
                 color: widget.isDark ? Colors.grey.shade900 : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'رقم الهوية',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: widget.subColor,
-                          fontFamily: 'Noto Sans Arabic',
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        data['idNumber'],
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: widget.textColor,
-                          fontFamily: 'Noto Sans Arabic',
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'الرقم الجامعي الكود',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: widget.subColor,
+                      fontFamily: 'Noto Sans Arabic',
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        'تاريخ الميلاد',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: widget.subColor,
-                          fontFamily: 'Noto Sans Arabic',
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        data['birthDate'],
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: widget.textColor,
-                          fontFamily: 'Noto Sans Arabic',
-                        ),
-                      ),
-                    ],
+                  const Spacer(),
+                  Text(
+                    data['university_id'] ?? 'غير متوفر',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: widget.textColor,
+                      fontFamily: 'Noto Sans Arabic',
+                    ),
                   ),
                 ],
               ),
@@ -365,13 +453,11 @@ class _PendingTabState extends State<PendingTab>
 
             const SizedBox(height: 12),
 
-            // الأزرار: رفض (يسار) | إنشاء حساب (يمين)
             Row(
               children: [
-                // رفض (يسار)
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () => _handleReject(userId),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: widget.subColor.withOpacity(0.3)),
                       shape: RoundedRectangleBorder(
@@ -391,13 +477,12 @@ class _PendingTabState extends State<PendingTab>
                   ),
                 ),
                 const SizedBox(width: 12),
-                // إنشاء حساب (يمين)
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () => _handleApprove(userId),
                     icon: const Icon(Icons.check, color: Colors.white, size: 18),
                     label: const Text(
-                      'إنشاء حساب',
+                      'موافقة وتفعيل',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -426,6 +511,11 @@ class _PendingTabState extends State<PendingTab>
   // بطاقة ولي الأمر
   // ═══════════════════════════════════════
   Widget _buildParentCard(Map<String, dynamic> data) {
+    final String initial = data['full_name'] != null && data['full_name'].isNotEmpty
+        ? data['full_name'][0]
+        : 'أ';
+    final int userId = data['user_id'] ?? 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -443,37 +533,34 @@ class _PendingTabState extends State<PendingTab>
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // الصف الأول: أيقونة + اسم + نقاط
             Row(
               children: [
-                // أيقونة الحساب (يمين)
                 Container(
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: (data['avatarColor'] as Color).withOpacity(0.1),
+                    color: Colors.orange.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(
-                      data['avatarLetter'],
-                      style: TextStyle(
+                      initial,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: data['avatarColor'] as Color,
+                        color: Colors.orange,
                         fontFamily: 'Noto Sans Arabic',
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                // الاسم + الصف
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        data['name'],
+                        data['full_name'] ?? 'بدون اسم',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -483,7 +570,7 @@ class _PendingTabState extends State<PendingTab>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        data['grade'],
+                        data['email'] ?? 'بدون بريد إلكتروني',
                         style: TextStyle(
                           fontSize: 12,
                           color: widget.subColor,
@@ -496,7 +583,7 @@ class _PendingTabState extends State<PendingTab>
                           Icon(Icons.access_time, size: 12, color: widget.subColor),
                           const SizedBox(width: 4),
                           Text(
-                            data['timeAgo'],
+                            data['created_at'] ?? '',
                             style: TextStyle(
                               fontSize: 11,
                               color: widget.subColor,
@@ -508,23 +595,16 @@ class _PendingTabState extends State<PendingTab>
                     ],
                   ),
                 ),
-                // النقاط الثلاث (يسار)
-                IconButton(
-                  icon: Icon(Icons.more_vert, color: widget.subColor),
-                  onPressed: () {},
-                ),
               ],
             ),
 
             const SizedBox(height: 12),
 
-            // الأزرار: رفض (يسار) | إنشاء حساب (يمين)
             Row(
               children: [
-                // رفض (يسار)
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () => _handleReject(userId),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: widget.subColor.withOpacity(0.3)),
                       shape: RoundedRectangleBorder(
@@ -544,13 +624,12 @@ class _PendingTabState extends State<PendingTab>
                   ),
                 ),
                 const SizedBox(width: 12),
-                // إنشاء حساب (يمين)
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () => _handleApprove(userId),
                     icon: const Icon(Icons.check, color: Colors.white, size: 18),
                     label: const Text(
-                      'إنشاء حساب',
+                      'موافقة وتفعيل',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,

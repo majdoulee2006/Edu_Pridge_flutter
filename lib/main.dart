@@ -12,18 +12,38 @@ import 'screens/teacher/teacher_home.dart';
 import 'screens/parents/nav_bar/parent_home.dart';
 import 'screens/Head of department/nav_bar/boss_home.dart';
 import 'screens/Affairs_Officer/nav_bar/home_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:edu_pridge_flutter/services/chat_service.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiService.init(); // 🌟 كشف السيرفر تلقائياً عند التشغيل
-  if (!kIsWeb) {
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyAgT4rvWSyvaDbHujMmZTDDUZn2xMnts5M",
+        authDomain: "edu-bridge-246fd.firebaseapp.com",
+        projectId: "edu-bridge-246fd",
+        storageBucket: "edu-bridge-246fd.firebasestorage.app",
+        messagingSenderId: "1087208747554",
+        appId: "1:1087208747554:web:ab689779c18d1872f9107b",
+        measurementId: "G-7NNSYEDPYB",
+      ),
+    );
+    await FcmService.initWeb();
+  } else {
     await Firebase.initializeApp();
     await FcmService.init();
   }
   await AppSettings.loadFromPrefs();
-  runApp(const EduBridgeApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ChatService(),
+      child: const EduBridgeApp(),
+    ),
+  );
 }
 
 class _AppRouter extends StatefulWidget {
@@ -43,7 +63,15 @@ class _AppRouterState extends State<_AppRouter> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
     final role  = prefs.getString('role')  ?? '';
+    final userId = prefs.getString('user_id') ?? '';
+    
     if (!mounted) return;
+    
+    // Initialize Pusher if logged in
+    if (token.isNotEmpty && userId.isNotEmpty) {
+      context.read<ChatService>().initPusher(userId);
+    }
+
     final Widget dest;
     if (token.isEmpty) {
       dest = const OnboardingOne();

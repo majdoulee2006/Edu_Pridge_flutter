@@ -1,5 +1,8 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
@@ -46,21 +49,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 800);
     if (picked == null || !mounted) return;
 
+    // أظهر dialog للتأكيد
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('طلب تغيير الصورة', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+          content: const Text(
+            'سيتم إرسال طلب لموظف الشؤون لمراجعة صورتك الجديدة والموافقة عليها.\nهل تريد المتابعة؟',
+            style: TextStyle(fontFamily: 'Cairo'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء', style: TextStyle(color: Colors.grey, fontFamily: 'Cairo')),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
+              child: const Text('إرسال الطلب', style: TextStyle(color: Colors.black, fontFamily: 'Cairo')),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() => _uploadingAvatar = true);
     try {
-      final bytes = await picked.readAsBytes();
-      final ok = await StudentServices().updateProfileImage(bytes, 'avatar.jpg');
-      if (ok && mounted) {
-        await _fetchUserProfile();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
-            backgroundColor: Color(0xFFFFCC00),
-          ));
-        }
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final api = ApiService();
+      final formData = FormData.fromMap({
+        'photo': await MultipartFile.fromFile(picked.path, filename: 'photo.jpg'),
+      });
+      final res = await Dio().post(
+        '${api.baseUrl}/student/photo-change-request',
+        data: formData,
+        options: Options(headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            res.data['message'] ?? 'تم إرسال الطلب بنجاح',
+            style: const TextStyle(fontFamily: 'Cairo'),
+          ),
+          backgroundColor: const Color(0xFFFFCC00),
+        ));
       }
     } catch (e) {
-      debugPrint('Avatar error: $e');
+      debugPrint('Photo request error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('فشل إرسال الطلب', style: TextStyle(fontFamily: 'Cairo')),
+          backgroundColor: Colors.red,
+        ));
+      }
     } finally {
       if (mounted) setState(() => _uploadingAvatar = false);
     }

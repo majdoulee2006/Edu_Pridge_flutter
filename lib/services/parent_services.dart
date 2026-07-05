@@ -13,15 +13,25 @@ class ParentService {
   Future<List<dynamic>> getChildren() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      int? userId = prefs.getInt('user_id'); // بنجيب المعرف اللي حفظناه باللوج إن
+      final String token = prefs.getString('token') ?? '';
+      final String parentId = prefs.getString('parent_id') ?? '';
 
-      if (userId == null) return [];
+      if (token.isEmpty || parentId.isEmpty) return [];
 
-      // نستخدم رابط الـ test اللي بعتيه في الـ api.php لأنه أضمن حالياً
-      final response = await _dio.get("$baseUrl/test-parent-children/$userId");
+      final response = await _dio.get(
+        "$baseUrl/parent/children/$parentId",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
 
       if (response.statusCode == 200) {
-        return response.data; // قائمة الأبناء
+        // Laravel returns ['success' => true, 'data' => [...]]
+        if (response.data is Map && response.data['data'] != null) {
+          return response.data['data'] as List<dynamic>? ?? [];
+        }
+        return response.data as List<dynamic>? ?? [];
       }
     } catch (e) {
       debugPrint("خطأ في جلب الأبناء: $e");
@@ -33,9 +43,10 @@ class ParentService {
   Future<bool> addChildByCode(String studentCode) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      int? userId = prefs.getInt('user_id');
+      final String token = prefs.getString('token') ?? '';
+      final String userId = prefs.getString('user_id') ?? '';
 
-      if (userId == null) return false;
+      if (token.isEmpty || userId.isEmpty) return false;
 
       final response = await _dio.post(
         "$baseUrl/parent/link-student",
@@ -43,6 +54,10 @@ class ParentService {
           "student_code": studentCode,
           "user_id": userId,
         },
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
       );
 
       if (response.statusCode == 200) {
