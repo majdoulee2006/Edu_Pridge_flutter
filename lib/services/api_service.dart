@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
@@ -5,10 +6,90 @@ import 'package:flutter/foundation.dart';
 class ApiService {
 
   // ==========================================
-  // 🌟 تعديل الرابط ليكون ديناميكياً وذكياً
+  // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
   // ==========================================
-  static const String _serverIp = '10.152.220.209';
+  static String _serverIp = '10.94.168.209'; // آي بي احتياطي افتراضي
   static const String _port = '45101';
+  static bool _isDiscovering = false;
+
+  // تهيئة الإعدادات وتحميل آخر آي بي تم اكتشافه، ثم بدء البحث التلقائي
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _serverIp = prefs.getString('server_ip') ?? '10.94.168.209';
+      debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
+      
+      // بدء الاكتشاف التلقائي في الخلفية
+      autoDiscoverServer();
+    } catch (e) {
+      debugPrint("🚨 Error initializing ApiService: $e");
+    }
+  }
+
+  // البحث التلقائي عن السيرفر في الشبكة المحلية عبر فحص الـ Subnet
+  static Future<void> autoDiscoverServer() async {
+    if (_isDiscovering) return;
+    _isDiscovering = true;
+    debugPrint("🔍 Starting auto-discovery for Edu-Bridge server on local network...");
+    
+    try {
+      final localIp = await _getLocalIp();
+      if (localIp != null && localIp.contains('.')) {
+        final subnet = localIp.substring(0, localIp.lastIndexOf('.'));
+        debugPrint("🌐 Device Local IP: $localIp, Scanning subnet: $subnet.*");
+        
+        final futures = <Future<String?>>[];
+        for (int i = 1; i <= 254; i++) {
+          final targetIp = '$subnet.$i';
+          futures.add(_tryConnect(targetIp));
+        }
+        
+        final results = await Future.wait(futures);
+        for (var res in results) {
+          if (res != null) {
+            _serverIp = res;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('server_ip', res);
+            debugPrint("🎯 Server discovered successfully at: $res");
+            _isDiscovering = false;
+            return;
+          }
+        }
+      }
+      debugPrint("⚠️ Auto-discovery completed: Server not found. Using fallback/last known IP: $_serverIp");
+    } catch (e) {
+      debugPrint("🚨 Error during auto-discovery: $e");
+    }
+    _isDiscovering = false;
+  }
+
+  static Future<String?> _getLocalIp() async {
+    try {
+      for (var interface in await NetworkInterface.list()) {
+        for (var addr in interface.addresses) {
+          if (addr.type == InternetAddressType.IPv4 && !addr.isLoopback) {
+            final ip = addr.address;
+            // التحقق من أن الآي بي يقع ضمن شبكة محلية خاصة قياسية
+            if (ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
+              return ip;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static Future<String?> _tryConnect(String ip) async {
+    try {
+      // محاولة فتح اتصال TCP سريع على منفذ السيرفر بمهلة زمنية مناسبة (1.5 ثانية)
+      final socket = await Socket.connect(ip, int.parse(_port), timeout: const Duration(milliseconds: 1500));
+      socket.destroy();
+      return ip;
+    } catch (_) {
+      return null;
+    }
+  }
 
   String get baseUrl {
     if (kIsWeb) {
