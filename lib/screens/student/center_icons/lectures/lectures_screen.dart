@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -326,7 +326,6 @@ class _SubjectCard extends StatefulWidget {
 
 class _SubjectCardState extends State<_SubjectCard> {
   late bool isExpanded;
-  int selectedFilter = 0;
   final Map<String, bool> _downloading = {};
   final Map<String, bool> _downloaded = {};
 
@@ -580,58 +579,6 @@ class _SubjectCardState extends State<_SubjectCard> {
     );
   }
 
-  Widget _buildFilterChip(
-    String label,
-    int index,
-    IconData? icon,
-    bool isDark,
-  ) {
-    bool isSelected = selectedFilter == index;
-    return GestureDetector(
-      onTap: () => setState(() => selectedFilter = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFFFCC00)
-              : (isDark
-                    ? Theme.of(context).scaffoldBackgroundColor
-                    : Colors.white),
-          borderRadius: BorderRadius.circular(20),
-          border: isSelected
-              ? null
-              : Border.all(
-                  color: isDark
-                      ? Colors.white.withAlpha(20)
-                      : Colors.grey.shade200,
-                ),
-        ),
-        child: Row(
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 14,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-              ),
-              const SizedBox(width: 5),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? Colors.black87
-                    : (isDark ? Colors.white70 : Colors.black87),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildFileItem({
     required String title,

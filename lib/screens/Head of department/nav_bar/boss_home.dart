@@ -324,7 +324,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                           ApiService.fixMediaUrl(a['image_url'] as String?) ?? '',
                       height: 150,
                       width: double.infinity,
-                      fit: BoxFit.fill,
+                      fit: BoxFit.cover,
                       errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
                     )
                   : _announcementPlaceholder(headerColor),

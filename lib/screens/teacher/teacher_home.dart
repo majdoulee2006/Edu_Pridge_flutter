@@ -272,7 +272,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                           ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
                       height: 140,
                       width: double.infinity,
-                      fit: BoxFit.fill,
+                      fit: BoxFit.cover,
                       errorBuilder: (_, e, st) => _teacherAnnouncementPlaceholder(headerColor, tag),
                     )
                   : _teacherAnnouncementPlaceholder(headerColor, tag),

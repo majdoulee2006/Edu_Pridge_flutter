@@ -9,6 +9,7 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_n
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/organization/exam_schedule_screen/create_exam_schedule_screen.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/organization/study_schedule_screen/table_view.dart';
 import 'package:edu_pridge_flutter/widgets/boss_center_icon.dart';
 
 class MainOrganizationInterfaceScreen extends StatefulWidget {
@@ -254,6 +255,28 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
             _yearToggle(1, yellow, cardColor),
             const SizedBox(width: 10),
             _yearToggle(2, yellow, cardColor),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TableViewScreen()),
+                );
+                _fetchPrograms(); // تحديث البيانات بعد العودة
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(10)),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.edit_calendar, color: Colors.black, size: 16),
+                    SizedBox(width: 4),
+                    Text('إدارة الجدول', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12, fontFamily: 'Cairo')),
+                  ],
+                ),
+              ),
+            ),
             const Spacer(),
             if (_selectedProgramName != null)
               Text(_selectedProgramName!, style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),

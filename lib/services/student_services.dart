@@ -213,9 +213,18 @@ class StudentServices {
       );
 
       if (response.statusCode == 200) {
-        // فحص إذا كان الرابط بداخل مصفوفة data أو بالخارج مباشرة
-        var data = response.data['data'] ?? response.data;
-        return type == 'pdf' ? data['pdf_url'] : data['excel_url'];
+        if (response.data != null) {
+          if (type == 'pdf' && response.data['pdf_url'] != null) {
+            return response.data['pdf_url'];
+          }
+          if (type == 'excel' && response.data['excel_url'] != null) {
+            return response.data['excel_url'];
+          }
+          var data = response.data['data'];
+          if (data is Map) {
+            return type == 'pdf' ? data['pdf_url'] : data['excel_url'];
+          }
+        }
       }
     } catch (e) {
       debugPrint("❌ Export $type Error: $e");

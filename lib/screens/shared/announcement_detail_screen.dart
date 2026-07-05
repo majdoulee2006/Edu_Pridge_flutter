@@ -163,7 +163,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
                           imageUrl,
                           width: double.infinity,
                           height: 200,
-                          fit: BoxFit.fill,
+                          fit: BoxFit.contain,
                           errorBuilder: (ctx, e, s) => const SizedBox(),
                         ),
                         Positioned(

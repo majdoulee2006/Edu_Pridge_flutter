@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
@@ -34,7 +35,25 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: source, imageQuality: 80);
     if (picked != null) {
-      setState(() => _pickedImage = File(picked.path));
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'قص الصورة',
+            toolbarColor: const Color(0xFFCCAA00),
+            toolbarWidgetColor: Colors.black,
+            activeControlsWidgetColor: const Color(0xFFCCAA00),
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+          ),
+          IOSUiSettings(
+            title: 'قص الصورة',
+          ),
+        ],
+      );
+      if (cropped != null) {
+        setState(() => _pickedImage = File(cropped.path));
+      }
     }
   }
 

@@ -492,7 +492,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                           ApiService.fixMediaUrl(ann['image_url'] as String?) ?? '',
                           height: 130,
                           width: double.infinity,
-                          fit: BoxFit.fill,
+                          fit: BoxFit.cover,
                           errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
                         )
                       : _parentHeaderPlaceholder(headerColor),

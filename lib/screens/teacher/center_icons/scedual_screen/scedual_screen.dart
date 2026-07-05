@@ -205,6 +205,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     final maxScoreCtrl = TextEditingController(text: '100');
     final notesCtrl    = TextEditingController();
     DateTime selectedDate = DateTime.now();
+    TimeOfDay? selectedTime = const TimeOfDay(hour: 9, minute: 0);
+    final durationCtrl = TextEditingController(text: 'ساعتان');
 
     // ─── شفهي ───
     List<Map<String,dynamic>> _programs = [];
@@ -287,6 +289,12 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                 selectedType = t['val'] as String;
                                 if (selectedType == 'oral') maxScoreCtrl.text = '25';
                                 else if (maxScoreCtrl.text == '25') maxScoreCtrl.text = '100';
+
+                                if (selectedType == 'exam') {
+                                  durationCtrl.text = 'ساعتان';
+                                } else if (selectedType == 'quiz') {
+                                  durationCtrl.text = 'ساعة';
+                                }
                               });
                               if (t['val'] == 'oral' && _programs.isEmpty) {
                                 try {
@@ -601,6 +609,67 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                       ),
                     ),
                   ),
+                  if (selectedType != 'oral') ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        // وقت الامتحان
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('وقت الامتحان (الساعة)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final picked = await showTimePicker(
+                                    context: ctx,
+                                    initialTime: selectedTime ?? const TimeOfDay(hour: 9, minute: 0),
+                                  );
+                                  if (picked != null) setSheet(() => selectedTime = picked);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.shade300),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.access_time_outlined, size: 18, color: Colors.grey),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        selectedTime == null 
+                                            ? 'اختر الوقت' 
+                                            : selectedTime!.format(ctx),
+                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // مدة الامتحان
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('مدة الامتحان', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: durationCtrl,
+                                decoration: _inputDec('مثال: ساعتان'),
+                                validator: (v) => (selectedType != 'oral' && (v == null || v.trim().isEmpty)) ? 'مطلوب' : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   SizedBox(
@@ -624,6 +693,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         } else {
                           if (!formKey.currentState!.validate()) return;
                         }
+
+                        String? timeStr;
+                        if (selectedType != 'oral' && selectedTime != null) {
+                          final now = DateTime.now();
+                          final dt = DateTime(now.year, now.month, now.day, selectedTime!.hour, selectedTime!.minute);
+                          timeStr = intl.DateFormat('hh:mm a').format(dt);
+                        }
+
                         Navigator.pop(ctx);
                         await _createGradeEvent(
                           courseId: selectedType != 'oral' ? selectedCourseId! : null,
@@ -632,6 +709,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                           title: titleCtrl.text.trim(),
                           maxScore: double.parse(maxScoreCtrl.text.isEmpty ? '25' : maxScoreCtrl.text),
                           date: intl.DateFormat('yyyy-MM-dd').format(selectedDate),
+                          time: timeStr,
+                          duration: selectedType != 'oral' ? durationCtrl.text.trim() : null,
                           notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
                           programId: selProgramId,
                           yearLevel: selYearLevel,
@@ -656,6 +735,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     required String title,
     required double maxScore,
     required String date,
+    String? time,
+    String? duration,
     String? notes,
     int? programId,
     int? yearLevel,
@@ -670,6 +751,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
         'title':     title,
         'max_score': maxScore,
         'date':      date,
+        if (time != null) 'time': time,
+        if (duration != null) 'duration': duration,
         if (notes != null) 'notes': notes,
       };
 

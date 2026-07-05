@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -220,7 +220,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     imageUrl,
                     height: 110,
                     width: double.infinity,
-                    fit: BoxFit.fill,
+                    fit: BoxFit.cover,
                     errorBuilder: (_, e, st) => _headerPlaceholder(headerColor, course),
                   )
                 : _headerPlaceholder(headerColor, course),

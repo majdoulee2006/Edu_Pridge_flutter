@@ -545,7 +545,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                           ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
                         height: 140,
                         width: double.infinity,
-                        fit: BoxFit.fill,
+                        fit: BoxFit.cover,
                         errorBuilder: (_, __, e) => Container(
                           height: 140,
                           decoration: BoxDecoration(
