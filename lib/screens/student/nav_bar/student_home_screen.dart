@@ -540,14 +540,24 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: announcementData['image_url'] != null && (announcementData['image_url'] as String).isNotEmpty
-                    ? Image.network(
-                          ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
-                        height: 140,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, e) => Container(
-                          height: 140,
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: announcementData['image_url'] != null && (announcementData['image_url'] as String).isNotEmpty
+                      ? Image.network(
+                            ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, e) => Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: gradientColors,
+                                begin: Alignment.topRight,
+                                end: Alignment.bottomLeft,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: gradientColors,
@@ -556,17 +566,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                             ),
                           ),
                         ),
-                      )
-                    : Container(
-                        height: 140,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: gradientColors,
-                            begin: Alignment.topRight,
-                            end: Alignment.bottomLeft,
-                          ),
-                        ),
-                      ),
+                ),
               ),
               Positioned(
                 top: 12,

@@ -159,12 +159,14 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
                     borderRadius: BorderRadius.circular(20),
                     child: Stack(
                       children: [
-                        Image.network(
-                          imageUrl,
-                          width: double.infinity,
-                          height: 200,
-                          fit: BoxFit.contain,
-                          errorBuilder: (ctx, e, s) => const SizedBox(),
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Image.network(
+                            imageUrl,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (ctx, e, s) => const SizedBox(),
+                          ),
                         ),
                         Positioned(
                           bottom: 8, left: 8,

@@ -267,15 +267,17 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-              child: (announcementData['image_url'] as String?)?.isNotEmpty == true
-                  ? Image.network(
-                          ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
-                      height: 140,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, e, st) => _teacherAnnouncementPlaceholder(headerColor, tag),
-                    )
-                  : _teacherAnnouncementPlaceholder(headerColor, tag),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: (announcementData['image_url'] as String?)?.isNotEmpty == true
+                    ? Image.network(
+                            ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, e, st) => _teacherAnnouncementPlaceholder(headerColor, tag),
+                      )
+                    : _teacherAnnouncementPlaceholder(headerColor, tag),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(20),
@@ -308,8 +310,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
   Widget _teacherAnnouncementPlaceholder(Color headerColor, String tag) {
     return Container(
-      height: 140,
-      width: double.infinity,
       color: headerColor,
       child: Stack(
         children: [

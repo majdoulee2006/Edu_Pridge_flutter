@@ -457,12 +457,14 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
           if ((data['image_url'] as String?)?.isNotEmpty == true)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              child: Image.network(
-                ApiService.fixMediaUrl(data['image_url'] as String?) ?? '',
-                height: 140,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox(),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  ApiService.fixMediaUrl(data['image_url'] as String?) ?? '',
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(),
+                ),
               ),
             ),
           Container(

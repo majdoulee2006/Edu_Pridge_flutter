@@ -215,15 +215,17 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    height: 110,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, e, st) => _headerPlaceholder(headerColor, course),
-                  )
-                : _headerPlaceholder(headerColor, course),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, e, st) => _headerPlaceholder(headerColor, course),
+                    )
+                  : _headerPlaceholder(headerColor, course),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -260,8 +262,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
   Widget _headerPlaceholder(Color headerColor, String? course) {
     return Container(
-      height: 110,
-      width: double.infinity,
       color: headerColor,
       child: Stack(
         children: [

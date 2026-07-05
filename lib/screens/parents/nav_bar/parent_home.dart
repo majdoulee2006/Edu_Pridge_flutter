@@ -447,8 +447,6 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
 
   Widget _parentHeaderPlaceholder(Color headerColor) {
     return Container(
-      height: 130,
-      width: double.infinity,
       color: headerColor,
       child: const Stack(
         children: [
@@ -487,15 +485,17 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                  child: ann['image_url'] != null && (ann['image_url'] as String).isNotEmpty
-                      ? Image.network(
-                          ApiService.fixMediaUrl(ann['image_url'] as String?) ?? '',
-                          height: 130,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
-                        )
-                      : _parentHeaderPlaceholder(headerColor),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: ann['image_url'] != null && (ann['image_url'] as String).isNotEmpty
+                        ? Image.network(
+                            ApiService.fixMediaUrl(ann['image_url'] as String?) ?? '',
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
+                          )
+                        : _parentHeaderPlaceholder(headerColor),
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),

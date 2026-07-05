@@ -37,17 +37,19 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
     if (picked != null) {
       final cropped = await ImageCropper().cropImage(
         sourcePath: picked.path,
+        aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'قص الصورة',
             toolbarColor: const Color(0xFFCCAA00),
             toolbarWidgetColor: Colors.black,
             activeControlsWidgetColor: const Color(0xFFCCAA00),
-            initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: false,
+            initAspectRatio: CropAspectRatioPreset.ratio16x9,
+            lockAspectRatio: true,
           ),
           IOSUiSettings(
             title: 'قص الصورة',
+            aspectRatioLockEnabled: true,
           ),
         ],
       );

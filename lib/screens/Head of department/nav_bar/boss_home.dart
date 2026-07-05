@@ -319,15 +319,17 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              child: (a['image_url'] as String?)?.isNotEmpty == true
-                  ? Image.network(
-                          ApiService.fixMediaUrl(a['image_url'] as String?) ?? '',
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
-                    )
-                  : _announcementPlaceholder(headerColor),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: (a['image_url'] as String?)?.isNotEmpty == true
+                    ? Image.network(
+                            ApiService.fixMediaUrl(a['image_url'] as String?) ?? '',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
+                      )
+                    : _announcementPlaceholder(headerColor),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
@@ -382,8 +384,6 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
 
   Widget _announcementPlaceholder(Color headerColor) {
     return Container(
-      height: 150,
-      width: double.infinity,
       color: headerColor,
       child: Stack(
         children: [
