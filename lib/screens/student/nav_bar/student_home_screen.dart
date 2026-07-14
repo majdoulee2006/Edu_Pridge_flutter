@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/student_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
@@ -465,10 +466,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.settings_outlined, color: Colors.amber),
+              icon: const Icon(Icons.menu_rounded, color: Colors.amber, size: 28),
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                MaterialPageRoute(builder: (context) => const StudentServicesMenuScreen()),
               ),
             ),
           ],

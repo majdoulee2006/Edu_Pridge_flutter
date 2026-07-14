@@ -41,6 +41,28 @@ class StudentServices {
   }
 
   // ==========================================
+  // X. جلب المواد الدراسية الخاصة بالطالب
+  // ==========================================
+  Future<List<dynamic>?> getCourses() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/student/program-courses",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("❌ Courses Fetch Error: $e");
+    }
+    return null;
+  }
+
+  // ==========================================
   // 2. جلب بيانات الملف الشخصي
   // ==========================================
   Future<Map<String, dynamic>?> getProfileData() async {
