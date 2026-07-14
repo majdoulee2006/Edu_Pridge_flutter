@@ -438,137 +438,142 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
           builder: (_) => AnnouncementDetailScreen(announcement: data),
         ),
       ),
-      child: Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: cardColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if ((data['image_url'] as String?)?.isNotEmpty == true)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Image.network(
-                  ApiService.fixMediaUrl(data['image_url'] as String?) ?? '',
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox(),
-                ),
-              ),
-            ),
-          Container(
-            padding: const EdgeInsets.all(16),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 550),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.only(
-                topLeft: (data['image_url'] as String?)?.isNotEmpty == true
-                    ? Radius.zero
-                    : const Radius.circular(20),
-                topRight: (data['image_url'] as String?)?.isNotEmpty == true
-                    ? Radius.zero
-                    : const Radius.circular(20),
-              ),
-              gradient: LinearGradient(
-                colors: [
-                  isDark ? const Color(0xFF1E2638) : const Color(0xFFEEF2F6),
-                  isDark ? const Color(0xFF151B26) : const Color(0xFFE2E8F0),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: badgeBg.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: badgeBg.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    badgeText,
-                    style: TextStyle(
-                      color: badgeBg,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Noto Sans Arabic',
-                    ),
-                  ),
-                ),
-                Text(
-                  data['created_at'] ?? '',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: subColor,
-                  ),
+              borderRadius: BorderRadius.circular(20),
+              color: cardColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  data['title'] ?? '',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                    height: 1.4,
-                    fontFamily: 'Noto Sans Arabic',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  data['content'] ?? '',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: subColor,
-                    height: 1.6,
-                    fontFamily: 'Noto Sans Arabic',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Divider(color: Colors.grey.withOpacity(0.1)),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      isAr ? 'الناشر: ${data['user_name']}' : 'Publisher: ${data['user_name']}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: subColor,
-                        fontWeight: FontWeight.w600,
+                if ((data['image_url'] as String?)?.isNotEmpty == true)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Image.network(
+                        ApiService.fixMediaUrl(data['image_url'] as String?) ?? '',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox(),
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 12,
-                      color: subColor,
+                  ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: (data['image_url'] as String?)?.isNotEmpty == true
+                          ? Radius.zero
+                          : const Radius.circular(20),
+                      topRight: (data['image_url'] as String?)?.isNotEmpty == true
+                          ? Radius.zero
+                          : const Radius.circular(20),
                     ),
-                  ],
+                    gradient: LinearGradient(
+                      colors: [
+                        isDark ? const Color(0xFF1E2638) : const Color(0xFFEEF2F6),
+                        isDark ? const Color(0xFF151B26) : const Color(0xFFE2E8F0),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: badgeBg.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: badgeBg.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          badgeText,
+                          style: TextStyle(
+                            color: badgeBg,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Noto Sans Arabic',
+                          ),
+                        ),
+                      ),
+                      Text(
+                        data['created_at'] ?? '',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: subColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data['title'] ?? '',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          height: 1.4,
+                          fontFamily: 'Noto Sans Arabic',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        data['content'] ?? '',
+                        style: TextStyle(
+                          color: subColor,
+                          fontSize: 13,
+                          height: 1.6,
+                          fontFamily: 'Noto Sans Arabic',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Divider(color: Colors.grey.withOpacity(0.1)),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            isAr ? 'الناشر: ${data['user_name']}' : 'Publisher: ${data['user_name']}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: subColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 12,
+                            color: subColor,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
-    ),
     );
   }
 }

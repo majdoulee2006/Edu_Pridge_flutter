@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/notification_polling.dart';
@@ -307,76 +308,81 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(
           builder: (_) => AnnouncementDetailScreen(announcement: a))),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: (a['image_url'] as String?)?.isNotEmpty == true
-                    ? Image.network(
-                            ApiService.fixMediaUrl(a['image_url'] as String?) ?? '',
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
-                      )
-                    : _announcementPlaceholder(headerColor),
-              ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 550),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: (a['image_url'] as String?)?.isNotEmpty == true
+                        ? Image.network(
+                                ApiService.fixMediaUrl(a['image_url'] as String?) ?? '',
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
+                          )
+                        : _announcementPlaceholder(headerColor),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(a['title'] as String? ?? '',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(a['title'] as String? ?? '',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                          ),
+                          if (isMine)
+                            PopupMenuButton<String>(
+                              icon: Icon(Icons.more_vert, color: textColor.withValues(alpha: 0.5), size: 20),
+                              onSelected: (v) {
+                                if (v == 'edit') _showEditSheet(a);
+                                if (v == 'delete') _deleteAnnouncement(a['id'] as int);
+                              },
+                              itemBuilder: (_) => [
+                                const PopupMenuItem(value: 'edit',   child: Row(children: [Icon(Icons.edit_outlined,  size: 18), SizedBox(width: 8), Text('تعديل')])),
+                                const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text('حذف', style: TextStyle(color: Colors.red))])),
+                              ],
+                            ),
+                        ],
                       ),
-                      if (isMine)
-                        PopupMenuButton<String>(
-                          icon: Icon(Icons.more_vert, color: textColor.withValues(alpha: 0.5), size: 20),
-                          onSelected: (v) {
-                            if (v == 'edit') _showEditSheet(a);
-                            if (v == 'delete') _deleteAnnouncement(a['id'] as int);
-                          },
-                          itemBuilder: (_) => [
-                            const PopupMenuItem(value: 'edit',   child: Row(children: [Icon(Icons.edit_outlined,  size: 18), SizedBox(width: 8), Text('تعديل')])),
-                            const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text('حذف', style: TextStyle(color: Colors.red))])),
-                          ],
-                        ),
+                      const SizedBox(height: 6),
+                      Text(a['body'] as String? ?? a['content'] as String? ?? '',
+                          style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(a['time_ago'] as String? ?? a['created_at'] as String? ?? '',
+                              style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: Icon(Icons.arrow_back_ios_new, size: 13, color: textColor.withValues(alpha: 0.4)),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(a['body'] as String? ?? a['content'] as String? ?? '',
-                      style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(a['time_ago'] as String? ?? a['created_at'] as String? ?? '',
-                          style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Icon(Icons.arrow_back_ios_new, size: 13, color: textColor.withValues(alpha: 0.4)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -452,7 +458,29 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
 
   Future<void> _pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (picked != null) setState(() => _pickedImage = File(picked.path));
+    if (picked != null) {
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'قص الصورة',
+            toolbarColor: const Color(0xFFFFCC00),
+            toolbarWidgetColor: Colors.black,
+            activeControlsWidgetColor: const Color(0xFFFFCC00),
+            initAspectRatio: CropAspectRatioPreset.ratio16x9,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'قص الصورة',
+            aspectRatioLockEnabled: true,
+          ),
+        ],
+      );
+      if (cropped != null) {
+        setState(() => _pickedImage = File(cropped.path));
+      }
+    }
   }
 
   Future<void> _submit() async {

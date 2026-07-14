@@ -225,31 +225,32 @@ class StudentServices {
   // 8. تصدير جدول الامتحانات (PDF / Excel)
   // ==========================================
   Future<String?> getExportUrl(String type) async {
+    if (type != 'pdf') {
+      debugPrint("❌ Export type $type is decommissioned.");
+      return null;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
       Response response = await _dio.get(
-        "${ApiService().baseUrl}/student/my-exams/$type",
+        "${ApiService().baseUrl}/student/my-exams/pdf",
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode == 200) {
         if (response.data != null) {
-          if (type == 'pdf' && response.data['pdf_url'] != null) {
+          if (response.data['pdf_url'] != null) {
             return response.data['pdf_url'];
-          }
-          if (type == 'excel' && response.data['excel_url'] != null) {
-            return response.data['excel_url'];
           }
           var data = response.data['data'];
           if (data is Map) {
-            return type == 'pdf' ? data['pdf_url'] : data['excel_url'];
+            return data['pdf_url'];
           }
         }
       }
     } catch (e) {
-      debugPrint("❌ Export $type Error: $e");
+      debugPrint("❌ Export PDF Error: $e");
     }
     return null;
   }

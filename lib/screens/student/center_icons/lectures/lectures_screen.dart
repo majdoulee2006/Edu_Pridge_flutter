@@ -326,6 +326,7 @@ class _SubjectCard extends StatefulWidget {
 
 class _SubjectCardState extends State<_SubjectCard> {
   late bool isExpanded;
+  int selectedFilter = 0;
   final Map<String, bool> _downloading = {};
   final Map<String, bool> _downloaded = {};
   int selectedFilter = 0;
@@ -335,6 +336,57 @@ class _SubjectCardState extends State<_SubjectCard> {
     super.initState();
     isExpanded = widget.initiallyExpanded;
     _checkDownloadedFiles();
+  }
+
+  Widget _buildFilterChip(String label, int filterIndex, IconData? icon, bool isDark) {
+    final isSelected = selectedFilter == filterIndex;
+    final activeBgColor = isDark ? const Color(0xFFFFCC00).withAlpha(40) : const Color(0xFFFFCC00).withAlpha(30);
+    final activeBorderColor = const Color(0xFFFFCC00);
+    final inactiveBgColor = isDark ? Colors.grey.shade900 : Colors.grey.shade100;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedFilter = filterIndex;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBgColor : inactiveBgColor,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: isSelected ? activeBorderColor : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected 
+                    ? const Color(0xFFFFCC00) 
+                    : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected 
+                    ? (isDark ? Colors.white : const Color(0xFFE5A900)) 
+                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _checkDownloadedFiles() async {
