@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 // استيراد الشاشات والقطع الموحدة
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_messages_screen.dart';
@@ -88,26 +88,27 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
                               itemBuilder: (context, index) {
                                 var item = assignments[index];
                                 // فلترة الواجبات
-                                if (selectedFilter == "المكتملة" && item['status'] != "مكتملة") return const SizedBox.shrink();
+                                if (selectedFilter == "المكتملة" && item['status'] != "مكتملة" && item['status'] != "مصحح") return const SizedBox.shrink();
                                 if (selectedFilter == "فائتة" && item['status'] != "فائتة") return const SizedBox.shrink();
 
                                 // تحويل نسبة العلامة (مؤقتاً)
-                                double progress = item['status'] == "مكتملة" ? 1.0 : (item['status'] == "فائتة" ? 0.0 : 0.5);
+                                double progress = (item['status'] == "مكتملة" || item['status'] == "مصحح") ? 1.0 : (item['status'] == "فائتة" ? 0.0 : 0.5);
 
                                 return _taskCard(
-                                  context: context,
-                                  title: item['title'] ?? "واجب",
-                                  subtitle: item['course_name'] ?? "مادة",
-                                  status: item['status'] ?? "جاري",
-                                  progress: progress,
-                                  date: item['due_date']?.toString().substring(0, 10) ?? "غير محدد",
-                                  icon: Icons.assignment_outlined,
-                                  iconColor: item['status'] == "مكتملة" ? Colors.green : (item['status'] == "فائتة" ? Colors.red : Colors.blue),
-                                  cardColor: cardColor,
-                                  textColor: textColor,
-                                  grade: item['grade'] != null ? "${item['grade']}/${item['max_points']}" : null,
-                                  isOverdue: item['status'] == "فائتة",
-                                );
+                                   context: context,
+                                   title: item['title'] ?? "واجب",
+                                   subtitle: item['course_name'] ?? "مادة",
+                                   status: item['status'] ?? "جاري",
+                                   progress: progress,
+                                   date: item['due_date']?.toString().substring(0, 10) ?? "غير محدد",
+                                   icon: Icons.assignment_outlined,
+                                   iconColor: (item['status'] == "مكتملة" || item['status'] == "مصحح") ? Colors.green : (item['status'] == "فائتة" ? Colors.red : Colors.blue),
+                                   cardColor: cardColor,
+                                   textColor: textColor,
+                                   grade: item['grade'] != null ? "${item['grade']}/${item['max_points']}" : null,
+                                   isOverdue: item['status'] == "فائتة",
+                                   onTap: () => _showAssignmentDetailsBottomSheet(context, item),
+                                 );
                               },
                             ),
                 ),
@@ -181,8 +182,11 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
     bool hasAttachment = false,
     String? grade,
     bool isOverdue = false,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -234,7 +238,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
               Text(
                 date,
                 style: TextStyle(
-                  color: isOverdue ? Colors.red : (status == "مكتملة" ? Colors.green : Colors.grey),
+                  color: isOverdue ? Colors.red : ((status == "مكتملة" || status == "مصحح") ? Colors.green : Colors.grey),
                   fontSize: 12,
                 ),
               ),
@@ -249,19 +253,44 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
                     ],
                   ),
                 ),
-              if (grade != null)
-                Text(grade, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: (status == "مصحح" ? const Color(0xFFFFCC00) : textColor).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: status == "مصحح" ? Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.4), width: 1) : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      status == "مصحح" ? Icons.star_rounded : Icons.info_outline,
+                      color: status == "مصحح" ? const Color(0xFFCCAA00) : textColor.withValues(alpha: 0.6),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      status == "مصحح" ? "عرض الدرجة" : "تفاصيل الواجب",
+                      style: TextStyle(
+                        color: status == "مصحح" ? const Color(0xFFCCAA00) : textColor.withValues(alpha: 0.6),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _statusBadge(String label) {
     Color bg = Colors.yellow.withValues(alpha: 0.1);
     Color txtColor = Colors.orange;
-    if (label == "مكتملة") {
+    if (label == "مكتملة" || label == "مصحح") {
       bg = Colors.green.withValues(alpha: 0.1);
       txtColor = Colors.green;
     }
@@ -292,6 +321,241 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
               color: isSel ? Colors.black : textColor.withValues(alpha: 0.6)
           )
       ),
+    );
+  }
+
+  void _showAssignmentDetailsBottomSheet(BuildContext context, Map<String, dynamic> item) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final txtColor = isDark ? Colors.white : Colors.black;
+        
+        final grade = item['grade'];
+        final maxPoints = item['max_points'] ?? 100;
+        final status = item['status'] ?? "جاري";
+        final title = item['title'] ?? "واجب";
+        final courseName = item['course_name'] ?? "مادة";
+        final dueDate = item['due_date']?.toString().substring(0, 10) ?? "غير محدد";
+        final feedback = item['feedback'];
+        final submittedAt = item['submitted_at']?.toString().substring(0, 10);
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 50,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 25),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.assignment_outlined, color: Color(0xFFFFCC00), size: 28),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: txtColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          courseName,
+                          style: const TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 25),
+              _buildDetailRow(context, Icons.info_outline, "الحالة", status, isStatus: true),
+              const SizedBox(height: 15),
+              _buildDetailRow(context, Icons.calendar_today_outlined, "تاريخ التسليم الأقصى", dueDate),
+              if (submittedAt != null) ...[
+                const SizedBox(height: 15),
+                _buildDetailRow(context, Icons.check_circle_outline, "تاريخ تقديم الواجب", submittedAt),
+              ],
+              const SizedBox(height: 25),
+              const Divider(),
+              const SizedBox(height: 15),
+              Text(
+                "علامة الواجب",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: txtColor,
+                ),
+                textAlign: TextAlign.start,
+              ),
+              const SizedBox(height: 12),
+              if (grade != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.3), width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.star_rounded, color: Color(0xFFFFCC00), size: 36),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "$grade / $maxPoints",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFFFFDD44) : const Color(0xFFCCAA00),
+                            ),
+                          ),
+                          const Text(
+                            "درجة الطالبة",
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (feedback != null && feedback.toString().trim().isNotEmpty) ...[
+                  const SizedBox(height: 15),
+                  Text(
+                    "ملاحظات المعلم",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: txtColor,
+                    ),
+                    textAlign: TextAlign.start,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                    ),
+                    child: Text(
+                      feedback.toString(),
+                      style: TextStyle(color: txtColor.withValues(alpha: 0.8), fontSize: 13),
+                    ),
+                  ),
+                ],
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.hourglass_empty_rounded, color: Colors.grey, size: 24),
+                      const SizedBox(width: 12),
+                      const Text(
+                        "لم يتم رصد العلامة بعد",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 25),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFCC00),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  "إغلاق",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value, {bool isStatus = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey),
+        const SizedBox(width: 10),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+        const Spacer(),
+        isStatus
+            ? _statusBadge(value)
+            : Text(
+                value,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+      ],
     );
   }
 }

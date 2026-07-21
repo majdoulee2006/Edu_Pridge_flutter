@@ -473,50 +473,55 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
         return GestureDetector(
           onTap: () => Navigator.push(context, MaterialPageRoute(
               builder: (_) => AnnouncementDetailScreen(announcement: ann))),
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: ann['image_url'] != null && (ann['image_url'] as String).isNotEmpty
-                        ? Image.network(
-                            ApiService.fixMediaUrl(ann['image_url'] as String?) ?? '',
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
-                          )
-                        : _parentHeaderPlaceholder(headerColor),
-                  ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 550),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(ann['title'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor), maxLines: 2, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 6),
-                      Text(ann['content'] ?? ann['body'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: ann['image_url'] != null && (ann['image_url'] as String).isNotEmpty
+                            ? Image.network(
+                                ApiService.fixMediaUrl(ann['image_url'] as String?) ?? '',
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
+                              )
+                            : _parentHeaderPlaceholder(headerColor),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(ann['time_ago'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                          Icon(Icons.arrow_back_ios_new, size: 13, color: textColor.withValues(alpha: 0.4)),
+                          Text(ann['title'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor), maxLines: 2, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 6),
+                          Text(ann['content'] ?? ann['body'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(ann['time_ago'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                              Icon(Icons.arrow_back_ios_new, size: 13, color: textColor.withValues(alpha: 0.4)),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );

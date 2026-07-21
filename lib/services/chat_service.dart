@@ -5,16 +5,20 @@ import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import 'dart:convert';
 import '../models/chat_message_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_service.dart';
 
 // --- Configuration Constants ---
 // You can easily update these constants for your production environment
-const String BASE_URL = 'http://192.168.1.105:8001/api';
 const String PUSHER_APP_KEY = '7ddc52d35c1e7beb4c83';
 const String PUSHER_CLUSTER = 'eu';
 
 class ChatService extends ChangeNotifier {
-  final Dio _dio = Dio(BaseOptions(baseUrl: BASE_URL));
+  late final Dio _dio;
   late PusherChannelsFlutter _pusher;
+
+  ChatService() {
+    _dio = Dio(BaseOptions(baseUrl: ApiService().baseUrl));
+  }
   
   List<ChatMessage> _messages = [];
   List<ChatMessage> get messages => _messages;
@@ -250,7 +254,7 @@ class ChatService extends ChangeNotifier {
         apiKey: PUSHER_APP_KEY,
         cluster: PUSHER_CLUSTER,
         onEvent: _onEvent,
-        authEndpoint: BASE_URL.replaceAll('/api', '/broadcasting/auth'), // Fix: remove /api
+        authEndpoint: ApiService().baseUrl.replaceAll('/api', '/broadcasting/auth'), // Fix: remove /api
         onAuthorizer: _onAuthorizer,
       );
       

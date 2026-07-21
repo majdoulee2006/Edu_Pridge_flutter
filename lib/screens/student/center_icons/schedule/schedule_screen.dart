@@ -454,84 +454,42 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 color: isDark ? Colors.white : Colors.black87,
               ),
             ),
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => _exportFile('pdf'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(25),
-                          blurRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.picture_as_pdf,
-                          color: Colors.redAccent,
-                          size: 16,
-                        ),
-                        SizedBox(width: 5),
-                        Text(
-                          'PDF',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            GestureDetector(
+              onTap: () => _exportFile('pdf'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => _exportFile('excel'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(25),
+                      blurRadius: 5,
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(25),
-                          blurRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.table_chart,
-                          color: Colors.greenAccent,
-                          size: 16,
-                        ),
-                        SizedBox(width: 5),
-                        Text(
-                          'Excel',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.picture_as_pdf,
+                      color: Colors.redAccent,
+                      size: 16,
+                    ),
+                    SizedBox(width: 5),
+                    Text(
+                      'PDF',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

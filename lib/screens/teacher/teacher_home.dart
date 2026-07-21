@@ -255,54 +255,59 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AnnouncementDetailScreen(announcement: announcementData))),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 25),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 8))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: (announcementData['image_url'] as String?)?.isNotEmpty == true
-                    ? Image.network(
-                            ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, e, st) => _teacherAnnouncementPlaceholder(headerColor, tag),
-                      )
-                    : _teacherAnnouncementPlaceholder(headerColor, tag),
-              ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 550),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 25),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 8))],
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, height: 1.4, color: textColor)),
-                  const SizedBox(height: 10),
-                  Text(description, style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 15),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: (announcementData['image_url'] as String?)?.isNotEmpty == true
+                        ? Image.network(
+                                ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, e, st) => _teacherAnnouncementPlaceholder(headerColor, tag),
+                          )
+                        : _teacherAnnouncementPlaceholder(headerColor, tag),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle),
-                        child: Icon(Icons.arrow_back_ios_new, size: 14, color: textColor),
+                      Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, height: 1.4, color: textColor)),
+                      const SizedBox(height: 10),
+                      Text(description, style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 15),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle),
+                            child: Icon(Icons.arrow_back_ios_new, size: 14, color: textColor),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
