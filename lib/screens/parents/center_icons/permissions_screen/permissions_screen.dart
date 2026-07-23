@@ -541,8 +541,6 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             ),
           ),
           _statusTag(statusText, statusColor),
-          const SizedBox(width: 10),
-          Icon(Icons.keyboard_arrow_left, color: textColor.withValues(alpha: 0.2), size: 18),
         ],
       ),
     );
