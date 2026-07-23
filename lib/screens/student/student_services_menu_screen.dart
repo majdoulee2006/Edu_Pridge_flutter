@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/screens/student/student_service_requests_list_screen.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 // ─── StudentServicesMenuScreen ──────────────────────────────────────────────
 class StudentServicesMenuScreen extends StatelessWidget {
@@ -70,7 +72,14 @@ class StudentServicesMenuScreen extends StatelessWidget {
                         isAr: isAr,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const MercyPetitionFormScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const StudentServiceRequestsListScreen(
+                              serviceType: 'mercy',
+                              titleAr: 'طلبات الاسترحام',
+                              titleEn: 'Mercy Petitions',
+                              formScreen: MercyPetitionFormScreen(),
+                            ),
+                          ),
                         ),
                       ),
 
@@ -87,7 +96,14 @@ class StudentServicesMenuScreen extends StatelessWidget {
                         isAr: isAr,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const LostItemReplacementFormScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const StudentServiceRequestsListScreen(
+                              serviceType: 'document',
+                              titleAr: 'الوثائق الطلابية',
+                              titleEn: 'Student Documents',
+                              formScreen: LostItemReplacementFormScreen(),
+                            ),
+                          ),
                         ),
                       ),
 
@@ -104,7 +120,14 @@ class StudentServicesMenuScreen extends StatelessWidget {
                         isAr: isAr,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const MakeupExamFormScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const StudentServiceRequestsListScreen(
+                              serviceType: 'makeup',
+                              titleAr: 'امتحانات الإكمال',
+                              titleEn: 'Makeup Exams',
+                              formScreen: MakeupExamFormScreen(),
+                            ),
+                          ),
                         ),
                       ),
 
@@ -315,15 +338,24 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
     super.dispose();
   }
 
-  void _submitForm(bool isAr) {
+  void _submitForm(bool isAr) async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
-      // محاكاة إرسال الطلب للسيرفر
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        setState(() => _isSubmitting = false);
+      
+      String details = "نوع الطلب: $_selectedPetitionType\nالمادة: $_selectedCourse\nالسبب/التفاصيل: ${_reasonController.text}";
+      
+      final result = await ApiService().submitStudentServiceRequest('mercy', details);
+      
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      
+      if (result != null && result['success'] == true) {
         _showSuccessDialog(isAr);
-      });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "حدث خطأ أثناء الإرسال" : "Submission failed")),
+        );
+      }
     }
   }
 
@@ -369,7 +401,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                 ),
                 onPressed: () {
                   Navigator.pop(context); // إغلاق الحوار
-                  Navigator.pop(context); // العودة للشاشة السابقة
+                  Navigator.pop(context, true); // العودة للشاشة السابقة وتحديث القائمة
                 },
                 child: Text(
                   isAr ? "حسنًا" : "OK",
@@ -620,15 +652,24 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
     super.dispose();
   }
 
-  void _submitForm(bool isAr) {
+  void _submitForm(bool isAr) async {
     if (_formKey.currentState!.validate() && _selectedItems.isNotEmpty && _agreedToFees) {
       setState(() => _isSubmitting = true);
-      // محاكاة إرسال الطلب للسيرفر
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        setState(() => _isSubmitting = false);
+      
+      String details = "الوثائق: ${_selectedItems.join(', ')}\nملاحظات: ${_descController.text}";
+      
+      final result = await ApiService().submitStudentServiceRequest('document', details);
+      
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      
+      if (result != null && result['success'] == true) {
         _showSuccessDialog(isAr);
-      });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "حدث خطأ أثناء الإرسال" : "Submission failed")),
+        );
+      }
     }
   }
 
@@ -674,7 +715,7 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                 ),
                 onPressed: () {
                   Navigator.pop(context); // إغلاق الحوار
-                  Navigator.pop(context); // العودة للشاشة السابقة
+                  Navigator.pop(context, true); // العودة للشاشة السابقة وتحديث القائمة
                 },
                 child: Text(
                   isAr ? "حسنًا" : "OK",
@@ -950,14 +991,24 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
     super.dispose();
   }
 
-  void _submitForm(bool isAr) {
+  void _submitForm(bool isAr) async {
     if (_formKey.currentState!.validate() && _selectedCourses.isNotEmpty) {
       setState(() => _isSubmitting = true);
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        setState(() => _isSubmitting = false);
+      
+      String details = "المواد: ${_selectedCourses.join(', ')}\nالسبب: ${_descController.text}";
+      
+      final result = await ApiService().submitStudentServiceRequest('makeup', details);
+      
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      
+      if (result != null && result['success'] == true) {
         _showSuccessDialog(isAr);
-      });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "حدث خطأ أثناء الإرسال" : "Submission failed")),
+        );
+      }
     }
   }
 
@@ -1003,7 +1054,7 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
                 ),
                 onPressed: () {
                   Navigator.pop(context);
-                  Navigator.pop(context);
+                  Navigator.pop(context, true);
                 },
                 child: Text(
                   isAr ? "حسنًا" : "OK",
