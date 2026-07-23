@@ -329,7 +329,6 @@ class _SubjectCardState extends State<_SubjectCard> {
   int selectedFilter = 0;
   final Map<String, bool> _downloading = {};
   final Map<String, bool> _downloaded = {};
-  int selectedFilter = 0;
 
   @override
   void initState() {
@@ -633,24 +632,7 @@ class _SubjectCardState extends State<_SubjectCard> {
   }
 
 
-  Widget _buildFilterChip(String label, int index, IconData? icon, bool isDark) {
-    final isSelected = selectedFilter == index;
-    return ChoiceChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[Icon(icon, size: 16, color: isSelected ? Colors.black : Colors.grey), const SizedBox(width: 4)],
-          Text(label, style: TextStyle(color: isSelected ? Colors.black : Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
-        ],
-      ),
-      selected: isSelected,
-      onSelected: (bool selected) {
-        if (selected) setState(() => selectedFilter = index);
-      },
-      selectedColor: const Color(0xFFFFCC00),
-      backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-    );
-  }
+
 
   Widget _buildFileItem({
     required String title,
