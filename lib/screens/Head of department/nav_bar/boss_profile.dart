@@ -216,7 +216,7 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
       centerTitle: true,
       title: Text("الملف الشخصي", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
       leading: IconButton(
-        icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+        icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
         onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
       ),
       actions: [

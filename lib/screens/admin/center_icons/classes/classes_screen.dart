@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -67,7 +67,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
         appBar: AppBar(
           title: const Text("الفصول الدراسية والمواد", style: TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
-          leading: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_forward)),
+          leading: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back)),
           actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.settings_outlined))],
         ),
 
@@ -267,7 +267,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.arrow_back_ios_new, size: 14, color: Colors.grey),
+          const Icon(Icons.arrow_back, size: 14, color: Colors.grey),
           const Spacer(),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,

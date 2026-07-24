@@ -438,7 +438,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.arrow_forward, color: textColor),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ],
@@ -482,7 +482,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
               _statusTag("بانتظار موافقتك", Colors.orange),
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 1),
           Text(item['date']?.toString().substring(0, 10) ?? "", style: TextStyle(color: textColor.withValues(alpha: 0.4), fontSize: 12)),
           const SizedBox(height: 15),
           Container(

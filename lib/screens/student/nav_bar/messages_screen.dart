@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/student/nav_bar/student_home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,7 +20,7 @@ class MessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MessagesView();
+    return WillPopScope(onWillPop: () async { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const StudentHomeScreen())); return false; }, child: const MessagesView());
   }
 }
 
@@ -72,7 +73,7 @@ class _MessagesViewState extends State<MessagesView> {
         isOnline: contact['is_online'] ?? false,
         isRead: contact['is_read'] ?? true,
         isGroup: contact['is_group'] ?? false,
-        avatarUrl: contact['image'] ?? 'https://i.pravatar.cc/150',
+        avatarUrl: contact['image'] ?? '',
         role: contact['role'] ?? '',
       );
     }).toList();
@@ -105,7 +106,7 @@ class _MessagesViewState extends State<MessagesView> {
           backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC),
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const StudentHomeScreen()),
@@ -322,12 +323,13 @@ class _MessagesViewState extends State<MessagesView> {
           ],
         ),
         trailing: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (chat.role.isNotEmpty) ...[
               Container(
-                margin: const EdgeInsets.only(bottom: 4),
+                margin: EdgeInsets.zero,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
@@ -356,7 +358,7 @@ class _MessagesViewState extends State<MessagesView> {
               ),
             ),
             if (hasUnread) ...[
-              const SizedBox(height: 5),
+              const SizedBox(height: 1),
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),

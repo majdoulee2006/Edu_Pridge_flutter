@@ -93,7 +93,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                 controller: _controller,
                 style: TextStyle(color: textColor),
                 decoration: InputDecoration(
-                  hintText: 'اكتب رسالتك...',
+                  hintText: 'اكتب رسالة...',
                   hintStyle: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade500 : Colors.grey),
                   border: InputBorder.none,
                   suffixIcon: Row(

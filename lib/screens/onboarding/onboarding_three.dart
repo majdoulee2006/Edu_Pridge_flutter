@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../auth/login_screen.dart';
 import '../../widgets/custom_button.dart';
 
@@ -57,7 +57,7 @@ class OnboardingThree extends StatelessWidget {
                       ),
                       // زر الرجوع للخلف (يتكيف لونه مع الثيم)
                       IconButton(
-                        icon: Icon(Icons.arrow_forward_ios, color: textColor, size: 20),
+                        icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],

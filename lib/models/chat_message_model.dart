@@ -4,7 +4,8 @@ class ChatMessage {
   final bool isMe;
   final DateTime timestamp;
   final String? attachment; // 🌟 Added for media/voice note URL
-  bool isRead; // 🌟 Added for read receipts
+  bool isRead;
+  bool isDelivered; // 🌟 Added for read receipts
 
   String get text => message; // For backward compatibility with existing UI
 
@@ -15,6 +16,7 @@ class ChatMessage {
     required this.timestamp,
     this.attachment,
     this.isRead = false,
+    this.isDelivered = false,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json, String currentUserId) {
@@ -25,6 +27,7 @@ class ChatMessage {
       timestamp: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
       attachment: json['attachment']?.toString(), // 🌟 Map attachment URL
       isRead: json['is_read'] == 1 || json['is_read'] == true,
+      isDelivered: json['is_delivered'] == 1 || json['is_delivered'] == true,
     );
   }
 }

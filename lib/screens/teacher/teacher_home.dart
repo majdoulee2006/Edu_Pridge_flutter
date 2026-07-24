@@ -298,7 +298,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle),
-                            child: Icon(Icons.arrow_back_ios_new, size: 14, color: textColor),
+                            child: Icon(Icons.arrow_back, size: 14, color: textColor),
                           ),
                         ],
                       ),

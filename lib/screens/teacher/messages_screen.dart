@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/teacher/teacher_home.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,7 +20,7 @@ class MessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MessagesView();
+    return WillPopScope(onWillPop: () async { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TeacherHomeScreen())); return false; }, child: const MessagesView());
   }
 }
 
@@ -130,7 +131,7 @@ class _MessagesViewState extends State<MessagesView> {
         backgroundColor: cardColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+          icon: Icon(Icons.arrow_back, color: textColor, size: 20),
           onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
         ),
         title: Text(
@@ -329,12 +330,13 @@ class _MessagesViewState extends State<MessagesView> {
           style: const TextStyle(color: Colors.grey),
         ),
         trailing: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (chat['role'] != null && (chat['role'] as String).isNotEmpty) ...[
               Container(
-                margin: const EdgeInsets.only(bottom: 4),
+                margin: EdgeInsets.zero,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
@@ -356,7 +358,7 @@ class _MessagesViewState extends State<MessagesView> {
             ],
             Text(chat['time'] as String? ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
             if (isUnread) ...[
-              const SizedBox(height: 5),
+              const SizedBox(height: 1),
               Container(
                 width: 10,
                 height: 10,

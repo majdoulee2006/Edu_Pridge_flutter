@@ -22,7 +22,7 @@ class AffairsOfficerMessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AffairsOfficerMessagesView();
+    return WillPopScope(onWillPop: () async { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AffairsOfficerHomeScreen())); return false; }, child: const AffairsOfficerMessagesView());
   }
 }
 
@@ -77,7 +77,11 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
                             return const Center(child: CircularProgressIndicator());
                           }
                           
-                          final dynamicContacts = chatService.contacts;
+                                                          final allContacts = chatService.contacts;
+                                final dynamicContacts = allContacts.where((c) {
+                                  return c['role'] == 'Administration' || (c['last_message'] != null && c['last_message'].toString().trim().isNotEmpty);
+                                }).toList();
+
                           
                           if (dynamicContacts.isEmpty) {
                             return const Center(child: Text('لا توجد جهات اتصال'));
@@ -129,7 +133,8 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
     final String time = contact['time'] ?? 'الآن';
     final String? avatarUrl = contact['image'];
     final bool isOnline = contact['is_online'] ?? false;
-    final bool isRead = contact['is_read'] ?? true;
+    final bool isRead = contact['is_read'] == true;
+      final bool isMyMessage = contact['is_my_message'] == true;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -215,12 +220,13 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
           ],
         ),
         trailing: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (role.isNotEmpty) ...[
               Container(
-                margin: const EdgeInsets.only(bottom: 4),
+                margin: EdgeInsets.zero,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
@@ -249,7 +255,7 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
               ),
             ),
             if (hasUnread) ...[
-              const SizedBox(height: 5),
+              const SizedBox(height: 1),
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
@@ -272,7 +278,7 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AffairsOfficerHomeScreen())),
           ),
           const Text("الرسائل", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),

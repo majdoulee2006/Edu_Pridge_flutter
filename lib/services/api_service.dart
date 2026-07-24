@@ -8,7 +8,7 @@ class ApiService {
   // ==========================================
   // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
   // ==========================================
-  static String _serverIp = '192.168.228.82'; // آي بي احتياطي افتراضي (يُحدَّث تلقائياً)
+  static String _serverIp = '192.168.1.102'; // Default IP
   static const String _port = '8001';
   static bool _isDiscovering = false;
 
@@ -16,8 +16,9 @@ class ApiService {
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _serverIp = prefs.getString('server_ip') ?? '192.168.228.82';
-      debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
+      _serverIp = '192.168.1.102'; // Forced IP due to SharedPreferences overriding it
+      await prefs.setString('server_ip', _serverIp);
+      debugPrint("🚀 ApiService initialized. Forced IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية
       autoDiscoverServer();
@@ -245,5 +246,109 @@ class ApiService {
       debugPrint("submitStudentServiceRequest Error: $e");
     }
     return null;
+  }
+
+  // ==========================================
+  // دوال رئيس القسم (HOD)
+  // ==========================================
+
+  Future<List<dynamic>?> getHeadLeaveRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/department-head/leave-requests",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getHeadLeaveRequests Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> respondHeadLeaveRequest(int id, String status) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.put(
+        "$baseUrl/department-head/leave-requests/$id/respond",
+        data: {'status': status},
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return (response.statusCode == 200 && response.data['success'] == true);
+    } catch (e) {
+      debugPrint("respondHeadLeaveRequest Error: $e");
+      return false;
+    }
+  }
+
+  Future<List<dynamic>?> getHeadGradeReportRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/department-head/grade-report-requests",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getHeadGradeReportRequests Error: $e");
+    }
+    return null;
+  }
+
+  Future<List<dynamic>?> getHeadReportRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/department-head/report-requests",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getHeadReportRequests Error: $e");
+    }
+    return null;
+  }
+
+  Future<List<dynamic>?> getHeadStudentServiceRequests(String type) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/department-head/student-service-requests?type=$type",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getHeadStudentServiceRequests Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> respondHeadStudentServiceRequest(int id, String status, {String notes = ''}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.put(
+        "$baseUrl/department-head/student-service-requests/$id/respond",
+        data: {'status': status, 'notes': notes},
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return (response.statusCode == 200 && response.data['success'] == true);
+    } catch (e) {
+      debugPrint("respondHeadStudentServiceRequest Error: $e");
+      return false;
+    }
   }
 }

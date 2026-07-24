@@ -316,7 +316,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
             const SizedBox(width: 15),
             Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
             const Spacer(),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+            const Icon(Icons.arrow_back, size: 16, color: Colors.grey),
           ],
         ),
       ),
@@ -347,7 +347,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
       title: Text("الملف الشخصي",
           style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
       leading: IconButton(
-        icon: Icon(Icons.arrow_forward, color: textColor),
+        icon: Icon(Icons.arrow_back, color: textColor),
         onPressed: () => Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen())),
       ),

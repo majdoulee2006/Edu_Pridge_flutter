@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -180,7 +180,7 @@ class _EditEmailScreenState extends State<EditEmailScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward,
+            icon: Icon(Icons.arrow_back,
                 color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),

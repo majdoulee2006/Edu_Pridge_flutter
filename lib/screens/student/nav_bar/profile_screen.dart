@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
@@ -130,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Text('الملف الشخصي',
               style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (_) => const StudentHomeScreen())),
           ),
@@ -443,7 +443,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 15, color: textColor, fontFamily: 'Cairo')),
             const Spacer(),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+            const Icon(Icons.arrow_back, size: 16, color: Colors.grey),
           ],
         ),
       ),

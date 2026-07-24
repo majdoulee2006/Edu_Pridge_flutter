@@ -39,7 +39,7 @@ class ChatModel {
       isOnline: json['is_online'] == 1 || json['is_online'] == true,
       isRead: json['is_read'] == null || json['is_read'] == 1 || json['is_read'] == true,
       isGroup: json['is_group'] == 1 || json['is_group'] == true,
-      avatarUrl: json['avatar_url'] ?? json['image'] ?? 'https://i.pravatar.cc/150',
+      avatarUrl: json['avatar_url'] ?? json['image'] ?? '',
       role: json['role'] ?? '',
     );
   }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -136,7 +136,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 26),
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
           onPressed: () => Navigator.pop(context),
         ),
         Text(

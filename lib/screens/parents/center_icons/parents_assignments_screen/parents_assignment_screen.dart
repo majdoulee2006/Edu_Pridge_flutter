@@ -145,7 +145,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.arrow_forward, color: textColor),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ],

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -68,7 +68,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           centerTitle: true,
           leading: IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_forward)),
+              icon: const Icon(Icons.arrow_back)),
           actions: [
             IconButton(onPressed: () {}, icon: const Icon(Icons.settings_outlined))
           ],
@@ -275,7 +275,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-        const SizedBox(height: 5),
+        const SizedBox(height: 1),
         GestureDetector(
           onTap: () async {
             DateTime? picked = await showDatePicker(

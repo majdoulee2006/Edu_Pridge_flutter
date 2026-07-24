@@ -156,7 +156,7 @@ class _PhotoRequestsTabState extends State<PhotoRequestsTab> {
               children: [
                 Expanded(child: _photoBox('الصورة الحالية', oldUrl, Colors.grey)),
                 const SizedBox(width: 12),
-                const Icon(Icons.arrow_forward_rounded, color: Color(0xFFFFCC00), size: 28),
+                const Icon(Icons.arrow_back_rounded, color: Color(0xFFFFCC00), size: 28),
                 const SizedBox(width: 12),
                 Expanded(child: _photoBox('الصورة الجديدة', newUrl, const Color(0xFFFFCC00))),
               ],

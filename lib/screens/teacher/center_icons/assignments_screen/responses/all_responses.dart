@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -303,7 +303,7 @@ class _AllResponsesScreenState extends State<AllResponsesScreen> {
                       ],
                     ),
                     Icon(
-                      Icons.arrow_forward_ios,
+                      Icons.arrow_back_ios,
                       size: 12,
                       color: textColor.withValues(alpha: 0.3),
                     ),

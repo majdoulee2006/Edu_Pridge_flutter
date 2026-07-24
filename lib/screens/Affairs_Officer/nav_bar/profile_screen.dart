@@ -665,7 +665,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
             ),
             const Spacer(),
             const Icon(
-              Icons.arrow_back_ios,
+              Icons.arrow_back,
               size: 16,
               color: Colors.grey,
             ),

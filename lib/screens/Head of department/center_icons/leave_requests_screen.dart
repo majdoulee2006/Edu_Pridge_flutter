@@ -236,7 +236,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
           ),
           Text("طلبات الإجازة", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
           IconButton(
-            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => _handleBackNavigation(context),
           ),
         ],

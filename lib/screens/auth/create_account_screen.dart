@@ -319,7 +319,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('البريد الإلكتروني', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withValues(alpha: 0.7), fontFamily: 'Cairo')),
-              const SizedBox(height: 5),
+              const SizedBox(height: 1),
               Container(
                 decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withValues(alpha: 0.1))),
                 child: Row(
@@ -450,7 +450,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withValues(alpha: 0.7), fontFamily: 'Cairo')),
-          const SizedBox(height: 5),
+          const SizedBox(height: 1),
           Container(
             decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withValues(alpha: 0.1))),
             child: isDropdown

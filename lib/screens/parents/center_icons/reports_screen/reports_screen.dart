@@ -346,7 +346,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.arrow_forward, color: textColor),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ],

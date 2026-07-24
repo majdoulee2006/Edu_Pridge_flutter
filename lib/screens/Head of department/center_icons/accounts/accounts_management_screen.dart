@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -176,7 +176,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
                                                 ],
                                               ),
                                             ),
-                                            Icon(Icons.arrow_back_ios_new, size: 14, color: Colors.grey.withValues(alpha: 0.5)),
+                                            Icon(Icons.arrow_back, size: 14, color: Colors.grey.withValues(alpha: 0.5)),
                                           ],
                                         ),
                                       );
@@ -290,7 +290,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
           ),
           Text("إدارة الحسابات", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
           IconButton(
-            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
           ),
         ],
