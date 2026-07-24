@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/parents/nav_bar/parent_home.dart';
@@ -21,6 +23,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   String studentName = "جارِ التحميل...";
   Map<String, dynamic>? data;
   bool isLoading = true;
+  int? studentId;
 
   @override
   void initState() {
@@ -33,6 +36,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       int? sId = prefs.getInt('selected_student_id');
+      studentId = sId;
       String? token = prefs.getString('token');
       studentName = prefs.getString('selected_student_name') ?? "الطالب";
 
@@ -57,6 +61,127 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       debugPrint("خطأ في الاتصال: $e");
       setState(() => isLoading = false);
     }
+  }
+
+  void _showJustifyAbsenceDialog(String date, String subjectName) {
+    TextEditingController reasonController = TextEditingController();
+    bool isSubmitting = false;
+    File? selectedFile;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                backgroundColor: Theme.of(context).cardColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: const Text('تبرير غياب', style: TextStyle(fontWeight: FontWeight.bold)),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('الرجاء إدخال سبب الغياب لمادة $subjectName بتاريخ $date:'),
+                      const SizedBox(height: 15),
+                      TextField(
+                        controller: reasonController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: 'مثال: عذر طبي...',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          FilePickerResult? result = await FilePicker.platform.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+                          );
+                          if (result != null) {
+                            setStateDialog(() {
+                              selectedFile = File(result.files.single.path!);
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.attach_file),
+                        label: Text(selectedFile != null ? 'تم إرفاق ملف' : 'إرفاق تقرير طبي أو صورة'),
+                      ),
+                      if (selectedFile != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(selectedFile!.path.split('/').last.split('\\').last, style: const TextStyle(fontSize: 12, color: Colors.green)),
+                        ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: isSubmitting ? null : () => Navigator.pop(context),
+                    child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (reasonController.text.trim().isEmpty) return;
+                            setStateDialog(() => isSubmitting = true);
+                            try {
+                              final prefs = await SharedPreferences.getInstance();
+                              String? token = prefs.getString('token');
+
+                              FormData formData = FormData.fromMap({
+                                "student_id": studentId,
+                                "type": "justification",
+                                "date": date,
+                                "subject_name": subjectName,
+                                "reason": reasonController.text.trim(),
+                              });
+
+                              if (selectedFile != null) {
+                                formData.files.add(MapEntry(
+                                  "attachment",
+                                  await MultipartFile.fromFile(selectedFile!.path, filename: selectedFile!.path.split('/').last.split('\\').last),
+                                ));
+                              }
+
+                              var res = await Dio().post(
+                                "${ApiService().baseUrl}/parent/leave-requests/submit",
+                                data: formData,
+                                options: Options(headers: {
+                                  "Accept": "application/json",
+                                  "Authorization": "Bearer $token"
+                                }),
+                              );
+                              if (res.statusCode == 200 || res.statusCode == 201) {
+                                if (!context.mounted) return;
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('تم إرسال تبرير الغياب بنجاح!'), backgroundColor: Colors.green),
+                                );
+                              }
+                            } catch (e) {
+                              setStateDialog(() => isSubmitting = false);
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('حدث خطأ أثناء الإرسال'), backgroundColor: Colors.red),
+                              );
+                            }
+                          },
+                    child: isSubmitting
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                        : const Text('إرسال', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showGradeDialog(Map<String, dynamic> item, Color col) {
@@ -259,6 +384,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             statusColor,
             textColor,
             cardColor,
+            onTap: statusText == 'غائب' ? () => _showJustifyAbsenceDialog(log['attendance_date'].toString().split(' ')[0], log['name'] ?? "") : null,
           );
         }),
         const SizedBox(height: 150),
@@ -329,26 +455,29 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  Widget _buildLectureRow(String day, String month, String subject, String status, Color col, Color textColor, Color cardColor) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
-      child: Row(
-        children: [
-          Column(children: [
-            Text(day, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
-            Text(month, style: const TextStyle(fontSize: 10, color: Colors.blue)),
-          ]),
-          const SizedBox(width: 15),
-          Text(subject, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(15)),
-            child: Text(status, style: TextStyle(color: col, fontSize: 12, fontWeight: FontWeight.bold)),
-          ),
-        ],
+  Widget _buildLectureRow(String day, String month, String subject, String status, Color col, Color textColor, Color cardColor, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30)),
+        child: Row(
+          children: [
+            Column(children: [
+              Text(day, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
+              Text(month, style: const TextStyle(fontSize: 10, color: Colors.blue)),
+            ]),
+            const SizedBox(width: 15),
+            Text(subject, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(15)),
+              child: Text(status, style: TextStyle(color: col, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }

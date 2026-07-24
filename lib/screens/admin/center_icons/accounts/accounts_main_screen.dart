@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
@@ -114,7 +115,11 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           Text("الحسابات", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor)),
-          const Icon(Icons.settings_outlined, color: Colors.grey),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: Color(0xFFFFCC00)),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
+            tooltip: "الإعدادات",
+          ),
         ],
       ),
     );
@@ -133,7 +138,6 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
         children: [
           _buildTabItem("إنشاء", 0, yellow),
           _buildTabItem("حذف", 1, yellow),
-          _buildTabItem("طلبات", 2, yellow),
         ],
       ),
     );

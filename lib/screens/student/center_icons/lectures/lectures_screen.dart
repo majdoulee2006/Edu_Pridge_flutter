@@ -631,6 +631,9 @@ class _SubjectCardState extends State<_SubjectCard> {
     );
   }
 
+
+
+
   Widget _buildFileItem({
     required String title,
     required String subtitle,

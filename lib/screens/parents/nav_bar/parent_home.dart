@@ -238,8 +238,11 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                               WidgetsBinding.instance.addPostFrameCallback((_) async {
                                 final prefs = await SharedPreferences.getInstance();
                                 final first = children[0];
-                                setState(() => selectedChildId = first['student_id'] as int?);
-                                await prefs.setInt('selected_student_id', first['student_id'] as int);
+                                final firstId = int.tryParse(first['student_id']?.toString() ?? '');
+                                setState(() => selectedChildId = firstId);
+                                if (firstId != null) {
+                                  await prefs.setInt('selected_student_id', firstId);
+                                }
                                 await prefs.setString('selected_student_name', first['full_name'] ?? "بدون اسم");
                               });
                             }
@@ -254,7 +257,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                                 itemBuilder: (context, index) {
                                   if (index < children.length) {
                                     final child = children[index];
-                                    final studentId = child['student_id'] as int?;
+                                    final studentId = int.tryParse(child['student_id']?.toString() ?? '');
                                     final isSelected = selectedChildId == studentId;
                                     final gpa = child['average_grade']?.toString() ?? "0";
                                     final attendance = child['attendance_rate']?.toString() ?? "0";

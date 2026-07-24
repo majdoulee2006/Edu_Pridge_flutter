@@ -109,8 +109,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               return ChatBubbleWidget(
                                 text: msg.text,
                                 isSender: msg.isMe,
-                                isRead: msg.isRead,
-                                isDelivered: msg.isDelivered,
+                                attachment: msg.attachment,
                                 onLongPress: msg.isMe && msg.attachment == null && msg.text != '[Voice Note]'
                                     ? () {
                                         showModalBottomSheet(
