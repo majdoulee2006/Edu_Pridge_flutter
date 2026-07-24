@@ -212,7 +212,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
             CircleAvatar(
               radius: 28,
               backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-              backgroundImage: NetworkImage(teacher.imageUrl),
+              backgroundImage: (teacher.imageUrl != null && teacher.imageUrl.toString().isNotEmpty) ? NetworkImage(teacher.imageUrl) : null,
             ),
             if (teacher.isOnline)
               Positioned(

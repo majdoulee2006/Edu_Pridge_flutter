@@ -58,7 +58,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundImage: widget.contact['image'] != null ? NetworkImage(widget.contact['image']) : null,
+                      backgroundImage: (widget.contact['image'] != null && widget.contact['image'].toString().isNotEmpty) ? NetworkImage(widget.contact['image']) : null,
                       child: widget.contact['image'] == null ? Text(widget.contact['name'][0]) : null,
                     ),
                     const SizedBox(width: 12),

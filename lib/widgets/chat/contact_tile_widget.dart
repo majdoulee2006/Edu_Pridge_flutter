@@ -21,7 +21,7 @@ class ContactTileWidget extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       leading: CircleAvatar(
-        backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+        backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty) ? NetworkImage(avatarUrl!) : null,
         child: avatarUrl == null ? Text(title[0].toUpperCase()) : null,
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),

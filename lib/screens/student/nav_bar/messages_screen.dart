@@ -278,7 +278,7 @@ class _MessagesViewState extends State<MessagesView> {
             CircleAvatar(
               radius: 28,
               backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-              backgroundImage: NetworkImage(chat.avatarUrl),
+              backgroundImage: (chat.avatarUrl != null && chat.avatarUrl.toString().isNotEmpty) ? NetworkImage(chat.avatarUrl) : null,
             ),
             if (chat.isOnline)
               Positioned(

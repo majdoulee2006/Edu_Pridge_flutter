@@ -199,7 +199,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                backgroundImage: NetworkImage(widget.imageUrl),
+                backgroundImage: (widget.imageUrl != null && widget.imageUrl.toString().isNotEmpty) ? NetworkImage(widget.imageUrl) : null,
               ),
               const SizedBox(width: 12),
               Expanded(
