@@ -18,6 +18,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # of the product and file versions while build-number is used as the build suffix.
 version: 1.0.0+1
 
+
 environment:
   sdk: ^3.10.4
 
@@ -55,13 +56,13 @@ dependencies:
   camera: ^0.11.0
   google_mlkit_face_detection: ^0.11.0
   image: ^4.3.0
+  image_cropper: ^12.2.1
 
   # ✅ مكتبات التقويم الجديدة
   table_calendar: ^3.0.9
   intl: ^0.20.2
   provider: ^6.1.5+1
   pusher_channels_flutter: ^2.6.0
-  image_cropper: ^12.2.1
 
 dev_dependencies:
   flutter_test:

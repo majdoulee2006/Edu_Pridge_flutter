@@ -42,6 +42,14 @@ class ChatService extends ChangeNotifier {
     return prefs.getString('token') ?? '';
   }
 
+  /// Ensure the current user ID is loaded
+  Future<void> _ensureUserId() async {
+    if (_currentUserId == null || _currentUserId!.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      _currentUserId = prefs.getString('user_id') ?? '';
+    }
+  }
+
   // --- Real API HTTP Requests ---
 
   /// Retrieve the allowed roles/contacts based on the logged-in user
@@ -75,6 +83,7 @@ class ChatService extends ChangeNotifier {
     notifyListeners();
     
     try {
+      await _ensureUserId();
       final token = await _getToken();
       
       final response = await _dio.get(
@@ -114,10 +123,12 @@ class ChatService extends ChangeNotifier {
     List<int>? fileBytes,
     String? fileName,
   }) async {
+    await _ensureUserId();
     // Optimistic UI Update for instant feedback
     final tempMsg = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       message: text,
+
       isMe: true,
       timestamp: DateTime.now(),
       attachment: filePath ?? fileName,
