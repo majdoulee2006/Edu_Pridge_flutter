@@ -89,111 +89,115 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
     final locationController = TextEditingController();
     final timeController = TextEditingController();
     DateTime selectedDate = _selectedDay ?? DateTime.now();
+    bool isSaving = false;
 
     final isAr = AppSettings.language.value == 'ar';
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Directionality(
           textDirection: ui.TextDirection.rtl,
           child: AlertDialog(
             title: Text(isAr ? 'إضافة حدث جديد' : 'Add New Event', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: InputDecoration(
-                      labelText: isAr ? 'عنوان الحدث *' : 'Event Title *',
-                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: locationController,
-                    decoration: InputDecoration(
-                      labelText: isAr ? 'الموقع / الوصف' : 'Location / Description',
-                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: timeController,
-                    decoration: InputDecoration(
-                      labelText: isAr ? 'الوقت (اختياري)' : 'Time (Optional)',
-                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
-                      hintText: 'مثال: 10:00 AM',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Text(isAr ? 'التاريخ: ' : 'Date: '),
-                      const Spacer(),
-                      TextButton.icon(
-                        icon: const Icon(Icons.calendar_today, size: 18),
-                        label: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                        onPressed: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                          );
-                          if (date != null) {
-                            setDialogState(() {
-                              selectedDate = date;
-                            });
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (titleController.text.trim().isEmpty) return;
-
-                  Navigator.pop(context);
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFFFFCC00)))),
-                  );
-
-                  final result = await _affairsServices.addCalendarEvent({
-                    'title': titleController.text.trim(),
-                    'location': locationController.text.trim(),
-                    'event_time': timeController.text.trim(),
-                    'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
-                  });
-
-                  if (mounted) {
-                    Navigator.pop(context); // Pop loading
-                    if (result != null) {
-                      _loadEvents();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(isAr ? 'تم إضافة الحدث بنجاح ✓' : 'Event added successfully ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
-                          backgroundColor: Colors.green,
+            content: isSaving
+                ? const SizedBox(
+                    height: 100,
+                    child: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFFFFCC00)))),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            labelText: isAr ? 'عنوان الحدث *' : 'Event Title *',
+                            labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                          ),
                         ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
-                child: Text(isAr ? 'حفظ' : 'Save', style: const TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.black, fontWeight: FontWeight.bold)),
-              ),
-            ],
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: locationController,
+                          decoration: InputDecoration(
+                            labelText: isAr ? 'الموقع / الوصف' : 'Location / Description',
+                            labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: timeController,
+                          decoration: InputDecoration(
+                            labelText: isAr ? 'الوقت (اختياري)' : 'Time (Optional)',
+                            labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                            hintText: 'مثال: 10:00 AM',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Text(isAr ? 'التاريخ: ' : 'Date: '),
+                            const Spacer(),
+                            TextButton.icon(
+                              icon: const Icon(Icons.calendar_today, size: 18),
+                              label: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                              onPressed: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: selectedDate,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2030),
+                                );
+                                if (date != null) {
+                                  setDialogState(() {
+                                    selectedDate = date;
+                                  });
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+            actions: isSaving
+                ? []
+                : [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleController.text.trim().isEmpty) return;
+
+                        setDialogState(() => isSaving = true);
+
+                        final result = await _affairsServices.addCalendarEvent({
+                          'title': titleController.text.trim(),
+                          'location': locationController.text.trim(),
+                          'event_time': timeController.text.trim(),
+                          'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                        });
+
+                        if (mounted) {
+                          Navigator.pop(context); // Pop the Add Event dialog
+                          if (result != null) {
+                            _loadEvents();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(isAr ? 'تم إضافة الحدث بنجاح ✓' : 'Event added successfully ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
+                      child: Text(isAr ? 'حفظ' : 'Save', style: const TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.black, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
           ),
         ),
       ),
@@ -205,110 +209,114 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
     final locationController = TextEditingController(text: event['location']);
     final timeController = TextEditingController(text: event['event_time']);
     DateTime selectedDate = event['date'] ?? DateTime.now();
+    bool isSaving = false;
 
     final isAr = AppSettings.language.value == 'ar';
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Directionality(
           textDirection: ui.TextDirection.rtl,
           child: AlertDialog(
             title: Text(isAr ? 'تعديل الحدث' : 'Edit Event', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: InputDecoration(
-                      labelText: isAr ? 'عنوان الحدث *' : 'Event Title *',
-                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: locationController,
-                    decoration: InputDecoration(
-                      labelText: isAr ? 'الموقع / الوصف' : 'Location / Description',
-                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: timeController,
-                    decoration: InputDecoration(
-                      labelText: isAr ? 'الوقت (اختياري)' : 'Time (Optional)',
-                      labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Text(isAr ? 'التاريخ: ' : 'Date: '),
-                      const Spacer(),
-                      TextButton.icon(
-                        icon: const Icon(Icons.calendar_today, size: 18),
-                        label: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                        onPressed: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                          );
-                          if (date != null) {
-                            setDialogState(() {
-                              selectedDate = date;
-                            });
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (titleController.text.trim().isEmpty) return;
-
-                  Navigator.pop(context);
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFFFFCC00)))),
-                  );
-
-                  final result = await _affairsServices.updateCalendarEvent(event['id'], {
-                    'title': titleController.text.trim(),
-                    'location': locationController.text.trim(),
-                    'event_time': timeController.text.trim(),
-                    'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
-                  });
-
-                  if (mounted) {
-                    Navigator.pop(context); // Pop loading
-                    if (result != null) {
-                      _loadEvents();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(isAr ? 'تم تعديل الحدث بنجاح ✓' : 'Event updated successfully ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
-                          backgroundColor: Colors.green,
+            content: isSaving
+                ? const SizedBox(
+                    height: 100,
+                    child: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFFFFCC00)))),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            labelText: isAr ? 'عنوان الحدث *' : 'Event Title *',
+                            labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                          ),
                         ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
-                child: Text(isAr ? 'حفظ' : 'Save', style: const TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.black, fontWeight: FontWeight.bold)),
-              ),
-            ],
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: locationController,
+                          decoration: InputDecoration(
+                            labelText: isAr ? 'الموقع / الوصف' : 'Location / Description',
+                            labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: timeController,
+                          decoration: InputDecoration(
+                            labelText: isAr ? 'الوقت (اختياري)' : 'Time (Optional)',
+                            labelStyle: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Text(isAr ? 'التاريخ: ' : 'Date: '),
+                            const Spacer(),
+                            TextButton.icon(
+                              icon: const Icon(Icons.calendar_today, size: 18),
+                              label: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                              onPressed: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: selectedDate,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2030),
+                                );
+                                if (date != null) {
+                                  setDialogState(() {
+                                    selectedDate = date;
+                                  });
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+            actions: isSaving
+                ? []
+                : [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleController.text.trim().isEmpty) return;
+
+                        setDialogState(() => isSaving = true);
+
+                        final result = await _affairsServices.updateCalendarEvent(event['id'], {
+                          'title': titleController.text.trim(),
+                          'location': locationController.text.trim(),
+                          'event_time': timeController.text.trim(),
+                          'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                        });
+
+                        if (mounted) {
+                          Navigator.pop(context); // Pop the Edit Event dialog
+                          if (result != null) {
+                            _loadEvents();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(isAr ? 'تم تعديل الحدث بنجاح ✓' : 'Event updated successfully ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
+                      child: Text(isAr ? 'حفظ' : 'Save', style: const TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.black, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
           ),
         ),
       ),

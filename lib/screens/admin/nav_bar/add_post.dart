@@ -1,15 +1,169 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:edu_pridge_flutter/services/admin_services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'dart:io';
 
 class AddPostScreen extends StatefulWidget {
-  const AddPostScreen({super.key});
+  final Map<String, dynamic>? announcement;
+  const AddPostScreen({super.key, this.announcement});
 
   @override
   State<AddPostScreen> createState() => _AddPostScreenState();
 }
 
 class _AddPostScreenState extends State<AddPostScreen> {
-  final TextEditingController _postController = TextEditingController();
-  String selectedAudience = "عام";
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _contentController = TextEditingController();
+  final TextEditingController _linkController = TextEditingController();
+  
+  String? selectedImagePath;
+  
+  String selectedAudience = "all"; // all, students, teachers, department
+  int? selectedDepartmentId;
+  List<dynamic> departments = [];
+  bool isLoadingDepts = false;
+  bool isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.announcement != null) {
+      _titleController.text = widget.announcement!['title'] ?? '';
+      _contentController.text = widget.announcement!['content'] ?? '';
+      _linkController.text = widget.announcement!['link_url'] ?? widget.announcement!['link'] ?? '';
+      selectedAudience = widget.announcement!['target_audience'] ?? 'all';
+    }
+    _loadDepartments();
+  }
+
+  Future<void> _loadDepartments() async {
+    setState(() => isLoadingDepts = true);
+    try {
+      final depts = await AdminServices().getDepartments();
+      if (depts != null && depts.isNotEmpty) {
+        setState(() {
+          departments = depts.where((d) {
+            String name = d['name']?.toString().trim() ?? '';
+            return ['نظم معلومات', 'تجاري', 'طبي', 'هندسي'].contains(name);
+          }).toList();
+          isLoadingDepts = false;
+        });
+      } else {
+        setState(() => isLoadingDepts = false);
+      }
+    } catch (e) {
+      debugPrint("Error loading departments: $e");
+    } finally {
+      if (departments.isEmpty) {
+        // Fallback static list
+        departments = [
+          {'department_id': 1, 'name': 'نظم معلومات'},
+          {'department_id': 2, 'name': 'تجاري'},
+          {'department_id': 3, 'name': 'طبي'},
+          {'department_id': 4, 'name': 'هندسي'},
+        ];
+      }
+      if (mounted) setState(() => isLoadingDepts = false);
+    }
+  }
+
+  Future<void> _pickAndCropImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'تعديل الصورة',
+            toolbarColor: const Color(0xFFFFCC00),
+            toolbarWidgetColor: Colors.black,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+          ),
+          IOSUiSettings(title: 'تعديل الصورة'),
+        ],
+      );
+      if (croppedFile != null) {
+        setState(() {
+          selectedImagePath = croppedFile.path;
+        });
+      }
+    }
+  }
+
+  Future<void> _submitPost() async {
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+    final link = _linkController.text.trim();
+
+    if (title.isEmpty) {
+      _showSnackBar("يرجى إدخال عنوان المنشور/الإعلان");
+      return;
+    }
+    if (content.isEmpty) {
+      _showSnackBar("يرجى إدخال محتوى المنشور/الإعلان");
+      return;
+    }
+
+    setState(() => isSubmitting = true);
+    try {
+      bool success = false;
+      if (widget.announcement != null) {
+        final annId = widget.announcement!['announcement_id'] ?? widget.announcement!['id'];
+        success = await AdminServices().updateAnnouncement(
+          id: annId,
+          title: title,
+          content: content,
+          targetAudience: selectedAudience,
+          departmentId: selectedAudience == 'department' ? selectedDepartmentId : null,
+          imagePath: selectedImagePath,
+          link: link,
+        );
+      } else {
+        success = await AdminServices().createAnnouncement(
+          title: title,
+          content: content,
+          targetAudience: selectedAudience,
+          departmentId: selectedAudience == 'department' ? selectedDepartmentId : null,
+          imagePath: selectedImagePath,
+          link: link,
+        );
+      }
+
+      if (success) {
+        _showSnackBar(widget.announcement != null ? "تم تعديل الإعلان بنجاح" : "تم نشر الإعلان بنجاح", isError: false);
+        Navigator.pop(context);
+      } else {
+        _showSnackBar("فشل حفظ الإعلان، يرجى المحاولة لاحقاً");
+      }
+    } on DioException catch (e) {
+      debugPrint("Dio Error submitting post: ${e.response?.data}");
+      String msg = "حدث خطأ بالاتصال بالسيرفر";
+      if (e.response?.data != null && e.response?.data['errors'] != null) {
+        msg = e.response!.data['errors'].values.first.first;
+      } else if (e.response?.data != null && e.response?.data['message'] != null) {
+        msg = e.response!.data['message'];
+      }
+      _showSnackBar(msg);
+    } catch (e) {
+      debugPrint("Error submitting post: $e");
+      _showSnackBar("حدث خطأ بالاتصال بالسيرفر");
+    } finally {
+      setState(() => isSubmitting = false);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Cairo')),
+        backgroundColor: isError ? Colors.redAccent : Colors.green,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,199 +179,208 @@ class _AddPostScreenState extends State<AddPostScreen> {
         appBar: AppBar(
           backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
           elevation: 0,
-          title: const Text(
-            "إنشاء منشور جديد",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          title: Text(
+            widget.announcement != null ? "تعديل المنشور / الإعلان" : "إنشاء منشور جديد",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
             icon: Icon(Icons.arrow_forward, color: textColor),
           ),
-          actions: [
-            IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.settings_outlined, color: textColor),
-            ),
-          ],
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
+        body: isSubmitting
+            ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+            : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // معلومات الناشر
-                    Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8)
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            backgroundColor: Colors.blue.shade100,
-                            child: const Text(
-                              "ع",
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "المدير عبد الله",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                // يمكن إضافة BottomSheet لاختيار الجمهور لاحقاً
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.public, size: 16),
-                                    const SizedBox(width: 6),
-                                    Text(selectedAudience),
-                                    const Icon(Icons.arrow_drop_down, size: 18),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // حقل كتابة المنشور
+                    // عنوان المنشور
                     TextField(
-                      controller: _postController,
-                      maxLines: null,
-                      style: TextStyle(fontSize: 22, height: 1.4, color: textColor),
+                      controller: _titleController,
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
                       decoration: const InputDecoration(
-                        hintText: "بما تفكر؟",
-                        hintStyle: TextStyle(fontSize: 22, color: Colors.grey),
-                        border: InputBorder.none,
+                        hintText: "عنوان الإعلان / المنشور",
+                        hintStyle: TextStyle(fontSize: 18, color: Colors.grey),
+                        border: UnderlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // اختيار الجمهور المستهدف
+                    Text(
+                      "الجمهور المستهدف:",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: selectedAudience,
+                      decoration: InputDecoration(
+                        fillColor: cardColor,
+                        filled: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                      ),
+                      dropdownColor: cardColor,
+                      items: const [
+                        DropdownMenuItem(value: "all", child: Text("الجميع (عام)")),
+                        DropdownMenuItem(value: "students", child: Text("الطلاب فقط")),
+                        DropdownMenuItem(value: "teachers", child: Text("المعلمين فقط")),
+                        DropdownMenuItem(value: "department", child: Text("قسم معين")),
+                      ],
+                      onChanged: (val) {
+                        setState(() {
+                          selectedAudience = val ?? "all";
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // اختيار القسم إذا كان الجمهور قسم معين
+                    if (selectedAudience == "department") ...[
+                      Text(
+                        "اختر القسم الموجه له:",
+                        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                      ),
+                      const SizedBox(height: 8),
+                      isLoadingDepts
+                          ? const CircularProgressIndicator()
+                          : DropdownButtonFormField<int>(
+                              value: selectedDepartmentId,
+                              decoration: InputDecoration(
+                                fillColor: cardColor,
+                                filled: true,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                              ),
+                              dropdownColor: cardColor,
+                              items: departments.map((dept) {
+                                return DropdownMenuItem<int>(
+                                  value: dept['department_id'],
+                                  child: Text(dept['name'] ?? ''),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  selectedDepartmentId = val;
+                                });
+                              },
+                            ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // محتوى المنشور
+                    Text(
+                      "محتوى المنشور:",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.grey.withAlpha(50)),
+                      ),
+                      child: TextField(
+                        controller: _contentController,
+                        maxLines: 8,
+                        style: TextStyle(fontSize: 16, color: textColor),
+                        decoration: const InputDecoration(
+                          hintText: "اكتب تفاصيل الإعلان هنا...",
+                          hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // إرفاق رابط (اختياري)
+                    Text(
+                      "رابط إضافي (اختياري):",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _linkController,
+                      style: TextStyle(fontSize: 16, color: textColor),
+                      decoration: InputDecoration(
+                        hintText: "https://example.com",
+                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                        fillColor: cardColor,
+                        filled: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // إرفاق صورة (اختياري)
+                    Text(
+                      "إرفاق صورة (اختياري):",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: _pickAndCropImage,
+                      child: Container(
+                        height: 150,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.grey.withAlpha(50)),
+                        ),
+                        child: selectedImagePath != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(15),
+                                child: Image.file(
+                                  File(selectedImagePath!),
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey.shade400),
+                                  const SizedBox(height: 8),
+                                  Text("اضغط لإضافة صورة", style: TextStyle(color: Colors.grey.shade500)),
+                                ],
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-
-            // شريط إضافة المحتوى
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                border: Border(
-                  top: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        "إضافة إلى منشورك",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-                        ),
+        bottomNavigationBar: isSubmitting
+            ? null
+            : SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ElevatedButton(
+                    onPressed: _submitPost,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryYellow,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(double.infinity, 58),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const Spacer(),
-                      // أزرار الإضافات
-                      _buildMediaButton(Icons.photo_library, Colors.green, "صورة/فيديو"),
-                      const SizedBox(width: 12),
-                      _buildMediaButton(Icons.sentiment_satisfied, Colors.orange, "شعور"),
-                      const SizedBox(width: 12),
-                      _buildMediaButton(Icons.more_horiz, Colors.grey, ""),
-                    ],
+                      elevation: 8,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "نشر الآن",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 10),
+                        Icon(Icons.send, size: 22),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        // زر النشر الثابت في الأسفل
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: ElevatedButton(
-              onPressed: () {
-                // هنا سيتم تنفيذ نشر المنشور
-                if (_postController.text.trim().isNotEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("تم نشر المنشور بنجاح")),
-                  );
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryYellow,
-                foregroundColor: Colors.black,
-                minimumSize: const Size(double.infinity, 58),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
                 ),
-                elevation: 8,
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "نشر",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(width: 10),
-                  Icon(Icons.send, size: 22),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMediaButton(IconData icon, Color color, String tooltip) {
-    return GestureDetector(
-      onTap: () {
-        // يمكن توسيع الوظائف لاحقاً
-      },
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: color, size: 28),
       ),
     );
   }

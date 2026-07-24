@@ -12,11 +12,19 @@ class ApiService {
   static const String _port = '8001';
   static bool _isDiscovering = false;
 
+  static String get serverIp => _serverIp;
+
+  static Future<void> setServerIp(String ip) async {
+    _serverIp = ip;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('server_ip', ip);
+  }
+
   // تهيئة الإعدادات وتحميل آخر آي بي تم اكتشافه، ثم بدء البحث التلقائي
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _serverIp = prefs.getString('server_ip') ?? '192.168.228.82';
+      _serverIp = prefs.getString('server_ip') ?? '192.168.1.103';
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية
@@ -177,6 +185,72 @@ class ApiService {
       }
     } catch (e) {
       debugPrint("Dashboard Error: $e");
+    }
+    return null;
+  }
+
+  // ==========================================
+  // 3. دوال الخدمات الطلابية
+  // ==========================================
+
+  // جلب الطلبات السابقة للطالب (مع إمكانية الفلترة حسب النوع)
+  Future<List<dynamic>?> getStudentServiceRequests({String? type}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      String url = "$baseUrl/student/services/requests";
+      if (type != null) {
+        url += "?type=$type";
+      }
+
+      Response response = await _dio.get(
+        url,
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getStudentServiceRequests Error: $e");
+    }
+    return null;
+  }
+
+  // إرسال طلب خدمة طلابية جديد
+  Future<Map<String, dynamic>?> submitStudentServiceRequest(String type, String details) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.post(
+        "$baseUrl/student/services/requests",
+        data: {
+          'type': type,
+          'details': details,
+        },
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data;
+      }
+    } on DioException catch (e) {
+      debugPrint("submitStudentServiceRequest DioError: ${e.response?.data}");
+      return e.response?.data;
+    } catch (e) {
+      debugPrint("submitStudentServiceRequest Error: $e");
     }
     return null;
   }

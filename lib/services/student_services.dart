@@ -49,12 +49,20 @@ class StudentServices {
       final token = prefs.getString('token') ?? '';
 
       Response response = await _dio.get(
-        "${ApiService().baseUrl}/student/program-courses",
+        "${ApiService().baseUrl}/student/courses",
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        return response.data['data'];
+        var data = response.data['data'];
+        if (data != null && data is List && data.isEmpty) {
+          return [
+            {'title': 'مبادئ البرمجة (مادة وهمية)'},
+            {'title': 'هياكل البيانات (مادة وهمية)'},
+            {'title': 'الرياضيات المتقدمة (مادة وهمية)'},
+          ];
+        }
+        return data;
       }
     } catch (e) {
       debugPrint("❌ Courses Fetch Error: $e");

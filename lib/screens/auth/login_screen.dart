@@ -197,9 +197,10 @@ class _LoginScreenState extends State<LoginScreen> {
       nextScreen = const StudentHomeScreen();
     }
 
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => nextScreen),
+      (_) => false,
     );
   }
 
@@ -212,9 +213,6 @@ class _LoginScreenState extends State<LoginScreen> {
           style: const TextStyle(fontFamily: 'Cairo'),
         ),
         backgroundColor: isError ? Colors.redAccent : Colors.green,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
     );
   }

@@ -84,28 +84,66 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
       } catch (e) { debugPrint("فشل جلب بيانات الأب: $e"); }
     }
 
-    // 2. جلب بيانات الطالب المختار
+    // 2. جلب بيانات الطالب المختار (أو أول ابن إذا لم يكن هناك طالب مختار)
     int? selectedId = prefs.getInt('selected_student_id');
-    if (selectedId != null) {
+    debugPrint("🔍 [Profile] selectedId from prefs: $selectedId");
+    debugPrint("🔍 [Profile] token length: ${token.length}");
+    debugPrint("🔍 [Profile] baseUrl: ${ApiService().baseUrl}");
+
+    // إذا ما في طالب محدد، نجيب أول ابن من الـ API تلقائياً
+    if (selectedId == null && token.isNotEmpty) {
       try {
-        // نرسل طلب للسيرفر يجلب البيانات بـ Join بين الجداول
-        var res = await Dio().get(
-          "${ApiService().baseUrl}/student/info/$selectedId",
+        final url = "${ApiService().baseUrl}/parent/children";
+        debugPrint("🔍 [Profile] fetching children from: $url");
+        var childRes = await Dio().get(
+          url,
           options: Options(headers: {
             "Authorization": "Bearer $token",
             "Accept": "application/json",
           }),
         );
-        if (res.statusCode == 200 && res.data != null) {
-          setState(() {
-            studentName = res.data['full_name'] ?? studentName;
-            // ✅ هنا الربط الصحيح: القسم من خانة department الجاية من جدول الـ users
-            studentDept = res.data['department'] ?? "غير محدد";
-            // ✅ هنا السنة الدراسية الجاية من خانة level في جدول الـ students
-            studentYear = res.data['level'] ?? "غير محدد";
-          });
+        debugPrint("🔍 [Profile] children response: ${childRes.statusCode} - ${childRes.data}");
+        if (childRes.statusCode == 200 && childRes.data != null) {
+          final childrenData = childRes.data['data'] ?? childRes.data;
+          final List children = childrenData is List ? childrenData : [];
+          debugPrint("🔍 [Profile] children count: ${children.length}");
+          if (children.isNotEmpty) {
+            final first = children[0];
+            debugPrint("🔍 [Profile] first child: $first");
+            selectedId = first['student_id'] as int?;
+            if (selectedId != null) {
+              await prefs.setInt('selected_student_id', selectedId);
+              await prefs.setString('selected_student_name', first['full_name'] ?? '');
+            }
+          }
         }
-      } catch (e) { debugPrint("فشل جلب بيانات الطالب: $e"); }
+      } catch (e) { debugPrint("❌ [Profile] فشل جلب الأبناء: $e"); }
+    }
+
+    if (selectedId != null) {
+      try {
+        final url = "${ApiService().baseUrl}/student/info/$selectedId";
+        debugPrint("🔍 [Profile] fetching student info from: $url");
+        var res = await Dio().get(
+          url,
+          options: Options(headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+          }),
+        );
+        debugPrint("🔍 [Profile] student info response: ${res.statusCode} - ${res.data}");
+        if (res.statusCode == 200 && res.data != null) {
+          if (mounted) {
+            setState(() {
+              studentName = res.data['full_name'] ?? studentName;
+              studentDept = res.data['department'] ?? "غير محدد";
+              studentYear = res.data['level'] ?? "غير محدد";
+            });
+          }
+        }
+      } catch (e) { debugPrint("❌ [Profile] فشل جلب بيانات الطالب: $e"); }
+    } else {
+      debugPrint("❌ [Profile] selectedId لا يزال null بعد محاولة جلب الأبناء");
     }
   }
 

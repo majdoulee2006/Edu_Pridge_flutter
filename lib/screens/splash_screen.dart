@@ -9,6 +9,7 @@ import 'teacher/teacher_home.dart';
 import 'parents/nav_bar/parent_home.dart';
 import 'Head of department/nav_bar/boss_home.dart';
 import 'Affairs_Officer/nav_bar/home_screen.dart';
+import 'admin/nav_bar/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -155,6 +156,7 @@ class _SplashScreenState extends State<SplashScreen>
         'student'                      => const StudentHomeScreen(),
         'teacher'                      => const TeacherHomeScreen(),
         'parent'                       => const ParentsHomeScreen(),
+        'admin'                        => const AdminHomeScreen(),
         'head'  || 'department_head'   => const DeptHeadHomeScreen(),
         'affairs' || 'affairs_officer' => const AffairsOfficerHomeScreen(),
         _                              => const OnboardingOne(),
