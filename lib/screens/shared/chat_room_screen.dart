@@ -110,6 +110,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 text: msg.text,
                                 isSender: msg.isMe,
                                 attachment: msg.attachment,
+                                isRead: msg.isRead,
+                                isDelivered: msg.isDelivered,
                                 onLongPress: msg.isMe && msg.attachment == null && msg.text != '[Voice Note]'
                                     ? () {
                                         showModalBottomSheet(

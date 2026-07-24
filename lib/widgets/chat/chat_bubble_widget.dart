@@ -6,6 +6,8 @@ class ChatBubbleWidget extends StatelessWidget {
   final String text;
   final bool isSender;
   final String? attachment;
+  final bool isRead;
+  final bool isDelivered;
   final VoidCallback? onLongPress;
 
   const ChatBubbleWidget({
@@ -13,6 +15,8 @@ class ChatBubbleWidget extends StatelessWidget {
     required this.text,
     required this.isSender,
     this.attachment,
+    this.isRead = false,
+    this.isDelivered = false,
     this.onLongPress,
   });
 
