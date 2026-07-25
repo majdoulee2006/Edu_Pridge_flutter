@@ -45,7 +45,7 @@ class StudentServicesMenuScreen extends StatelessWidget {
                     ),
                     leading: IconButton(
                       icon: Icon(
-                        isAr ? Icons.arrow_forward : Icons.arrow_back,
+                        Icons.arrow_back,
                         color: textColor,
                       ),
                       onPressed: () => Navigator.pop(context),
@@ -275,7 +275,7 @@ class StudentServicesMenuScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Icon(
-                  isAr ? Icons.arrow_back_ios_new_rounded : Icons.arrow_forward_ios_rounded,
+                  Icons.arrow_back,
                   color: subColor.withOpacity(0.5),
                   size: 16,
                 ),
@@ -441,7 +441,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 leading: IconButton(
-                  icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
+                  icon: Icon(Icons.arrow_back, color: textColor),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -755,7 +755,7 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 leading: IconButton(
-                  icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
+                  icon: Icon(Icons.arrow_back, color: textColor),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -1094,7 +1094,7 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 leading: IconButton(
-                  icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
+                  icon: Icon(Icons.arrow_back, color: textColor),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -1286,7 +1286,7 @@ class AboutAppScreen extends StatelessWidget {
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 leading: IconButton(
-                  icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
+                  icon: Icon(Icons.arrow_back, color: textColor),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -1437,7 +1437,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 leading: IconButton(
-                  icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
+                  icon: Icon(Icons.arrow_back, color: textColor),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),

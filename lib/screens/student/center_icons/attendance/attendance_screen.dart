@@ -487,7 +487,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -779,7 +779,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     ),
                     child: Icon(icon, color: statusColor, size: 20),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 1),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,

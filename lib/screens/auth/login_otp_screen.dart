@@ -188,7 +188,7 @@ class _LoginOtpScreenState extends State<LoginOtpScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -582,7 +582,7 @@ class _OtpVerifyScreenState extends State<_OtpVerifyScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
         ),

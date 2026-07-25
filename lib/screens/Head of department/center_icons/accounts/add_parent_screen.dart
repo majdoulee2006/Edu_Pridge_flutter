@@ -106,7 +106,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
         title: const Text("إنشاء حساب ولي أمر", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward, size: 20),
+          icon: const Icon(Icons.arrow_back, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),

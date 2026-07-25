@@ -83,7 +83,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
           title: Text(widget.screenTitle ?? 'تفاصيل الإعلان',
               style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward,
+            icon: Icon(Icons.arrow_back,
                 color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
           ),

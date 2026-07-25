@@ -46,7 +46,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
                 name: c['name'] ?? 'مستخدم غير معروف',
                 subject: c['role'] ?? c['subject'] ?? 'مدرس',
                 isOnline: c['is_online'] ?? false,
-                imageUrl: c['image'] ?? 'https://i.pravatar.cc/150',
+                imageUrl: c['image'] ?? '',
               );
             }).toList();
             isLoading = false;
@@ -106,7 +106,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
               name: e['name'] ?? 'مستخدم غير معروف',
               subject: e['role'] ?? e['subject'] ?? 'مدرس',
               isOnline: e['is_online'] ?? false,
-              imageUrl: e['image'] ?? e['image_url'] ?? 'https://i.pravatar.cc/150',
+              imageUrl: e['image'] ?? e['image_url'] ?? '',
             );
           }).whereType<TeacherModel>().toList();
           isLoading = false;
@@ -139,7 +139,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text('بدء محادثة جديدة', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
@@ -212,7 +212,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
             CircleAvatar(
               radius: 28,
               backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-              backgroundImage: NetworkImage(teacher.imageUrl),
+              backgroundImage: (teacher.imageUrl != null && teacher.imageUrl.toString().isNotEmpty) ? NetworkImage(teacher.imageUrl) : null,
             ),
             if (teacher.isOnline)
               Positioned(
@@ -232,7 +232,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
         ),
         title: Text(teacher.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
         subtitle: Text(teacher.subject, style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12)),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: isDark ? Colors.grey.shade600 : Colors.grey),
+        trailing: Icon(Icons.arrow_back_ios, size: 16, color: isDark ? Colors.grey.shade600 : Colors.grey),
         onTap: () {
           final chatServiceInstance = context.read<ChatService>();
           Navigator.push(

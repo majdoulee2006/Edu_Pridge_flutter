@@ -149,7 +149,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
           title: Text('نشر إعلان جديد',
               style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward,
+            icon: Icon(Icons.arrow_back,
                 color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
           ),

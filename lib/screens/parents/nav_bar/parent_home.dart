@@ -516,7 +516,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(ann['time_ago'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                              Icon(Icons.arrow_back_ios_new, size: 13, color: textColor.withValues(alpha: 0.4)),
+                              Icon(Icons.arrow_back, size: 13, color: textColor.withValues(alpha: 0.4)),
                             ],
                           ),
                         ],

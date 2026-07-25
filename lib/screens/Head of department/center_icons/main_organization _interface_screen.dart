@@ -168,7 +168,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           const SizedBox(width: 48),
           Text('واجهة التنظيم', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo')),
           IconButton(
-            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
           ),
         ],

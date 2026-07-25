@@ -111,7 +111,7 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor, size: 26),
+            icon: Icon(Icons.arrow_back, color: textColor, size: 26),
             onPressed: () => Navigator.pop(context),
           ),
           Text("الحسابات", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor)),

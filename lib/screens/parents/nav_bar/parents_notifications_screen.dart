@@ -289,7 +289,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                   child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
                 )
         else
-          IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
+          IconButton(icon: Icon(Icons.arrow_back, color: textColor), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
       ],
     );
   }

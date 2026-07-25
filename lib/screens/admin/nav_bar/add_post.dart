@@ -186,7 +186,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
           ),
         ),
         body: isSubmitting

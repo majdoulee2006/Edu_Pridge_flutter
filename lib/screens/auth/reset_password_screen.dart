@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'login_screen.dart';
@@ -115,7 +115,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-              icon: Icon(Icons.arrow_forward, color: textColor),
+              icon: Icon(Icons.arrow_back, color: textColor),
               onPressed: () => Navigator.pop(context)),
         ),
         body: SingleChildScrollView(

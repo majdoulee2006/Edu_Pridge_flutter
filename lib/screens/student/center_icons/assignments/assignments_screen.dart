@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -199,7 +199,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -786,7 +786,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 1),
                     Text(
                       widget.subtitle,
                       style: TextStyle(
@@ -927,7 +927,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 ),
               ),
             ],
-            const SizedBox(height: 5),
+            const SizedBox(height: 1),
           ],
 
           // ملفات الواجب — ملف المعلم وملف الطالب
@@ -970,7 +970,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                 isDark: isDark,
               ),
 
-            const SizedBox(height: 5),
+            const SizedBox(height: 1),
           ],
 
           if (isExpanded && widget.showSubmitForm) ...[
@@ -1082,7 +1082,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                       const SizedBox(height: 10),
                       Text('اضغط لرفع ملف الحل',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 1),
                       Text('PDF, JPG, Video, ZIP (Max 50MB)',
                           style: TextStyle(
                               color: isDark ? Colors.grey.shade400 : Colors.grey.shade500, fontSize: 10)),

@@ -191,7 +191,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           backgroundColor: appBarColor,
           elevation: isDark ? 0 : 1,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -199,7 +199,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                backgroundImage: NetworkImage(widget.imageUrl),
+                backgroundImage: (widget.imageUrl != null && widget.imageUrl.toString().isNotEmpty) ? NetworkImage(widget.imageUrl) : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -274,7 +274,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           crossAxisAlignment: isMe ? CrossAxisAlignment.start : CrossAxisAlignment.end,
           children: [
             Text(text, style: TextStyle(fontSize: 14, color: messageTextColor, height: 1.4)),
-            const SizedBox(height: 5),
+            const SizedBox(height: 1),
             Text(time, style: TextStyle(fontSize: 10, color: isMe ? Colors.black54 : Colors.grey)),
           ],
         ),

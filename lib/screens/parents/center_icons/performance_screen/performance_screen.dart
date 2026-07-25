@@ -290,7 +290,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
       ),
       actions: [
-        IconButton(icon: Icon(Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pop(context)),
+        IconButton(icon: Icon(Icons.arrow_back, color: textColor), onPressed: () => Navigator.pop(context)),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(80),
@@ -448,7 +448,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             const Spacer(),
             Text(percent, style: TextStyle(color: col, fontWeight: FontWeight.bold)),
             const SizedBox(width: 10),
-            Icon(Icons.arrow_back_ios_new, size: 12, color: textColor.withValues(alpha: 0.3)),
+            Icon(Icons.arrow_back, size: 12, color: textColor.withValues(alpha: 0.3)),
           ],
         ),
       ),

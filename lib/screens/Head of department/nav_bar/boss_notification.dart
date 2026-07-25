@@ -492,7 +492,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_forward,
+            icon: Icon(Icons.arrow_back,
                 color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),

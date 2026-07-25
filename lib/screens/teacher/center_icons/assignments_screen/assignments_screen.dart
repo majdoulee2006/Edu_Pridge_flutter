@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -177,7 +177,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             backgroundColor: cardColor,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+              icon: Icon(Icons.arrow_back, color: textColor, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
             title: Text('الواجبات والمشاريع',
@@ -588,7 +588,7 @@ class _SubmissionsBottomSheetState extends State<_SubmissionsBottomSheet> {
                     style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold)),
               ),
             const SizedBox(width: 8),
-            Icon(Icons.arrow_back_ios, size: 13, color: widget.textColor.withValues(alpha: 0.3)),
+            Icon(Icons.arrow_back, size: 13, color: widget.textColor.withValues(alpha: 0.3)),
           ],
         ),
         onTap: () {

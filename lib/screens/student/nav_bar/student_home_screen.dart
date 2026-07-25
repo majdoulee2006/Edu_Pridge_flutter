@@ -631,7 +631,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                             style: const TextStyle(fontSize: 11, color: Colors.grey),
                           ),
                           Icon(
-                            Icons.arrow_forward_ios,
+                            Icons.arrow_back_ios,
                             size: 14,
                             color: tag == 'إعلان مقرر'
                                 ? Colors.amber.shade800

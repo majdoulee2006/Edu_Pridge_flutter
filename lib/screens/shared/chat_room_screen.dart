@@ -58,7 +58,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundImage: widget.contact['image'] != null ? NetworkImage(widget.contact['image']) : null,
+                      backgroundImage: (widget.contact['image'] != null && widget.contact['image'].toString().isNotEmpty) ? NetworkImage(widget.contact['image']) : null,
                       child: widget.contact['image'] == null ? Text(widget.contact['name'][0]) : null,
                     ),
                     const SizedBox(width: 12),
@@ -110,6 +110,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 text: msg.text,
                                 isSender: msg.isMe,
                                 attachment: msg.attachment,
+                                isRead: msg.isRead,
+                                isDelivered: msg.isDelivered,
                                 onLongPress: msg.isMe && msg.attachment == null && msg.text != '[Voice Note]'
                                     ? () {
                                         showModalBottomSheet(

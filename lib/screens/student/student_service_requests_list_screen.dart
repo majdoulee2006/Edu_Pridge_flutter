@@ -89,7 +89,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           leading: IconButton(
-            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
         ),

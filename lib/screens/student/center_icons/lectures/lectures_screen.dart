@@ -149,7 +149,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(

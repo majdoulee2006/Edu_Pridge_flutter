@@ -202,7 +202,7 @@ class _AffairsOfficerNotificationsScreenState
                                     )
                             else
                               IconButton(
-                                icon: Icon(Icons.arrow_forward, color: textColor, size: 26),
+                                icon: Icon(Icons.arrow_back, color: textColor, size: 26),
                                 onPressed: () => Navigator.pop(context),
                               ),
                           ],

@@ -126,7 +126,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
           ),
         ),

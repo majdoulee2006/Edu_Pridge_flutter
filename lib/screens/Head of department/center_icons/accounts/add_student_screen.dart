@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -80,7 +80,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         title: const Text("إنشاء حساب طالب جديد", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward, size: 20),
+          icon: const Icon(Icons.arrow_back, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),

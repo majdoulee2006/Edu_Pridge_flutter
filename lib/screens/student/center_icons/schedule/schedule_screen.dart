@@ -152,7 +152,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -650,7 +650,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 amPmLabel,
                 style: const TextStyle(color: Colors.grey, fontSize: 11),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 1),
               if (!isLast) ...[
                 Container(
                   width: 1.5,
@@ -664,7 +664,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   height: isBreak ? 30 : 60,
                   color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 1),
                 Text(
                   endTime,
                   style: TextStyle(
@@ -677,7 +677,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   endAmPm ?? '',
                   style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 1),
               ],
             ],
           ),
@@ -1546,7 +1546,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       ),
                     ],
                   ]),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 1),
                   Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black87)),
                   const SizedBox(height: 8),
                   Row(

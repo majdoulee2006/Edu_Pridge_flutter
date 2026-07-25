@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -157,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
           ),
@@ -545,7 +545,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: textColor,
                     fontFamily: 'Cairo')),
             const Spacer(),
-            const Icon(Icons.arrow_forward_ios_rounded,
+            const Icon(Icons.arrow_back,
                 size: 16, color: Colors.grey),
           ],
         ),

@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -112,7 +112,7 @@ class _GradingScreenState extends State<GradingScreen> {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -230,7 +230,7 @@ class _GradingScreenState extends State<GradingScreen> {
             "الواجب المطلوب",
             style: TextStyle(color: Colors.grey, fontSize: 12),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 1),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

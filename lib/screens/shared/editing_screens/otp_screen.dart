@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:async';
 
 class OTPScreen extends StatefulWidget {
@@ -145,7 +145,7 @@ class _OTPScreenState extends State<OTPScreen> {
                   fontSize: 18,
                   fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context, false),
           ),
         ),

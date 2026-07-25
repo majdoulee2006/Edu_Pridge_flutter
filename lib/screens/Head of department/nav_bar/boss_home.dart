@@ -15,6 +15,7 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_p
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/create_announcement_screen.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/boss_services_menu_screen.dart';
 import '../../../widgets/boss_center_icon.dart';
 
 class DeptHeadHomeScreen extends StatefulWidget {
@@ -214,21 +215,14 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
               ],
             ),
           ),
-          _buildCircleIconButton(
-            icon: Icons.settings_outlined,
-            cardColor: cardColor,
-            onTap: () => Navigator.push(context, MaterialPageRoute(
-              builder: (_) => SettingsScreen(
-                userName: _bossName,
-                userRole: "رئيس القسم الأكاديمي",
-                onProfileTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (_) => const BossProfileScreen()));
-                },
-              ),
-            )),
+          IconButton(
+            icon: const Icon(Icons.menu_rounded, color: Color(0xFFF1C40F), size: 28),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BossServicesMenuScreen()),
+            ),
           ),
+
         ],
       ),
     );
@@ -373,7 +367,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                               style: const TextStyle(color: Colors.grey, fontSize: 11)),
                           Padding(
                             padding: const EdgeInsets.only(left: 8),
-                            child: Icon(Icons.arrow_back_ios_new, size: 13, color: textColor.withValues(alpha: 0.4)),
+                            child: Icon(Icons.arrow_back, size: 13, color: textColor.withValues(alpha: 0.4)),
                           ),
                         ],
                       ),

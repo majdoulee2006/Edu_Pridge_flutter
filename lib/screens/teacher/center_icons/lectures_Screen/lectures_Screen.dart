@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -116,7 +116,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor, size: 20),
+            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text('المحاضرات',

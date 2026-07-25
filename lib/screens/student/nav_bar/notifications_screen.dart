@@ -168,7 +168,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             elevation: 0,
             leading: IconButton(
               icon: Icon(
-                Icons.arrow_forward,
+                Icons.arrow_back,
                 color: isDark ? Colors.white : Colors.black,
               ),
               onPressed: () => Navigator.pushReplacement(
