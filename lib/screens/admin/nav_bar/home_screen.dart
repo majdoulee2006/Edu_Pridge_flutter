@@ -4,6 +4,7 @@ import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/admin/admin_services_menu_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'profile_screen.dart';
@@ -227,6 +228,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: Color(0xFFFFCC00), size: 26),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
+          ),
+          IconButton(
+            icon: const Icon(Icons.menu_rounded, color: Color(0xFFFFCC00), size: 28),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminServicesMenuScreen()),
+            ),
           ),
         ],
       ),

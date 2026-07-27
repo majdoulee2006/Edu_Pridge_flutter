@@ -701,4 +701,51 @@ class AdminServices {
       rethrow;
     }
   }
+
+  // ==========================================
+  // Student Services (الخدمات والطلبات الطلابية للإدارة)
+  // ==========================================
+  Future<List<dynamic>?> getStudentServicesRequests({String? type, String? status}) async {
+    try {
+      final token = await _getToken();
+      final Map<String, dynamic> params = {};
+      if (type != null && type.isNotEmpty) params['type'] = type;
+      if (status != null && status.isNotEmpty) params['status'] = status;
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/admin/student-services",
+        queryParameters: params,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint("❌ Admin Get Student Services Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> processStudentServiceRequest({
+    required int id,
+    required String decision,
+    required String notes,
+  }) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/admin/student-services/$id/process",
+        data: {
+          'decision': decision,
+          'notes': notes,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      debugPrint("❌ Admin Process Student Service Error: $e");
+      return false;
+    }
+  }
 }
+
