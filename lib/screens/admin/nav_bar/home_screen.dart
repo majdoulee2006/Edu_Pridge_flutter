@@ -226,10 +226,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFFFFCC00), size: 26),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
-          ),
-          IconButton(
             icon: const Icon(Icons.menu_rounded, color: Color(0xFFFFCC00), size: 28),
             onPressed: () => Navigator.push(
               context,

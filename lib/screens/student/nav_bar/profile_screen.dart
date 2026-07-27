@@ -224,6 +224,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.teal,
                             textColor: textColor,
                           ),
+                          if (userData?['advisor_teacher'] != null) ...[
+                            _buildDivider(textColor),
+                            _buildStaticRow(
+                              label: "مرشد / مربي الدورة",
+                              value: "${userData!['advisor_teacher']['name']} (${userData!['advisor_teacher']['phone'] ?? ''})",
+                              icon: Icons.person_pin_rounded,
+                              color: const Color(0xFFFFCC00),
+                              textColor: textColor,
+                            ),
+                          ],
                         ]),
 
                         const SizedBox(height: 25),
