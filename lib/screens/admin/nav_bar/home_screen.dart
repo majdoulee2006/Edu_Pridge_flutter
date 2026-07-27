@@ -509,23 +509,25 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                           time,
                           style: const TextStyle(fontSize: 11, color: Colors.grey),
                         ),
-                        const SizedBox(width: 8),
-                        // 🌟 زرا التعديل والحذف 🌟
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 20),
-                          onPressed: () => _openEditAnnouncement(news),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          tooltip: "تعديل الإعلان",
-                        ),
-                        const SizedBox(width: 10),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                          onPressed: () => _confirmDeleteAnnouncement(news),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          tooltip: "حذف الإعلان",
-                        ),
+                        // ازرار التعديل والحذف تظهر فقط على منشورات المدير نفسه
+                        if (news['is_mine'] == true) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 20),
+                            onPressed: () => _openEditAnnouncement(news),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: "تعديل الإعلان",
+                          ),
+                          const SizedBox(width: 10),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                            onPressed: () => _confirmDeleteAnnouncement(news),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: "حذف الإعلان",
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -666,25 +668,27 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   ),
                 ),
               ),
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 18),
-                    onPressed: () => _openEditAnnouncement(news),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    tooltip: "تعديل الإعلان",
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
-                    onPressed: () => _confirmDeleteAnnouncement(news),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    tooltip: "حذف الإعلان",
-                  ),
-                ],
-              ),
+              // ازرار التعديل والحذف تظهر فقط على منشورات المدير نفسه
+              if (news['is_mine'] == true)
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 18),
+                      onPressed: () => _openEditAnnouncement(news),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: "تعديل الإعلان",
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                      onPressed: () => _confirmDeleteAnnouncement(news),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: "حذف الإعلان",
+                    ),
+                  ],
+                ),
             ],
           ),
           if (time.isNotEmpty)
