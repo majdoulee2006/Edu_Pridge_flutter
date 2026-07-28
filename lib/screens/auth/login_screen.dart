@@ -158,7 +158,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (e.response?.statusCode == 409) {
         if (mounted) _showDeviceConflictDialog();
       } else {
-        String msg = e.response?.data['message']?.toString() ?? "تأكد من اتصال السيرفر";
+        String msg = "تأكد من اتصال السيرفر";
+        if (e.response?.data != null && e.response?.data is Map) {
+          msg = e.response?.data['message']?.toString() ?? msg;
+        }
         _showSnackBar(msg, isError: true);
       }
     } catch (e) {
