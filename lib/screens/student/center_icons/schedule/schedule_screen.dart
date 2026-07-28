@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/rendering.dart';
+import 'dart:ui' as ui;
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
@@ -32,6 +36,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   int _selectedDateIndex = 0; // تبدأ من 0 برمجياً
   int _selectedLectureIndex =
       0; // 🌟 متغير جديد: لتحديد الحصة المحددة بالإطار الأصفر
+
+  final GlobalKey _classScheduleBoundaryKey = GlobalKey();
+  final GlobalKey _examScheduleBoundaryKey = GlobalKey();
 
   bool _isLoadingSchedules = true;
   bool _isLoadingExams = true;
@@ -129,6 +136,73 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('حدث خطأ أثناء التنزيل!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _exportSchedule() async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('جاري تجهيز وتنزيل ملف الجدول الدراسي...'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    try {
+      final url = await StudentServices().getScheduleExportUrl();
+      if (url != null && url.isNotEmpty) {
+        if (await canLaunchUrl(Uri.parse(url))) {
+          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        } else {
+          throw 'لا يمكن فتح الرابط';
+        }
+      } else {
+        throw 'الرابط غير متوفر';
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('حدث خطأ أثناء التنزيل!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _exportWidgetAsImage(GlobalKey key, String fileName) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('جاري تجهيز وتنزيل الصورة...'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    try {
+      final boundary = key.currentContext?.findRenderObject();
+      if (boundary is! RenderRepaintBoundary) {
+        throw 'لم يتم العثور على محتوى للتصدير';
+      }
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        throw 'فشل تحويل الصورة إلى بيانات';
+      }
+      final Uint8List pngBytes = byteData.buffer.asUint8List();
+      final String base64Image = base64Encode(pngBytes);
+      final String dataUrl = 'data:image/png;base64,$base64Image';
+      
+      if (await canLaunchUrl(Uri.parse(dataUrl))) {
+        await launchUrl(Uri.parse(dataUrl), mode: LaunchMode.externalApplication);
+      } else {
+        throw 'لا يمكن تحميل الصورة تلقائياً في هذه المنصة';
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('خطأ أثناء تصدير الصورة: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -305,7 +379,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     // find lectures for this day from API data (may be empty)
     final dayData = _schedulesData.firstWhere(
-      (d) => d['day'] == selectedDayName,
+      (d) {
+        final dDay = d['day']?.toString().trim().toLowerCase() ?? '';
+        final selDay = selectedDayName.trim().toLowerCase();
+        const Map<String, String> arToEn = {
+          'الأحد': 'sunday', 'الاثنين': 'monday', 'الثلاثاء': 'tuesday',
+          'الأربعاء': 'wednesday', 'الخميس': 'thursday', 'الجمعة': 'friday', 'السبت': 'saturday'
+        };
+        const Map<String, String> enToAr = {
+          'sunday': 'الأحد', 'monday': 'الاثنين', 'tuesday': 'الثلاثاء',
+          'wednesday': 'الأربعاء', 'thursday': 'الخميس', 'friday': 'الجمعة', 'saturday': 'السبت'
+        };
+        return dDay == selDay || arToEn[selDay] == dDay || enToAr[dDay] == selDay;
+      },
       orElse: () => {'day': selectedDayName, 'lectures': []},
     );
     final List<dynamic> lectures = dayData['lectures'] ?? [];
@@ -348,37 +434,113 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         );
     }).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 15),
+    return RepaintBoundary(
+      key: _classScheduleBoundaryKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 15),
 
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: List.generate(_weekDays.length, (index) {
-              return _buildDayCircle(day: _weekDays[index], index: index);
-            }),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: List.generate(_weekDays.length, (index) {
+                return _buildDayCircle(day: _weekDays[index], index: index);
+              }),
+            ),
           ),
-        ),
 
-        const SizedBox(height: 25),
+          const SizedBox(height: 25),
 
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'برنامج $selectedDayName',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: isDark ? Colors.white : Colors.black87,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'برنامج $selectedDayName',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: _exportSchedule,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1E1E),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(25),
+                              blurRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.picture_as_pdf,
+                              color: Colors.redAccent,
+                              size: 14,
+                            ),
+                            SizedBox(width: 5),
+                            Text(
+                              'PDF',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    GestureDetector(
+                      onTap: () => _exportWidgetAsImage(_classScheduleBoundaryKey, 'weekly_schedule'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1E1E),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(25),
+                              blurRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.image,
+                              color: Colors.blueAccent,
+                              size: 14,
+                            ),
+                            SizedBox(width: 5),
+                            Text(
+                              'صورة',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Container(
+                Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.white.withAlpha(25) : const Color(0xFFEBEBEB),
@@ -415,8 +577,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   // ----------------------------------------------------------------
   // 3. واجهة "جدول الامتحانات"
@@ -439,60 +602,104 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 120),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'الامتحانات النهائية',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: isDark ? Colors.white : Colors.black87,
+    return RepaintBoundary(
+      key: _examScheduleBoundaryKey,
+      child: ListView(
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 120),
+        physics: const BouncingScrollPhysics(),
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'الامتحانات النهائية',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
               ),
-            ),
-            GestureDetector(
-              onTap: () => _exportFile('pdf'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(25),
-                      blurRadius: 5,
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.picture_as_pdf,
-                      color: Colors.redAccent,
-                      size: 16,
-                    ),
-                    SizedBox(width: 5),
-                    Text(
-                      'PDF',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _exportFile('pdf'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(25),
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.picture_as_pdf,
+                            color: Colors.redAccent,
+                            size: 16,
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'PDF',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _exportWidgetAsImage(_examScheduleBoundaryKey, 'exam_schedule'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(25),
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.image,
+                            color: Colors.blueAccent,
+                            size: 16,
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'صورة',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         const SizedBox(height: 20),
         ..._examsData.map((exam) {
           return _buildExamCard(
@@ -551,7 +758,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 
