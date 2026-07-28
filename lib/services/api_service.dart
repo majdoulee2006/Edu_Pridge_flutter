@@ -9,7 +9,7 @@ class ApiService {
   // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
   // ==========================================
   static String _serverIp = '192.168.1.100'; // آي بي اللابتوب الحالي على الـ Wi-Fi
-  static const String _port = '8001';
+  static const String _port = '8000';
   static bool _isDiscovering = false;
 
   static String get serverIp => _serverIp;
