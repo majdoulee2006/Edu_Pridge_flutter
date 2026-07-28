@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'pending_approval_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -19,6 +21,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   String? selectedGender;
   final String selectedYear = 'أولى';
   DateTime? selectedBirthDate;
+  File? _profileImage;
 
   static const Color primaryYellow = Color(0xFFF6E300);
 
@@ -33,7 +36,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _studentLastNameController  = TextEditingController();
   final _studentEmailController     = TextEditingController();
   final _studentPhoneController     = TextEditingController();
-  final _studentIdController        = TextEditingController();
   final _studentPasswordController  = TextEditingController();
   final _studentConfirmPasswordController = TextEditingController();
 
@@ -47,14 +49,29 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   int _selectedChildrenCount = 1;
   final List<TextEditingController> _parentChildIdControllers = [TextEditingController()];
 
+  // فتح الكاميرا لالتقاط صورة البروفايل
+  Future<void> _pickProfilePhoto() async {
+    final picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 600,
+      maxHeight: 600,
+      preferredCameraDevice: CameraDevice.front,
+    );
+    if (photo != null && mounted) {
+      setState(() => _profileImage = File(photo.path));
+    }
+  }
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    final maxDate = DateTime(now.year - 18, now.month, now.day);
-    final minDate = DateTime(now.year - 22, now.month, now.day);
+    final maxDate = DateTime(now.year - 14, now.month, now.day);
+    final minDate = DateTime(now.year - 60, now.month, now.day);
 
     DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: maxDate,
+      initialDate: DateTime(now.year - 18, now.month, now.day),
       firstDate: minDate,
       lastDate: maxDate,
       builder: (context, child) => Theme(
@@ -86,36 +103,43 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       final emailPrefix = _studentEmailController.text.trim();
       if (emailPrefix.isEmpty) { _showSnackBar('يرجى إدخال البريد الإلكتروني'); return; }
 
-      if (phone.length != 10 || !RegExp(r'^\d{10}$').hasMatch(phone)) {
-        _showSnackBar('رقم الهاتف يجب أن يكون 10 أرقام'); return;
-      }
+      if (phone.isEmpty) { _showSnackBar('يرجى إدخال رقم الهاتف'); return; }
 
-      if (selectedDept == null || selectedBranch == null || selectedGender == null || selectedBirthDate == null) {
+      if (selectedGender == null || selectedBirthDate == null) {
         _showSnackBar('يرجى إكمال كافة البيانات المطلوبة'); return;
       }
 
-      final email = '$emailPrefix@gmail.com';
+      // البريد يُضاف له @edu.sy أو أي دومين خاص بالمعهد
+      final email = '$emailPrefix@edu.sy';
       final fullName = '$firstName $lastName';
 
       setState(() => isLoading = true);
       try {
+        // إعداد الـ FormData لإرسال الصورة مع البيانات
+        FormData formData = FormData.fromMap({
+          "full_name":     fullName,
+          "first_name":    firstName,
+          "last_name":     lastName,
+          "email":         email,
+          "phone":         phone,
+          "gender":        selectedGender,
+          "birth_date":    selectedBirthDate.toString().split(' ')[0],
+          "academic_year": selectedYear,
+          "department":    selectedDept ?? '',
+          "branch":        selectedBranch ?? '',
+          "password":      _studentPasswordController.text,
+          "role":          "student",
+          if (_profileImage != null)
+            "avatar": await MultipartFile.fromFile(
+              _profileImage!.path,
+              filename: 'avatar.jpg',
+            ),
+        });
+
         final response = await Dio().post(
           "${ApiService().baseUrl}/register",
-          data: {
-            "full_name":     fullName,
-            "first_name":    firstName,
-            "last_name":     lastName,
-            "email":         email,
-            "phone":         phone,
-            "university_id": _studentIdController.text.trim(),
-            "gender":        selectedGender,
-            "birth_date":    selectedBirthDate.toString().split(' ')[0],
-            "academic_year": selectedYear,
-            "department":    selectedDept,
-            "branch":        selectedBranch,
-            "password":      _studentPasswordController.text,
-            "role":          "student",
-          },
+          data: formData,
+          options: Options(headers: {'Accept': 'application/json'}),
         );
         if ((response.statusCode == 201 || response.statusCode == 200) && mounted) {
           Navigator.pushAndRemoveUntil(context,
@@ -218,13 +242,72 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 35),
-                  Icon(isStudent ? Icons.school_outlined : Icons.family_restroom, size: 60, color: primaryYellow),
-                  const SizedBox(height: 15),
-                  Text(isStudent ? 'بيانات الطالب' : 'بيانات ولي الأمر',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo')),
-                  const SizedBox(height: 35),
-                  isStudent ? _buildStudentForm(textColor, cardColor, isDark) : _buildParentForm(textColor, cardColor, isDark),
+                  const SizedBox(height: 30),
+
+                  // صورة البروفايل بالكاميرا (للطالب فقط)
+                  if (isStudent) ...[
+                    GestureDetector(
+                      onTap: _pickProfilePhoto,
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          Container(
+                            width: 110,
+                            height: 110,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isDark ? Colors.white12 : const Color(0xFFF0F0F0),
+                              border: Border.all(color: primaryYellow, width: 3),
+                              image: _profileImage != null
+                                  ? DecorationImage(
+                                      image: FileImage(_profileImage!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: _profileImage == null
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.person, size: 50, color: Colors.grey.shade400),
+                                    ],
+                                  )
+                                : null,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: const BoxDecoration(
+                              color: primaryYellow,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.camera_alt, size: 18, color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'اضغط لالتقاط صورتك',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 12,
+                        fontFamily: 'Cairo',
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ] else ...[
+                    Icon(Icons.family_restroom, size: 60, color: primaryYellow),
+                    const SizedBox(height: 15),
+                  ],
+
+                  Text(
+                    isStudent ? 'بيانات الطالب' : 'بيانات ولي الأمر',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo'),
+                  ),
+                  const SizedBox(height: 25),
+                  isStudent
+                      ? _buildStudentForm(textColor, cardColor, isDark)
+                      : _buildParentForm(textColor, cardColor, isDark),
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,
@@ -281,7 +364,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     final subColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
     return Column(
       children: [
-        // الاسم الكامل — حقلين
+        // الاسم الأول والأخير
         Row(
           children: [
             Expanded(child: _buildInputField(label: 'الاسم الأول', hint: 'مثال: أحمد', icon: Icons.person_outline, controller: _studentFirstNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
@@ -290,15 +373,15 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           ],
         ),
 
-        // الجنس فقط (بدون السنة)
+        // الجنس
         _buildInputField(label: 'الجنس', hint: 'اختر', isDropdown: true, dropdownItems: ['ذكر', 'أنثى'], value: selectedGender, onChanged: (val) => setState(() => selectedGender = val), textColor: textColor, cardColor: cardColor, isDark: isDark),
 
-        // تاريخ الميلاد (18-22)
+        // تاريخ الميلاد (بدون تحديد عمر)
         GestureDetector(
           onTap: _pickDate,
           child: AbsorbPointer(
             child: _buildInputField(
-              label: 'تاريخ الميلاد (18 - 22 سنة)',
+              label: 'تاريخ الميلاد',
               hint: selectedBirthDate == null ? 'حدد التاريخ' : "${selectedBirthDate!.toLocal()}".split(' ')[0],
               icon: Icons.calendar_today_outlined,
               textColor: textColor, cardColor: cardColor, isDark: isDark,
@@ -306,20 +389,17 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           ),
         ),
 
-        // رقم الهاتف 10 أرقام
-        _buildInputField(label: 'رقم الهاتف (10 أرقام)', hint: '09xxxxxxxx', icon: Icons.phone_enabled_outlined, controller: _studentPhoneController, keyboardType: TextInputType.phone, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        // رقم الهاتف بدون تعليق 10 أرقام
+        _buildInputField(label: 'رقم الهاتف', hint: '09xxxxxxxx', icon: Icons.phone_enabled_outlined, controller: _studentPhoneController, keyboardType: TextInputType.phone, textColor: textColor, cardColor: cardColor, isDark: isDark),
 
-        // الرقم الجامعي
-        _buildInputField(label: 'الرقم الجامعي', hint: 'رقم البطاقة الجامعية', icon: Icons.badge_outlined, controller: _studentIdController, textColor: textColor, cardColor: cardColor, isDark: isDark),
-
-        // البريد الإلكتروني مع لاحقة @gmail.com
+        // البريد الإلكتروني مع لاحقة @edu.sy (لا @gmail.com)
         Padding(
-          padding: const EdgeInsets.only(bottom: 6.0),
+          padding: const EdgeInsets.only(bottom: 15.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('البريد الإلكتروني', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withValues(alpha: 0.7), fontFamily: 'Cairo')),
-              const SizedBox(height: 1),
+              const SizedBox(height: 6),
               Container(
                 decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withValues(alpha: 0.1))),
                 child: Row(
@@ -327,7 +407,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     Expanded(
                       child: TextField(
                         controller: _studentEmailController,
-                        keyboardType: TextInputType.emailAddress,
+                        keyboardType: TextInputType.text,
                         textDirection: TextDirection.ltr,
                         decoration: InputDecoration(
                           hintText: 'اسم الحساب',
@@ -340,30 +420,15 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.only(left: 12),
-                      child: Text('@gmail.com', style: TextStyle(color: subColor, fontSize: 13, fontFamily: 'Cairo')),
+                      padding: const EdgeInsets.only(left: 12, right: 4),
+                      child: Text('@edu.sy', style: TextStyle(color: subColor, fontSize: 13, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.info_outline, size: 14, color: Colors.blue.shade400),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'استخدم بريدك الشخصي — سيُستخدم لاحقاً للمراسلة داخل التطبيق',
-                      style: TextStyle(fontSize: 11, color: Colors.blue.shade400, fontFamily: 'Cairo'),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
-
-        const SizedBox(height: 9),
 
         // القسم والفرع
         Row(
@@ -383,7 +448,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   Widget _buildParentForm(Color textColor, Color cardColor, bool isDark) {
     return Column(
       children: [
-        // الاسم الأول والأخير
         Row(
           children: [
             Expanded(child: _buildInputField(label: 'الاسم الأول', hint: 'مثال: أحمد', icon: Icons.person_outline, controller: _parentFirstNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
@@ -413,7 +477,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             }
           },
         ),
-        // حقل رقم جامعي لكل ابن
         ...List.generate(_selectedChildrenCount, (i) => _buildInputField(
           label: _selectedChildrenCount == 1
               ? 'الرقم الجامعي لابنك/ابنتك'
@@ -450,7 +513,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withValues(alpha: 0.7), fontFamily: 'Cairo')),
-          const SizedBox(height: 1),
+          const SizedBox(height: 6),
           Container(
             decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withValues(alpha: 0.1))),
             child: isDropdown
@@ -487,7 +550,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _studentLastNameController.dispose();
     _studentEmailController.dispose();
     _studentPhoneController.dispose();
-    _studentIdController.dispose();
     _studentPasswordController.dispose();
     _studentConfirmPasswordController.dispose();
     _parentFirstNameController.dispose();

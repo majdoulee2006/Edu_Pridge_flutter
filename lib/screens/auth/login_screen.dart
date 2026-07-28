@@ -6,7 +6,6 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/fcm_service.dart';
 import 'dart:math';
 
-// استيراد الملف الجديد (تأكدي أن اسم الملف forgot_password_screen.dart صحيح في مشروعك)
 import 'forgot_password_screen.dart';
 
 import '../teacher/teacher_home.dart';
@@ -26,7 +25,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _isStudent = false;
 
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -90,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
         data: {
           "username":     _usernameController.text.trim(),
           "password":     _passwordController.text,
-          "is_student":   _isStudent,
+          "is_student":   true, // نبعت true دائماً لأن الـ backend الآن يبحث في كل الأدوار
           "device_token": deviceId,
         },
       );
@@ -99,17 +97,14 @@ class _LoginScreenState extends State<LoginScreen> {
         final prefs = await SharedPreferences.getInstance();
         final responseData = response.data;
 
-        // 💡 تشخيص: لنشوف شو الداتا اللي رجعها السيرفر بالضبط
         debugPrint("📥 استجابة السيرفر في اللوجن: $responseData");
 
-        // 🌟 الحل الجذري: صيد التوكن بأي اسم بيرجعه اللارافل
         String token =
             responseData['token']?.toString() ??
                 responseData['access_token']?.toString() ??
                 responseData['data']?['token']?.toString() ??
                 "";
 
-        // 🌟 صيد بيانات اليوزر بشكل مرن (أحياناً بتكون جوا data وأحياناً برا)
         var userData = responseData['user'] ?? responseData['data']?['user'];
 
         if (token.isEmpty) {
@@ -120,7 +115,6 @@ class _LoginScreenState extends State<LoginScreen> {
           throw Exception("بيانات المستخدم مفقودة");
         }
 
-        // 💡 استخراج البيانات وتجهيزها
         String userId =
             userData['user_id']?.toString() ?? userData['id']?.toString() ?? "";
         String displayName =
@@ -129,17 +123,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 "مستخدم";
         String role = userData['role']?.toString() ?? "student";
 
-        // ✨ إذا كان المستخدم ولي أمر
         if (userData['parent_id'] != null) {
           await prefs.setString('parent_id', userData['parent_id'].toString());
           debugPrint("✅ تم حفظ معرف الأب: ${userData['parent_id']}");
         }
 
-        // مسح بيانات الابن المختار سابقاً
         await prefs.remove('selected_student_id');
         await prefs.remove('selected_student_name');
 
-        // 💾 حفظ البيانات الأساسية بالذاكرة
         await prefs.setString('token', token);
         await prefs.setString('user_id', userId);
         await prefs.setString('user_name', displayName);
@@ -153,7 +144,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         debugPrint("✅ تم حفظ التوكن بنجاح: $token");
 
-        // بعت الـ FCM token للسيرفر بعد تسجيل الدخول مباشرة
         FcmService.sendTokenAfterLogin();
 
         if (!mounted) return;
@@ -259,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 25),
                   Text(
-                    _isStudent ? "أهلاً عزيزي الطالب" : "مرحباً بك مجدداً",
+                    "مرحباً بك في Edu-Bridge",
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -267,55 +257,33 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontFamily: 'Cairo',
                     ),
                   ),
-                  const Text(
-                    "سجل دخولك للمتابعة في Edu_Bridge",
-                    style: TextStyle(color: Colors.grey, fontFamily: 'Cairo'),
+                  Text(
+                    "سجل دخولك للمتابعة",
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontFamily: 'Cairo',
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 45),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _isStudent ? "الرقم الجامعي" : "رقم الهاتف  / الإيميل",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: textColor.withValues(alpha: 0.7),
-                          fontFamily: 'Cairo',
-                        ),
+                  // حقل اسم المستخدم (رقم جامعي / هاتف / بريد)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      "رقم الهاتف / الإيميل / الرقم الجامعي",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: textColor.withValues(alpha: 0.7),
+                        fontFamily: 'Cairo',
                       ),
-                      Row(
-                        children: [
-                          Text(
-                            "طالب",
-                            style: TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 12,
-                              color: textColor.withValues(alpha: 0.5),
-                            ),
-                          ),
-                          Transform.scale(
-                            scale: 0.8,
-                            child: Switch(
-                              value: _isStudent,
-                              activeThumbColor: primaryYellow,
-                              onChanged: (value) =>
-                                  setState(() => _isStudent = value),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-
+                  const SizedBox(height: 8),
                   _buildTextField(
-                    hint: _isStudent
-                        ? "أدخل رقمك الجامعي"
-                        : "أدخل  رقم الهاتف أو الإيميل",
-                    icon: _isStudent
-                        ? Icons.badge_outlined
-                        : Icons.alternate_email,
+                    hint: "أدخل رقم الهاتف أو الإيميل أو الرقم الجامعي",
+                    icon: Icons.person_outline_rounded,
                     controller: _usernameController,
                     isDark: isDark,
                   ),
@@ -342,12 +310,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 15),
 
-                  // ================= تم التعديل هنا =================
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton(
                       onPressed: () {
-                        // الانتقال لصفحة استعادة كلمة السر
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -366,7 +332,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  // =================================================
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,
@@ -420,53 +385,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 30),
-                  // ── DEV TOOLS (معلّقة مؤقتاً) ──────────────────────
-                  // const SizedBox(height: 40),
-                  // const Divider(),
-                  // const Center(child: Text("أدوات المطور - دخول سريع", style: TextStyle(color: Colors.grey, fontSize: 12))),
-                  // const SizedBox(height: 15),
-                  // SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  //   _buildDevButton("شؤون", Icons.supervised_user_circle_outlined, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AffairsOfficerHomeScreen()))),
-                  //   _buildDevButton("رئيس قسم", Icons.admin_panel_settings, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen()))),
-                  //   _buildDevButton("معلم", Icons.person_pin, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TeacherHomeScreen()))),
-                  //   _buildDevButton("طالب", Icons.school, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const StudentHomeScreen()))),
-                  //   _buildDevButton("أهل", Icons.family_restroom, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
-                  //   _buildDevButton("إدارة", Icons.admin_panel_settings, () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()))),
-                  // ])),
-                  // ─────────────────────────────────────────────────────
                 ],
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  // ignore: unused_element
-  Widget _buildDevButton(String title, IconData icon, VoidCallback onTap) {
-    return Column(
-      children: [
-        IconButton(
-          onPressed: onTap,
-          icon: Icon(icon, color: Colors.orangeAccent),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.orangeAccent.withValues(alpha: 0.1),
-            padding: const EdgeInsets.all(12),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Colors.grey,
-            fontFamily: 'Cairo',
-          ),
-        ),
-      ],
     );
   }
 
