@@ -419,14 +419,26 @@ class StudentServices {
   // ==========================================
   // 14. طلب إجازة
   // ==========================================
-  Future<bool> submitLeaveRequest(String type, String date, String reason) async {
+  Future<bool> submitLeaveRequest(String type, String date, String reason, {String? filePath, String? fileName}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
+      dynamic postData;
+      if (filePath != null && filePath.isNotEmpty) {
+        postData = FormData.fromMap({
+          'type': type,
+          'date': date,
+          'reason': reason,
+          'document': await MultipartFile.fromFile(filePath, filename: fileName ?? 'leave_doc.pdf'),
+        });
+      } else {
+        postData = {'type': type, 'date': date, 'reason': reason};
+      }
+
       Response response = await _dio.post(
         "${ApiService().baseUrl}/student/leave-requests",
-        data: {'type': type, 'date': date, 'reason': reason},
+        data: postData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 

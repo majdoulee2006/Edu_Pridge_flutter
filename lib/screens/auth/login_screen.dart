@@ -50,22 +50,122 @@ class _LoginScreenState extends State<LoginScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
-              Icon(Icons.devices, color: Colors.orange),
+              Icon(Icons.devices_other_rounded, color: Colors.orange),
               SizedBox(width: 10),
-              Text("تنبيه", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text("تنبيه الحساب مقفل", style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: const Text(
-            "هذا الحساب مسجّل دخول من جهاز آخر.\nيُسمح بجهاز واحد فقط لكل حساب.\n\nيرجى تسجيل الخروج من الجهاز الآخر أولاً.",
+            "هذا الحساب مسجّل على جهاز آخر.\nلا يمكنك تسجيل الدخول إلا من جهازك الأساسي، أو تقديم طلب لشؤون الطلاب لفك القفل عن جهازك القديم.",
             style: TextStyle(fontSize: 14, height: 1.6),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("حسناً", style: TextStyle(color: Color(0xFFCCAA00), fontWeight: FontWeight.bold)),
+              child: const Text("إلغاء", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFCC00),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                _showSubmitResetRequestDialog();
+              },
+              child: const Text("تقديم طلب فك القفل", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSubmitResetRequestDialog() {
+    final reasonController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text("طلب فك قفل الجهاز", style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("يرجى كتابة سبب طلب فك قفل الجهاز (إجباري):", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: reasonController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: "مثلاً: تم تغيير الجهاز / فقدان الهاتف السابق...",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting ? null : () => Navigator.pop(context),
+                  child: const Text("إلغاء", style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFCC00),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (reasonController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("سبب الطلب مطلوب إجبارياً")),
+                            );
+                            return;
+                          }
+                          setDialogState(() => isSubmitting = true);
+                          try {
+                            final deviceId = await _getDeviceId();
+                            final response = await Dio().post(
+                              "${ApiService().baseUrl}/request-device-reset",
+                              data: {
+                                "username":      _usernameController.text.trim(),
+                                "password":      _passwordController.text,
+                                "reason":        reasonController.text.trim(),
+                                "new_device_id": deviceId,
+                              },
+                            );
+                            if (mounted) Navigator.pop(context);
+                            if (response.data != null && response.data['success'] == true) {
+                              _showSnackBar(response.data['message'] ?? "تم إرسال الطلب بنجاح", isError: false);
+                            } else {
+                              _showSnackBar(response.data['message'] ?? "حدث خطأ أثناء إرسال الطلب", isError: true);
+                            }
+                          } catch (e) {
+                            if (mounted) Navigator.pop(context);
+                            String errorMsg = "حدث خطأ أثناء تقديم الطلب";
+                            if (e is DioException && e.response?.data != null && e.response?.data['message'] != null) {
+                              errorMsg = e.response?.data['message'];
+                            }
+                            _showSnackBar(errorMsg, isError: true);
+                          }
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      : const Text("إرسال الطلب", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -88,7 +188,8 @@ class _LoginScreenState extends State<LoginScreen> {
         data: {
           "username":     _usernameController.text.trim(),
           "password":     _passwordController.text,
-          "is_student":   true, // نبعت true دائماً لأن الـ backend الآن يبحث في كل الأدوار
+          "is_student":   true,
+          "device_id":    deviceId,
           "device_token": deviceId,
         },
       );
@@ -155,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _navigateToDashboard(role);
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 409) {
+      if (e.response?.statusCode == 409 || (e.response?.statusCode == 403 && e.response?.data != null && e.response?.data['device_locked'] == true)) {
         if (mounted) _showDeviceConflictDialog();
       } else {
         String msg = "تأكد من اتصال السيرفر";

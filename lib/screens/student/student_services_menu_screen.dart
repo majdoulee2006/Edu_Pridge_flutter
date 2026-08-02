@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/student_service_requests_list_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/grades/grades_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/courses/courses_screen.dart';
 
 // ─── StudentServicesMenuScreen ──────────────────────────────────────────────
 class StudentServicesMenuScreen extends StatelessWidget {
@@ -55,7 +59,47 @@ class StudentServicesMenuScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      // القسم الأول: الخدمات الإدارية والطلبات
+                      // القسم الأول: الخدمات الأكاديمية والدرجات
+                      _buildSectionTitle(isAr ? "الأكاديميات والدرجات" : "Academics & Grades", subColor),
+                      const SizedBox(height: 10),
+
+                      _buildServiceCard(
+                        icon: Icons.grade_rounded,
+                        iconColor: const Color(0xFF4CAF50),
+                        title: isAr ? "كشف العلامات الأكاديمية" : "Academic Grades Transcript",
+                        subtitle: isAr
+                            ? "عرض تفصيلي لدرجات المواد والعملي والشفهي والنهائي"
+                            : "Detailed view of course grades, oral, practical & finals",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const GradesScreen()),
+                        ),
+                      ),
+
+                      _buildServiceCard(
+                        icon: Icons.menu_book_rounded,
+                        iconColor: const Color(0xFF2196F3),
+                        title: isAr ? "المواد الدراسية المسجلة" : "Enrolled Courses",
+                        subtitle: isAr
+                            ? "استعراض المواد والجدول والقاعات والمستندات"
+                            : "View courses, timetable, classrooms & lecture files",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CoursesScreen()),
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      // القسم الثاني: الخدمات الإدارية والطلبات
                       _buildSectionTitle(isAr ? "الخدمات والطلبات الإلكترونية" : "E-Services & Requests", subColor),
                       const SizedBox(height: 10),
 
@@ -127,6 +171,49 @@ class StudentServicesMenuScreen extends StatelessWidget {
                               titleEn: 'Makeup Exams',
                               formScreen: MakeupExamFormScreen(),
                             ),
+                          ),
+                        ),
+                      ),
+
+                      _buildServiceCard(
+                        icon: Icons.phonelink_lock_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "تقديم طلب فك قفل الجهاز" : "Device Unlock Request",
+                        subtitle: isAr
+                            ? "تقديم طلب لشؤون الطلاب لفك قفل الحساب عن الجهاز القديم"
+                            : "Submit request to unlock account from old device",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const StudentServiceRequestsListScreen(
+                              serviceType: 'device_reset',
+                              titleAr: 'طلبات فك قفل الجهاز',
+                              titleEn: 'Device Reset Requests',
+                              formScreen: DeviceResetFormScreen(),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      _buildServiceCard(
+                        icon: Icons.face_retouching_natural_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "طلب تحديث صورة بصمة الوجه" : "Face Photo Change Request",
+                        subtitle: isAr
+                            ? "تقديم طلب لتغيير صورة بصمة الوجه للتحقق عند تسجيل الحضور"
+                            : "Request to update your face recognition photo for attendance",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FacePhotoChangeFormScreen(),
                           ),
                         ),
                       ),
@@ -1515,6 +1602,378 @@ class PrivacyPolicyScreen extends StatelessWidget {
             style: TextStyle(fontSize: 13, color: textColor.withOpacity(0.8), height: 1.6),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── DeviceResetFormScreen ──────────────────────────────────────────────────
+class DeviceResetFormScreen extends StatefulWidget {
+  const DeviceResetFormScreen({super.key});
+
+  @override
+  State<DeviceResetFormScreen> createState() => _DeviceResetFormScreenState();
+}
+
+class _DeviceResetFormScreenState extends State<DeviceResetFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _reasonController = TextEditingController();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  void _submitForm(bool isAr) async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
+      String details = "طلب فك قفل الجهاز\nالسبب: ${_reasonController.text.trim()}";
+      final result = await ApiService().submitStudentServiceRequest('device_reset', details);
+
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+
+      if (result != null && result['success'] == true) {
+        _showSuccessDialog(isAr);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result?['message'] ?? (isAr ? "حدث خطأ أثناء تقديم الطلب" : "Submission failed"))),
+        );
+      }
+    }
+  }
+
+  void _showSuccessDialog(bool isAr) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Color(0x1A008080),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle_rounded, color: Color(0xFFFFCC00), size: 60),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                isAr ? "تم إرسال الطلب بنجاح" : "Request Submitted Successfully",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                isAr
+                    ? "تم تسجيل طلب فك قفل الجهاز الخاص بك وإحالته لشؤون الطلاب لمراجعته."
+                    : "Your device reset request has been registered and sent to Student Affairs.",
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFCC00),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context, true);
+                },
+                child: Text(
+                  isAr ? "حسنًا" : "OK",
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: AppSettings.isDarkMode,
+      builder: (context, isDark, _) => ValueListenableBuilder<String>(
+        valueListenable: AppSettings.language,
+        builder: (context, lang, _) {
+          final isAr = lang == 'ar';
+          final bgColor = isDark ? const Color(0xFF121212) : AppColors.background;
+          final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+          final textColor = isDark ? Colors.white : AppColors.textDark;
+
+          return Directionality(
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+            child: Scaffold(
+              backgroundColor: bgColor,
+              appBar: AppBar(
+                backgroundColor: cardColor,
+                elevation: 0,
+                centerTitle: true,
+                title: Text(
+                  isAr ? "طلب فك قفل الجهاز" : "Device Unlock Request",
+                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                leading: IconButton(
+                  icon: Icon(Icons.arrow_back, color: textColor),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              body: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Text(
+                      isAr ? "سبب طلب فك القفل (إجباري)" : "Unlock Reason (Mandatory)",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _reasonController,
+                      maxLines: 4,
+                      style: TextStyle(color: textColor),
+                      validator: (val) => val == null || val.trim().isEmpty ? (isAr ? "سبب الطلب مطلوب إجبارياً" : "Reason is required") : null,
+                      decoration: InputDecoration(
+                        hintText: isAr ? "يرجى توضيح سبب طلب فك القفل وتغيير الجهاز..." : "Explain why you need to unlock and change device...",
+                        hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                        filled: true,
+                        fillColor: cardColor,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFCC00),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      ),
+                      onPressed: _isSubmitting ? null : () => _submitForm(isAr),
+                      child: _isSubmitting
+                          ? const CircularProgressIndicator(color: Colors.black)
+                          : Text(
+                              isAr ? "إرسال الطلب لشؤون الطلاب" : "Submit Request to Affairs",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─── FacePhotoChangeFormScreen ──────────────────────────────────────────────
+class FacePhotoChangeFormScreen extends StatefulWidget {
+  const FacePhotoChangeFormScreen({super.key});
+
+  @override
+  State<FacePhotoChangeFormScreen> createState() => _FacePhotoChangeFormScreenState();
+}
+
+class _FacePhotoChangeFormScreenState extends State<FacePhotoChangeFormScreen> {
+  Uint8List? _imageBytes;
+  String? _imageName;
+  bool _isUploading = false;
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.front);
+    if (image != null) {
+      final bytes = await image.readAsBytes();
+      setState(() {
+        _imageBytes = bytes;
+        _imageName = image.name;
+      });
+    }
+  }
+
+  void _submitPhoto(bool isAr) async {
+    if (_imageBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isAr ? "يرجى التقاط صورة أولاً" : "Please take a photo first")),
+      );
+      return;
+    }
+
+    setState(() => _isUploading = true);
+    try {
+      final success = await StudentServices().updateProfileImage(_imageBytes!, _imageName ?? 'face_photo.jpg');
+      if (!mounted) return;
+      setState(() => _isUploading = false);
+
+      if (success) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Color(0xFFFFCC00), size: 60),
+                const SizedBox(height: 15),
+                Text(
+                  isAr ? "تم رفع الطلب بنجاح" : "Request Submitted",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  isAr
+                      ? "تم إرسال صورة بصمة الوجه الجديدة إلى شؤون الطلاب لمطابقتها مع الصورة الحالية والاعتماد."
+                      : "The new face photo has been submitted to Student Affairs for review and approval.",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pop(context, true);
+                  },
+                  child: Text(isAr ? "حسنًا" : "OK", style: const TextStyle(color: Colors.black)),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "حدث خطأ أثناء رفع الصورة" : "Failed to upload photo")),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isUploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isAr ? "حدث خطأ: $e" : "Error: $e")),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: AppSettings.isDarkMode,
+      builder: (context, isDark, _) => ValueListenableBuilder<String>(
+        valueListenable: AppSettings.language,
+        builder: (context, lang, _) {
+          final isAr = lang == 'ar';
+          final bgColor = isDark ? const Color(0xFF121212) : AppColors.background;
+          final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+          final textColor = isDark ? Colors.white : AppColors.textDark;
+
+          return Directionality(
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+            child: Scaffold(
+              backgroundColor: bgColor,
+              appBar: AppBar(
+                backgroundColor: cardColor,
+                elevation: 0,
+                centerTitle: true,
+                title: Text(
+                  isAr ? "طلب تغيير صورة بصمة الوجه" : "Face Photo Change Request",
+                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                leading: IconButton(
+                  icon: Icon(Icons.arrow_back, color: textColor),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              body: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCC00).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: const Color(0xFFFFCC00).withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline_rounded, color: Color(0xFFFFCC00)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            isAr
+                                ? "سيقوم موظف الشؤون بمطابقة صورتك الجديدة مع الصورة المسجلة لديه والموافقة عليها قبل اعتمادها في التحقق من الحضور."
+                                : "Student affairs officer will compare your new photo with the stored one before approving.",
+                            style: TextStyle(color: textColor, fontSize: 12, height: 1.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  Center(
+                    child: Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFFFCC00), width: 3),
+                        image: _imageBytes != null
+                            ? DecorationImage(image: MemoryImage(_imageBytes!), fit: BoxFit.cover)
+                            : null,
+                      ),
+                      child: _imageBytes == null
+                          ? Icon(Icons.face_retouching_natural_rounded, size: 80, color: Colors.grey.shade400)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cardColor,
+                        foregroundColor: const Color(0xFFFFCC00),
+                        side: const BorderSide(color: Color(0xFFFFCC00)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.camera_alt_rounded),
+                      label: Text(isAr ? "التقاط صورة بالكاميرا الأمامية" : "Take Photo with Front Camera"),
+                    ),
+                  ),
+                  const SizedBox(height: 35),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFCC00),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                    onPressed: _isUploading ? null : () => _submitPhoto(isAr),
+                    child: _isUploading
+                        ? const CircularProgressIndicator(color: Colors.black)
+                        : Text(
+                            isAr ? "تقديم الطلب للمطابقة" : "Submit for Review",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
