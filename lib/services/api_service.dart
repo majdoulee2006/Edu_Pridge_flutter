@@ -24,8 +24,11 @@ class ApiService {
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('server_ip', '192.168.137.66'); // تحديث إجباري للشبكة الجديدة
-      _serverIp = '192.168.137.66';
+      // استرجاع آخر IP مخزن (إذا كان موجوداً) بدلاً من كتابة IP ثابت دائماً
+      String? savedIp = prefs.getString('server_ip');
+      if (savedIp != null && savedIp.isNotEmpty) {
+        _serverIp = savedIp;
+      }
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية
