@@ -444,8 +444,28 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
     required bool isDark,
     required bool isAr,
   }) {
-    final String badgeText = data['type'] == 'general' ? 'إعلان عام' : 'إعلان خاص';
-    final Color badgeBg = data['type'] == 'general' ? const Color(0xFF0D9488) : Colors.orange;
+    final String target = data['target_audience']?.toString() ?? data['target_role']?.toString() ?? '';
+    final String category = data['category']?.toString() ?? '';
+
+    String badgeText = 'إعلان عام';
+    Color badgeBg = const Color(0xFF0D9488);
+
+    if (category.contains('معلم') || target == 'teachers' || target == 'teacher') {
+      badgeText = 'للمعلمين';
+      badgeBg = Colors.purple;
+    } else if (category.contains('طالب') || category.contains('طلاب') || target == 'students' || target == 'student') {
+      badgeText = 'للطلاب';
+      badgeBg = Colors.orange;
+    } else if (category.contains('رؤساء') || target == 'heads') {
+      badgeText = 'لرؤساء الأقسام';
+      badgeBg = Colors.indigo;
+    } else if (category.isNotEmpty && category != 'عام' && category != 'general') {
+      badgeText = category;
+      badgeBg = Colors.blue;
+    } else if (data['type'] == 'special') {
+      badgeText = 'إعلان خاص';
+      badgeBg = Colors.amber.shade800;
+    }
 
     return GestureDetector(
       onTap: () => Navigator.push(

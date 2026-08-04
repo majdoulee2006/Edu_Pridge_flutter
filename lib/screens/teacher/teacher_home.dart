@@ -364,16 +364,21 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
 
   String _formatTargetAudience(Map<String, dynamic> data) {
-    final target = data['target_audience']?.toString() ?? 'all';
+    final target = data['target_audience']?.toString() ?? data['target_role']?.toString() ?? 'all';
+    final category = data['category']?.toString() ?? '';
     final dept = data['department_name']?.toString() ?? data['department']?.toString();
     final course = data['course_name']?.toString() ?? data['course']?.toString();
 
-    String label = switch (target) {
-      'students' => 'طلاب',
-      'teachers' => 'معلمين',
-      'heads'    => 'رؤساء أقسام',
-      _          => 'الجميع',
-    };
+    String label = 'الجميع';
+    if (category.contains('معلم') || target == 'teachers' || target == 'teacher') {
+      label = 'للمعلمين';
+    } else if (category.contains('طالب') || category.contains('طلاب') || target == 'students' || target == 'student') {
+      label = 'للطلاب';
+    } else if (category.contains('رؤساء') || target == 'heads') {
+      label = 'لرؤساء الأقسام';
+    } else if (category.isNotEmpty && category != 'عام' && category != 'general') {
+      label = category;
+    }
 
     List<String> details = [];
     if (dept != null && dept.isNotEmpty) details.add('قسم: $dept');
