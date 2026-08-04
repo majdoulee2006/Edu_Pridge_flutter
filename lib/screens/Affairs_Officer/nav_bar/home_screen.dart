@@ -358,25 +358,40 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
         _buildStatCard('الطلاب المسجلين', totalStudents.toString(), Icons.school_outlined, Colors.blue, cardColor, textColor, subColor),
         _buildStatCard('أعضاء التدريس', totalTeachers.toString(), Icons.co_present_outlined, Colors.green, cardColor, textColor, subColor),
         _buildStatCard('إجمالي الكادر', totalStaff.toString(), Icons.badge_outlined, Colors.orange, cardColor, textColor, subColor),
-        _buildStatCard('طلبات غياب معلقة', pendingLeaves.toString(), Icons.assignment_late_outlined, Colors.red, cardColor, textColor, subColor),
+        _buildStatCard(
+          'طلبات أذون معلقة',
+          pendingLeaves.toString(),
+          Icons.assignment_late_outlined,
+          Colors.red,
+          cardColor,
+          textColor,
+          subColor,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AffairsOfficerVacationsScreen()),
+          ).then((_) => _loadDashboardData()),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color, Color cardColor, Color textColor, Color subColor) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+  Widget _buildStatCard(String label, String value, IconData icon, Color color, Color cardColor, Color textColor, Color subColor, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
       child: Row(
         children: [
           Container(
@@ -417,8 +432,9 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildAnnouncementCard(
     Map<String, dynamic> data, {

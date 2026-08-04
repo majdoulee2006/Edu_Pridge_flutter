@@ -370,9 +370,17 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           }
 
                           var item = permissions[index];
-                          if (item['status'] == 'pending_parent') {
+                          final String itemStatus = item['status'] ?? 'pending';
+
+                          if (itemStatus == 'pending_parent') {
                             return _buildDetailedCard(item, cardColor, textColor);
-                          } else if (item['status'] == 'pending_hod') {
+                          } else if (itemStatus == 'pending_hod' || itemStatus == 'pending_affairs' || itemStatus == 'pending') {
+                            String statusText = 'قيد المراجعة';
+                            if (itemStatus == 'pending_hod') {
+                              statusText = 'بانتظار رئيس القسم';
+                            } else if (itemStatus == 'pending_affairs') {
+                              statusText = 'بانتظار شؤون الطلاب';
+                            }
                             return _buildSimpleCard(
                               title: item['student_name'] ?? 'طالب',
                               date: item['date']?.toString().substring(0, 10) ?? "",
@@ -380,11 +388,11 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                               iconCol: Colors.orange,
                               cardColor: cardColor,
                               textColor: textColor,
-                              statusText: 'قيد المراجعة',
+                              statusText: statusText,
                               statusColor: Colors.orange,
                             );
                           } else {
-                            final isApproved = item['status'] == 'approved';
+                            final isApproved = itemStatus == 'approved';
                             return _buildSimpleCard(
                               title: item['student_name'] ?? 'طالب',
                               date: item['date']?.toString().substring(0, 10) ?? "",

@@ -128,14 +128,36 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
 
   void _onNotificationTap(Map<String, dynamic> n) {
     final type = n['type']?.toString() ?? '';
+    final title = n['title']?.toString() ?? '';
+    final msg = n['message']?.toString() ?? n['body']?.toString() ?? '';
+    final isLeave = type == 'leave_request' ||
+        title.contains('إجاز') || title.contains('أذون') || title.contains('إذن') || title.contains('القرار النهائي') ||
+        msg.contains('إجاز') || msg.contains('أذون') || msg.contains('إذن');
+
+    if (isLeave) {
+      final ctx = context;
+      SharedPreferences.getInstance().then((prefs) {
+        if (!mounted) return;
+        final studentId   = prefs.getInt('selected_student_id');
+        final studentName = prefs.getString('selected_student_name');
+        Navigator.push(ctx, MaterialPageRoute(
+          builder: (_) => PermissionsScreen(
+            studentId:   studentId,
+            studentName: studentName,
+          ),
+        ));
+      });
+      return;
+    }
+
     switch (type) {
       case 'announcement':
       case 'administrative':
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => AnnouncementDetailScreen(announcement: {
-            'title':       n['title']?.toString() ?? '',
-            'content':     n['message']?.toString() ?? n['body']?.toString() ?? '',
-            'body':        n['message']?.toString() ?? n['body']?.toString() ?? '',
+            'title':       title,
+            'content':     msg,
+            'body':        msg,
             'time_ago':    n['created_at']?.toString().split('T')[0] ?? '',
             'created_at':  n['created_at']?.toString() ?? '',
             'author_name': 'الإدارة',

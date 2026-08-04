@@ -73,6 +73,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _navigateForNotification(BuildContext ctx, AppNotification notify) {
+    final title = notify.title;
+    final msg = notify.message;
+    bool isLeave = notify.type == 'leave_request' ||
+        title.contains('إجاز') || title.contains('أذون') || title.contains('إذن') || title.contains('القرار النهائي') ||
+        msg.contains('إجاز') || msg.contains('أذون') || msg.contains('إذن');
+
+    if (isLeave) {
+      _showLeaveDetailDialog(ctx, notify);
+      return;
+    }
+
     switch (notify.type) {
       case 'announcement':
       case 'administrative':
@@ -97,7 +108,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'lecture':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const LecturesScreen()));
         break;
-      case 'leave_request':
       case 'attendance':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
         break;
@@ -119,6 +129,234 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ));
         break;
     }
+  }
+
+  void _showLeaveDetailDialog(BuildContext ctx, AppNotification notify) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      builder: (dialogCtx) {
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: (notify.relatedId != null && notify.relatedId! > 0)
+              ? StudentServices().getLeaveDetails(notify.relatedId!)
+              : Future.value(null),
+          builder: (builderCtx, snapshot) {
+            final data = snapshot.data;
+            final isApproved = notify.title.contains('الموافقة') || notify.title.contains('موافقة') || notify.message.contains('وافقت') || (data != null && data['status'] == 'approved');
+            final isRejected = notify.title.contains('رفض') || notify.message.contains('رفض') || (data != null && data['status'] == 'rejected');
+
+            Color headerColor = isApproved
+                ? Colors.green
+                : (isRejected ? Colors.red : Colors.orange);
+            IconData headerIcon = isApproved
+                ? Icons.check_circle_outline_rounded
+                : (isRejected ? Icons.cancel_outlined : Icons.hourglass_empty_rounded);
+
+            String titleText = notify.title.isNotEmpty
+                ? notify.title
+                : (isApproved ? 'تمت الموافقة على طلب الإجازة' : 'تفاصيل طلب الإجازة');
+
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                contentPadding: const EdgeInsets.all(24),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: headerColor.withAlpha(30),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(headerIcon, color: headerColor, size: 54),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        titleText,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: headerColor.withAlpha(25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          data != null
+                              ? (data['status_text'] ?? 'قرار إداري')
+                              : (isApproved ? 'موافق عليه نهائياً من شؤون الطلاب' : (isRejected ? 'مرفوض من شؤون الطلاب' : 'قرار إداري')),
+                          style: TextStyle(
+                            color: headerColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Divider(color: isDark ? Colors.white12 : Colors.grey.shade300),
+                      const SizedBox(height: 12),
+
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                        )
+                      else ...[
+                        _buildDetailRow(
+                          icon: Icons.calendar_today_rounded,
+                          label: 'التاريخ واليوم',
+                          value: data != null
+                              ? "${data['day_name'] ?? ''} - ${data['formatted_date'] ?? data['date'] ?? ''}"
+                              : notify.timeAgo,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildDetailRow(
+                          icon: Icons.access_time_rounded,
+                          label: 'نوع الإجازة',
+                          value: data != null ? (data['type_text'] ?? data['type'] ?? 'إجازة') : 'إجازة طالب',
+                          isDark: isDark,
+                        ),
+                        if (data != null && data['reason'] != null && data['reason'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          _buildDetailRow(
+                            icon: Icons.notes_rounded,
+                            label: 'السبب المرفق',
+                            value: data['reason'].toString(),
+                            isDark: isDark,
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withAlpha(10) : const Color(0xFFF5F6F8),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'نص الإشعار الإداري:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                notify.message,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  color: isDark ? Colors.white70 : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(dialogCtx),
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: Text(
+                                'إغلاق',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white70 : Colors.black87,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(dialogCtx);
+                                Navigator.push(
+                                  ctx,
+                                  MaterialPageRoute(builder: (_) => const AttendanceScreen()),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFCC00),
+                                foregroundColor: Colors.black,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Text(
+                                'سجل الأذونات',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool isDark,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFFFFCC00)),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   // 🌟 دالة تحويل الإشعار لمقروء

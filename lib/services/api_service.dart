@@ -8,8 +8,8 @@ class ApiService {
   // ==========================================
   // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
   // ==========================================
-  static String _serverIp = '192.168.137.242'; // آي بي اللابتوب الحالي على الـ Wi-Fi
-  static const String _port = '8001';
+  static String _serverIp = '192.168.137.66'; // آي بي اللابتوب الحالي على الـ Wi-Fi
+  static const String _port = '42073';
   static bool _isDiscovering = false;
 
   static String get serverIp => _serverIp;
@@ -24,7 +24,8 @@ class ApiService {
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _serverIp = prefs.getString('server_ip') ?? '192.168.137.242';
+      await prefs.setString('server_ip', '192.168.137.66'); // تحديث إجباري للشبكة الجديدة
+      _serverIp = '192.168.137.66';
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية

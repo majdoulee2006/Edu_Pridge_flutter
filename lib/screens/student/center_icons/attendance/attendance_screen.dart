@@ -811,7 +811,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     switch (status) {
       case 'approved': return Colors.green;
       case 'rejected': return Colors.red;
-      case 'pending_parent': return Colors.orange;
+      case 'pending_parent':
+      case 'pending_hod':
+      case 'pending_affairs':
+      case 'pending': return Colors.orange;
       default: return Colors.blue;
     }
   }
