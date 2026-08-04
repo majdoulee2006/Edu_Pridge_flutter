@@ -267,6 +267,78 @@ class AffairsServices {
     }
   }
 
+  // Activities - جلب الأنشطة
+  Future<List<dynamic>?> getActivities() async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/announcements",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } on DioException catch (e) {
+      debugPrint("❌ getActivities Error: ${e.response?.data}");
+    }
+    return null;
+  }
+
+  Future<bool> deleteActivity(int id) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.delete(
+        "${ApiService().baseUrl}/affairs/announcements/$id",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      debugPrint("❌ deleteActivity Error: $e");
+      return false;
+    }
+  }
+
+  // Activities & Announcements - نشر نشاط
+  Future<Map<String, dynamic>?> addActivity(FormData data) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/affairs/announcements",
+        data: data,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      
+      debugPrint("✅ addActivity response: ${response.statusCode} - ${response.data}");
+      return response.data;
+    } on DioException catch (e) {
+      debugPrint("❌ addActivity DioError: ${e.response?.statusCode} - ${e.response?.data}");
+      return null;
+    } catch (e) {
+      debugPrint("❌ addActivity Error: $e");
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateActivity(int id, FormData data) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/affairs/announcements/$id",
+        data: data,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      
+      debugPrint("✅ updateActivity response: ${response.statusCode} - ${response.data}");
+      return response.data;
+    } on DioException catch (e) {
+      debugPrint("❌ updateActivity DioError: ${e.response?.statusCode} - ${e.response?.data}");
+      return null;
+    } catch (e) {
+      debugPrint("❌ updateActivity Error: $e");
+      return null;
+    }
+  }
+
   // 6. Calendar Events
   Future<List<dynamic>?> getCalendarEvents() async {
     try {

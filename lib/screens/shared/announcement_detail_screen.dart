@@ -70,7 +70,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
                      ?? widget.announcement['created_at']  as String? ?? '';
     final imageUrl    = ApiService.fixMediaUrl(widget.announcement['image_url'] as String?) ?? '';
     final linkUrl     = widget.announcement['link_url']    as String? ?? '';
-    final targetLabel = _targetLabel(widget.announcement['target_audience'] as String?);
+    final targetLabel = _targetLabel(widget.announcement);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -232,13 +232,26 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
     );
   }
 
-  String _targetLabel(String? target) {
-    switch (target) {
-      case 'students': return 'طلاب فقط';
-      case 'teachers': return 'معلمون فقط';
-      case 'all':      return 'الجميع';
-      default:         return '';
+  String _targetLabel(Map<String, dynamic> data) {
+    final String target = data['target_audience']?.toString() ?? 'all';
+    final String? dept = data['department_name']?.toString() ?? data['department']?.toString();
+    final String? course = data['course_name']?.toString() ?? data['course']?.toString();
+
+    String label = switch (target) {
+      'students' => 'الطلاب',
+      'teachers' => 'المعلمون',
+      'heads'    => 'رؤساء الأقسام',
+      _          => 'الجميع',
+    };
+
+    List<String> details = [];
+    if (dept != null && dept.isNotEmpty) details.add('قسم: $dept');
+    if (course != null && course.isNotEmpty) details.add('دورة: $course');
+
+    if (details.isNotEmpty) {
+      label += ' (${details.join(" | ")})';
     }
+    return label;
   }
 }
 

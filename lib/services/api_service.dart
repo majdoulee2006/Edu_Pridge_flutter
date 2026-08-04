@@ -24,7 +24,10 @@ class ApiService {
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _serverIp = prefs.getString('server_ip') ?? '192.168.21.75';
+      String? savedIp = prefs.getString('server_ip');
+      if (savedIp != null && savedIp.isNotEmpty) {
+        _serverIp = savedIp;
+      }
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية

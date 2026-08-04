@@ -279,14 +279,26 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                     )
                                   else
                                     ...latestNews.map((news) {
-                                      String rawType =
-                                          news['type'] ?? 'general';
-                                      String displayTag =
-                                          rawType == 'course_specific'
-                                          ? 'إعلان مقرر'
-                                          : 'إعلان عام';
-                                      bool isUrgent =
-                                          rawType == 'course_specific';
+                                      String rawAudience = news['target_audience']?.toString() ?? 'all';
+                                      String? dept = news['department_name']?.toString();
+                                      String? course = news['course_name']?.toString();
+
+                                      String audienceTag = switch (rawAudience) {
+                                        'students' => 'طلاب',
+                                        'teachers' => 'معلمين',
+                                        'heads'    => 'رؤساء أقسام',
+                                        _          => 'الجميع',
+                                      };
+                                      if (dept != null && dept.isNotEmpty) {
+                                        audienceTag += ' | قسم: $dept';
+                                      }
+                                      if (course != null && course.isNotEmpty) {
+                                        audienceTag += ' | دورة: $course';
+                                      }
+
+                                      String rawType = news['type'] ?? 'general';
+                                      String typeTag = rawType == 'course_specific' ? 'إعلان مقرر' : 'إعلان عام';
+                                      bool isUrgent = rawAudience != 'all' || (dept != null && dept.isNotEmpty);
 
                                       String authorName =
                                           news['author_name'] ?? 'الإدارة';
@@ -297,7 +309,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
                                       return _buildNewsCard(
                                         announcementData: Map<String, dynamic>.from(news as Map),
-                                        tag: displayTag,
+                                        tag: typeTag,
+                                        audienceTag: audienceTag,
                                         title: news['title'] ?? 'بدون عنوان',
                                         description: news['content'] ?? '',
                                         time:
@@ -512,6 +525,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   Widget _buildNewsCard({
     required Map<String, dynamic> announcementData,
     required String tag,
+    String? audienceTag,
     required String title,
     required String description,
     required String time,
@@ -573,6 +587,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                               ),
                       ),
                     ),
+                    // 🏷️ تاغ نوع الإعلان (يمين)
                     Positioned(
                       top: 12,
                       right: 12,
@@ -597,6 +612,38 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                         ),
                       ),
                     ),
+                    // 🏷️ تاغ الفئة المستهدفة (أصفر شفاف على اليسار)
+                    if (audienceTag != null && audienceTag.isNotEmpty)
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFCC00).withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            audienceTag,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              fontFamily: 'Noto Sans Arabic',
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 Padding(

@@ -48,8 +48,8 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
       if (mounted) {
         setState(() {
           _allLeaves = data ?? [];
-          _pendingLeaves = _allLeaves.where((l) => l['status'] == 'pending').toList();
-          _historyLeaves = _allLeaves.where((l) => l['status'] != 'pending').toList();
+          _pendingLeaves = _allLeaves.where((l) => l['status'] == 'pending' || l['status'] == 'pending_affairs').toList();
+          _historyLeaves = _allLeaves.where((l) => l['status'] == 'approved' || l['status'] == 'rejected').toList();
           _isLoading = false;
         });
       }

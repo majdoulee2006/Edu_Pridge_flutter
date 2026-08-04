@@ -8,8 +8,11 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_scree
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 
-// TODO: صفحة إضافة حدث (بتعملها لاحقاً)
-// import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activities/add_activity_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activities/add_activity_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activities/edit_activity_screen.dart';
+
+import 'package:edu_pridge_flutter/services/affairs_services.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class AffairsOfficerActivitiesScreen extends StatefulWidget {
   const AffairsOfficerActivitiesScreen({super.key});
@@ -19,78 +22,87 @@ class AffairsOfficerActivitiesScreen extends StatefulWidget {
 }
 
 class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitiesScreen> {
-  // 🔹 الفلتر الحالي (الكل، القادمة، المكتملة، رحلات)
   String _currentFilter = 'الكل';
+  final List<String> _filters = ['الكل', 'القادمة', 'المكتملة'];
 
-  final List<String> _filters = ['الكل', 'القادمة', 'المكتملة', 'رحلات'];
+  List<dynamic> _activities = [];
+  bool _isLoading = true;
 
-  // 🔹 بيانات الأنشطة
-  final List<Map<String, dynamic>> activities = [
-    {
-      'title': 'زيارة المتحف الوطني',
-      'category': 'رحلة مدرسية',
-      'categoryColor': Colors.blue,
-      'date': 'أكتوبر 25',
-      'day': '25',
-      'month': 'أكتوبر',
-      'time': '08:00 ص',
-      'location': 'وسط المدينة',
-      'icon': Icons.directions_bus_filled_outlined,
-      'iconColor': Colors.blue,
-    },
-    {
-      'title': 'مجلس الطلاب الشهري',
-      'category': 'اجتماع',
-      'categoryColor': Colors.purple,
-      'date': 'أكتوبر 28',
-      'day': '28',
-      'month': 'أكتوبر',
-      'time': '10:00 ص',
-      'location': 'القاعة 4',
-      'icon': Icons.groups_outlined,
-      'iconColor': Colors.purple,
-      'urgent': true,
-    },
-    {
-      'title': 'تطوير المهارات القيادية',
-      'category': 'ورشة عمل',
-      'categoryColor': Colors.orange,
-      'date': 'نوفمبر 02',
-      'day': '02',
-      'month': 'نوفمبر',
-      'time': '09:30 ص',
-      'location': 'المكتبة',
-      'icon': Icons.lightbulb_outline,
-      'iconColor': Colors.orange,
-    },
-    {
-      'title': 'نهائي دوري المدرسة',
-      'category': 'رياضة',
-      'categoryColor': Colors.green,
-      'date': 'سبتمبر 20',
-      'day': '20',
-      'month': 'سبتمبر',
-      'time': '04:00 م',
-      'location': 'الملعب',
-      'icon': Icons.sports_soccer_outlined,
-      'iconColor': Colors.green,
-      'status': 'منتهي',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadActivities();
+  }
 
-  // 🔹 تصفية الأنشطة
-  List<Map<String, dynamic>> get _filteredActivities {
-    if (_currentFilter == 'الكل') return activities;
-    if (_currentFilter == 'رحلات') {
-      return activities.where((a) => a['category'] == 'رحلة مدرسية').toList();
+  Future<void> _loadActivities() async {
+    setState(() => _isLoading = true);
+    await ApiService.init();
+    final data = await AffairsServices().getActivities();
+    if (mounted) {
+      setState(() {
+        _activities = data ?? [];
+        _isLoading = false;
+      });
     }
+  }
+
+  List<dynamic> get _filteredActivities {
+    final now = DateTime.now();
     if (_currentFilter == 'القادمة') {
-      return activities.where((a) => a['status'] != 'منتهي').toList();
+      return _activities.where((a) {
+        final dateStr = a['event_date'] ?? a['created_at'] ?? '';
+        try {
+          return DateTime.parse(dateStr).isAfter(now);
+        } catch (_) { return true; }
+      }).toList();
     }
     if (_currentFilter == 'المكتملة') {
-      return activities.where((a) => a['status'] == 'منتهي').toList();
+      return _activities.where((a) {
+        final dateStr = a['event_date'] ?? a['created_at'] ?? '';
+        try {
+          return DateTime.parse(dateStr).isBefore(now);
+        } catch (_) { return false; }
+      }).toList();
     }
-    return activities;
+    return _activities;
+  }
+
+  Future<void> _editActivity(Map<String, dynamic> data) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditActivityScreen(activity: data),
+      ),
+    );
+    if (result == true) {
+      _loadActivities();
+    }
+  }
+
+  Future<void> _deleteActivity(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('تأكيد الحذف', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          content: const Text('هل أنت متأكد من حذف هذا النشاط؟', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
+          ],
+        ),
+      ),
+    );
+    if (confirmed == true) {
+      final ok = await AffairsServices().deleteActivity(id);
+      if (ok && mounted) {
+        _loadActivities();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حذف النشاط بنجاح', textAlign: TextAlign.center), backgroundColor: Colors.green),
+        );
+      }
+    }
   }
 
   @override
@@ -106,6 +118,25 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: bgColor,
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 90),
+          child: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AddActivityScreen()),
+              );
+            },
+            backgroundColor: const Color(0xFFFFCC00),
+            elevation: 4,
+            shape: const CircleBorder(),
+            child: const Icon(
+              Icons.add,
+              color: Colors.black,
+              size: 28,
+            ),
+          ),
+        ),
         body: Stack(
           children: [
             SafeArea(
@@ -226,50 +257,43 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                   // قائمة الأنشطة
                   // ═══════════════════════════════════════
                   Expanded(
-                    child: ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
-                      itemCount: _filteredActivities.length,
-                      itemBuilder: (context, index) {
-                        return _buildActivityCard(
-                          _filteredActivities[index],
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          subColor: subColor,
-                          isDark: isDark,
-                        );
-                      },
-                    ),
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
+                        : _filteredActivities.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.event_busy_outlined, size: 64, color: Colors.grey.shade400),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'لا توجد أنشطة منشورة بعد',
+                                      style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontFamily: 'Noto Sans Arabic'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : RefreshIndicator(
+                                onRefresh: _loadActivities,
+                                color: const Color(0xFFFFCC00),
+                                child: ListView.builder(
+                                  physics: const BouncingScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
+                                  itemCount: _filteredActivities.length,
+                                  itemBuilder: (context, index) {
+                                    final activity = _filteredActivities[index];
+                                    return _buildActivityCard(
+                                      activity,
+                                      cardColor: cardColor,
+                                      textColor: textColor,
+                                      subColor: subColor,
+                                      isDark: isDark,
+                                    );
+                                  },
+                                ),
+                              ),
                   ),
                 ],
-              ),
-            ),
-
-            // ═══════════════════════════════════════
-            // زر الإضافة (+) أسفل اليمين
-            // ═══════════════════════════════════════
-            Positioned(
-              bottom: 100,
-              right: 20,
-              child: FloatingActionButton(
-                onPressed: () {
-                  // TODO: الانتقال لصفحة إضافة حدث
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(builder: (context) => const AddActivityScreen()),
-                  // );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('إضافة نشاط جديد - قريباً')),
-                  );
-                },
-                backgroundColor: const Color(0xFFFFCC00),
-                elevation: 4,
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.add,
-                  color: Colors.black,
-                  size: 28,
-                ),
               ),
             ),
 
@@ -320,9 +344,48 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
         required Color subColor,
         required bool isDark,
       }) {
-    final Color categoryColor = data['categoryColor'] as Color;
-    final bool isUrgent = data['urgent'] == true;
-    final bool isDone = data['status'] == 'منتهي';
+    
+    // إعداد المتغيرات من بيانات السيرفر
+    final String title = data['title'] ?? '';
+    final String category = data['category'] ?? 'عام';
+    final String time = data['event_time'] ?? '';
+    final String location = data['location'] ?? 'غير محدد';
+    final int id = data['id'] ?? data['announcement_id'] ?? 0;
+    
+    // Add new fields parsing
+    final String audience = data['target_audience'] == 'students' ? 'طلاب' :
+                            data['target_audience'] == 'teachers' ? 'معلمين' :
+                            data['target_audience'] == 'heads' ? 'رؤساء أقسام' : 'الجميع';
+    
+    String deptText = '';
+    if (data['department_name'] != null) {
+      deptText = ' | قسم: ${data['department_name']}';
+    }
+    String courseText = '';
+    if (data['course_name'] != null) {
+      courseText = ' | دورة: ${data['course_name']}';
+    }
+    
+    // التعامل مع التاريخ
+    String day = '--';
+    String monthStr = '--';
+    final dateStr = data['event_date'] ?? data['created_at'];
+    if (dateStr != null && dateStr.toString().isNotEmpty) {
+      try {
+        final DateTime d = DateTime.parse(dateStr);
+        day = d.day.toString().padLeft(2, '0');
+        const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        if (d.month >= 1 && d.month <= 12) {
+          monthStr = months[d.month - 1];
+        } else {
+          monthStr = d.month.toString();
+        }
+      } catch (_) {}
+    }
+
+    final Color categoryColor = Colors.blue; // يمكن ربطها بنوع النشاط مستقبلا
+    final bool isDone = false; // يمكن تحديده بناءً على التاريخ
+    final bool isUrgent = false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -354,7 +417,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    data['month'],
+                    monthStr,
                     style: TextStyle(
                       fontSize: 11,
                       color: subColor,
@@ -363,7 +426,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    data['day'],
+                    day,
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -383,16 +446,19 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // التصنيف + الأيقونة
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: categoryColor.withOpacity(0.1),
+                          color: categoryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          data['category'],
+                          category,
                           style: TextStyle(
                             fontSize: 11,
                             color: categoryColor,
@@ -401,12 +467,29 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                           ),
                         ),
                       ),
-                      if (isUrgent) ...[
-                        const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFCC00).withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$audience$deptText$courseText',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? const Color(0xFFFFCC00) : Colors.brown.shade800,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Noto Sans Arabic',
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isUrgent)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: Colors.orange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Text(
@@ -419,13 +502,11 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                             ),
                           ),
                         ),
-                      ],
-                      if (isDone) ...[
-                        const SizedBox(width: 8),
+                      if (isDone)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -438,13 +519,12 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 10),
                   // عنوان النشاط
                   Text(
-                    data['title'],
+                    title,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -454,56 +534,92 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                   ),
                   const SizedBox(height: 8),
                   // الوقت + الموقع
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 6,
                     children: [
-                      Icon(
-                        Icons.access_time,
-                        size: 14,
-                        color: subColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        data['time'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: subColor,
-                          fontFamily: 'Noto Sans Arabic',
+                      if (time.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 14,
+                              color: subColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              time,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: subColor,
+                                fontFamily: 'Noto Sans Arabic',
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: subColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        data['location'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: subColor,
-                          fontFamily: 'Noto Sans Arabic',
+                      if (location.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 14,
+                              color: subColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              location,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: subColor,
+                                fontFamily: 'Noto Sans Arabic',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                      ),
                     ],
                   ),
                 ],
               ),
             ),
 
-            // ═══ الأيقونة (يسار) ═══
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: categoryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                data['icon'],
-                color: categoryColor,
-                size: 24,
-              ),
+            // ═══ الأزرار (يسار) ═══
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    color: Colors.blue,
+                    iconSize: 20,
+                    onPressed: () => _editActivity(data),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    color: Colors.red,
+                    iconSize: 20,
+                    onPressed: () => _deleteActivity(id),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

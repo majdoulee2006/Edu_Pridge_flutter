@@ -271,16 +271,47 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: (announcementData['image_url'] as String?)?.isNotEmpty == true
-                        ? Image.network(
-                                ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, e, st) => _teacherAnnouncementPlaceholder(headerColor, tag),
-                          )
-                        : _teacherAnnouncementPlaceholder(headerColor, tag),
+                  child: Stack(
+                    children: [
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: (announcementData['image_url'] as String?)?.isNotEmpty == true
+                            ? Image.network(
+                                    ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, e, st) => _teacherAnnouncementPlaceholder(headerColor, tag),
+                              )
+                            : _teacherAnnouncementPlaceholder(headerColor, tag),
+                      ),
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFCC00).withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            _formatTargetAudience(announcementData),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              fontFamily: 'Noto Sans Arabic',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Padding(
@@ -295,7 +326,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                          Text("$time • ${announcementData['author_name'] as String? ?? announcementData['created_by'] as String? ?? 'الإدارة'}", style: const TextStyle(color: Colors.grey, fontSize: 11)),
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle),
@@ -331,5 +362,32 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         ],
       ),
     );
+  }
+
+  String _formatTargetAudience(Map<String, dynamic> data) {
+    final target = data['target_audience']?.toString() ?? data['target_role']?.toString() ?? 'all';
+    final category = data['category']?.toString() ?? '';
+    final dept = data['department_name']?.toString() ?? data['department']?.toString();
+    final course = data['course_name']?.toString() ?? data['course']?.toString();
+
+    String label = 'الجميع';
+    if (category.contains('معلم') || target == 'teachers' || target == 'teacher') {
+      label = 'للمعلمين';
+    } else if (category.contains('طالب') || category.contains('طلاب') || target == 'students' || target == 'student') {
+      label = 'للطلاب';
+    } else if (category.contains('رؤساء') || target == 'heads') {
+      label = 'لرؤساء الأقسام';
+    } else if (category.isNotEmpty && category != 'عام' && category != 'general') {
+      label = category;
+    }
+
+    List<String> details = [];
+    if (dept != null && dept.isNotEmpty) details.add('قسم: $dept');
+    if (course != null && course.isNotEmpty) details.add('دورة: $course');
+
+    if (details.isNotEmpty) {
+      label += ' (${details.join(" | ")})';
+    }
+    return label;
   }
 }

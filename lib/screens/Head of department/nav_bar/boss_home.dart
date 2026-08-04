@@ -318,16 +318,47 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: (a['image_url'] as String?)?.isNotEmpty == true
-                        ? Image.network(
-                                ApiService.fixMediaUrl(a['image_url'] as String?) ?? '',
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
-                          )
-                        : _announcementPlaceholder(headerColor),
+                  child: Stack(
+                    children: [
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: (a['image_url'] as String?)?.isNotEmpty == true
+                            ? Image.network(
+                                    ApiService.fixMediaUrl(a['image_url'] as String?) ?? '',
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, e, st) => _announcementPlaceholder(headerColor),
+                              )
+                            : _announcementPlaceholder(headerColor),
+                      ),
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFCC00).withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            _formatTargetAudience(a),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              fontFamily: 'Noto Sans Arabic',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Padding(
@@ -364,7 +395,8 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(a['time_ago'] as String? ?? a['created_at'] as String? ?? '',
+                          Text(
+                              "${a['time_ago'] as String? ?? a['created_at'] as String? ?? ''} • ${a['author_name'] as String? ?? a['created_by'] as String? ?? 'الإدارة'}",
                               style: const TextStyle(color: Colors.grey, fontSize: 11)),
                           Padding(
                             padding: const EdgeInsets.only(left: 8),
@@ -414,6 +446,28 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
         child: Icon(icon, color: const Color(0xFFF1C40F), size: 26),
       ),
     );
+  }
+
+  String _formatTargetAudience(Map<String, dynamic> data) {
+    final target = data['target_audience']?.toString() ?? 'all';
+    final dept = data['department_name']?.toString() ?? data['department']?.toString();
+    final course = data['course_name']?.toString() ?? data['course']?.toString();
+
+    String label = switch (target) {
+      'students' => 'طلاب',
+      'teachers' => 'معلمين',
+      'heads'    => 'رؤساء أقسام',
+      _          => 'الجميع',
+    };
+
+    List<String> details = [];
+    if (dept != null && dept.isNotEmpty) details.add('قسم: $dept');
+    if (course != null && course.isNotEmpty) details.add('دورة: $course');
+
+    if (details.isNotEmpty) {
+      label += ' (${details.join(" | ")})';
+    }
+    return label;
   }
 }
 

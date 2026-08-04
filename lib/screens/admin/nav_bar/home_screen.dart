@@ -699,7 +699,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 6, right: 56),
               child: Text(
-                time,
+                "$time • ${news['author_name'] ?? news['created_by'] ?? 'الإدارة'}",
                 style: const TextStyle(fontSize: 10, color: Colors.grey),
               ),
             ),

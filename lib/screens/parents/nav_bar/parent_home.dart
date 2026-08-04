@@ -492,16 +492,47 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                      child: AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: ann['image_url'] != null && (ann['image_url'] as String).isNotEmpty
-                            ? Image.network(
-                                ApiService.fixMediaUrl(ann['image_url'] as String?) ?? '',
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
-                              )
-                            : _parentHeaderPlaceholder(headerColor),
+                      child: Stack(
+                        children: [
+                          AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: ann['image_url'] != null && (ann['image_url'] as String).isNotEmpty
+                                ? Image.network(
+                                    ApiService.fixMediaUrl(ann['image_url'] as String?) ?? '',
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, e, st) => _parentHeaderPlaceholder(headerColor),
+                                  )
+                                : _parentHeaderPlaceholder(headerColor),
+                          ),
+                          Positioned(
+                            top: 12,
+                            left: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFCC00).withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                _formatTargetAudience(ann),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                  fontFamily: 'Noto Sans Arabic',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Padding(
@@ -516,7 +547,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(ann['time_ago'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                              Text("${ann['time_ago'] ?? ''} • ${ann['author_name'] ?? ann['created_by'] ?? 'الإدارة'}", style: const TextStyle(color: Colors.grey, fontSize: 11)),
                               Icon(Icons.arrow_back, size: 13, color: textColor.withValues(alpha: 0.4)),
                             ],
                           ),
@@ -531,5 +562,26 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
         );
       }),
     );
+  }
+  String _formatTargetAudience(Map<String, dynamic> data) {
+    final target = data['target_audience']?.toString() ?? 'all';
+    final dept = data['department_name']?.toString() ?? data['department']?.toString();
+    final course = data['course_name']?.toString() ?? data['course']?.toString();
+
+    String label = switch (target) {
+      'students' => 'طلاب',
+      'teachers' => 'معلمين',
+      'heads'    => 'رؤساء أقسام',
+      _          => 'الجميع',
+    };
+
+    List<String> details = [];
+    if (dept != null && dept.isNotEmpty) details.add('قسم: $dept');
+    if (course != null && course.isNotEmpty) details.add('دورة: $course');
+
+    if (details.isNotEmpty) {
+      label += ' (${details.join(" | ")})';
+    }
+    return label;
   }
 }
