@@ -12,6 +12,7 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_scree
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications_screen.dart';
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/affairs_student_services_menu_screen.dart';
 
 class AffairsOfficerHomeScreen extends StatefulWidget {
   const AffairsOfficerHomeScreen({super.key});
@@ -126,14 +127,14 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                         ),
                         IconButton(
                           icon: const Icon(
-                            Icons.settings,
+                            Icons.menu_rounded,
                             color: Color(0xFFFFCC00),
                             size: 28,
                           ),
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                              MaterialPageRoute(builder: (context) => const AffairsStudentServicesMenuScreen()),
                             ).then((_) => _loadDashboardData());
                           },
                         ),
@@ -149,6 +150,16 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       children: [
+                        _buildShortcut(
+                          context,
+                          Icons.grid_view_rounded,
+                          'الخدمات الطلابية',
+                          const Color(0xFFFF9800),
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const AffairsStudentServicesMenuScreen()),
+                          ).then((_) => _loadDashboardData()),
+                        ),
                         _buildShortcut(
                           context,
                           Icons.manage_accounts_outlined,

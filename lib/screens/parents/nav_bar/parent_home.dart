@@ -34,6 +34,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   void _onLangChange() { if (mounted) setState(() {}); }
 
   void _onNewNotif() {
+    if (!AppSettings.isNotificationsEnabled.value) return;
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
       showInAppBanner(

@@ -3,6 +3,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // 🌟 استدعاء المكونات الموحدة 🌟
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -43,11 +44,29 @@ class _GradingScreenState extends State<GradingScreen> {
     super.dispose();
   }
 
+  String _cleanFileName(String? filePath) {
+    if (filePath == null) return '';
+    String fileName = filePath.split('/').last;
+    final regExp = RegExp(r'^\d+_\d+_(.*)$');
+    final match = regExp.firstMatch(fileName);
+    if (match != null && match.groupCount >= 1) {
+      return match.group(1)!;
+    }
+    return fileName;
+  }
+
   Future<void> _submitGrade() async {
     final gradeVal = double.tryParse(_gradeController.text.trim());
     if (gradeVal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('أدخل درجة صحيحة')),
+      );
+      return;
+    }
+    final maxPoints = double.tryParse(widget.submission['max_points']?.toString() ?? '') ?? 100.0;
+    if (gradeVal < 0 || gradeVal > maxPoints) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('الدرجة يجب أن تكون بين 0 و ${maxPoints % 1 == 0 ? maxPoints.toInt() : maxPoints}')),
       );
       return;
     }
@@ -139,12 +158,107 @@ class _GradingScreenState extends State<GradingScreen> {
                   _buildStudentHeaderCard(context, cardColor, textColor),
                   const SizedBox(height: 20),
                   if ((widget.submission['file_path'] as String?) != null) ...[
-                    _buildSectionTitle("المرفقات", textColor),
-                    _buildAttachmentItem(context, widget.submission['file_path'] as String, "",
-                        Icons.attach_file, Colors.blue, cardColor, textColor),
-                    const SizedBox(height: 10),
+                    _buildSectionTitle("الملفات والمرفقات", textColor),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.blue.withAlpha(20) : Colors.blue.withAlpha(10),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.blue.withAlpha(40)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.attach_file, color: Colors.blue, size: 20),
+                              const SizedBox(width: 8),
+                              Text('الملف المرفق من الطالب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildAttachmentItem(
+                            context,
+                            _cleanFileName(widget.submission['file_path'] as String),
+                            widget.submission['file_path'] as String,
+                            "",
+                            Icons.insert_drive_file_rounded,
+                            Colors.blue,
+                            isDark ? Colors.white.withAlpha(10) : Colors.white,
+                            textColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 15),
                   ],
-                  const SizedBox(height: 15),
+                  if (widget.submission['solution_text'] != null &&
+                      (widget.submission['solution_text'] as String).trim().isNotEmpty) ...[
+                    _buildSectionTitle("إجابة الطالب النصية", textColor),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.green.withAlpha(20) : Colors.green.withAlpha(10),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.green.withAlpha(40)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.edit_note_rounded, color: Colors.green, size: 22),
+                              const SizedBox(width: 8),
+                              Text('نص الحل المكتوب:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Divider(color: Colors.green.withAlpha(40)),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.submission['solution_text'] as String,
+                            style: TextStyle(color: textColor, fontSize: 13, height: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                  ],
+                  if (widget.submission['student_notes'] != null &&
+                      (widget.submission['student_notes'] as String).trim().isNotEmpty) ...[
+                    _buildSectionTitle("ملاحظات من الطالب", textColor),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.blueGrey.withAlpha(20) : Colors.blueGrey.withAlpha(10),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.blueGrey.withAlpha(40)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.notes_rounded, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700, size: 18),
+                              const SizedBox(width: 8),
+                              Text('ملاحظات الطالب المرفقة:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Divider(color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade300),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.submission['student_notes'] as String,
+                            style: TextStyle(color: textColor, fontSize: 13, height: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                  ],
                   _buildGradingSection(context, primaryYellow, cardColor, textColor, isDark),
                   const SizedBox(height: 16),
                   // زر الحفظ داخل السكرول
@@ -280,7 +394,8 @@ class _GradingScreenState extends State<GradingScreen> {
 
   Widget _buildAttachmentItem(
     BuildContext context,
-    String name,
+    String displayName,
+    String url,
     String size,
     IconData icon,
     Color iconColor,
@@ -298,30 +413,59 @@ class _GradingScreenState extends State<GradingScreen> {
           Icon(icon, color: iconColor),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: textColor,
+            child: InkWell(
+              onTap: () async {
+                final uri = Uri.parse(url);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: textColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  size,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-              ],
+                  if (size.isNotEmpty)
+                    Text(
+                      size,
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                ],
+              ),
             ),
           ),
           IconButton(
             icon: const Icon(
-              Icons.download_for_offline_outlined,
-              color: Colors.grey,
+              Icons.visibility_outlined,
+              color: Colors.blue,
             ),
-            onPressed: () {},
+            tooltip: 'عرض الملف',
+            onPressed: () async {
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.download_rounded,
+              color: Colors.green,
+            ),
+            tooltip: 'تنزيل الملف',
+            onPressed: () async {
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
           ),
         ],
       ),
@@ -346,7 +490,7 @@ class _GradingScreenState extends State<GradingScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "الدرجة المستحقة (من 100)",
+          "الدرجة المستحقة (من ${widget.submission['max_points'] ?? 100})",
           style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
         ),
         const SizedBox(height: 8),

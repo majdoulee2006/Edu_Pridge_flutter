@@ -8,7 +8,7 @@ class ApiService {
   // ==========================================
   // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
   // ==========================================
-  static String _serverIp = '192.168.137.242'; // آي بي اللابتوب الحالي على الـ Wi-Fi
+  static String _serverIp = '192.168.21.75'; // آي بي اللابتوب الحالي على الـ Wi-Fi
   static const String _port = '8001';
   static bool _isDiscovering = false;
 
@@ -24,7 +24,7 @@ class ApiService {
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _serverIp = prefs.getString('server_ip') ?? '192.168.137.242';
+      _serverIp = prefs.getString('server_ip') ?? '192.168.21.75';
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية
@@ -41,6 +41,20 @@ class ApiService {
     debugPrint("🔍 Starting auto-discovery for Edu-Bridge server on local network...");
     
     try {
+      // 1. تجربة الآيبيهات المعروفة بسرعة أولاً
+      final knownIps = ['192.168.21.75', '192.168.137.1', '192.168.137.242', '10.0.2.2'];
+      for (final ip in knownIps) {
+        final res = await _tryConnect(ip);
+        if (res != null) {
+          _serverIp = res;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('server_ip', res);
+          debugPrint("🎯 Server found at known IP: $res");
+          _isDiscovering = false;
+          return;
+        }
+      }
+
       final localIp = await _getLocalIp();
       if (localIp != null && localIp.contains('.')) {
         final subnet = localIp.substring(0, localIp.lastIndexOf('.'));

@@ -30,7 +30,7 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
   @override
   void initState() {
     super.initState();
-    _mainTabController = TabController(length: 3, vsync: this);
+    _mainTabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -134,7 +134,6 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                       dividerColor: Colors.transparent,
                       tabs: const [
                         Tab(text: 'الطلبات المعلقة'),
-                        Tab(text: 'إضافة رقم جامعي'),
                         Tab(text: 'طلبات الصورة'),
                       ],
                     ),
@@ -150,12 +149,6 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                       controller: _mainTabController,
                       children: [
                         PendingTab(
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          subColor: subColor,
-                          isDark: isDark,
-                        ),
-                        AddIdTab(
                           cardColor: cardColor,
                           textColor: textColor,
                           subColor: subColor,

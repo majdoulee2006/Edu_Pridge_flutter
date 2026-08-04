@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/student_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_student_services_screen.dart';
 

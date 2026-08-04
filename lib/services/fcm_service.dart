@@ -7,6 +7,8 @@ import 'api_service.dart';
 import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 import 'package:edu_pridge_flutter/main.dart' show appNavigatorKey;
 
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
@@ -33,6 +35,7 @@ class FcmService {
       await _refreshAndSendToken(vapidKey: _vapidKey);
       _messaging.onTokenRefresh.listen(_sendTokenToServer);
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        if (!AppSettings.isNotificationsEnabled.value) return;
         debugPrint('🔔 Web Foreground FCM: ${message.notification?.title}');
         final title = message.notification?.title ?? message.data['title'] ?? '';
         final body  = message.notification?.body  ?? message.data['body']  ?? '';
@@ -67,6 +70,7 @@ class FcmService {
 
     // إشعار وقت التطبيق مفتوح (foreground) — عرض بانر حقيقي
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (!AppSettings.isNotificationsEnabled.value) return;
       debugPrint('🔔 Foreground FCM: ${message.notification?.title}');
       final title = message.notification?.title ?? message.data['title'] ?? '';
       final body = message.notification?.body ?? message.data['body'] ?? '';

@@ -3,13 +3,10 @@ import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
-import 'package:edu_pridge_flutter/services/api_service.dart';
-import 'package:edu_pridge_flutter/screens/student/student_services_menu_screen.dart';
-import 'package:edu_pridge_flutter/screens/Head%20of%20department/requests/boss_student_service_requests_screen.dart';
+import 'package:edu_pridge_flutter/screens/admin/admin_student_services_screen.dart';
 
-// ─── BossServicesMenuScreen ──────────────────────────────────────────────
-class BossServicesMenuScreen extends StatelessWidget {
-  const BossServicesMenuScreen({super.key});
+class AffairsStudentServicesMenuScreen extends StatelessWidget {
+  const AffairsStudentServicesMenuScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +34,11 @@ class BossServicesMenuScreen extends StatelessWidget {
                     elevation: 0,
                     centerTitle: true,
                     title: Text(
-                      isAr ? "الخدمات والطلبات" : "Services & Requests",
+                      isAr ? "قائمة الخدمات والإعدادات" : "Services & Settings Menu",
                       style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.bold,
-                        fontSize: 20,
+                        fontSize: 18,
                       ),
                     ),
                     leading: IconButton(
@@ -56,87 +53,93 @@ class BossServicesMenuScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      // القسم الأول: الخدمات الإدارية والطلبات
-                      _buildSectionTitle(isAr ? "إدارة الطلبات" : "Manage Requests", subColor),
-                      const SizedBox(height: 10),
+                      _buildSectionTitle(
+                        isAr ? "طلبات الطلاب والخدمات الإلكترونية" : "Student Electronic Services",
+                        subColor,
+                      ),
+                      const SizedBox(height: 12),
 
                       _buildServiceCard(
                         icon: Icons.gavel_rounded,
-                        iconColor: const Color(0xFFCCAA00),
+                        iconColor: const Color(0xFFFFCC00),
                         title: isAr ? "طلبات الاسترحام" : "Mercy Petitions",
                         subtitle: isAr
-                            ? "مراجعة والرد على طلبات الاسترحام الخاصة بالطلاب"
-                            : "Review and respond to students mercy petitions",
+                            ? "مراجعة واعتماد طلبات الاعذار الطبية ومراجعة الدرجات"
+                            : "Review and approve medical excuses and re-exams",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
                         isAr: isAr,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const BossStudentServiceRequestsScreen(
-                                  requestType: 'mercy',
-                                  titleAr: 'طلبات الاسترحام',
-                                  titleEn: 'Mercy Petitions',
-                                )),
-                          );
-                        },
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminStudentServicesScreen(
+                              serviceType: 'mercy',
+                              titleAr: 'طلبات الاسترحام',
+                              titleEn: 'Mercy Petitions',
+                            ),
+                          ),
+                        ),
                       ),
 
                       _buildServiceCard(
                         icon: Icons.badge_rounded,
-                        iconColor: const Color(0xFFCCAA00),
-                        title: isAr ? "طلبات استخراج الوثائق" : "Document Requests",
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "طلبات الوثائق الطلابية" : "Student Documents Requests",
                         subtitle: isAr
-                            ? "متابعة طلبات استخراج الوثائق الطلابية"
-                            : "Track student document extraction requests",
+                            ? "مراجعة وتصديق استخراج كشوفات العلامات وشهادات القيد"
+                            : "Review and approve transcript & certificate requests",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
                         isAr: isAr,
-                        onTap: () {
-                           Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const BossStudentServiceRequestsScreen(
-                                  requestType: 'document',
-                                  titleAr: 'طلبات استخراج الوثائق',
-                                  titleEn: 'Document Requests',
-                                )),
-                          );
-                        },
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminStudentServicesScreen(
+                              serviceType: 'document',
+                              titleAr: 'طلبات الوثائق الطلابية',
+                              titleEn: 'Student Documents Requests',
+                            ),
+                          ),
+                        ),
                       ),
 
                       _buildServiceCard(
                         icon: Icons.assignment_turned_in_rounded,
-                        iconColor: const Color(0xFFCCAA00),
-                        title: isAr ? "طلبات امتحانات الإكمال" : "Makeup Exam Requests",
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "امتحانات الإكمال" : "Makeup Exam Requests",
                         subtitle: isAr
-                            ? "متابعة وإدارة طلبات التقدم لامتحانات الإكمال"
-                            : "Track and manage makeup exam requests",
+                            ? "مراجعة واعتماد طلبات إجراء امتحانات الإكمال للمواد"
+                            : "Review and approve makeup exam requests",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
                         isAr: isAr,
-                        onTap: () {
-                           Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const BossStudentServiceRequestsScreen(
-                                  requestType: 'makeup_exam',
-                                  titleAr: 'طلبات امتحانات الإكمال',
-                                  titleEn: 'Makeup Exam Requests',
-                                )),
-                          );
-                        },
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminStudentServicesScreen(
+                              serviceType: 'makeup',
+                              titleAr: 'امتحانات الإكمال',
+                              titleEn: 'Makeup Exam Requests',
+                            ),
+                          ),
+                        ),
                       ),
 
-                      const SizedBox(height: 15),
-                      // القسم الثاني: الإعدادات والدعم
-                      _buildSectionTitle(isAr ? "إعدادات عامة ومعلومات" : "General Settings & Info", subColor),
+                      const SizedBox(height: 20),
+
+                      // القسم الثاني: الإعدادات العامة والمعلومات
+                      _buildSectionTitle(
+                        isAr ? "إعدادات عامة ومعلومات" : "General Settings & Info",
+                        subColor,
+                      ),
                       const SizedBox(height: 10),
 
                       _buildServiceCard(
                         icon: Icons.settings_rounded,
-                        iconColor: AppColors.accent,
+                        iconColor: const Color(0xFFFFCC00),
                         title: isAr ? "الإعدادات" : "Settings",
                         subtitle: isAr
                             ? "تغيير المظهر، حجم الخط، الإشعارات، واللغة"
@@ -156,8 +159,8 @@ class BossServicesMenuScreen extends StatelessWidget {
                         iconColor: Colors.orange,
                         title: isAr ? "حول التطبيق" : "About App",
                         subtitle: isAr
-                            ? "معلومات عن نظام إدارة شؤون الطلاب والنسخة الحالية"
-                            : "Information about student management system & version",
+                            ? "معلومات عن نظام إدارة شؤون المعهد والنسخة الحالية"
+                            : "Information about institute management system & version",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
@@ -215,71 +218,57 @@ class BossServicesMenuScreen extends StatelessWidget {
     required Color iconColor,
     required String title,
     required String subtitle,
-    required VoidCallback onTap,
     required Color cardColor,
     required Color textColor,
     required Color subColor,
     required bool isAr,
+    required VoidCallback onTap,
   }) {
-    return Card(
-      color: cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withOpacity(0.08)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        onTap: onTap,
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: iconColor, size: 24),
         ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(18.0),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: iconColor, size: 26),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: subColor,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.arrow_back,
-                  color: subColor.withOpacity(0.5),
-                  size: 16,
-                ),
-              ],
+        title: Text(
+          title,
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            subtitle,
+            style: TextStyle(
+              color: subColor,
+              fontSize: 12,
             ),
           ),
+        ),
+        trailing: Icon(
+          isAr ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+          color: subColor,
         ),
       ),
     );

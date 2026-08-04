@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class PendingTab extends StatefulWidget {
   final Color cardColor;
@@ -327,181 +328,260 @@ class _PendingTabState extends State<PendingTab>
     );
   }
 
-  // ═══════════════════════════════════════
-  // بطاقة الطالب
-  // ═══════════════════════════════════════
-  Widget _buildStudentCard(Map<String, dynamic> data) {
-    final String initial = data['full_name'] != null && data['full_name'].isNotEmpty
-        ? data['full_name'][0]
-        : 'ط';
+  void _showUserDetails(Map<String, dynamic> data) {
+    final avatarUrl = ApiService.fixMediaUrl(data['avatar']);
     final int userId = data['user_id'] ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: widget.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(widget.isDark ? 30 : 8),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          decoration: BoxDecoration(
+            color: widget.isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      initial,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                        fontFamily: 'Noto Sans Arabic',
-                      ),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data['full_name'] ?? 'بدون اسم',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: widget.textColor,
-                          fontFamily: 'Noto Sans Arabic',
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        data['email'] ?? 'بدون بريد إلكتروني',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: widget.subColor,
-                          fontFamily: 'Noto Sans Arabic',
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.access_time, size: 12, color: widget.subColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            data['created_at'] ?? '',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: widget.subColor,
-                              fontFamily: 'Noto Sans Arabic',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                const SizedBox(height: 20),
+                Center(
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                    backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                    child: avatarUrl == null
+                        ? Icon(Icons.person, size: 50, color: Colors.grey.shade400)
+                        : null,
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: widget.isDark ? Colors.grey.shade900 : Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    'الرقم الجامعي الكود',
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    data['full_name'] ?? 'بدون اسم',
                     style: TextStyle(
-                      fontSize: 13,
-                      color: widget.subColor,
-                      fontFamily: 'Noto Sans Arabic',
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    data['university_id'] ?? 'غير متوفر',
-                    style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: widget.textColor,
                       fontFamily: 'Noto Sans Arabic',
                     ),
                   ),
+                ),
+                const SizedBox(height: 24),
+                _buildDetailRow('البريد الإلكتروني', data['email'] ?? 'غير متوفر', Icons.email),
+                _buildDetailRow('رقم الهاتف', data['phone'] ?? 'غير متوفر', Icons.phone),
+                _buildDetailRow('تاريخ الميلاد', data['birth_date'] ?? 'غير متوفر', Icons.calendar_today),
+                _buildDetailRow('الجنس', data['gender'] ?? 'غير متوفر', Icons.person),
+                if (data['role'] == 'student') ...[
+                  _buildDetailRow('القسم', data['department'] ?? 'غير متوفر', Icons.school),
+                  _buildDetailRow('الفرع', data['branch'] ?? 'غير متوفر', Icons.account_tree),
+                  _buildDetailRow('السنة الدراسية', data['academic_year'] ?? 'غير متوفر', Icons.timeline),
+                  _buildDetailRow('معرّف تليجرام', data['telegram_chat_id'] ?? 'غير متوفر', Icons.send),
+                  _buildDetailRow(
+                    'الرقم الجامعي',
+                    (data['university_id'] != null && data['university_id'].toString().isNotEmpty)
+                        ? data['university_id']
+                        : 'سيتم توليده تلقائياً عند الموافقة ✨',
+                    Icons.badge,
+                  ),
                 ],
-              ),
+                const SizedBox(height: 24),
+
+                // زري الإجراءات (موافقة / رفض)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _handleReject(userId);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'رفض الطلب',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                            fontFamily: 'Noto Sans Arabic',
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _handleApprove(userId);
+                        },
+                        icon: const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
+                        label: const Text(
+                          'موافقة وتفعيل',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                            fontFamily: 'Noto Sans Arabic',
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFCC00),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
 
-            const SizedBox(height: 12),
-
-            Row(
+  Widget _buildDetailRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: const Color(0xFFFFCC00)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _handleReject(userId),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: widget.subColor.withOpacity(0.3)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: Text(
-                      'رفض',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: widget.textColor,
-                        fontFamily: 'Noto Sans Arabic',
-                      ),
-                    ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: widget.subColor,
+                    fontFamily: 'Noto Sans Arabic',
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleApprove(userId),
-                    icon: const Icon(Icons.check, color: Colors.white, size: 18),
-                    label: const Text(
-                      'موافقة وتفعيل',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontFamily: 'Noto Sans Arabic',
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: widget.textColor,
+                    fontFamily: 'Noto Sans Arabic',
                   ),
                 ),
               ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════
+  // بطاقة الطالب (صورة + اسم فقط)
+  // ═══════════════════════════════════════
+  Widget _buildStudentCard(Map<String, dynamic> data) {
+    final String initial = data['full_name'] != null && data['full_name'].isNotEmpty
+        ? data['full_name'][0]
+        : 'ط';
+    final String? avatarUrl = ApiService.fixMediaUrl(data['avatar']);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: widget.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: () => _showUserDetails(data),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                  backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                  child: avatarUrl == null
+                      ? Text(
+                          initial,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                            fontFamily: 'Noto Sans Arabic',
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    data['full_name'] ?? 'بدون اسم',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: widget.textColor,
+                      fontFamily: 'Noto Sans Arabic',
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 18,
+                  color: widget.subColor.withValues(alpha: 0.7),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -515,6 +595,7 @@ class _PendingTabState extends State<PendingTab>
         ? data['full_name'][0]
         : 'أ';
     final int userId = data['user_id'] ?? 0;
+    final String? avatarUrl = ApiService.fixMediaUrl(data['avatar']);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -529,30 +610,30 @@ class _PendingTabState extends State<PendingTab>
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: InkWell(
+        onTap: () => _showUserDetails(data),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           children: [
             Row(
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      initial,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                        fontFamily: 'Noto Sans Arabic',
-                      ),
-                    ),
-                  ),
+                CircleAvatar(
+                  radius: 25,
+                  backgroundColor: Colors.orange.withOpacity(0.1),
+                  backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                  child: avatarUrl == null
+                      ? Text(
+                          initial,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                            fontFamily: 'Noto Sans Arabic',
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -650,6 +731,7 @@ class _PendingTabState extends State<PendingTab>
             ),
           ],
         ),
+      ),
       ),
     );
   }

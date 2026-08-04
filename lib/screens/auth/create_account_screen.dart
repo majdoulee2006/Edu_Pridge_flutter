@@ -34,6 +34,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   final _studentFirstNameController = TextEditingController();
   final _studentLastNameController  = TextEditingController();
+  final _studentTelegramIdController = TextEditingController(text: '7821980919');
   final _studentEmailController     = TextEditingController();
   final _studentPhoneController     = TextEditingController();
   final _studentPasswordController  = TextEditingController();
@@ -41,6 +42,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   final _parentFirstNameController = TextEditingController();
   final _parentLastNameController  = TextEditingController();
+  final _parentTelegramIdController = TextEditingController(text: '7821980919');
   final _parentEmailController     = TextEditingController();
   final _parentPhoneController     = TextEditingController();
   final _parentPasswordController  = TextEditingController();
@@ -100,8 +102,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       final lastName  = _studentLastNameController.text.trim();
       if (firstName.isEmpty || lastName.isEmpty) { _showSnackBar('يرجى إدخال الاسم الكامل'); return; }
 
-      final emailPrefix = _studentEmailController.text.trim();
-      if (emailPrefix.isEmpty) { _showSnackBar('يرجى إدخال البريد الإلكتروني'); return; }
+      final email = _studentEmailController.text.trim();
+      if (email.isEmpty) { _showSnackBar('يرجى إدخال البريد الإلكتروني'); return; }
 
       if (phone.isEmpty) { _showSnackBar('يرجى إدخال رقم الهاتف'); return; }
 
@@ -109,26 +111,27 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         _showSnackBar('يرجى إكمال كافة البيانات المطلوبة'); return;
       }
 
-      // البريد يُضاف له @edu.sy أو أي دومين خاص بالمعهد
-      final email = '$emailPrefix@edu.sy';
       final fullName = '$firstName $lastName';
+      final telegramId = _studentTelegramIdController.text.trim();
 
       setState(() => isLoading = true);
       try {
         // إعداد الـ FormData لإرسال الصورة مع البيانات
         FormData formData = FormData.fromMap({
-          "full_name":     fullName,
-          "first_name":    firstName,
-          "last_name":     lastName,
-          "email":         email,
-          "phone":         phone,
-          "gender":        selectedGender,
-          "birth_date":    selectedBirthDate.toString().split(' ')[0],
-          "academic_year": selectedYear,
-          "department":    selectedDept ?? '',
-          "branch":        selectedBranch ?? '',
-          "password":      _studentPasswordController.text,
-          "role":          "student",
+          "full_name":         fullName,
+          "first_name":        firstName,
+          "last_name":         lastName,
+          "telegram_username": telegramId,
+          "telegram_chat_id":  telegramId,
+          "email":             email,
+          "phone":             phone,
+          "gender":            selectedGender,
+          "birth_date":        selectedBirthDate.toString().split(' ')[0],
+          "academic_year":     selectedYear,
+          "department":        selectedDept ?? '',
+          "branch":            selectedBranch ?? '',
+          "password":          _studentPasswordController.text,
+          "role":              "student",
           if (_profileImage != null)
             "avatar": await MultipartFile.fromFile(
               _profileImage!.path,
@@ -166,19 +169,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     final childrenIds = _parentChildIdControllers.map((c) => c.text.trim()).toList();
     if (childrenIds.any((id) => id.isEmpty)) { _showSnackBar('يرجى إدخال الرقم الجامعي لجميع الأبناء'); return; }
 
+    final parentTelegramId = _parentTelegramIdController.text.trim();
+
     setState(() => isLoading = true);
     try {
       final response = await Dio().post(
         "${ApiService().baseUrl}/register",
         data: {
-          "full_name":   '$firstName $lastName',
-          "first_name":  firstName,
-          "last_name":   lastName,
-          "email":       email,
-          "phone":       phone,
-          "children_ids": childrenIds,
-          "password":    _parentPasswordController.text,
-          "role":        "parent",
+          "full_name":         '$firstName $lastName',
+          "first_name":        firstName,
+          "last_name":         lastName,
+          "email":             email,
+          "phone":             phone,
+          "telegram_username": parentTelegramId,
+          "telegram_chat_id":  parentTelegramId,
+          "children_ids":      childrenIds,
+          "password":          _parentPasswordController.text,
+          "role":              "parent",
         },
       );
       if ((response.statusCode == 201 || response.statusCode == 200) && mounted) {
@@ -373,6 +380,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           ],
         ),
 
+        // معرّف تيليجرام
+        _buildInputField(label: 'معرّف تيليجرام (Telegram ID)', hint: '7821980919', icon: Icons.send_outlined, controller: _studentTelegramIdController, keyboardType: TextInputType.number, textColor: textColor, cardColor: cardColor, isDark: isDark),
+
         // الجنس
         _buildInputField(label: 'الجنس', hint: 'اختر', isDropdown: true, dropdownItems: ['ذكر', 'أنثى'], value: selectedGender, onChanged: (val) => setState(() => selectedGender = val), textColor: textColor, cardColor: cardColor, isDark: isDark),
 
@@ -392,43 +402,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         // رقم الهاتف بدون تعليق 10 أرقام
         _buildInputField(label: 'رقم الهاتف', hint: '09xxxxxxxx', icon: Icons.phone_enabled_outlined, controller: _studentPhoneController, keyboardType: TextInputType.phone, textColor: textColor, cardColor: cardColor, isDark: isDark),
 
-        // البريد الإلكتروني مع لاحقة @edu.sy (لا @gmail.com)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 15.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('البريد الإلكتروني', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withValues(alpha: 0.7), fontFamily: 'Cairo')),
-              const SizedBox(height: 6),
-              Container(
-                decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withValues(alpha: 0.1))),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _studentEmailController,
-                        keyboardType: TextInputType.text,
-                        textDirection: TextDirection.ltr,
-                        decoration: InputDecoration(
-                          hintText: 'اسم الحساب',
-                          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontFamily: 'Cairo'),
-                          prefixIcon: const Icon(Icons.email_outlined, size: 18),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        ),
-                        style: TextStyle(color: textColor, fontSize: 13),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 12, right: 4),
-                      child: Text('@edu.sy', style: TextStyle(color: subColor, fontSize: 13, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        // البريد الإلكتروني الشخصي
+        _buildInputField(label: 'البريد الإلكتروني', hint: 'student@example.com', icon: Icons.email_outlined, controller: _studentEmailController, keyboardType: TextInputType.emailAddress, textColor: textColor, cardColor: cardColor, isDark: isDark),
 
         // القسم والفرع
         Row(
@@ -455,6 +430,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             Expanded(child: _buildInputField(label: 'الاسم الأخير', hint: 'مثال: محمد', icon: Icons.person_outline, controller: _parentLastNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
           ],
         ),
+        _buildInputField(label: 'معرّف تيليجرام (Telegram ID)', hint: '7821980919', icon: Icons.send_outlined, controller: _parentTelegramIdController, keyboardType: TextInputType.number, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'البريد الإلكتروني', hint: 'parent@example.com', icon: Icons.email_outlined, controller: _parentEmailController, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(label: 'رقم الهاتف', hint: 'رقم الموبايل الشخصي', icon: Icons.phone_enabled_outlined, controller: _parentPhoneController, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(
@@ -548,12 +524,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   void dispose() {
     _studentFirstNameController.dispose();
     _studentLastNameController.dispose();
+    _studentTelegramIdController.dispose();
     _studentEmailController.dispose();
     _studentPhoneController.dispose();
     _studentPasswordController.dispose();
     _studentConfirmPasswordController.dispose();
     _parentFirstNameController.dispose();
     _parentLastNameController.dispose();
+    _parentTelegramIdController.dispose();
     _parentEmailController.dispose();
     _parentPhoneController.dispose();
     _parentPasswordController.dispose();

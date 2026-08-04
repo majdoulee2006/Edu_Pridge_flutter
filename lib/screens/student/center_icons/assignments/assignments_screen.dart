@@ -96,6 +96,10 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       final isCompleted = rawStatus == 'مكتملة' || rawStatus == 'completed';
       final isMissed    = rawStatus == 'فائتة'  || rawStatus == 'missed';
 
+      final submission = assignment['submission'] as Map?;
+      final maxPoints = (assignment['max_points'] as num?)?.toInt() ?? 100;
+      final notesVal = assignment['notes']?.toString() ?? '';
+
       Color statusColor;
       String statusText;
       String tagText;
@@ -113,8 +117,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         tagColor = Colors.green;
         tagIcon = Icons.check_circle;
         showSubmitForm = false;
-        if (assignment['mark'] != null) {
-          fileTypeStr = '${assignment['mark']} / 100';
+        final gradeVal = submission?['grade'];
+        if (gradeVal != null) {
+          fileTypeStr = 'الدرجة: $gradeVal / $maxPoints';
           fileTypeColor = Colors.green;
           fileTypeIcon = Icons.grade;
         }
@@ -137,7 +142,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       final teacherFilePath = assignment['file_url']?.toString();
       final teacherFileName = assignment['file_name']?.toString();
 
-      final submission = assignment['submission'] as Map?;
       final cardId = assignment['assignment_id'] is int
           ? assignment['assignment_id'] as int
           : int.tryParse(assignment['assignment_id']?.toString() ?? '0') ?? 0;
@@ -161,13 +165,17 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         imageBgColor: bgColors[index % bgColors.length],
         initiallyExpanded: false,
         showSubmitForm: showSubmitForm,
+        notes: notesVal,
+        maxPoints: maxPoints,
         teacherFilePath: teacherFilePath,
         teacherFileName: teacherFileName,
         submissionFilePath: submission?['file_path']?.toString(),
         submissionFileName: submission?['file_path'] != null
-            ? submission!['file_path'].toString().split('/').last
+            ? _cleanFileName(submission!['file_path'].toString())
             : null,
         submittedAt: submission?['submitted_at']?.toString(),
+        submissionSolutionText: submission?['solution_text']?.toString(),
+        submissionStudentNotes: submission?['student_notes']?.toString(),
         detailText: assignment['description'] ??
             'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
         onSubmitSuccess: () async {
@@ -424,6 +432,8 @@ class _AssignmentCard extends StatefulWidget {
   final bool initiallyExpanded;
   final bool showSubmitForm;
   final String detailText;
+  final String notes;
+  final int maxPoints;
   final VoidCallback? onSubmitSuccess;
   final double? grade;
   final String? feedback;
@@ -432,6 +442,8 @@ class _AssignmentCard extends StatefulWidget {
   final String? submissionFilePath;
   final String? submissionFileName;
   final String? submittedAt;
+  final String? submissionSolutionText;
+  final String? submissionStudentNotes;
 
   const _AssignmentCard({
     required this.assignmentId,
@@ -452,11 +464,15 @@ class _AssignmentCard extends StatefulWidget {
     required this.imageBgColor,
     this.initiallyExpanded = false,
     this.showSubmitForm = false,
+    this.notes = '',
+    this.maxPoints = 100,
     this.teacherFilePath,
     this.teacherFileName,
     this.submissionFilePath,
     this.submissionFileName,
     this.submittedAt,
+    this.submissionSolutionText,
+    this.submissionStudentNotes,
     this.detailText =
         'يرجى قراءة التعليمات المرفقة وتجهيز الحل بشكل منظم، ثم رفعه هنا قبل انتهاء الموعد المحدد.',
     this.onSubmitSuccess,
@@ -472,6 +488,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
   late bool isExpanded;
   PlatformFile? _pickedFile;
   final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _solutionController = TextEditingController();
   bool _isSubmitting = false;
 
   @override
@@ -483,6 +500,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
   @override
   void dispose() {
     _notesController.dispose();
+    _solutionController.dispose();
     super.dispose();
   }
 
@@ -638,9 +656,12 @@ class _AssignmentCardState extends State<_AssignmentCard> {
   }
 
   Future<void> _submitAssignment() async {
-    if (_pickedFile == null || _pickedFile!.path == null) {
+    final solution = _solutionController.text.trim();
+    final notes = _notesController.text.trim();
+
+    if ((_pickedFile == null || _pickedFile!.path == null) && solution.isEmpty && notes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إرفاق ملف الحل أولاً'), backgroundColor: Colors.orange),
+        const SnackBar(content: Text('يرجى كتابة نص الحل أو إرفاق ملف أو إضافة ملاحظات أولاً'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -648,14 +669,20 @@ class _AssignmentCardState extends State<_AssignmentCard> {
     try {
       final ok = await StudentServices().submitAssignment(
         widget.assignmentId,
-        _pickedFile!.path!,
-        _pickedFile!.name,
-        _notesController.text.trim(),
+        _pickedFile?.path,
+        _pickedFile?.name,
+        notes,
+        solution,
       );
       if (!mounted) return;
       if (ok) {
         _showSuccessDialog();
-        setState(() { isExpanded = false; _pickedFile = null; _notesController.clear(); });
+        setState(() {
+          isExpanded = false;
+          _pickedFile = null;
+          _notesController.clear();
+          _solutionController.clear();
+        });
         widget.onSubmitSuccess?.call();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -872,105 +899,263 @@ class _AssignmentCardState extends State<_AssignmentCard> {
             ],
           ),
 
-          if (isExpanded && !widget.showSubmitForm && (widget.grade != null || (widget.feedback != null && widget.feedback!.isNotEmpty))) ...[
+          if (isExpanded) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 15),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
             ),
-            Row(
-              children: [
-                Container(width: 4, height: 18, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
-                const SizedBox(width: 8),
-                Text('نتيجة التصحيح', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (widget.grade != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.green.withAlpha(isDark ? 40 : 20),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.withAlpha(60)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.grade_rounded, color: Colors.green, size: 22),
-                    const SizedBox(width: 10),
-                    Text('الدرجة:', style: TextStyle(color: textColor, fontSize: 13)),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${widget.grade!.toStringAsFixed(widget.grade! % 1 == 0 ? 0 : 1)} / 100',
-                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
-                ),
+            
+            // كرت تفاصيل الواجب والتعليمات
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.blue.withAlpha(20) : Colors.blue.withAlpha(10),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue.withAlpha(40)),
               ),
-            if (widget.feedback != null && widget.feedback!.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.assignment_outlined, color: Colors.blue, size: 20),
+                      const SizedBox(width: 8),
+                      Text('تفاصيل الواجب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withAlpha(30),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'الدرجة القصوى: ${widget.maxPoints}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            color: isDark ? Colors.blue.shade200 : Colors.blue.shade800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.detailText,
+                    style: TextStyle(
+                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // كرت ملاحظات المعلم (إن وجدت)
+            if (widget.notes.isNotEmpty) ...[
+              const SizedBox(height: 15),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withAlpha(10) : const Color(0xFFF9F9F9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade200),
+                  color: isDark ? Colors.orange.withAlpha(20) : Colors.orange.withAlpha(10),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.orange.withAlpha(40)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ملاحظات المعلم:', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    Text(widget.feedback!, style: TextStyle(color: textColor, fontSize: 13, height: 1.5)),
+                    const Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Text('ملاحظات إضافية من المعلم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.orange)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.notes,
+                      style: TextStyle(
+                        color: isDark ? Colors.orange.shade200 : Colors.orange.shade900,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
-            const SizedBox(height: 1),
           ],
 
-          // ملفات الواجب — ملف المعلم وملف الطالب
-          if (isExpanded && (widget.teacherFilePath != null || widget.submissionFilePath != null)) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
-            ),
-            Row(
-              children: [
-                Container(width: 4, height: 18, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
-                const SizedBox(width: 8),
-                Text('الملفات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // ملف المعلم
-            if (widget.teacherFilePath != null)
-              _FileButton(
-                label: widget.teacherFileName ?? 'ملف الواجب',
-                sublabel: 'ملف المعلم',
-                color: Colors.blue,
-                icon: Icons.menu_book_rounded,
-                url: widget.teacherFilePath!,
-                isDark: isDark,
+          // كرت نتيجة التصحيح
+          if (isExpanded && !widget.showSubmitForm && (widget.grade != null || (widget.feedback != null && widget.feedback!.isNotEmpty))) ...[
+            const SizedBox(height: 15),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.green.withAlpha(20) : Colors.green.withAlpha(10),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.green.withAlpha(40)),
               ),
-
-            if (widget.teacherFilePath != null && widget.submissionFilePath != null)
-              const SizedBox(height: 8),
-
-            // ملف الطالب المُرسَل
-            if (widget.submissionFilePath != null)
-              _FileButton(
-                label: widget.submissionFileName ?? 'ملف الحل',
-                sublabel: widget.submittedAt != null ? 'تسليمك — ${widget.submittedAt}' : 'ملف تسليمك',
-                color: Colors.green,
-                icon: Icons.task_alt_rounded,
-                url: widget.submissionFilePath!,
-                isDark: isDark,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.stars_rounded, color: Colors.green, size: 22),
+                      const SizedBox(width: 8),
+                      Text('نتيجة التقييم والتصحيح', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                      const Spacer(),
+                      if (widget.grade != null)
+                        Text(
+                          '${widget.grade!.toStringAsFixed(widget.grade! % 1 == 0 ? 0 : 1)} / ${widget.maxPoints}',
+                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                    ],
+                  ),
+                  if (widget.feedback != null && widget.feedback!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Divider(color: Colors.green.withAlpha(40)),
+                    const SizedBox(height: 8),
+                    Text(
+                      'ملاحظات المصحح:',
+                      style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.feedback!,
+                      style: TextStyle(color: textColor, fontSize: 13, height: 1.5),
+                    ),
+                  ],
+                ],
               ),
+            ),
+          ],
 
-            const SizedBox(height: 1),
+          // كرت ملفات وتفاصيل الحل المرسل
+          if (isExpanded && (widget.teacherFilePath != null || widget.submissionFilePath != null || (widget.submissionSolutionText != null && widget.submissionSolutionText!.isNotEmpty) || (widget.submissionStudentNotes != null && widget.submissionStudentNotes!.isNotEmpty))) ...[
+            const SizedBox(height: 15),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.deepPurple.withAlpha(20) : Colors.deepPurple.withAlpha(10),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.deepPurple.withAlpha(40)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.done_all_rounded, color: Colors.deepPurple, size: 20),
+                      const SizedBox(width: 8),
+                      Text('تفاصيل تسليمك والحل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ملف المعلم
+                  if (widget.teacherFilePath != null) ...[
+                    _FileButton(
+                      label: widget.teacherFileName ?? 'ملف الواجب',
+                      sublabel: 'ملف المعلم المرفق',
+                      color: Colors.blue,
+                      icon: Icons.menu_book_rounded,
+                      url: widget.teacherFilePath!,
+                      isDark: isDark,
+                    ),
+                    if (widget.submissionFilePath != null || (widget.submissionSolutionText != null && widget.submissionSolutionText!.isNotEmpty) || (widget.submissionStudentNotes != null && widget.submissionStudentNotes!.isNotEmpty))
+                      const SizedBox(height: 10),
+                  ],
+
+                  // ملف الطالب المُرسَل
+                  if (widget.submissionFilePath != null) ...[
+                    _FileButton(
+                      label: widget.submissionFileName ?? 'ملف الحل',
+                      sublabel: widget.submittedAt != null ? 'ملفك المرسل — ${widget.submittedAt}' : 'ملف تسليمك',
+                      color: Colors.green,
+                      icon: Icons.task_alt_rounded,
+                      url: widget.submissionFilePath!,
+                      isDark: isDark,
+                    ),
+                    if ((widget.submissionSolutionText != null && widget.submissionSolutionText!.isNotEmpty) || (widget.submissionStudentNotes != null && widget.submissionStudentNotes!.isNotEmpty))
+                      const SizedBox(height: 10),
+                  ],
+
+                  // حل الطالب المكتوب
+                  if (widget.submissionSolutionText != null && widget.submissionSolutionText!.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withAlpha(isDark ? 40 : 20),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green.withAlpha(60)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.edit_note_rounded, color: Colors.green, size: 18),
+                              SizedBox(width: 6),
+                              Text(
+                                'حلّك المكتوب:',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.green),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            widget.submissionSolutionText!,
+                            style: TextStyle(color: textColor, fontSize: 12, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (widget.submissionStudentNotes != null && widget.submissionStudentNotes!.isNotEmpty)
+                      const SizedBox(height: 10),
+                  ],
+
+                  // ملاحظات الطالب المرسلة
+                  if (widget.submissionStudentNotes != null && widget.submissionStudentNotes!.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withAlpha(10) : const Color(0xFFF9F9F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.notes_rounded, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                'ملاحظاتك المرسلة:',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            widget.submissionStudentNotes!,
+                            style: TextStyle(color: textColor, fontSize: 12, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
 
           if (isExpanded && widget.showSubmitForm) ...[
@@ -1002,24 +1187,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               const SizedBox(height: 10),
             ],
 
-            Text(
-              'تفاصيل الواجب',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: textColor,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              widget.detailText,
-              style: TextStyle(
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                fontSize: 12,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 15),
+
 
             if (_pickedFile != null)
               Container(
@@ -1090,6 +1258,46 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                   ),
                 ),
               ),
+            const SizedBox(height: 15),
+
+            Text(
+              'نص الحل المكتوب',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _solutionController,
+              maxLines: 5,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                hintText: 'اكتب إجابتك أو حل الواجب هنا بالتفصيل...',
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.grey.shade600 : Colors.grey,
+                  fontSize: 12,
+                ),
+                contentPadding: const EdgeInsets.all(15),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? Colors.white.withAlpha(30)
+                        : Colors.grey.shade200,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? Colors.white.withAlpha(30)
+                        : Colors.grey.shade200,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 15),
 
             Text(
@@ -1270,4 +1478,15 @@ class _FileButton extends StatelessWidget {
       ),
     );
   }
+}
+
+String _cleanFileName(String? filePath) {
+  if (filePath == null) return '';
+  String fileName = filePath.split('/').last;
+  final regExp = RegExp(r'^\d+_\d+_(.*)$');
+  final match = regExp.firstMatch(fileName);
+  if (match != null && match.groupCount >= 1) {
+    return match.group(1)!;
+  }
+  return fileName;
 }

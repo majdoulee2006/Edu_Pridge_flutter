@@ -357,18 +357,27 @@ class StudentServices {
   // ==========================================
   Future<bool> submitAssignment(
     int assignmentId,
-    String filePath,
-    String fileName,
+    String? filePath,
+    String? fileName,
     String notes,
+    String solutionText,
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(filePath, filename: fileName),
-        if (notes.isNotEmpty) 'student_notes': notes,
-      });
+      final Map<String, dynamic> dataMap = {};
+      if (filePath != null && fileName != null && filePath.isNotEmpty) {
+        dataMap['file'] = await MultipartFile.fromFile(filePath, filename: fileName);
+      }
+      if (notes.isNotEmpty) {
+        dataMap['student_notes'] = notes;
+      }
+      if (solutionText.isNotEmpty) {
+        dataMap['solution_text'] = solutionText;
+      }
+
+      final formData = FormData.fromMap(dataMap);
 
       Response response = await _dio.post(
         "${ApiService().baseUrl}/student/assignments/$assignmentId/submit",

@@ -20,29 +20,37 @@ class PendingApprovalScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // أيقونة
+                // أيقونة الصح الخضراء
                 Container(
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFCC00).withAlpha(30),
+                    color: Colors.green.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withValues(alpha: 0.2),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
                   ),
                   child: const Icon(
-                    Icons.hourglass_top_rounded,
-                    size: 60,
-                    color: Color(0xFFFFCC00),
+                    Icons.check_circle_rounded,
+                    size: 80,
+                    color: Colors.green,
                   ),
                 ),
                 const SizedBox(height: 32),
 
                 // العنوان
                 Text(
-                  'طلبك قيد المراجعة',
+                  'تم إنشاء الحساب بنجاح ✓',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                     color: textColor,
+                    fontFamily: 'Cairo',
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -50,11 +58,12 @@ class PendingApprovalScreen extends StatelessWidget {
 
                 // الوصف
                 Text(
-                  'تم استلام طلب تسجيلك بنجاح.\nسيقوم موظف الشؤون بمراجعة بياناتك وتفعيل حسابك في أقرب وقت.',
+                  'تم استلام طلب تسجيلك بنجاح.\nطلبك الآن قيد المراجعة، يرجى انتظار التفعيل وإشعار القبول من قِبل موظف الشؤون.',
                   style: TextStyle(
                     fontSize: 15,
                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     height: 1.6,
+                    fontFamily: 'Cairo',
                   ),
                   textAlign: TextAlign.center,
                 ),

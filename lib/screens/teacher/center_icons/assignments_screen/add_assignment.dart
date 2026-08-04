@@ -16,6 +16,7 @@ class AddAssignmentScreen extends StatefulWidget {
 class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   final _titleController     = TextEditingController();
   final _descController      = TextEditingController();
+  final _notesController     = TextEditingController();
   final _maxPointsController = TextEditingController(text: '100');
 
   List<Map<String, dynamic>> _allCourses      = [];
@@ -46,6 +47,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     final a = widget.assignment!;
     _titleController.text     = a['title']?.toString() ?? '';
     _descController.text      = a['description']?.toString() ?? '';
+    _notesController.text     = a['notes']?.toString() ?? '';
     _maxPointsController.text = a['max_points']?.toString() ?? '100';
     _selectedCourseId         = a['course_id']?.toString();
     _existingFileUrl          = a['file_url']?.toString();
@@ -66,6 +68,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _notesController.dispose();
     _maxPointsController.dispose();
     super.dispose();
   }
@@ -197,6 +200,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
               'course_id':   int.tryParse(_selectedCourseId!),
               'title':       _titleController.text.trim(),
               'description': _descController.text.trim(),
+              'notes':       _notesController.text.trim(),
               'due_date':    dueDateStr,
               'max_points':  maxPoints,
               '_method':     'PUT',
@@ -213,6 +217,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
               'course_id':   int.tryParse(_selectedCourseId!),
               'title':       _titleController.text.trim(),
               'description': _descController.text.trim(),
+              'notes':       _notesController.text.trim(),
               'due_date':    dueDateStr,
               'max_points':  maxPoints,
             },
@@ -227,6 +232,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
             'course_id':   int.tryParse(_selectedCourseId!),
             'title':       _titleController.text.trim(),
             'description': _descController.text.trim(),
+            'notes':       _notesController.text.trim(),
             'due_date':    dueDateStr,
             'max_points':  maxPoints,
             if (_pickedFile != null && _pickedFile!.bytes != null)
@@ -305,6 +311,11 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                     // وصف التمرين
                     _label("وصف ومعطيات التمرين", textColor),
                     _field(controller: _descController, hint: 'اكتب تفاصيل الواجب...', maxLines: 5, cardColor: cardColor, textColor: textColor),
+                    const SizedBox(height: 20),
+
+                    // ملاحظات
+                    _label("ملاحظات", textColor),
+                    _field(controller: _notesController, hint: 'اكتب أي ملاحظات إضافية للطلاب...', maxLines: 3, cardColor: cardColor, textColor: textColor),
                     const SizedBox(height: 20),
 
                     // الدورة + السنة جنب بعض
