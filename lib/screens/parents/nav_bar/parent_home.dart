@@ -546,7 +546,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(ann['time_ago'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                              Text("${ann['time_ago'] ?? ''} • ${ann['author_name'] ?? ann['created_by'] ?? 'الإدارة'}", style: const TextStyle(color: Colors.grey, fontSize: 11)),
                               Icon(Icons.arrow_back, size: 13, color: textColor.withValues(alpha: 0.4)),
                             ],
                           ),

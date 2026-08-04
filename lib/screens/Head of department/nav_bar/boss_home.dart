@@ -394,7 +394,8 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(a['time_ago'] as String? ?? a['created_at'] as String? ?? '',
+                          Text(
+                              "${a['time_ago'] as String? ?? a['created_at'] as String? ?? ''} • ${a['author_name'] as String? ?? a['created_by'] as String? ?? 'الإدارة'}",
                               style: const TextStyle(color: Colors.grey, fontSize: 11)),
                           Padding(
                             padding: const EdgeInsets.only(left: 8),

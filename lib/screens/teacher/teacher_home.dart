@@ -325,7 +325,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                          Text("$time • ${announcementData['author_name'] as String? ?? announcementData['created_by'] as String? ?? 'الإدارة'}", style: const TextStyle(color: Colors.grey, fontSize: 11)),
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle),
