@@ -1,4 +1,4 @@
-﻿import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_screen/permissions_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_screen/permissions_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/reports_screen/reports_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +6,7 @@ import 'dart:math' as math;
 
 import '../screens/parents/center_icons/parents_assignments_screen/parents_assignment_screen.dart';
 import '../screens/parents/center_icons/performance_screen/performance_screen.dart';
+import '../screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
 class Parents_Center_Icon extends StatefulWidget {
   const Parents_Center_Icon({super.key});
@@ -110,9 +111,9 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               'تقارير',
                               Icons.description_outlined,
                               Colors.greenAccent,
-                              22.5,
-                              0.0, // يبدأ فوراً
-                              0.4, // ينتهي عند 40% من وقت الحركة
+                              18.0,
+                              0.0,
+                              0.3,
                               itemTextColor,
                               () {
                                 Navigator.push(
@@ -127,9 +128,9 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               'أذونات',
                               Icons.verified_outlined,
                               Colors.purpleAccent,
-                              67.5,
-                              0.2,
-                              0.6,
+                              54.0,
+                              0.15,
+                              0.45,
                               itemTextColor,
                               () async {
                                 final prefs = await SharedPreferences.getInstance();
@@ -149,12 +150,29 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               },
                             ),
                             _buildMenuItem(
+                              'مواعيد',
+                              Icons.calendar_month_outlined,
+                              Colors.tealAccent,
+                              90.0, // بالمنتصف تماماً للأعلى
+                              0.3,
+                              0.6,
+                              itemTextColor,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const AppointmentsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildMenuItem(
                               'واجبات',
                               Icons.assignment_turned_in_outlined,
                               Colors.blueAccent,
-                              112.5,
-                              0.4,
-                              0.8,
+                              126.0,
+                              0.45,
+                              0.75,
                               itemTextColor,
                               () {
                                 Navigator.push(
@@ -170,9 +188,9 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               'أداء',
                               Icons.trending_up_rounded,
                               Colors.orangeAccent,
-                              157.5,
-                              0.6, // يبدأ أخيراً
-                              1.0,
+                              162.0,
+                              0.6,
+                              0.9,
                               itemTextColor,
                               () {
                                 Navigator.push(
@@ -320,7 +338,12 @@ class MenuBackgroundPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     Offset center = Offset(size.width / 2, size.height);
-    List<double> angles = [math.pi / 4, math.pi / 2, 3 * math.pi / 4];
+    List<double> angles = [
+      0.2 * math.pi,
+      0.4 * math.pi,
+      0.6 * math.pi,
+      0.8 * math.pi,
+    ];
 
     for (double angle in angles) {
       // لا نرسم الخط الفاصل إلا إذا وصلت الدائرة إليه

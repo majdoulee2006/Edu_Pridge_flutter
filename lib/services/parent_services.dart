@@ -68,4 +68,114 @@ class ParentService {
     }
     return false;
   }
+
+  // 3️⃣ طلب موعد جديد من الإدارة
+  Future<bool> requestMeeting({
+    required String subject,
+    required String reason,
+    int? studentId,
+    String? preferredDate,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return false;
+
+      final response = await _dio.post(
+        "$baseUrl/parent/request-meeting",
+        data: {
+          "subject": subject,
+          "reason": reason,
+          "student_id": studentId,
+          "preferred_date": preferredDate,
+        },
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data['success'] == true;
+      }
+    } catch (e) {
+      debugPrint("❌ Error requesting meeting: $e");
+    }
+    return false;
+  }
+
+  // 4️⃣ جلب المواعيد المطلوبة من الأهل
+  Future<List<dynamic>> getMyMeetingRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return [];
+
+      final response = await _dio.get(
+        "$baseUrl/parent/meeting-requests",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'] as List<dynamic>? ?? [];
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching meeting requests: $e");
+    }
+    return [];
+  }
+
+  // 5️⃣ جلب الاستدعاءات الصادرة للأهالي من الإدارة
+  Future<List<dynamic>> getMySummons() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return [];
+
+      final response = await _dio.get(
+        "$baseUrl/parent/summons",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'] as List<dynamic>? ?? [];
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching summons: $e");
+    }
+    return [];
+  }
+
+  // 6️⃣ الرد على استدعاء الإدارة
+  Future<bool> respondToSummon(int summonId, String status) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return false;
+
+      final response = await _dio.post(
+        "$baseUrl/parent/summons/$summonId/respond",
+        data: {
+          "status": status,
+        },
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['success'] == true;
+      }
+    } catch (e) {
+      debugPrint("❌ Error responding to summon: $e");
+    }
+    return false;
+  }
 }
