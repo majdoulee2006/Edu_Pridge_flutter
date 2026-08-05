@@ -1,9 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 import '../screens/student/center_icons/assignments/assignments_screen.dart';
 import '../screens/student/center_icons/attendance/attendance_screen.dart';
-import '../screens/student/center_icons/lectures/lectures_screen.dart';
 import '../screens/student/center_icons/schedule/schedule_screen.dart';
 
 class CustomSpeedDialEduBridge extends StatefulWidget {
@@ -110,9 +109,9 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               'الجدول',
                               Icons.calendar_month_outlined,
                               Colors.orange,
-                              22.5,
+                              30.0,
                               0.0, // يبدأ فوراً
-                              0.4, // ينتهي عند 40% من وقت الحركة
+                              0.5,
                               itemTextColor,
                               () {
                                 Navigator.push(
@@ -128,9 +127,9 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               'الواجبات',
                               Icons.assignment_outlined,
                               Colors.blue,
-                              67.5,
-                              0.2, // يبدأ متأخراً قليلاً
-                              0.6,
+                              90.0,
+                              0.25,
+                              0.75,
                               itemTextColor,
                               () {
                                 Navigator.push(
@@ -143,29 +142,11 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               },
                             ),
                             _buildMenuItem(
-                              'المحاضرات',
-                              Icons.play_circle_outline,
-                              Colors.purple,
-                              112.5,
-                              0.4,
-                              0.8,
-                              itemTextColor,
-                              () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const LecturesScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _buildMenuItem(
                               'الحضور',
                               Icons.how_to_reg_outlined,
                               Colors.green,
-                              157.5,
-                              0.6, // يبدأ أخيراً
+                              150.0,
+                              0.5,
                               1.0,
                               itemTextColor,
                               () {
@@ -314,7 +295,7 @@ class MenuBackgroundPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     Offset center = Offset(size.width / 2, size.height);
-    List<double> angles = [math.pi / 4, math.pi / 2, 3 * math.pi / 4];
+    List<double> angles = [math.pi / 3, 2 * math.pi / 3];
 
     for (double angle in angles) {
       // لا نرسم الخط الفاصل إلا إذا وصلت الدائرة إليه
