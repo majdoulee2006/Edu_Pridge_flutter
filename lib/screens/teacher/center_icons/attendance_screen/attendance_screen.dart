@@ -69,6 +69,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   int _sessionCountdown = 600;
 
   // قوائم الحضور والغياب
+  // ignore: unused_field
   List<Map<String, dynamic>> _absentStudents = [];
   // ignore: unused_field
   List<Map<String, dynamic>> _allStudents = [];
@@ -278,7 +279,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     }
   }
 
-  Future<void> _fetchAbsentList() async {
+  Future<void> _fetchAbsentList([String initialFilter = 'all']) async {
     if (_sessionId == null) return;
     try {
       final token = await _getToken();
@@ -300,7 +301,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               .where((s) => s['status'] == 'absent')
               .toList();
         });
-        _showAbsentSheet();
+        _showStudentListSheet(initialFilter);
       }
     } catch (e) {
       debugPrint('⛔ Absent List Error: $e');
@@ -562,10 +563,11 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     }
   }
 
-  void _showAbsentSheet() {
+  void _showStudentListSheet([String initialFilter = 'all']) {
     final textColor =
         Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
+    String activeFilter = initialFilter;
 
     showModalBottomSheet(
       context: context,
@@ -575,126 +577,242 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (_, scrollCtrl) {
-            return Directionality(
-              textDirection: TextDirection.rtl,
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'الغائبون',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final presentStudents = _allStudents.where((s) => s['status'] == 'present').toList();
+            final absentStudents = _allStudents.where((s) => s['status'] == 'absent').toList();
+
+            List<Map<String, dynamic>> displayedStudents;
+            if (activeFilter == 'present') {
+              displayedStudents = presentStudents;
+            } else if (activeFilter == 'absent') {
+              displayedStudents = absentStudents;
+            } else {
+              displayedStudents = _allStudents;
+            }
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.4,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (_, scrollCtrl) {
+                return Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'سجل طلاب الجلسة',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _yellow.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '$_presentCount / $_totalCount حاضر',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Filter Buttons (الكل / الحاضرون / الغائبون)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(15),
                           ),
-                          child: Text(
-                            '${_absentStudents.length} غائب من $_totalCount',
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
+                          child: Row(
+                            children: [
+                              _buildFilterTab(
+                                label: 'الكل (${_allStudents.length})',
+                                isSelected: activeFilter == 'all',
+                                activeColor: _yellow,
+                                textColor: Colors.black,
+                                onTap: () => setSheetState(() => activeFilter = 'all'),
+                              ),
+                              _buildFilterTab(
+                                label: 'الحاضرون (${presentStudents.length})',
+                                isSelected: activeFilter == 'present',
+                                activeColor: Colors.green.shade600,
+                                textColor: Colors.white,
+                                onTap: () => setSheetState(() => activeFilter = 'present'),
+                              ),
+                              _buildFilterTab(
+                                label: 'الغائبون (${absentStudents.length})',
+                                isSelected: activeFilter == 'absent',
+                                activeColor: Colors.red.shade600,
+                                textColor: Colors.white,
+                                onTap: () => setSheetState(() => activeFilter = 'absent'),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(),
-                  Expanded(
-                    child: _absentStudents.isEmpty
-                        ? const Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.check_circle_outline,
-                                    color: Colors.green, size: 50),
-                                SizedBox(height: 10),
-                                Text(
-                                  'ما في غائبين حتى الآن!',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 15),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            controller: scrollCtrl,
-                            itemCount: _absentStudents.length,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            itemBuilder: (_, i) {
-                              final s = _absentStudents[i];
-                              return ListTile(
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                                leading: CircleAvatar(
-                                  backgroundColor:
-                                      Colors.red.withValues(alpha: 0.12),
-                                  child: const Icon(Icons.close,
-                                      color: Colors.red, size: 20),
-                                ),
-                                title: Text(
-                                  s['name'] as String? ?? '',
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                trailing: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Text(
-                                    'غائب',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                      ),
+
+                      const SizedBox(height: 10),
+                      const Divider(),
+
+                      Expanded(
+                        child: displayedStudents.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      activeFilter == 'present'
+                                          ? Icons.person_off_outlined
+                                          : activeFilter == 'absent'
+                                              ? Icons.check_circle_outline
+                                              : Icons.group_off_outlined,
+                                      color: activeFilter == 'absent' ? Colors.green : Colors.grey,
+                                      size: 50,
                                     ),
-                                  ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      activeFilter == 'present'
+                                          ? 'لم يقم أي طالب بمسح الرمز حتى الآن'
+                                          : activeFilter == 'absent'
+                                              ? 'ما في غائبين (الجميع حاضر!)'
+                                              : 'لا يوجد طلاب في هذه الجلسة',
+                                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
+                              )
+                            : ListView.builder(
+                                controller: scrollCtrl,
+                                itemCount: displayedStudents.length,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                itemBuilder: (_, i) {
+                                  final s = displayedStudents[i];
+                                  final isPresent = s['status'] == 'present';
+                                  return ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                    leading: CircleAvatar(
+                                      backgroundColor: isPresent
+                                          ? Colors.green.withValues(alpha: 0.12)
+                                          : Colors.red.withValues(alpha: 0.12),
+                                      child: Icon(
+                                        isPresent ? Icons.check : Icons.close,
+                                        color: isPresent ? Colors.green : Colors.red,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      s['name'] as String? ?? '',
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      isPresent ? 'قام بالمسح وتسجيل الحضور' : 'لم يقم بالمسح (غائب)',
+                                      style: TextStyle(
+                                        color: isPresent ? Colors.green.shade700 : Colors.red.shade400,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isPresent
+                                            ? Colors.green.withValues(alpha: 0.1)
+                                            : Colors.red.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        isPresent ? 'حاضر' : 'غائب',
+                                        style: TextStyle(
+                                          color: isPresent ? Colors.green : Colors.red,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildFilterTab({
+    required String label,
+    required bool isSelected,
+    required Color activeColor,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? activeColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [BoxShadow(color: activeColor.withValues(alpha: 0.3), blurRadius: 4, offset: const Offset(0, 2))]
+                : [],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isSelected
+                    ? textColor
+                    : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade700),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 11.5,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1396,23 +1514,57 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
           const SizedBox(height: 20),
 
-          // زر عرض الغائبين
+          // أزرار عرض الحاضرين والغائبين والكل
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
+                  label: const Text(
+                    'من قام بالمسح',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => _fetchAbsentList('present'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.person_off_outlined, color: Colors.white, size: 16),
+                  label: const Text(
+                    'الغائبون',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => _fetchAbsentList('absent'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            height: 50,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.person_off_outlined, color: Colors.black),
+            height: 46,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.format_list_bulleted, color: Colors.black, size: 18),
               label: const Text(
-                'عرض الغائبين',
-                style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.bold),
+                'عرض سجل جميع الطلاب (الكل)',
+                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _yellow,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: _yellow, width: 2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
-              onPressed: _fetchAbsentList,
+              onPressed: () => _fetchAbsentList('all'),
             ),
           ),
 
