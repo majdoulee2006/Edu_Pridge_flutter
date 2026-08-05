@@ -248,7 +248,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    "$timeAgo • ${announcementData['author_name'] as String? ?? announcementData['created_by'] as String? ?? 'الإدارة'}",
+                    "نشر بواسطة: ${announcementData['author_name'] as String? ?? announcementData['publisher_name'] as String? ?? announcementData['created_by'] as String? ?? 'الإدارة'} • $timeAgo",
                     style: const TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ),

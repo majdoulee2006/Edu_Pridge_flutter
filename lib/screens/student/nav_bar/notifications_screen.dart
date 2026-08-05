@@ -106,7 +106,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ));
         break;
       case 'lecture':
-        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const LecturesScreen()));
+        Navigator.push(ctx, MaterialPageRoute(
+          builder: (_) => LecturesScreen(highlightLessonId: notify.relatedId),
+        ));
         break;
       case 'attendance':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));

@@ -463,7 +463,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     final String title = news['title'] ?? 'إعلان جديد';
     final String content = news['content'] ?? '';
     final String category = news['category'] ?? news['type'] ?? 'إعلان عام';
-    final String author = news['author_name'] ?? 'إدارة المعهد';
+    final String rawAuthor = news['author_name'] ?? news['publisher_name'] ?? news['created_by'] ?? 'إدارة المعهد';
+    final String author    = rawAuthor.startsWith('نشر') ? rawAuthor : 'نشر بواسطة: $rawAuthor';
     final String time = news['created_at'] ?? '';
     
     // 🌟 دعم واستخراج كافة مسميات الصور القديمة والحديثة 🌟
@@ -699,7 +700,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 6, right: 56),
               child: Text(
-                "$time • ${news['author_name'] ?? news['created_by'] ?? 'الإدارة'}",
+                "نشر بواسطة: ${news['author_name'] ?? news['publisher_name'] ?? news['created_by'] ?? 'الإدارة'} • $time",
                 style: const TextStyle(fontSize: 10, color: Colors.grey),
               ),
             ),

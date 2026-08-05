@@ -146,11 +146,9 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
                             .then((_) => _fetchProfile()),
                       ),
                       _buildDivider(textColor),
-                      _buildClickableRow(
+                      _buildStaticRow(
                         "البريد الإلكتروني", _email.isNotEmpty ? _email : "غير محدد",
                         Icons.alternate_email_rounded, Colors.blue, textColor,
-                        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditEmailScreen()))
-                            .then((_) => _fetchProfile()),
                       ),
                     ]),
 

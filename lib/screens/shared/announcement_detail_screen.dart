@@ -64,8 +64,11 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
     final title       = widget.announcement['title']       as String? ?? '';
     final content     = widget.announcement['content']     as String?
                      ?? widget.announcement['body']        as String? ?? '';
-    final author      = widget.announcement['author_name'] as String?
-                     ?? widget.announcement['publisher']   as String? ?? 'الإدارة';
+    final rawAuthor   = widget.announcement['author_name'] as String?
+                     ?? widget.announcement['publisher_name'] as String?
+                     ?? widget.announcement['publisher']   as String?
+                     ?? widget.announcement['created_by']   as String? ?? 'الإدارة';
+    final author      = rawAuthor.startsWith('نشر') ? rawAuthor : 'نشر بواسطة: $rawAuthor';
     final timeAgo     = widget.announcement['time_ago']    as String?
                      ?? widget.announcement['created_at']  as String? ?? '';
     final imageUrl    = ApiService.fixMediaUrl(widget.announcement['image_url'] as String?) ?? '';

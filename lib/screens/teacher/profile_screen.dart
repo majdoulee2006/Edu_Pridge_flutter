@@ -207,20 +207,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             },
                           ),
                           _buildDivider(textColor),
-                          _buildClickableRow(
+                          _buildStaticRow(
                             label: "البريد الإلكتروني",
                             value: _email.isNotEmpty ? _email : 'غير محدد',
                             icon: Icons.alternate_email_rounded,
                             color: Colors.blue,
                             textColor: textColor,
-                            onTap: () async {
-                              final result = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const EditEmailScreen()),
-                              );
-                              if (result == true && mounted) _loadAll();
-                            },
                           ),
                         ]),
 

@@ -210,10 +210,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
                           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditPhoneScreen())),
                     ),
                     Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
-                    _buildClickableRow(
-                      context, "البريد الإلكتروني", parentEmail, Icons.alternate_email_rounded, Colors.blue, textColor,
-                          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditEmailScreen())),
-                    ),
+                    _buildStaticRow("البريد الإلكتروني", parentEmail, Icons.alternate_email_rounded, Colors.blue, textColor),
                   ]),
 
                   const SizedBox(height: 25),

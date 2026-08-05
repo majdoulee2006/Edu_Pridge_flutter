@@ -39,20 +39,15 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
   }
   double get _passMark => _maxScore / 2;
 
-  // الحد الأعلى المسموح به حسب نوع التقييم
-  double get _allowedMax {
-    final type = widget.event['type'] as String? ?? '';
-    if (type == 'oral' || type == 'quiz') return 25.0;
-    if (type == 'exam') return 50.0;
-    return _maxScore;
-  }
+  // الحد الأعلى المسموح به هو العلامة القصوى التي حددها المعلم
+  double get _allowedMax => _maxScore;
 
   String? _validateScore(String text) {
     if (text.trim().isEmpty) return null;
     final v = double.tryParse(text.trim());
     if (v == null) return 'قيمة غير صالحة';
     if (v < 0) return 'لا يمكن إدخال علامة سالبة';
-    if (v > _allowedMax) return 'الحد الأعلى هو ${_allowedMax.toStringAsFixed(0)}';
+    if (v > _maxScore) return 'الحد الأعلى هو ${_maxScore.toStringAsFixed(0)}';
     return null;
   }
 

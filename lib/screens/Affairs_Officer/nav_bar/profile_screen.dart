@@ -251,19 +251,13 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                         textColor: textColor,
                                         trailingIcon: Icons.lock_outline,
                                       ),
-                                      _buildEditableRow(
+                                      _buildInfoRow(
                                         icon: Icons.email_outlined,
                                         iconColor: Colors.blue,
                                         label: 'البريد الإلكتروني',
                                         value: officerData['email'],
                                         textColor: textColor,
-                                        onTap: () async {
-                                          await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (_) => const EditEmailScreen()),
-                                          );
-                                          _loadProfile();
-                                        },
+                                        trailingIcon: Icons.lock_outline,
                                       ),
                                       _buildEditableRow(
                                         icon: Icons.phone_android,

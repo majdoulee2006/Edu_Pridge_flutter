@@ -15,7 +15,14 @@ import '../../nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class LecturesScreen extends StatefulWidget {
-  const LecturesScreen({super.key});
+  final int? highlightLessonId;
+  final int? highlightCourseId;
+
+  const LecturesScreen({
+    super.key,
+    this.highlightLessonId,
+    this.highlightCourseId,
+  });
 
   @override
   State<LecturesScreen> createState() => _LecturesScreenState();
@@ -52,22 +59,42 @@ class _LecturesScreenState extends State<LecturesScreen> {
       );
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List<dynamic> data = response.data['data'] ?? [];
+        final targetLessonId = widget.highlightLessonId;
+        final targetCourseId = widget.highlightCourseId;
+
         setState(() {
           _allSubjects = data.asMap().entries.map((entry) {
             final i = entry.key;
             final course = entry.value as Map<String, dynamic>;
+            final courseId = course['course_id'];
             final style = _subjectStyles[i % _subjectStyles.length];
             final lessons = (course['lessons'] as List<dynamic>? ?? [])
                 .map((l) => _mapLesson(l as Map<String, dynamic>))
                 .toList();
+
+            bool hasTargetLesson = false;
+            if (targetLessonId != null) {
+              hasTargetLesson = lessons.any((l) =>
+                  l['id'] == targetLessonId ||
+                  l['id'].toString() == targetLessonId.toString());
+            }
+
+            bool isMatch = hasTargetLesson ||
+                (targetCourseId != null &&
+                    courseId.toString() == targetCourseId.toString());
+
+            bool expanded = isMatch ||
+                (targetLessonId == null && targetCourseId == null && i == 0);
+
             return {
+              'course_id': courseId,
               'title': course['course_name'] as String? ?? '',
               'subtitle':
                   '${course['teacher_name'] ?? ''} • ${course['total_files'] ?? 0} ملفات',
               'icon': style['icon'],
               'iconColor': style['iconColor'],
               'iconBgColor': style['iconBgColor'],
-              'initiallyExpanded': i == 0,
+              'initiallyExpanded': expanded,
               'files': lessons,
             };
           }).toList();
@@ -86,6 +113,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
     final date = lesson['date'] as String? ?? '';
     final fileSize = lesson['file_size'] as String?;
     final duration = lesson['duration'] as String?;
+    final lessonId = lesson['id'] ?? lesson['lesson_id'];
     String subtitle = date;
     if (fileSize != null && fileSize.isNotEmpty) {
       subtitle += ' • $fileSize';
@@ -95,6 +123,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
 
     return switch (type) {
       'video' => {
+        'id': lessonId,
         'title': title,
         'subtitle': subtitle,
         'type': 'video',
@@ -105,6 +134,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
         'bgColor': const Color(0xFFFFF9C4),
       },
       'link' => {
+        'id': lessonId,
         'title': title,
         'subtitle': subtitle,
         'type': 'link',
@@ -115,6 +145,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
         'bgColor': const Color(0xFFE8F5E9),
       },
       _ => {
+        'id': lessonId,
         'title': title,
         'subtitle': subtitle,
         'type': 'pdf',
@@ -220,6 +251,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                                     iconBgColor: subject['iconBgColor'],
                                     initiallyExpanded:
                                         subject['initiallyExpanded'],
+                                    highlightLessonId: widget.highlightLessonId,
                                     files: List<Map<String, dynamic>>.from(
                                         subject['files']),
                                   );
@@ -308,6 +340,7 @@ class _SubjectCard extends StatefulWidget {
   final Color iconColor;
   final Color iconBgColor;
   final bool initiallyExpanded;
+  final int? highlightLessonId;
   final List<Map<String, dynamic>> files;
 
   const _SubjectCard({
@@ -318,6 +351,7 @@ class _SubjectCard extends StatefulWidget {
     required this.iconBgColor,
     required this.files,
     this.initiallyExpanded = false,
+    this.highlightLessonId,
   });
 
   @override
@@ -588,6 +622,12 @@ class _SubjectCardState extends State<_SubjectCard> {
                 children: filteredFiles.asMap().entries.map((entry) {
                   final index = entry.key;
                   final file = entry.value;
+                  final fileId = file['id'];
+                  final isHighlighted = widget.highlightLessonId != null &&
+                      fileId != null &&
+                      (fileId == widget.highlightLessonId ||
+                          fileId.toString() == widget.highlightLessonId.toString());
+
                   return Column(
                     children: [
                       _buildFileItem(
@@ -603,6 +643,7 @@ class _SubjectCardState extends State<_SubjectCard> {
                         type: file['type'] as String? ?? 'pdf',
                         isDownloading: _downloading[file['url'] as String? ?? ''] == true,
                         isDownloaded: _downloaded[file['url'] as String? ?? ''] == true,
+                        isHighlighted: isHighlighted,
                         onDownload: () => _download(file['url'] as String? ?? ''),
                         onOpen: () {
                           final url = file['url'] as String? ?? '';
@@ -647,10 +688,11 @@ class _SubjectCardState extends State<_SubjectCard> {
     required VoidCallback onOpen,
     bool isDownloading = false,
     bool isDownloaded = false,
+    bool isHighlighted = false,
   }) {
     final isFileType = type != 'link' && type != 'video';
 
-    return Padding(
+    final content = Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
       child: Row(
         children: [
@@ -665,17 +707,44 @@ class _SubjectCardState extends State<_SubjectCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13,
-                        color: isDark ? Colors.white : Colors.black87)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isDark ? Colors.white : Colors.black87),
+                      ),
+                    ),
+                    if (isHighlighted)
+                      Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFCC00),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'المستهدفة',
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 3),
                 Text(subtitle,
-                    style: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey, fontSize: 11)),
+                    style: TextStyle(
+                        color: isDark ? Colors.grey.shade500 : Colors.grey,
+                        fontSize: 11)),
               ],
             ),
           ),
           if (!isFileType)
-            // رابط أو فيديو — زر فتح مباشر
             IconButton(
               icon: Icon(Icons.open_in_new_rounded,
                   color: isDark ? Colors.grey.shade400 : Colors.grey, size: 22),
@@ -683,28 +752,37 @@ class _SubjectCardState extends State<_SubjectCard> {
               splashRadius: 24,
             )
           else if (isDownloading)
-            const SizedBox(width: 40, height: 40,
-                child: Center(child: SizedBox(width: 22, height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00)))))
+            const SizedBox(
+                width: 40,
+                height: 40,
+                child: Center(
+                    child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Color(0xFFFFCC00)))))
           else
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // زر تحميل
                 IconButton(
                   icon: Icon(
-                    isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
-                    color: isDownloaded ? Colors.green : (isDark ? Colors.grey.shade400 : Colors.grey),
+                    isDownloaded
+                        ? Icons.download_done_rounded
+                        : Icons.download_rounded,
+                    color: isDownloaded
+                        ? Colors.green
+                        : (isDark ? Colors.grey.shade400 : Colors.grey),
                     size: 22,
                   ),
                   onPressed: isDownloaded ? null : onDownload,
                   splashRadius: 22,
                   tooltip: isDownloaded ? 'محمّل' : 'تحميل',
                 ),
-                // زر فتح (يظهر بعد التحميل)
                 if (isDownloaded)
                   IconButton(
-                    icon: const Icon(Icons.folder_open_rounded, color: Color(0xFFFFCC00), size: 22),
+                    icon: const Icon(Icons.folder_open_rounded,
+                        color: Color(0xFFFFCC00), size: 22),
                     onPressed: onOpen,
                     splashRadius: 22,
                     tooltip: 'فتح',
@@ -713,6 +791,19 @@ class _SubjectCardState extends State<_SubjectCard> {
             ),
         ],
       ),
+    );
+
+    if (!isHighlighted) return content;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFFFFCC00).withAlpha(30) : const Color(0xFFFFF9C4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFCC00), width: 1.8),
+      ),
+      child: content,
     );
   }
 }

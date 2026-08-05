@@ -300,12 +300,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                       String typeTag = rawType == 'course_specific' ? 'إعلان مقرر' : 'إعلان عام';
                                       bool isUrgent = rawAudience != 'all' || (dept != null && dept.isNotEmpty);
 
-                                      String authorName =
-                                          news['author_name'] ?? 'الإدارة';
+                                      String authorName = news['author_name'] ?? news['publisher_name'] ?? news['created_by'] ?? 'الإدارة';
                                       String date = (news['created_at'] ?? '')
                                           .toString()
                                           .split('T')
                                           .first;
+                                      String timeAgo = news['time_ago'] ?? date;
 
                                       return _buildNewsCard(
                                         announcementData: Map<String, dynamic>.from(news as Map),
@@ -313,8 +313,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                         audienceTag: audienceTag,
                                         title: news['title'] ?? 'بدون عنوان',
                                         description: news['content'] ?? '',
-                                        time:
-                                            "${news['time_ago'] ?? date} • $authorName",
+                                        time: "نشر بواسطة: $authorName • $timeAgo",
                                         gradientColors: isDark
                                             ? (isUrgent
                                                   ? [

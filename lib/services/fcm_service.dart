@@ -6,8 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 import 'package:edu_pridge_flutter/main.dart' show appNavigatorKey;
-
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lectures_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
 @pragma('vm:entry-point')
@@ -20,6 +22,44 @@ class FcmService {
 
   // VAPID key من Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
   static const String _vapidKey = "BPYnQg1rycEHNqFlogeie2VW-AfHoxmUkriiP649VN9aTE4l2rb1dmgbcYuXAXtkYZwwZOYch7YsusLihZfjIQg";
+
+  static void handleNotificationData(Map<String, dynamic> data) {
+    final type = data['type']?.toString();
+    final relatedIdStr = data['related_id']?.toString() ??
+        data['lecture_id']?.toString() ??
+        data['event_id']?.toString();
+    final intId = int.tryParse(relatedIdStr ?? '');
+
+    final ctx = appNavigatorKey.currentContext;
+    if (ctx == null) return;
+
+    switch (type) {
+      case 'lecture':
+        Navigator.push(
+          ctx,
+          MaterialPageRoute(
+            builder: (_) => LecturesScreen(highlightLessonId: intId),
+          ),
+        );
+        break;
+      case 'assignment':
+        Navigator.push(
+          ctx,
+          MaterialPageRoute(
+            builder: (_) => AssignmentsScreen(highlightId: intId),
+          ),
+        );
+        break;
+      case 'attendance':
+        Navigator.push(
+          ctx,
+          MaterialPageRoute(builder: (_) => const AttendanceScreen()),
+        );
+        break;
+      default:
+        break;
+    }
+  }
 
   static Future<void> initWeb() async {
     try {
@@ -41,7 +81,14 @@ class FcmService {
         final body  = message.notification?.body  ?? message.data['body']  ?? '';
         if (title.isNotEmpty || body.isNotEmpty) {
           final ctx = appNavigatorKey.currentContext;
-          if (ctx != null) showInAppBanner(ctx, title, body);
+          if (ctx != null) {
+            showInAppBanner(
+              ctx,
+              title,
+              body,
+              onTap: () => handleNotificationData(message.data),
+            );
+          }
         }
       });
       debugPrint('✅ Web FCM initialized');
@@ -68,6 +115,20 @@ class FcmService {
     // إذا تجدّد الـ token
     _messaging.onTokenRefresh.listen(_sendTokenToServer);
 
+    // عند ضغط الإشعار والتطبيق في الخلفية
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint('🔔 FCM Opened App: ${message.data}');
+      handleNotificationData(message.data);
+    });
+
+    // عند فتح التطبيق من الإشعار وهو مغلق تماماً
+    _messaging.getInitialMessage().then((RemoteMessage? message) {
+      if (message != null) {
+        debugPrint('🔔 FCM Initial Message: ${message.data}');
+        handleNotificationData(message.data);
+      }
+    });
+
     // إشعار وقت التطبيق مفتوح (foreground) — عرض بانر حقيقي
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (!AppSettings.isNotificationsEnabled.value) return;
@@ -77,7 +138,12 @@ class FcmService {
       if (title.isNotEmpty || body.isNotEmpty) {
         final ctx = appNavigatorKey.currentContext;
         if (ctx != null) {
-          showInAppBanner(ctx, title, body);
+          showInAppBanner(
+            ctx,
+            title,
+            body,
+            onTap: () => handleNotificationData(message.data),
+          );
         }
       }
     });

@@ -1514,55 +1514,20 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
           const SizedBox(height: 20),
 
-          // أزرار عرض الحاضرين والغائبين والكل
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
-                  label: const Text(
-                    'من قام بالمسح',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => _fetchAbsentList('present'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.person_off_outlined, color: Colors.white, size: 16),
-                  label: const Text(
-                    'الغائبون',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => _fetchAbsentList('absent'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+          // زر كشف الطلاب الموحد (يحتوي على الفلترة الكاملة)
           SizedBox(
             width: double.infinity,
-            height: 46,
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.format_list_bulleted, color: Colors.black, size: 18),
+            height: 50,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.groups_outlined, color: Colors.black, size: 20),
               label: const Text(
-                'عرض سجل جميع الطلاب (الكل)',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+                'عرض كشف الطلاب (حضور / غياب)',
+                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
               ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: _yellow, width: 2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _yellow,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               ),
               onPressed: () => _fetchAbsentList('all'),
             ),

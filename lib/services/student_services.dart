@@ -520,6 +520,29 @@ class StudentServices {
     }
     return null;
   }
+
+  // ==========================================
+  // 16. جلب بطاقة الطالب الكشف الأكاديمي الشامل
+  // ==========================================
+  Future<Map<String, dynamic>?> getAcademicCard(String? universityId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/student/academic-card",
+        queryParameters: universityId != null && universityId.trim().isNotEmpty ? {'university_id': universityId.trim()} : null,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ Academic Card Fetch Error: $e");
+    }
+    return null;
+  }
 }
 
 

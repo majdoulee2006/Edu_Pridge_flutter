@@ -62,16 +62,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   _buildSectionTitle('بيانات الحساب الإداري'),
                   _buildInfoCard([
                     _InfoRow(title: 'الاسم الكامل', value: adminData['name'], icon: Icons.person_outline),
-                    _InfoRow(
-                      title: 'البريد الإلكتروني',
-                      value: adminData['email'],
-                      icon: Icons.email_outlined,
-                      canEdit: true,
-                      onTap: () async {
-                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditEmailScreen()));
-                        // يمكنك إضافة تحديث البيانات هنا لاحقاً
-                      },
-                    ),
+                    _InfoRow(title: 'البريد الإلكتروني', value: adminData['email'], icon: Icons.email_outlined, isLocked: true),
                     _InfoRow(
                       title: 'رقم التواصل',
                       value: adminData['phone'],

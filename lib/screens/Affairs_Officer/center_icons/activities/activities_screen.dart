@@ -580,6 +580,25 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                             ),
                           ],
                         ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person_outline_rounded,
+                            size: 14,
+                            color: subColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            "نشر بواسطة: ${data['author_name'] ?? data['publisher_name'] ?? data['created_by'] ?? 'شؤون الطلاب'}",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: subColor,
+                              fontFamily: 'Noto Sans Arabic',
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ],

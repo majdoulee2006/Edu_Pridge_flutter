@@ -1,10 +1,12 @@
-import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'dart:ui' as ui;
+import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:dio/dio.dart';
 
 class CreateAnnouncementScreen extends StatefulWidget {
   const CreateAnnouncementScreen({super.key});
@@ -14,356 +16,607 @@ class CreateAnnouncementScreen extends StatefulWidget {
 }
 
 class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController   = TextEditingController();
-  final _contentController = TextEditingController();
-  final _linkController    = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _contentController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _categoryController = TextEditingController();
+  final TextEditingController _linkController = TextEditingController();
 
-  String _targetAudience = 'all';
-  bool _isLoading = false;
-  File? _pickedImage;
+  String _selectedAudience = 'all';
+  final Map<String, String> _audiences = {
+    'all': 'كل المعهد (عام)',
+    'students': 'الطلاب في قسم/دورة',
+    'teachers': 'المعلمين في قسم/دورة',
+    'heads': 'رؤساء الأقسام',
+  };
+
+  List<dynamic> _departments = [];
+  List<dynamic> _courses = [];
+  String? _selectedDepartment;
+  String? _selectedCourse;
+
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+  String? selectedImagePath;
+
+  bool isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMetadata();
+  }
+
+  Future<void> _fetchMetadata() async {
+    try {
+      await ApiService.init();
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/department-head/metadata",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (res.statusCode == 200 && res.data['success'] == true && mounted) {
+        setState(() {
+          _departments = res.data['data']['departments'] ?? [];
+          _courses = res.data['data']['courses'] ?? [];
+        });
+      }
+    } catch (e) {
+      debugPrint("❌ fetch metadata error: $e");
+    }
+  }
 
   @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _locationController.dispose();
+    _categoryController.dispose();
     _linkController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source, imageQuality: 80);
-    if (picked != null) {
-      final cropped = await ImageCropper().cropImage(
-        sourcePath: picked.path,
-        aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+  Future<void> _pickAndCropImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'قص الصورة',
-            toolbarColor: const Color(0xFFCCAA00),
+            toolbarTitle: 'تعديل الصورة',
+            toolbarColor: const Color(0xFFFFCC00),
             toolbarWidgetColor: Colors.black,
-            activeControlsWidgetColor: const Color(0xFFCCAA00),
-            initAspectRatio: CropAspectRatioPreset.ratio16x9,
-            lockAspectRatio: true,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
           ),
-          IOSUiSettings(
-            title: 'قص الصورة',
-            aspectRatioLockEnabled: true,
-          ),
+          IOSUiSettings(title: 'تعديل الصورة'),
         ],
       );
-      if (cropped != null) {
-        setState(() => _pickedImage = File(cropped.path));
+      if (croppedFile != null) {
+        setState(() {
+          selectedImagePath = croppedFile.path;
+        });
       }
     }
   }
 
-  void _showImageSourceSheet() {
-    showModalBottomSheet(
+  Future<void> _pickDate() async {
+    final date = await showDatePicker(
       context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFFCCAA00)),
-              title: const Text('التقاط صورة'),
-              onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(DateTime.now().year + 2),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFFFCC00),
+              onPrimary: Colors.black,
+              onSurface: Colors.black,
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: Color(0xFFCCAA00)),
-              title: const Text('اختيار من المعرض'),
-              onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
-            ),
-          ],
-        ),
-      ),
+          ),
+          child: child!,
+        );
+      },
     );
+    if (date != null) {
+      setState(() => _selectedDate = date);
+    }
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
+  Future<void> _pickTime() async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFFFCC00),
+              onPrimary: Colors.black,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (time != null) {
+      setState(() => _selectedTime = time);
+    }
+  }
+
+  Future<void> _submitAnnouncement() async {
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+
+    if (title.isEmpty) {
+      _showSnackBar("يرجى إدخال عنوان الإعلان");
+      return;
+    }
+    if (content.isEmpty) {
+      _showSnackBar("يرجى إدخال تفاصيل الإعلان");
+      return;
+    }
+
+    setState(() => isSubmitting = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
-      final formData = FormData.fromMap({
-        'title':           _titleController.text.trim(),
-        'content':         _contentController.text.trim(),
-        'target_audience': _targetAudience,
-        'link_url':        _linkController.text.trim(),
-        'allow_comments':  '0',
-        if (_pickedImage != null)
-          'image': await MultipartFile.fromFile(
-            _pickedImage!.path,
-            filename: _pickedImage!.path.split('/').last,
-          ),
-      });
+      Map<String, dynamic> mapData = {
+        'title': title,
+        'content': content,
+        'category': _categoryController.text.trim().isNotEmpty ? _categoryController.text.trim() : 'عام',
+        'target_audience': _selectedAudience,
+        if (_selectedDate != null) 'event_date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+        if (_selectedTime != null) 'event_time': "${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00",
+        if (_locationController.text.trim().isNotEmpty) 'location': _locationController.text.trim(),
+        if (_linkController.text.trim().isNotEmpty) 'link_url': _linkController.text.trim(),
+        if (_selectedDepartment != null) 'department_id': _selectedDepartment,
+        if (_selectedCourse != null) 'course_id': _selectedCourse,
+      };
 
-      await Dio().post(
+      FormData formData = FormData.fromMap(mapData);
+
+      if (selectedImagePath != null) {
+        formData.files.add(MapEntry(
+          'image',
+          await MultipartFile.fromFile(selectedImagePath!),
+        ));
+      }
+
+      final response = await Dio().post(
         '${ApiService().baseUrl}/department-head/announcements',
         data: formData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم نشر الإعلان بنجاح')),
-        );
-        Navigator.pop(context, true);
-      }
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] as String?
-          ?? e.response?.data?.toString()
-          ?? 'حدث خطأ: ${e.message}';
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        setState(() => isSubmitting = false);
+        if (response.statusCode == 200 && response.data['success'] == true) {
+          _showSnackBar("تم نشر الإعلان بنجاح", isError: false);
+          Navigator.pop(context, true);
+        } else {
+          _showSnackBar("فشل نشر الإعلان، يرجى المحاولة لاحقاً");
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ غير متوقع: $e')));
+        setState(() => isSubmitting = false);
+        _showSnackBar("حدث خطأ أثناء الاتصال بالخادم");
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnackBar(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+        backgroundColor: isError ? Colors.redAccent : Colors.green,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark    = Theme.of(context).brightness == Brightness.dark;
-    final bgColor   = Theme.of(context).scaffoldBackgroundColor;
-    final cardColor = Theme.of(context).cardColor;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryYellow = const Color(0xFFFFCC00);
+    final textColor = isDark ? Colors.white : Colors.black;
+    final cardColor = isDark ? const Color(0xFF1E2633) : Colors.white;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: bgColor,
+        backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
           elevation: 0,
+          title: const Text(
+            "نشر إعلان جديد",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, fontFamily: 'Noto Sans Arabic'),
+          ),
           centerTitle: true,
-          title: Text('نشر إعلان جديد',
-              style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back,
-                color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_back, color: textColor),
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // عنوان الإعلان
-                _sectionLabel('عنوان الإعلان', textColor),
-                const SizedBox(height: 8),
-                _buildField(
-                  controller: _titleController,
-                  hint: 'أدخل عنوان الإعلان',
-                  cardColor: cardColor,
-                  textColor: textColor,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'العنوان مطلوب' : null,
-                ),
-                const SizedBox(height: 20),
-
-                // محتوى الإعلان
-                _sectionLabel('محتوى الإعلان', textColor),
-                const SizedBox(height: 8),
-                _buildField(
-                  controller: _contentController,
-                  hint: 'اكتب تفاصيل الإعلان هنا...',
-                  cardColor: cardColor,
-                  textColor: textColor,
-                  maxLines: 6,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'المحتوى مطلوب' : null,
-                ),
-                const SizedBox(height: 20),
-
-                // صورة مرفقة (اختياري)
-                _sectionLabel('صورة مرفقة (اختياري)', textColor),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _showImageSourceSheet,
-                  child: Container(
-                    width: double.infinity,
-                    height: _pickedImage != null ? null : 110,
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                          color: const Color(0xFFCCAA00).withValues(alpha: 0.4),
-                          style: BorderStyle.solid),
+        body: isSubmitting
+            ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+            : SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // عنوان الإعلان
+                    TextField(
+                      controller: _titleController,
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                      decoration: const InputDecoration(
+                        hintText: "عنوان الإعلان (مثال: تنبيه هامي للمؤهلات)",
+                        hintStyle: TextStyle(fontSize: 18, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                        border: UnderlineInputBorder(),
+                      ),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: _pickedImage != null
-                        ? Stack(
+                    const SizedBox(height: 20),
+
+                    // اختيار الجمهور المستهدف والتصنيف
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Image.file(_pickedImage!,
-                                  width: double.infinity,
-                                  fit: BoxFit.fill),
-                              Positioned(
-                                top: 8,
-                                left: 8,
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _pickedImage = null),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                        color: Colors.black54,
-                                        shape: BoxShape.circle),
-                                    child: const Icon(Icons.close,
-                                        color: Colors.white, size: 18),
+                              Text(
+                                "الجمهور المستهدف:",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                value: _selectedAudience,
+                                decoration: InputDecoration(
+                                  fillColor: cardColor,
+                                  filled: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                                ),
+                                dropdownColor: cardColor,
+                                style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                items: _audiences.entries.map((entry) {
+                                  return DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text(entry.value, overflow: TextOverflow.ellipsis),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedAudience = val ?? "all";
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "تصنيف الإعلان:",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _categoryController,
+                                style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                decoration: InputDecoration(
+                                  hintText: "مثال: إداري، تنبيه...",
+                                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                                  fillColor: cardColor,
+                                  filled: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "القسم (اختياري):",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                value: _selectedDepartment,
+                                decoration: InputDecoration(
+                                  fillColor: cardColor,
+                                  filled: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                                ),
+                                dropdownColor: cardColor,
+                                style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                items: [
+                                  const DropdownMenuItem<String>(value: null, child: Text("كل الأقسام", overflow: TextOverflow.ellipsis)),
+                                  ..._departments.map((dept) {
+                                    return DropdownMenuItem<String>(
+                                      value: dept['department_id'].toString(),
+                                      child: Text(dept['name'].toString(), overflow: TextOverflow.ellipsis),
+                                    );
+                                  }).toList(),
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedDepartment = val;
+                                    _selectedCourse = null;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "الدورة (اختياري):",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                value: _selectedCourse,
+                                decoration: InputDecoration(
+                                  fillColor: cardColor,
+                                  filled: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                                ),
+                                dropdownColor: cardColor,
+                                style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                items: [
+                                  const DropdownMenuItem<String>(value: null, child: Text("كل الدورات", overflow: TextOverflow.ellipsis)),
+                                  ..._courses.map((c) {
+                                    return DropdownMenuItem<String>(
+                                      value: (c['course_id'] ?? c['id']).toString(),
+                                      child: Text((c['title'] ?? c['name'] ?? '').toString(), overflow: TextOverflow.ellipsis),
+                                    );
+                                  }).toList(),
+                                ],
+                                onChanged: (val) {
+                                  setState(() => _selectedCourse = val);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // التاريخ والوقت (اختياري)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "التاريخ (اختياري):",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                              ),
+                              const SizedBox(height: 8),
+                              InkWell(
+                                onTap: _pickDate,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+                                  decoration: BoxDecoration(
+                                    color: cardColor,
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _selectedDate == null ? 'اختر التاريخ' : DateFormat('yyyy-MM-dd').format(_selectedDate!),
+                                        style: TextStyle(color: _selectedDate == null ? Colors.grey : textColor, fontSize: 13, fontFamily: 'Noto Sans Arabic'),
+                                      ),
+                                      Icon(Icons.calendar_today, color: Colors.grey.shade400, size: 20),
+                                    ],
                                   ),
                                 ),
                               ),
                             ],
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.add_photo_alternate_outlined,
-                                  color: Color(0xFFCCAA00), size: 36),
-                              SizedBox(height: 6),
-                              Text('اضغط لإضافة صورة',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 13)),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "الوقت (اختياري):",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                              ),
+                              const SizedBox(height: 8),
+                              InkWell(
+                                onTap: _pickTime,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+                                  decoration: BoxDecoration(
+                                    color: cardColor,
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _selectedTime == null ? 'اختر الوقت' : _selectedTime!.format(context),
+                                        style: TextStyle(color: _selectedTime == null ? Colors.grey : textColor, fontSize: 13, fontFamily: 'Noto Sans Arabic'),
+                                      ),
+                                      Icon(Icons.access_time, color: Colors.grey.shade400, size: 20),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // رابط خارجي (اختياري)
-                _sectionLabel('رابط خارجي (اختياري)', textColor),
-                const SizedBox(height: 8),
-                _buildField(
-                  controller: _linkController,
-                  hint: 'https://...',
-                  cardColor: cardColor,
-                  textColor: textColor,
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: 20),
-
-                // الجمهور المستهدف
-                _sectionLabel('الجمهور المستهدف', textColor),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(20)),
-                  child: Row(
-                    children: [
-                      _targetChip('طلاب فقط',  'students', textColor),
-                      _targetChip('معلمون فقط', 'teachers', textColor),
-                      _targetChip('الجميع',     'all',      textColor),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // زر النشر
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCCAA00),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
-                      elevation: 0,
+                        ),
+                      ],
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.black))
-                        : const Text('نشر الإعلان',
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16)),
+                    const SizedBox(height: 20),
+
+                    // تفاصيل الإعلان
+                    Text(
+                      "تفاصيل الإعلان:",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.grey.withAlpha(30)),
+                      ),
+                      child: TextField(
+                        controller: _contentController,
+                        maxLines: 5,
+                        style: TextStyle(fontSize: 16, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                        decoration: const InputDecoration(
+                          hintText: "اكتب تفاصيل الإعلان هنا...",
+                          hintStyle: TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // الموقع (اختياري)
+                    Text(
+                      "الموقع (اختياري):",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _locationController,
+                      style: TextStyle(fontSize: 16, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                      decoration: InputDecoration(
+                        hintText: "مثال: المسرح الجامعي",
+                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                        fillColor: cardColor,
+                        filled: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // رابط خارجي (اختياري)
+                    Text(
+                      "رابط خارجي (اختياري):",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _linkController,
+                      keyboardType: TextInputType.url,
+                      style: TextStyle(fontSize: 16, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                      decoration: InputDecoration(
+                        hintText: "https://...",
+                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                        fillColor: cardColor,
+                        filled: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // إرفاق صورة للإعلان
+                    Text(
+                      "إرفاق صورة للإعلان (اختياري):",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: _pickAndCropImage,
+                      child: Container(
+                        height: 150,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.grey.withAlpha(50)),
+                        ),
+                        child: selectedImagePath != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(15),
+                                child: Image.file(
+                                  File(selectedImagePath!),
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey.shade400),
+                                  const SizedBox(height: 8),
+                                  Text("اضغط لإضافة صورة", style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Noto Sans Arabic')),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+        bottomNavigationBar: isSubmitting
+            ? null
+            : SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ElevatedButton(
+                    onPressed: _submitAnnouncement,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryYellow,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(double.infinity, 58),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 8,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "نشر الإعلان",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
+                        ),
+                        SizedBox(width: 10),
+                        Icon(Icons.campaign, size: 22),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 40),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionLabel(String text, Color textColor) {
-    return Text(text,
-        style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: textColor));
-  }
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required String hint,
-    required Color cardColor,
-    required Color textColor,
-    int maxLines = 1,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: TextStyle(color: textColor),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: cardColor,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
-    );
-  }
-
-  Widget _targetChip(String label, String value, Color textColor) {
-    final isSelected = _targetAudience == value;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _targetAudience = value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFCCAA00) : Colors.transparent,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Center(
-            child: Text(label,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: isSelected ? Colors.black : Colors.grey)),
-          ),
-        ),
+              ),
       ),
     );
   }

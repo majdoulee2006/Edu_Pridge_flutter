@@ -200,6 +200,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     int? selectedCourseId;
     String selectedCourseTitle = '';
     int? selectedCourseYear;
+    String selectedCourseProgramName = '';
     String selectedType = 'exam';
     final titleCtrl    = TextEditingController();
     final maxScoreCtrl = TextEditingController(text: '100');
@@ -287,8 +288,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                             onTap: () async {
                               setSheet(() {
                                 selectedType = t['val'] as String;
-                                if (selectedType == 'oral') maxScoreCtrl.text = '25';
-                                else if (maxScoreCtrl.text == '25') maxScoreCtrl.text = '100';
 
                                 if (selectedType == 'exam') {
                                   durationCtrl.text = 'ساعتان';
@@ -344,112 +343,51 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // ── المادة (امتحان / مذاكرة) أو الدورة+السنة+الطلاب (شفهي) ──
-                  if (selectedType != 'oral') ...[
-                    const Text('المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  // ── المادة (لكافة أنواع التقييم: امتحان / مذاكرة / شفهي) ──
+                  const Text('المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<int>(
+                    decoration: _inputDec('اختر المادة'),
+                    value: selectedCourseId,
+                    items: _myCourses.map((c) => DropdownMenuItem<int>(
+                      value: c['id'] as int,
+                      child: Text(c['title'] as String? ?? ''),
+                    )).toList(),
+                    onChanged: (v) {
+                      final course = _myCourses.firstWhere((c) => c['id'] == v, orElse: () => {});
+                      setSheet(() {
+                        selectedCourseId = v;
+                        selectedCourseTitle = course['title'] as String? ?? '';
+                        selectedCourseYear = course['year'] as int?;
+                        selectedCourseProgramName = course['program_name'] as String? ?? course['level'] as String? ?? '';
+                        selStudentId = null;
+                        selStudentName = '';
+                        _programStudents = [];
+                      });
+                    },
+                    validator: (v) => v == null ? 'اختر المادة' : null,
+                  ),
+                  if (selectedCourseId != null) ...[
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<int>(
-                      decoration: _inputDec('اختر المادة'),
-                      value: selectedCourseId,
-                      items: _myCourses.map((c) => DropdownMenuItem<int>(
-                        value: c['id'] as int,
-                        child: Text(c['title'] as String? ?? ''),
-                      )).toList(),
-                      onChanged: (v) {
-                        final course = _myCourses.firstWhere((c) => c['id'] == v, orElse: () => {});
-                        setSheet(() {
-                          selectedCourseId = v;
-                          selectedCourseTitle = course['title'] as String? ?? '';
-                          selectedCourseYear = course['year'] as int?;
-                        });
-                      },
-                      validator: (v) => v == null ? 'اختر المادة' : null,
-                    ),
-                    if (selectedCourseYear != null) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(color: _yellow.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.school_outlined, size: 15, color: Colors.black54),
-                            const SizedBox(width: 6),
-                            Text(yearLabels[selectedCourseYear] ?? 'السنة $selectedCourseYear',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87)),
-                          ],
-                        ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: _yellow.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.school_outlined, size: 15, color: Colors.black54),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${yearLabels[selectedCourseYear] ?? 'السنة ${selectedCourseYear ?? 1}'}${selectedCourseProgramName.isNotEmpty ? ' - $selectedCourseProgramName' : ''}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87),
+                          ),
+                        ],
                       ),
-                    ],
-                    const SizedBox(height: 16),
-                  ] else ...[
-                    // ── الدورة ──
-                    const Text('الدورة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
-                    const SizedBox(height: 8),
-                    _programs.isEmpty
-                        ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
-                        : Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _programs.map((p) {
-                              final isSel = selProgramId == p['id'];
-                              return GestureDetector(
-                                onTap: () => setSheet(() {
-                                  selProgramId = p['id'] as int;
-                                  selProgramName = p['name'] as String;
-                                  selStudentId = null;
-                                  selStudentName = '';
-                                  _programStudents = [];
-                                }),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                                  decoration: BoxDecoration(
-                                    color: isSel ? _yellow : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: isSel ? _yellow : Colors.grey.shade300),
-                                  ),
-                                  child: Text(p['name'] as String, style: TextStyle(color: isSel ? Colors.black : Colors.black87, fontWeight: FontWeight.w600, fontSize: 13)),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                    const SizedBox(height: 16),
-
-                    // ── السنة ──
-                    const Text('السنة الدراسية', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [1, 2].map((y) {
-                        final isSel = selYearLevel == y;
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: () => setSheet(() {
-                              selYearLevel = y;
-                              selStudentId = null;
-                              selStudentName = '';
-                              _programStudents = [];
-                            }),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              margin: EdgeInsets.only(left: y == 1 ? 8 : 0),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isSel ? _yellow : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: isSel ? _yellow : Colors.grey.shade300),
-                              ),
-                              child: Center(
-                                child: Text(y == 1 ? 'سنة أولى' : 'سنة ثانية',
-                                    style: TextStyle(color: isSel ? Colors.black : Colors.black87, fontWeight: FontWeight.w600, fontSize: 13)),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
                     ),
-                    const SizedBox(height: 16),
+                  ],
+                  const SizedBox(height: 16),
 
+                  if (selectedType == 'oral') ...[
                     // ── تطبيق على ──
                     const Text('تطبيق على', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
                     const SizedBox(height: 8),
@@ -474,15 +412,16 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         Expanded(
                           child: GestureDetector(
                             onTap: () async {
-                              if (selProgramId == null || selYearLevel == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر الدورة والسنة أولاً')));
+                              if (selectedCourseId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر المادة أولاً')));
                                 return;
                               }
                               setSheet(() { oralAllStudents = false; _loadingStudents = true; });
                               final prefs = await SharedPreferences.getInstance();
                               final token = prefs.getString('token') ?? '';
+                              final String fetchUrl = "${ApiService().baseUrl}/teacher/grades/program-students?course_id=$selectedCourseId";
                               final res = await Dio().get(
-                                "${ApiService().baseUrl}/teacher/grades/program-students?program_id=$selProgramId&year_level=$selYearLevel",
+                                fetchUrl,
                                 options: Options(headers: {"Authorization": "Bearer $token"}),
                               );
                               if (res.statusCode == 200) {
@@ -557,11 +496,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                             const SizedBox(height: 8),
                             TextFormField(
                               controller: maxScoreCtrl,
-                              decoration: _inputDec(selectedType == 'oral' ? '25' : '100'),
+                              decoration: _inputDec('100'),
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              readOnly: selectedType == 'oral',
-                              validator: (v) => (double.tryParse(v ?? '') == null) ? 'خطأ' : null,
+                              validator: (v) {
+                                final d = double.tryParse(v ?? '');
+                                if (d == null || d <= 0) return 'أدخل علامة صالحة';
+                                return null;
+                              },
                             ),
                           ],
                         ),
@@ -686,10 +628,18 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                       label: const Text('إنشاء التقييم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       onPressed: () async {
                         if (selectedType == 'oral') {
-                          if (selProgramId == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر الدورة'))); return; }
-                          if (selYearLevel == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر السنة'))); return; }
-                          if (!oralAllStudents && selStudentId == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر الطالب'))); return; }
-                          if (titleCtrl.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل العنوان'))); return; }
+                          if (selectedCourseId == null && (selProgramId == null || selYearLevel == null)) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر المادة أو (الدورة والسنة)')));
+                            return;
+                          }
+                          if (!oralAllStudents && selStudentId == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر الطالب')));
+                            return;
+                          }
+                          if (titleCtrl.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل العنوان')));
+                            return;
+                          }
                         } else {
                           if (!formKey.currentState!.validate()) return;
                         }
@@ -703,8 +653,10 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
 
                         Navigator.pop(ctx);
                         await _createGradeEvent(
-                          courseId: selectedType != 'oral' ? selectedCourseId! : null,
-                          courseTitle: selectedType != 'oral' ? selectedCourseTitle : '$selProgramName - ${yearLabels[selYearLevel] ?? ''}',
+                          courseId: selectedCourseId,
+                          courseTitle: selectedCourseTitle.isNotEmpty
+                              ? selectedCourseTitle
+                              : '$selProgramName - ${yearLabels[selYearLevel] ?? ''}',
                           type: selectedType,
                           title: titleCtrl.text.trim(),
                           maxScore: double.parse(maxScoreCtrl.text.isEmpty ? '25' : maxScoreCtrl.text),
@@ -713,7 +665,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                           duration: selectedType != 'oral' ? durationCtrl.text.trim() : null,
                           notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
                           programId: selProgramId,
-                          yearLevel: selYearLevel,
+                          yearLevel: selYearLevel ?? selectedCourseYear,
                           studentId: !oralAllStudents ? selStudentId : null,
                         );
                       },
@@ -757,8 +709,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
       };
 
       if (type == 'oral') {
-        body['program_id'] = programId;
-        body['year_level'] = yearLevel;
+        if (programId != null) body['program_id'] = programId;
+        if (yearLevel != null) body['year_level'] = yearLevel;
+        if (courseId != null) body['course_id'] = courseId;
         if (studentId != null) body['student_id'] = studentId;
       } else {
         body['course_id'] = courseId;

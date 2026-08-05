@@ -11,6 +11,7 @@ import 'package:edu_pridge_flutter/screens/student/student_service_requests_list
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/grades/grades_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/courses/courses_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/grades/student_academic_card_screen.dart';
 
 // ─── StudentServicesMenuScreen ──────────────────────────────────────────────
 class StudentServicesMenuScreen extends StatelessWidget {
@@ -66,37 +67,17 @@ class StudentServicesMenuScreen extends StatelessWidget {
                       const SizedBox(height: 10),
 
                       _buildServiceCard(
-                        icon: Icons.grade_rounded,
+                        icon: Icons.badge_rounded,
                         iconColor: const Color(0xFF4CAF50),
-                        title: isAr ? "كشف العلامات الأكاديمية" : "Academic Grades Transcript",
+                        title: isAr ? "كشف علامات الطالب والبطاقة الأكاديمية" : "Student Academic Card & Transcript",
                         subtitle: isAr
-                            ? "عرض تفصيلي لدرجات المواد والعملي والشفهي والنهائي"
-                            : "Detailed view of course grades, oral, practical & finals",
+                            ? "استعراض بطاقة الطالب، درجات المقررات، والمعدل ونسبة الحضور بالرقم الجامعي"
+                            : "View student card, course grades, cumulative GPA & attendance rate",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
                         isAr: isAr,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const GradesScreen()),
-                        ),
-                      ),
-
-                      _buildServiceCard(
-                        icon: Icons.menu_book_rounded,
-                        iconColor: const Color(0xFF2196F3),
-                        title: isAr ? "المواد الدراسية المسجلة" : "Enrolled Courses",
-                        subtitle: isAr
-                            ? "استعراض المواد والجدول والقاعات والمستندات"
-                            : "View courses, timetable, classrooms & lecture files",
-                        cardColor: cardColor,
-                        textColor: textColor,
-                        subColor: subColor,
-                        isAr: isAr,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CoursesScreen()),
-                        ),
+                        onTap: () => _showUniversityIdPopup(context, isAr),
                       ),
 
                       const SizedBox(height: 15),
@@ -283,6 +264,130 @@ class StudentServicesMenuScreen extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  void _showUniversityIdPopup(BuildContext context, bool isAr) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString('user');
+    String initialId = '';
+    if (userJson != null) {
+      try {
+        final Map<String, dynamic> userMap = Map<String, dynamic>.from(Uri.splitQueryString(userJson));
+        initialId = userMap['university_id'] ?? userMap['username'] ?? '';
+      } catch (_) {}
+    }
+
+    final controller = TextEditingController(text: initialId);
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final textColor = isDark ? Colors.white : Colors.black;
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: cardColor,
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.badge_rounded, color: AppColors.accent, size: 24),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isAr ? "كشف علامات الطالب" : "Student Academic Card",
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    fontFamily: 'Tajawal',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isAr
+                    ? "يرجى إدخال الرقم الجامعي للطالب لاستعراض بطاقة الكشف الأكاديمي والدرجات الحالية:"
+                    : "Please enter the student's university ID to view the academic transcript card:",
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  labelText: isAr ? "الرقم الجامعي *" : "University ID *",
+                  hintText: "مثال: 202601",
+                  prefixIcon: const Icon(Icons.numbers_rounded, color: AppColors.accent),
+                  filled: true,
+                  fillColor: isDark ? Colors.black26 : Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                isAr ? "إلغاء" : "Cancel",
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              onPressed: () {
+                final idStr = controller.text.trim();
+                if (idStr.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(isAr ? "يرجى إدخال الرقم الجامعي أولاً" : "Please enter university ID")),
+                  );
+                  return;
+                }
+                Navigator.pop(context); // Close dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StudentAcademicCardScreen(universityId: idStr),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.visibility_rounded, size: 18),
+              label: Text(
+                isAr ? "عرض بطاقة الطالب" : "View Card",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
