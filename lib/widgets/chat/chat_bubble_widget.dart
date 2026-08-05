@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ChatBubbleWidget extends StatelessWidget {
+class ChatBubbleWidget extends StatefulWidget {
   final String text;
   final bool isSender;
   final String? attachment;
+  final String? time;
+  final String status; // 'sent', 'delivered', 'read'
   final bool isRead;
   final bool isDelivered;
   final VoidCallback? onLongPress;
@@ -15,10 +17,19 @@ class ChatBubbleWidget extends StatelessWidget {
     required this.text,
     required this.isSender,
     this.attachment,
-    this.isRead = false,
+    this.time,
+    this.status = 'read',
+    this.isRead = true,
     this.isDelivered = false,
     this.onLongPress,
   });
+
+  @override
+  State<ChatBubbleWidget> createState() => _ChatBubbleWidgetState();
+}
+
+class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
+  bool _isPlayingAudio = false;
 
   bool _isImage(String url) {
     final lower = url.toLowerCase();
@@ -37,7 +48,8 @@ class ChatBubbleWidget extends StatelessWidget {
         lower.contains('.ogg') ||
         lower.contains('.aac') ||
         lower.contains('voice_notes') ||
-        lower.contains('voice-note');
+        lower.contains('voice-note') ||
+        widget.text == '[Voice Note]';
   }
 
   bool _isVideo(String url) {
@@ -55,19 +67,48 @@ class ChatBubbleWidget extends StatelessWidget {
     }
   }
 
+  Widget _buildTickIcon() {
+    if (!widget.isSender) return const SizedBox.shrink();
+
+    // WhatsApp style ticks:
+    // read -> double blue ticks
+    // delivered -> double gray ticks
+    // sent -> single gray tick
+    if (widget.status == 'read' || widget.isRead) {
+      return const Icon(
+        Icons.done_all,
+        size: 16,
+        color: Color(0xFF34B7F1), // WhatsApp Blue Tick
+      );
+    } else if (widget.status == 'delivered') {
+      return const Icon(
+        Icons.done_all,
+        size: 16,
+        color: Colors.grey,
+      );
+    } else {
+      return const Icon(
+        Icons.check,
+        size: 16,
+        color: Colors.grey,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final String? fixedUrl = ApiService.fixMediaUrl(attachment);
+    final String? fixedUrl = ApiService.fixMediaUrl(widget.attachment);
+    final String timeStr = widget.time ?? 'الآن';
 
     Widget mediaContent = const SizedBox.shrink();
 
-    if (fixedUrl != null && fixedUrl.isNotEmpty) {
-      if (_isImage(fixedUrl)) {
+    if ((fixedUrl != null && fixedUrl.isNotEmpty) || widget.text == '[Voice Note]') {
+      if (fixedUrl != null && _isImage(fixedUrl)) {
         mediaContent = GestureDetector(
           onTap: () => _openAttachment(fixedUrl),
           child: Container(
-            margin: const EdgeInsets.only(top: 8),
+            margin: const EdgeInsets.only(top: 6),
             constraints: const BoxConstraints(maxHeight: 200, maxWidth: 250),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
@@ -89,42 +130,84 @@ class ChatBubbleWidget extends StatelessWidget {
             ),
           ),
         );
-      } else if (_isAudio(fixedUrl)) {
+      } else if ((fixedUrl != null && _isAudio(fixedUrl)) || widget.text == '[Voice Note]') {
+        // 🎙️ مشغل التسجيل الصوتي بتصميم الواتس اب المميز
         mediaContent = Container(
-          margin: const EdgeInsets.only(top: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          margin: const EdgeInsets.only(top: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: isSender ? Colors.black.withAlpha(38) : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(12),
+            color: widget.isSender ? Colors.black.withAlpha(25) : Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: Icon(Icons.play_arrow, color: isSender ? Colors.white : Colors.black87),
-                onPressed: () => _openAttachment(fixedUrl),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isPlayingAudio = !_isPlayingAudio;
+                  });
+                  if (fixedUrl != null && fixedUrl.isNotEmpty) {
+                    _openAttachment(fixedUrl);
+                  }
+                },
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: widget.isSender ? Colors.black : const Color(0xFFFFCC00),
+                  child: Icon(
+                    _isPlayingAudio ? Icons.pause : Icons.play_arrow_rounded,
+                    color: widget.isSender ? Colors.white : Colors.black,
+                    size: 22,
+                  ),
+                ),
               ),
-              const SizedBox(width: 5),
-              Text(
-                "رسالة صوتية",
-                style: TextStyle(
-                  color: isSender ? Colors.white : Colors.black87,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(width: 10),
+              // Waveform representation
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(
+                        14,
+                        (i) => Container(
+                          width: 3,
+                          height: (i % 3 == 0 ? 18.0 : (i % 2 == 0 ? 12.0 : 8.0)),
+                          decoration: BoxDecoration(
+                            color: _isPlayingAudio
+                                ? (widget.isSender ? Colors.black : const Color(0xFF00A884))
+                                : (widget.isSender ? Colors.black45 : Colors.grey.shade600),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _isPlayingAudio ? "جاري التشغيل..." : "تسجيل صوتي (0:15)",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: widget.isSender ? Colors.black87 : Colors.black54,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.mic, color: isSender ? Colors.white70 : Colors.grey),
+              Icon(Icons.mic, color: widget.isSender ? Colors.black54 : Colors.grey.shade700, size: 20),
             ],
           ),
         );
-      } else if (_isVideo(fixedUrl)) {
+      } else if (fixedUrl != null && _isVideo(fixedUrl)) {
         mediaContent = GestureDetector(
           onTap: () => _openAttachment(fixedUrl),
           child: Container(
-            margin: const EdgeInsets.only(top: 8),
+            margin: const EdgeInsets.only(top: 6),
             height: 150,
-            width: 250,
+            width: 230,
             decoration: BoxDecoration(
               color: Colors.black87,
               borderRadius: BorderRadius.circular(15),
@@ -134,29 +217,29 @@ class ChatBubbleWidget extends StatelessWidget {
             ),
           ),
         );
-      } else {
+      } else if (fixedUrl != null) {
         // Document/File
         final String fileName = fixedUrl.split('/').last;
         mediaContent = GestureDetector(
           onTap: () => _openAttachment(fixedUrl),
           child: Container(
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isSender ? Colors.black.withAlpha(25) : Colors.grey.shade100,
+              color: widget.isSender ? Colors.black.withAlpha(25) : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.withAlpha(51)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.insert_drive_file, color: isSender ? Colors.white : Colors.blue),
-                const SizedBox(width: 10),
+                Icon(Icons.insert_drive_file, color: widget.isSender ? Colors.black : Colors.blue),
+                const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     fileName.length > 20 ? "...${fileName.substring(fileName.length - 17)}" : fileName,
                     style: TextStyle(
-                      color: isSender ? Colors.white : Colors.black87,
+                      color: widget.isSender ? Colors.black : Colors.black87,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -170,47 +253,66 @@ class ChatBubbleWidget extends StatelessWidget {
       }
     }
 
-    final showText = text != "[Attachment]" && text != "[Voice Note]";
+    final showText = widget.text != "[Attachment]" && widget.text != "[Voice Note]";
 
     return GestureDetector(
-      onLongPress: onLongPress,
+      onLongPress: widget.onLongPress,
       child: Align(
-        alignment: isSender ? Alignment.centerLeft : Alignment.centerRight,
+        alignment: widget.isSender ? Alignment.centerLeft : Alignment.centerRight,
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
           decoration: BoxDecoration(
-            color: isSender
+            color: widget.isSender
                 ? const Color(0xFFFFCC00)
-                : (isDark ? Colors.white.withAlpha(12) : Colors.grey.shade200),
+                : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
             borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(20),
-              topRight: const Radius.circular(20),
-              bottomLeft: isSender ? const Radius.circular(20) : const Radius.circular(0),
-              bottomRight: isSender ? const Radius.circular(0) : const Radius.circular(20),
+              topLeft: const Radius.circular(18),
+              topRight: const Radius.circular(18),
+              bottomLeft: widget.isSender ? const Radius.circular(18) : const Radius.circular(2),
+              bottomRight: widget.isSender ? const Radius.circular(2) : const Radius.circular(18),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(12),
-                blurRadius: 5,
+                color: Colors.black.withAlpha(10),
+                blurRadius: 4,
                 offset: const Offset(0, 2),
               )
             ],
           ),
           child: Column(
-            crossAxisAlignment: isSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: widget.isSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showText)
                 Text(
-                  text,
+                  widget.text,
                   style: TextStyle(
-                    color: isSender ? Colors.black : (isDark ? Colors.white : Colors.black87),
+                    color: widget.isSender ? Colors.black : (isDark ? Colors.white : Colors.black87),
                     fontSize: 14,
-                    height: 1.4,
+                    height: 1.35,
                   ),
                 ),
               mediaContent,
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    timeStr,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: widget.isSender ? Colors.black54 : (isDark ? Colors.grey.shade400 : Colors.grey.shade700),
+                    ),
+                  ),
+                  if (widget.isSender) ...[
+                    const SizedBox(width: 4),
+                    _buildTickIcon(),
+                  ],
+                ],
+              ),
             ],
           ),
         ),

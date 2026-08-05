@@ -8,6 +8,12 @@ class ChatMessage {
   bool isDelivered; // 🌟 Added for read receipts
 
   String get text => message; // For backward compatibility with existing UI
+  String get time {
+    final hour = timestamp.hour > 12 ? timestamp.hour - 12 : (timestamp.hour == 0 ? 12 : timestamp.hour);
+    final period = timestamp.hour >= 12 ? 'م' : 'ص';
+    final minute = timestamp.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $period';
+  }
 
   ChatMessage({
     required this.id,

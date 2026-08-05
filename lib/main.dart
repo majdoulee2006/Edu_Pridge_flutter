@@ -21,21 +21,29 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiService.init(); // 🌟 كشف السيرفر تلقائياً عند التشغيل
   if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyAgT4rvWSyvaDbHujMmZTDDUZn2xMnts5M",
-        authDomain: "edu-bridge-246fd.firebaseapp.com",
-        projectId: "edu-bridge-246fd",
-        storageBucket: "edu-bridge-246fd.firebasestorage.app",
-        messagingSenderId: "1087208747554",
-        appId: "1:1087208747554:web:ab689779c18d1872f9107b",
-        measurementId: "G-7NNSYEDPYB",
-      ),
-    );
-    await FcmService.initWeb();
+    try {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyAgT4rvWSyvaDbHujMmZTDDUZn2xMnts5M",
+          authDomain: "edu-bridge-246fd.firebaseapp.com",
+          projectId: "edu-bridge-246fd",
+          storageBucket: "edu-bridge-246fd.firebasestorage.app",
+          messagingSenderId: "1087208747554",
+          appId: "1:1087208747554:web:ab689779c18d1872f9107b",
+          measurementId: "G-7NNSYEDPYB",
+        ),
+      );
+      await FcmService.initWeb();
+    } catch (e) {
+      debugPrint("Firebase Web init error: $e");
+    }
   } else {
-    await Firebase.initializeApp();
-    await FcmService.init();
+    try {
+      await Firebase.initializeApp();
+      await FcmService.init();
+    } catch (e) {
+      debugPrint("Firebase Native init error: $e");
+    }
   }
   await AppSettings.loadFromPrefs();
   runApp(

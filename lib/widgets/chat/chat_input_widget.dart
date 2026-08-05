@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -21,6 +22,9 @@ class ChatInputWidget extends StatefulWidget {
 
 class _ChatInputWidgetState extends State<ChatInputWidget> {
   late TextEditingController _controller;
+  bool _isRecordingVoice = false;
+  int _recordingSeconds = 0;
+  Timer? _recordingTimer;
 
   @override
   void initState() {
@@ -29,11 +33,51 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }
 
   @override
+  void dispose() {
+    _recordingTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(ChatInputWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != null && widget.controller != _controller) {
       _controller = widget.controller!;
     }
+  }
+
+  void _startVoiceRecording() {
+    setState(() {
+      _isRecordingVoice = true;
+      _recordingSeconds = 0;
+    });
+    _recordingTimer?.cancel();
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _recordingSeconds++;
+        });
+      }
+    });
+  }
+
+  void _stopAndSendVoiceRecording() {
+    _recordingTimer?.cancel();
+    setState(() {
+      _isRecordingVoice = false;
+    });
+    widget.onSend(
+      "[Voice Note]",
+      fileName: "voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a",
+    );
+  }
+
+  void _cancelVoiceRecording() {
+    _recordingTimer?.cancel();
+    setState(() {
+      _isRecordingVoice = false;
+      _recordingSeconds = 0;
+    });
   }
 
   Future<void> _pickFile() async {
@@ -70,6 +114,12 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     }
   }
 
+  String _formatRecordingTime(int seconds) {
+    final mins = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return "$mins:$secs";
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -78,72 +128,131 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     final textColor = isDark ? Colors.white : Colors.black;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       color: bgColor,
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: _isRecordingVoice
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: inputBgColor,
-                borderRadius: BorderRadius.circular(30), // Oval-shaped (rounded)
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.red.shade200),
               ),
-              child: TextField(
-                controller: _controller,
-                style: TextStyle(color: textColor),
-                decoration: InputDecoration(
-                  hintText: 'اكتب رسالة...',
-                  hintStyle: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade500 : Colors.grey),
-                  border: InputBorder.none,
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.isEditing)
-                        IconButton(
-                          icon: Icon(Icons.cancel, color: Colors.red.shade400, size: 22),
-                          onPressed: widget.onCancelEdit,
-                        )
-                      else ...[
-                        IconButton(
-                          icon: Icon(Icons.mic, color: isDark ? Colors.grey.shade400 : Colors.grey, size: 22),
-                          onPressed: _pickVoiceNote,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever, color: Colors.red, size: 24),
+                    onPressed: _cancelVoiceRecording,
+                    tooltip: "إلغاء التسجيل",
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatRecordingTime(_recordingSeconds),
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Text(
+                    "جاري تسجيل الصوت...",
+                    style: TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: _stopAndSendVoiceRecording,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: inputBgColor,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: TextField(
+                      controller: _controller,
+                      style: TextStyle(color: textColor),
+                      onChanged: (text) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'اكتب رسالتك...',
+                        hintStyle: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade500 : Colors.grey),
+                        border: InputBorder.none,
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.isEditing)
+                              IconButton(
+                                icon: Icon(Icons.cancel, color: Colors.red.shade400, size: 22),
+                                onPressed: widget.onCancelEdit,
+                              )
+                            else ...[
+                              IconButton(
+                                icon: Icon(Icons.attach_file, color: isDark ? Colors.grey.shade400 : Colors.grey, size: 22),
+                                onPressed: _pickFile,
+                              ),
+                            ],
+                          ],
                         ),
-                        IconButton(
-                          icon: Icon(Icons.attach_file, color: isDark ? Colors.grey.shade400 : Colors.grey, size: 22),
-                          onPressed: _pickFile,
-                        ),
-                      ],
-                    ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () {
+                    if (_controller.text.trim().isNotEmpty) {
+                      widget.onSend(_controller.text);
+                      _controller.clear();
+                      setState(() {});
+                    } else if (!widget.isEditing) {
+                      _startVoiceRecording();
+                    }
+                  },
+                  child: Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: widget.isEditing
+                          ? Colors.blue
+                          : (_controller.text.trim().isNotEmpty
+                              ? const Color(0xFFFFCC00)
+                              : const Color(0xFF00A884)), // WhatsApp green for mic
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      widget.isEditing
+                          ? Icons.check
+                          : (_controller.text.trim().isNotEmpty ? Icons.arrow_upward : Icons.mic),
+                      color: widget.isEditing || _controller.text.trim().isEmpty ? Colors.white : Colors.black,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () {
-              if (_controller.text.trim().isNotEmpty) {
-                widget.onSend(_controller.text);
-                _controller.clear();
-              }
-            },
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: widget.isEditing ? Colors.blue : const Color(0xFFFFCC00),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                widget.isEditing ? Icons.check : Icons.arrow_upward,
-                color: widget.isEditing ? Colors.white : Colors.black,
-                size: 24,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

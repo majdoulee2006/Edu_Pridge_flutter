@@ -179,8 +179,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      Dio dio = Dio();
-      final url = "${ApiService().baseUrl}/login";
+      Dio dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 4), receiveTimeout: const Duration(seconds: 4)));
+      String url = "${ApiService().baseUrl}/login";
       final deviceId = await _getDeviceId();
 
       var response = await dio.post(
@@ -194,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
         },
       );
 
-      if (response.statusCode == 200 && response.data != null) {
+      if (response != null && response.statusCode == 200 && response.data != null) {
         final prefs = await SharedPreferences.getInstance();
         final responseData = response.data;
 

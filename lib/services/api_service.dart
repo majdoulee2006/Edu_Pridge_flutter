@@ -8,8 +8,8 @@ class ApiService {
   // ==========================================
   // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
   // ==========================================
-  static String _serverIp = '192.168.21.75'; // آي بي اللابتوب الحالي على الـ Wi-Fi
-  static const String _port = '8001';
+  static String _serverIp = '127.0.0.1'; // PC Localhost (ADB Reversed)
+  static const String _port = '8000';
   static bool _isDiscovering = false;
 
   static String get serverIp => _serverIp;
@@ -23,25 +23,49 @@ class ApiService {
   // تهيئة الإعدادات وتحميل آخر آي بي تم اكتشافه، ثم بدء البحث التلقائي
   static Future<void> init() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      String? savedIp = prefs.getString('server_ip');
-      if (savedIp != null && savedIp.isNotEmpty) {
-        _serverIp = savedIp;
+      // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1)
+      final usb = await _tryConnect('127.0.0.1');
+      if (usb != null) {
+        _serverIp = '127.0.0.1';
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('server_ip', '127.0.0.1');
+        debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8000");
+        return;
       }
+
+      final prefs = await SharedPreferences.getInstance();
+      _serverIp = prefs.getString('server_ip') ?? '127.0.0.1';
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية
       autoDiscoverServer();
     } catch (e) {
       debugPrint("🚨 Error initializing ApiService: $e");
+      _serverIp = '127.0.0.1';
     }
   }
 
   // البحث التلقائي عن السيرفر في الشبكة المحلية عبر فحص الـ Subnet
   static Future<void> autoDiscoverServer() async {
+    if (kIsWeb) {
+      _serverIp = '127.0.0.1';
+      _isDiscovering = false;
+      return;
+    }
     if (_isDiscovering) return;
     _isDiscovering = true;
-    debugPrint("🔍 Starting auto-discovery for Edu-Bridge server on local network...");
+    debugPrint("🔍 Starting server discovery...");
+
+    // أولاً: فحص الاتصال بالمضيف المحلي 127.0.0.1 (ADB Reverse USB)
+    final usbResult = await _tryConnect('127.0.0.1');
+    if (usbResult != null) {
+      _serverIp = '127.0.0.1';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('server_ip', '127.0.0.1');
+      debugPrint("🎯 Server connected via USB ADB Reverse (127.0.0.1:8000)");
+      _isDiscovering = false;
+      return;
+    }
     
     try {
       // 1. تجربة الآيبيهات المعروفة بسرعة أولاً
@@ -81,9 +105,13 @@ class ApiService {
           }
         }
       }
-      debugPrint("⚠️ Auto-discovery completed: Server not found. Using fallback/last known IP: $_serverIp");
+      _serverIp = '127.0.0.1';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('server_ip', '127.0.0.1');
+      debugPrint("⚠️ Auto-discovery completed: Server not found. Resetting fallback to 127.0.0.1");
     } catch (e) {
       debugPrint("🚨 Error during auto-discovery: $e");
+      _serverIp = '127.0.0.1';
     }
     _isDiscovering = false;
   }

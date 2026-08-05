@@ -1,4 +1,5 @@
 import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -235,17 +236,18 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
         trailing: Icon(Icons.arrow_back_ios, size: 16, color: isDark ? Colors.grey.shade600 : Colors.grey),
         onTap: () {
           final chatServiceInstance = context.read<ChatService>();
+          final contactToPass = {
+            'id': teacher.id.toString(),
+            'name': teacher.name,
+            'role': teacher.subject,
+            'image': teacher.imageUrl,
+          };
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ChangeNotifierProvider.value(
                 value: chatServiceInstance,
-                child: ChatDetailScreen(
-                  receiverId: teacher.id, // 🌟 التعديل الجوهري لتعمل شاشة المحادثة بدون أخطاء
-                  name: teacher.name,
-                  imageUrl: teacher.imageUrl,
-                  isGroup: false,
-                ),
+                child: ChatRoomScreen(contact: contactToPass),
               ),
             ),
           );

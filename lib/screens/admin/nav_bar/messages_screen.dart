@@ -95,20 +95,19 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
                                   return const Center(child: CircularProgressIndicator());
                                 }
                                 
-                                                                final allContacts = chatService.contacts;
-                                final dynamicContacts = allContacts.where((c) {
+                                final allContacts = chatService.contacts;
+                                final activeContacts = allContacts.where((c) {
                                   return c['role'] == 'Administration' || (c['last_message'] != null && c['last_message'].toString().trim().isNotEmpty);
                                 }).toList();
-
                                 
-                                if (dynamicContacts.isEmpty) {
-                                  return const Center(child: Text('لا توجد جهات اتصال'));
+                                if (activeContacts.isEmpty) {
+                                  return const Center(child: Text('لا توجد محادثات نشطة'));
                                 }
 
                                 return ListView.builder(
-                                  itemCount: dynamicContacts.length,
+                                  itemCount: activeContacts.length,
                                   itemBuilder: (context, index) {
-                                    final contact = dynamicContacts[index];
+                                    final contact = activeContacts[index];
                                     return _buildChatTile(context, contact, isDark, cardColor, textColor);
                                   },
                                 );
@@ -303,6 +302,11 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
           const Text("الرسائل", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           Row(
             children: [
+              IconButton(
+                icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
+                tooltip: "محادثة جديدة",
+                onPressed: () => _showNewChatModal(context, context.read<ChatService>()),
+              ),
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,
@@ -322,6 +326,153 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showNewChatModal(BuildContext context, ChatService chatService) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final contacts = chatService.contacts;
+            final filtered = contacts.where((c) {
+              final name = (c['name'] as String? ?? '').toLowerCase();
+              return name.contains(query.toLowerCase());
+            }).toList();
+
+            final cardColor = Theme.of(context).cardColor;
+            final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'محادثة جديدة (+)',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: textColor),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    onChanged: (val) => setModalState(() => query = val.trim()),
+                    textAlign: TextAlign.right,
+                    style: TextStyle(color: textColor),
+                    decoration: InputDecoration(
+                      hintText: "ابحث عن شخص لمراسلته...",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Theme.of(context).scaffoldBackgroundColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'لا توجد جهات اتصال مطابقة',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final contact = filtered[index];
+                              final name = contact['name'] as String? ?? 'مجهول';
+                              final role = contact['role'] as String? ?? '';
+                              final initial = name.isNotEmpty ? name[0] : '؟';
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).scaffoldBackgroundColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: const Color(0xFFFFCC00).withAlpha(40),
+                                    child: Text(
+                                      initial,
+                                      style: const TextStyle(
+                                        color: Color(0xFFD4AC0D),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    name,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  subtitle: role.isNotEmpty
+                                      ? Text(
+                                          role,
+                                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                        )
+                                      : null,
+                                  trailing: const Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                    color: Color(0xFFFFCC00),
+                                  ),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ChangeNotifierProvider.value(
+                                          value: chatService,
+                                          child: ChatRoomScreen(contact: contact),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -12,7 +12,6 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 import '../../../widgets/boss_center_icon.dart';
 import '../../../services/chat_service.dart';
-import '../../../widgets/chat/contact_tile_widget.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 
 class BossMessageScreen extends StatelessWidget {
@@ -32,6 +31,8 @@ class BossMessageView extends StatefulWidget {
 }
 
 class _BossMessageViewState extends State<BossMessageView> {
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -46,13 +47,48 @@ class _BossMessageViewState extends State<BossMessageView> {
     });
   }
 
+  static final List<Map<String, dynamic>> _activeMockList = [
+    {'id': 1, 'name': 'العميد (إدارة الكلية)', 'message': 'تمت الموافقة على الخطة الدراسية', 'time': '2:24 م', 'is_read': true, 'role': 'عميد الكلية', 'raw_contact': {'id': 1, 'name': 'العميد (إدارة الكلية)', 'role': 'عميد الكلية'}},
+    {'id': 2, 'name': 'المهندس أحمد (مدرس شبكات)', 'message': 'أستاذ، تم رفع درجات الوظائف', 'time': '2:20 م', 'is_read': true, 'role': 'مدرس قسم', 'raw_contact': {'id': 2, 'name': 'المهندس أحمد (مدرس شبكات)', 'role': 'مدرس'}},
+    {'id': 3, 'name': 'شؤون الطلاب', 'message': 'جدول امتحانات الفصل الأول أصبح جاهزاً', 'time': '2:11 م', 'is_read': true, 'role': 'إدارة', 'raw_contact': {'id': 3, 'name': 'شؤون الطلاب', 'role': 'إدارة'}},
+    {'id': 4, 'name': 'الطالب خالد العلي', 'message': 'دكتور، هل يمكن إعادة التقييم؟', 'time': '12:26 م', 'is_read': false, 'role': 'طالب', 'raw_contact': {'id': 4, 'name': 'الطالب خالد العلي', 'role': 'طالب'}},
+  ];
+
+  List<Map<String, dynamic>> _getMockActiveData() {
+    return _activeMockList;
+  }
+
+  List<Map<String, dynamic>> _getNewContactsMockData() {
+    return [
+      {'id': 10, 'name': 'د. هاني قاسم (نائب رئيس القسم)', 'role': 'إدارة', 'raw_contact': {'id': 10, 'name': 'د. هاني قاسم (نائب رئيس القسم)', 'role': 'إدارة'}},
+      {'id': 11, 'name': 'م. ريم الخالد (مدرسة البرمجة)', 'role': 'استاذ', 'raw_contact': {'id': 11, 'name': 'م. ريم الخالد (مدرسة البرمجة)', 'role': 'استاذ'}},
+      {'id': 12, 'name': 'مكتب جودة التعليم', 'role': 'إدارة', 'raw_contact': {'id': 12, 'name': 'مكتب جودة التعليم', 'role': 'إدارة'}},
+      {'id': 13, 'name': 'سارة الأحمد (طالبة دبلوم)', 'role': 'طالب', 'raw_contact': {'id': 13, 'name': 'سارة الأحمد (طالبة دبلوم)', 'role': 'طالب'}},
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
     final Color cardColor = Theme.of(context).cardColor;
     final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    
+
+    final chatService = context.watch<ChatService>();
+    final isLoading = chatService.isLoadingContacts;
+
+    final allContacts = chatService.contacts.isNotEmpty
+        ? chatService.contacts
+        : _getMockActiveData();
+
+    final activeContacts = allContacts.where((c) {
+      final name = (c['name']?.toString() ?? '').toLowerCase();
+      if (_searchQuery.isNotEmpty && !name.contains(_searchQuery.toLowerCase())) {
+        return false;
+      }
+      return true;
+    }).toList();
+
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
@@ -65,62 +101,44 @@ class _BossMessageViewState extends State<BossMessageView> {
                 children: [
                   _buildHeader(context, isDark),
                   
-                  // Main Content: Full Screen Contacts List
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 90), // Space for bottom nav
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                            child: TextField(
-                              decoration: InputDecoration(
-                                hintText: "بحث عن جهة اتصال...",
-                                prefixIcon: const Icon(Icons.search),
-                                filled: true,
-                                fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Consumer<ChatService>(
-                              builder: (context, chatService, child) {
-                                if (chatService.isLoadingContacts) {
-                                  return const Center(child: CircularProgressIndicator());
-                                }
-                                
-                                                                final allContacts = chatService.contacts;
-                                final dynamicContacts = allContacts.where((c) {
-                                  return c['role'] == 'Administration' || (c['last_message'] != null && c['last_message'].toString().trim().isNotEmpty);
-                                }).toList();
-
-                                
-                                if (dynamicContacts.isEmpty) {
-                                  return const Center(child: Text('لا توجد جهات اتصال'));
-                                }
-
-                                return ListView.builder(
-                                  itemCount: dynamicContacts.length,
-                                  itemBuilder: (context, index) {
-                                    final contact = dynamicContacts[index];
-                                    return _buildChatTile(context, contact, isDark, cardColor, textColor);
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: TextField(
+                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                      textAlign: TextAlign.right,
+                      style: TextStyle(color: textColor),
+                      decoration: InputDecoration(
+                        hintText: "ابحث في المحادثات...",
+                        prefixIcon: const Icon(Icons.search),
+                        filled: true,
+                        fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
+                  ),
+
+                  Expanded(
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
+                        : activeContacts.isEmpty
+                            ? const Center(
+                                child: Text('لا توجد محادثات مطابقة\nاضغطي على (+) لبدء محادثة جديدة', textAlign: TextAlign.center),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.only(bottom: 90),
+                                itemCount: activeContacts.length,
+                                itemBuilder: (context, index) {
+                                  final contact = activeContacts[index];
+                                  return _buildChatTile(context, contact, isDark, cardColor, textColor, chatService);
+                                },
+                              ),
                   ),
                 ],
               ),
 
-              // Bottom Navigation Bar
               Align(
                 alignment: Alignment.bottomCenter,
                 child: CustomBottomNav(
@@ -142,151 +160,127 @@ class _BossMessageViewState extends State<BossMessageView> {
     );
   }
 
-  Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor) {
-    final int unreadCount = contact['unread'] ?? 0;
-    final bool hasUnread = unreadCount > 0;
-    final String name = contact['name'] ?? 'مستخدم غير معروف';
+  Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor, ChatService chatServiceInstance) {
+    final bool isUnread  = contact['is_read'] != true;
+    final String name    = contact['name']?.toString() ?? 'مستخدم غير معروف';
     final String initial = name.isNotEmpty ? name[0] : '؟';
-    final String role = contact['role'] ?? '';
-    final String lastMsg = (contact['last_message'] != null && contact['last_message'].toString().trim().isNotEmpty)
-        ? contact['last_message']
-        : 'انقر لبدء المحادثة...';
-    final String time = contact['time'] ?? 'الآن';
-    final String? avatarUrl = contact['image'];
-    final bool isOnline = contact['is_online'] ?? false;
-    final bool isRead = contact['is_read'] == true;
-      final bool isMyMessage = contact['is_my_message'] == true;
+    final String role    = contact['role']?.toString() ?? '';
+    final String lastMsg = contact['message']?.toString() ?? contact['last_message']?.toString() ?? 'انقر لبدء المحادثة...';
+    final String time    = contact['time']?.toString() ?? 'الآن';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: hasUnread
-            ? [BoxShadow(color: isDark ? Colors.black.withAlpha(40) : Colors.black.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))]
-            : [],
-        border: hasUnread ? Border.all(color: const Color(0xFFFFCC00).withAlpha(102), width: 1) : null,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isUnread ? const Color(0xFFFFCC00).withAlpha(120) : Colors.white10,
+          width: isUnread ? 1.2 : 0.5,
+        ),
       ),
-      child: ListTile(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
-          final chatServiceInstance = context.read<ChatService>();
+          final contactToPass = contact['raw_contact'] ?? contact;
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ChangeNotifierProvider.value(
                 value: chatServiceInstance,
-                child: ChatRoomScreen(contact: contact),
+                child: ChatRoomScreen(contact: contactToPass),
               ),
             ),
           );
         },
-        leading: Stack(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
-              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-              child: avatarUrl == null || avatarUrl.isEmpty
-                  ? Text(
-                      initial,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    )
-                  : null,
-            ),
-            if (isOnline)
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  height: 14,
-                  width: 14,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF25D366),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: cardColor,
-                      width: 2.5,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundColor: const Color(0xFFFFCC00).withAlpha(30),
+                child: Text(initial, style: const TextStyle(color: Color(0xFFFFCC00), fontWeight: FontWeight.bold, fontSize: 17)),
+              ),
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor),
+                          ),
+                        ),
+                        if (role.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFCC00).withAlpha(38),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFFFCC00).withAlpha(102), width: 0.5),
+                            ),
+                            child: Text(
+                              role,
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFFD4AC0D)),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        if (!isUnread) ...[
+                          const Icon(Icons.done_all, size: 16, color: Color(0xFF34B7F1)),
+                          const SizedBox(width: 4),
+                        ] else ...[
+                          const Icon(Icons.check, size: 15, color: Colors.grey),
+                          const SizedBox(width: 4),
+                        ],
+                        Expanded(
+                          child: Text(
+                            lastMsg,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isUnread ? textColor.withAlpha(220) : Colors.grey,
+                              fontWeight: isUnread ? FontWeight.w600 : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
-        title: Text(
-          name,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
-        ),
-        subtitle: Row(
-          children: [
-            if (isRead && !hasUnread) 
-              const Padding(
-                padding: EdgeInsets.only(left: 4), 
-                child: Icon(Icons.done_all, color: Colors.blue, size: 16)
-              ),
-            Expanded(
-              child: Text(
-                lastMsg,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: hasUnread ? (isDark ? Colors.white : Colors.black87) : (isDark ? Colors.grey[400] : Colors.grey[600]),
-                  fontSize: 13,
-                  fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (role.isNotEmpty) ...[
-              Container(
-                margin: EdgeInsets.zero,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
-                    width: 0.5,
-                  ),
-                ),
-                child: Text(
-                  role,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFD4AC0D),
-                  ),
-                ),
+              const SizedBox(width: 10),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                  const SizedBox(height: 6),
+                  if (isUnread)
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
+                    )
+                  else
+                    const SizedBox(height: 9),
+                ],
               ),
             ],
-            Text(
-              time,
-              style: TextStyle(
-                fontSize: 11,
-                color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
-                fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            if (hasUnread) ...[
-              const SizedBox(height: 1),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
-                child: Text(
-                  '$unreadCount',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -303,10 +297,14 @@ class _BossMessageViewState extends State<BossMessageView> {
             onPressed: () => Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
           ),
-          const Text("الرسائل", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Text("الرسائل", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           Row(
             children: [
-              // Broadcast icon successfully removed here!
+              IconButton(
+                icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
+                tooltip: "محادثة جديدة",
+                onPressed: () => _showNewChatModal(context, context.read<ChatService>()),
+              ),
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,
@@ -319,7 +317,7 @@ class _BossMessageViewState extends State<BossMessageView> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border: Border.all(color: Colors.grey.withAlpha(50)),
                   ),
                   child: const Icon(Icons.settings_outlined, color: Colors.grey, size: 22),
                 ),
@@ -328,6 +326,124 @@ class _BossMessageViewState extends State<BossMessageView> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showNewChatModal(BuildContext context, ChatService chatService) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final contacts = chatService.contacts.isNotEmpty ? chatService.contacts : _getNewContactsMockData();
+            final filtered = contacts.where((c) {
+              final name = (c['name']?.toString() ?? '').toLowerCase();
+              return name.contains(query.toLowerCase());
+            }).toList();
+
+            final cardColor = Theme.of(context).cardColor;
+            final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'بدء محادثة جديدة (+)',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: textColor),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    onChanged: (val) => setModalState(() => query = val.trim()),
+                    textAlign: TextAlign.right,
+                    style: TextStyle(color: textColor),
+                    decoration: InputDecoration(
+                      hintText: "ابحث عن شخص لمراسلته...",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Theme.of(context).scaffoldBackgroundColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(child: Text('لا توجد جهات اتصال مطابقة', style: TextStyle(color: Colors.grey)))
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final contact = filtered[index];
+                              final name = contact['name']?.toString() ?? 'مجهول';
+                              final role = contact['role']?.toString() ?? '';
+                              final initial = name.isNotEmpty ? name[0] : '؟';
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).scaffoldBackgroundColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: const Color(0xFFFFCC00).withAlpha(40),
+                                    child: Text(initial, style: const TextStyle(color: Color(0xFFD4AC0D), fontWeight: FontWeight.bold)),
+                                  ),
+                                  title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                                  subtitle: role.isNotEmpty ? Text(role, style: const TextStyle(color: Colors.grey, fontSize: 12)) : null,
+                                  trailing: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFFFCC00)),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ChangeNotifierProvider.value(
+                                          value: chatService,
+                                          child: ChatRoomScreen(contact: contact['raw_contact'] ?? contact),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

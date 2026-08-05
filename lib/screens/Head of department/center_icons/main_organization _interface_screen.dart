@@ -270,9 +270,9 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.edit_calendar, color: Colors.black, size: 16),
+                    Icon(Icons.table_chart_outlined, color: Colors.black, size: 16),
                     SizedBox(width: 4),
-                    Text('إدارة الجدول', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12, fontFamily: 'Cairo')),
+                    Text('عرض التفاصيل', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12, fontFamily: 'Cairo')),
                   ],
                 ),
               ),
@@ -481,26 +481,6 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
             _examYearToggle(1, yellow, cardColor),
             const SizedBox(width: 10),
             _examYearToggle(2, yellow, cardColor),
-            const Spacer(),
-            GestureDetector(
-              onTap: () async {
-                final added = await Navigator.push<bool>(context,
-                    MaterialPageRoute(builder: (_) => const CreateExamScheduleScreen()));
-                if (added == true && mounted) {
-                  setState(() => _examsFetched = false);
-                  await _fetchExams(force: true);
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(10)),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.add, color: Colors.black, size: 16),
-                  SizedBox(width: 4),
-                  Text('إضافة', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12, fontFamily: 'Cairo')),
-                ]),
-              ),
-            ),
           ]),
         ),
         const SizedBox(height: 10),

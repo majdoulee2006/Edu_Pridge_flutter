@@ -678,7 +678,11 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
         _fetchAll();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('حدث خطأ'), backgroundColor: Colors.red));
+      String msg = 'حدث خطأ أثناء إرسال الطلب';
+      if (e is DioException && e.response?.data != null && e.response?.data['message'] != null) {
+        msg = e.response!.data['message'].toString();
+      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
     }
   }
 

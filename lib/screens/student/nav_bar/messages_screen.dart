@@ -7,6 +7,7 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/select_teacher_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/models/chat_model.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
@@ -118,6 +119,16 @@ class _MessagesViewState extends State<MessagesView> {
           ),
           centerTitle: true,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
+              tooltip: "محادثة جديدة",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SelectTeacherScreen()),
+                );
+              },
+            ),
             IconButton(
               icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
               onPressed: () => Navigator.push(
@@ -371,17 +382,18 @@ class _MessagesViewState extends State<MessagesView> {
           ],
         ),
         onTap: () {
+          final contactToPass = {
+            'id': chat.id.toString(),
+            'name': chat.title,
+            'role': chat.role,
+            'image': chat.avatarUrl,
+          };
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ChangeNotifierProvider.value(
                 value: chatServiceInstance,
-                child: ChatDetailScreen(
-                  receiverId: chat.id,
-                  name: chat.title,
-                  imageUrl: chat.avatarUrl,
-                  isGroup: chat.isGroup,
-                ),
+                child: ChatRoomScreen(contact: contactToPass),
               ),
             ),
           );

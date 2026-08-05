@@ -58,16 +58,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundImage: (widget.contact['image'] != null && widget.contact['image'].toString().isNotEmpty) ? NetworkImage(widget.contact['image']) : null,
-                      child: widget.contact['image'] == null ? Text(widget.contact['name'][0]) : null,
+                      backgroundImage: (widget.contact['image'] != null && widget.contact['image'].toString().isNotEmpty)
+                          ? NetworkImage(widget.contact['image'].toString())
+                          : null,
+                      child: (widget.contact['image'] == null || widget.contact['image'].toString().isEmpty)
+                          ? Text((widget.contact['name']?.toString() ?? '؟').isNotEmpty ? (widget.contact['name']?.toString() ?? '؟')[0] : '؟')
+                          : null,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(widget.contact['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text(widget.contact['role'], style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 12)),
+                          Text(
+                            widget.contact['name']?.toString() ?? 'مستخدم غير معروف',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if ((widget.contact['role']?.toString() ?? '').isNotEmpty)
+                            Text(
+                              widget.contact['role'].toString(),
+                              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 12),
+                            ),
                         ],
                       ),
                     ),
@@ -110,6 +122,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 text: msg.text,
                                 isSender: msg.isMe,
                                 attachment: msg.attachment,
+                                time: msg.time,
                                 isRead: msg.isRead,
                                 isDelivered: msg.isDelivered,
                                 onLongPress: msg.isMe && msg.attachment == null && msg.text != '[Voice Note]'

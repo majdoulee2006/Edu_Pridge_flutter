@@ -155,8 +155,27 @@ class _GradingScreenState extends State<GradingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStudentHeaderCard(context, cardColor, textColor),
-                  const SizedBox(height: 20),
+                  _buildStudentHeaderCard(context, cardColor, textColor, isDark),
+                  const SizedBox(height: 15),
+                  // ملاحظات/رسالة الطالب المعادة مع الحل
+                  if (widget.submission['student_notes'] != null &&
+                      widget.submission['student_notes'].toString().trim().isNotEmpty) ...[
+                    _buildSectionTitle("ملاحظات الطالب مع الحل", textColor),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        widget.submission['student_notes'].toString().trim(),
+                        style: TextStyle(color: textColor, fontSize: 13, height: 1.4),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                  ],
                   if ((widget.submission['file_path'] as String?) != null) ...[
                     _buildSectionTitle("الملفات والمرفقات", textColor),
                     Container(
@@ -310,7 +329,11 @@ class _GradingScreenState extends State<GradingScreen> {
     BuildContext context,
     Color cardColor,
     Color textColor,
+    bool isDark,
   ) {
+    final desc = widget.submission['assignment_description']?.toString() ??
+        widget.submission['description']?.toString();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -354,12 +377,47 @@ class _GradingScreenState extends State<GradingScreen> {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              Text(
-                widget.submission['assignment_title'] as String? ?? '',
-                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+              Expanded(
+                child: Text(
+                  widget.submission['assignment_title'] as String? ?? '',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ),
+          if (desc != null && desc.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                      SizedBox(width: 6),
+                      Text(
+                        "معطيات / وصف التمرين:",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    desc.trim(),
+                    style: TextStyle(color: textColor, fontSize: 13, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

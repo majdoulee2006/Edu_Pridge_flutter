@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -83,7 +83,7 @@ class _TableViewScreenState extends State<TableViewScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'يمكنك مراجعة الخطة الأسبوعية، ثم إنشاء جلسة جديدة أو تعديل أي صف موجود.',
+                        'يمكنك مراجعة واستعراض الخطة الأسبوعية للقسم.',
                         style: TextStyle(
                           color: isDark ? Colors.white70 : Colors.black87,
                           fontSize: 12.5,
@@ -123,7 +123,6 @@ class _TableViewScreenState extends State<TableViewScreen> {
                                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                                 itemBuilder: (context, index) {
                                   final row = _rows[index];
-                                  final scheduleId = row['id'] as int?;
                                   return Container(
                                     padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
@@ -157,24 +156,6 @@ class _TableViewScreenState extends State<TableViewScreen> {
                                                 ),
                                               ),
                                             ),
-                                            const Spacer(),
-                                            IconButton(
-                                              onPressed: () async {
-                                                final refreshed = await Navigator.push<bool>(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) => EditOfTableScreen(
-                                                      initialData: row,
-                                                      scheduleId: scheduleId,
-                                                    ),
-                                                  ),
-                                                );
-                                                if (refreshed == true && mounted) {
-                                                  _fetchSchedule();
-                                                }
-                                              },
-                                              icon: const Icon(Icons.edit_outlined, color: Colors.orange),
-                                            ),
                                           ],
                                         ),
                                         const SizedBox(height: 10),
@@ -188,32 +169,6 @@ class _TableViewScreenState extends State<TableViewScreen> {
                                 },
                               ),
                       ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final created = await Navigator.push<bool>(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CreateNewScheduleScreen()),
-                    );
-                    if (created == true && mounted) {
-                      _fetchSchedule();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryYellow,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  icon: const Icon(Icons.add, color: Colors.black),
-                  label: const Text(
-                    'إنشاء جدول جديد',
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
-                  ),
-                ),
               ),
             ],
           ),
