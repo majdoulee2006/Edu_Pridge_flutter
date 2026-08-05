@@ -8,7 +8,7 @@ import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedule_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
-
+import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lectures_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 
 import 'student_home_screen.dart';
@@ -107,7 +107,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case 'lecture':
         Navigator.push(ctx, MaterialPageRoute(
-          builder: (_) => const ScheduleScreen(),
+          builder: (_) => LecturesScreen(highlightLessonId: notify.relatedId),
         ));
         break;
       case 'attendance':

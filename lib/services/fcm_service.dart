@@ -7,7 +7,7 @@ import 'api_service.dart';
 import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 import 'package:edu_pridge_flutter/main.dart' show appNavigatorKey;
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
-import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedule_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lectures_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 
@@ -38,7 +38,7 @@ class FcmService {
         Navigator.push(
           ctx,
           MaterialPageRoute(
-            builder: (_) => const ScheduleScreen(),
+            builder: (_) => LecturesScreen(highlightLessonId: intId),
           ),
         );
         break;

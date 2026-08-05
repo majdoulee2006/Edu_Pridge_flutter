@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lectures_screen.dart';
 
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({super.key});
@@ -107,88 +108,115 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             color: cardColor,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             elevation: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.all(18),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: primaryColor.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(14),
-                                        ),
-                                        child: Icon(Icons.menu_book_rounded, color: primaryColor, size: 28),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              title,
-                                              style: TextStyle(
-                                                fontSize: 17,
-                                                fontWeight: FontWeight.bold,
-                                                color: textColor,
-                                                fontFamily: 'Tajawal',
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              "المدرس: $teacherName",
-                                              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (level.toString().isNotEmpty)
-                                        Chip(
-                                          label: Text(
-                                            "$level",
-                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                                          ),
-                                          backgroundColor: primaryColor.withOpacity(0.08),
-                                        ),
-                                    ],
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LecturesScreen(),
                                   ),
-                                  if (description.toString().isNotEmpty && description != 'لا يوجد وصف') ...[
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      description,
-                                      style: TextStyle(fontSize: 13, color: textColor.withOpacity(0.8)),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                  if (schedule != null) ...[
-                                    const Divider(height: 20),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(18),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Row(
                                       children: [
-                                        Icon(Icons.access_time_rounded, size: 16, color: primaryColor),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          "${schedule['day'] ?? ''} ${schedule['start_time'] ?? ''} - ${schedule['end_time'] ?? ''}",
-                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: primaryColor.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          child: Icon(Icons.menu_book_rounded, color: primaryColor, size: 28),
                                         ),
-                                        const Spacer(),
-                                        if (schedule['room'] != null)
-                                          Row(
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
-                                              const SizedBox(width: 4),
                                               Text(
-                                                "القاعة: ${schedule['room']}",
-                                                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                                title,
+                                                style: TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: textColor,
+                                                  fontFamily: 'Tajawal',
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                "المدرس: $teacherName",
+                                                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                                               ),
                                             ],
                                           ),
+                                        ),
+                                        if (level.toString().isNotEmpty)
+                                          Chip(
+                                            label: Text(
+                                              "$level",
+                                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                            ),
+                                            backgroundColor: primaryColor.withOpacity(0.08),
+                                          ),
                                       ],
                                     ),
+                                    if (description.toString().isNotEmpty && description != 'لا يوجد وصف') ...[
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        description,
+                                        style: TextStyle(fontSize: 13, color: textColor.withOpacity(0.8)),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                    if (schedule != null) ...[
+                                      const Divider(height: 20),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.access_time_rounded, size: 16, color: primaryColor),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            "${schedule['day'] ?? ''} ${schedule['start_time'] ?? ''} - ${schedule['end_time'] ?? ''}",
+                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                          const Spacer(),
+                                          if (schedule['room'] != null)
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  "القاعة: ${schedule['room']}",
+                                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                                ),
+                                              ],
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                    const SizedBox(height: 12),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: TextButton.icon(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => const LecturesScreen(),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.folder_open, size: 18),
+                                        label: const Text("استعراض المحاضرات والملفات"),
+                                      ),
+                                    ),
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           );
