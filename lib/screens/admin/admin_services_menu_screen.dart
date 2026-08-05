@@ -5,6 +5,8 @@ import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/student_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_student_services_screen.dart';
+import 'package:edu_pridge_flutter/services/admin_services.dart';
+import 'package:edu_pridge_flutter/screens/admin/center_icons/courses/department_setup_wizard.dart';
 
 class AdminServicesMenuScreen extends StatelessWidget {
   const AdminServicesMenuScreen({super.key});
@@ -54,7 +56,30 @@ class AdminServicesMenuScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      // القسم الأول: الخدمات والطلبات الطلابية الإلكترونية
+                      // القسم الأول: الإدارة الأكاديمية والهيكلية
+                      _buildSectionTitle(
+                        isAr ? "الإدارة الأكاديمية والهيكلية" : "Academic & Structure Management",
+                        subColor,
+                      ),
+                      const SizedBox(height: 10),
+
+                      _buildServiceCard(
+                        icon: Icons.domain_add_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "إضافة قسم أكاديمي جديد" : "Add New Academic Department",
+                        subtitle: isAr
+                            ? "إنشاء قسم جديد وإضافته للنظام لتوزيع المواد ورؤساء الأقسام"
+                            : "Create and register a new department in the system",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => _showAddDepartmentDialog(context, isDark, cardColor, textColor, isAr),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // القسم الثاني: الخدمات والطلبات الطلابية الإلكترونية
                       _buildSectionTitle(
                         isAr ? "الخدمات والطلبات الطلابية" : "Student Services & Requests",
                         subColor,
@@ -273,6 +298,159 @@ class AdminServicesMenuScreen extends StatelessWidget {
           color: subColor,
         ),
       ),
+    );
+  }
+
+  void _showAddDepartmentDialog(
+    BuildContext context,
+    bool isDark,
+    Color cardColor,
+    Color textColor,
+    bool isAr,
+  ) {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCC00).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.domain_add_rounded, color: Color(0xFFFFCC00)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isAr ? "إضافة قسم أكاديمي جديد" : "Add New Department",
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        style: TextStyle(color: textColor),
+                        decoration: InputDecoration(
+                          labelText: isAr ? "اسم القسم *" : "Department Name *",
+                          labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          prefixIcon: const Icon(Icons.business_rounded),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return isAr ? "يرجى إدخال اسم القسم" : "Department name is required";
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: descController,
+                        maxLines: 3,
+                        style: TextStyle(color: textColor),
+                        decoration: InputDecoration(
+                          labelText: isAr ? "الوصف (اختياري)" : "Description (Optional)",
+                          labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          prefixIcon: const Icon(Icons.description_rounded),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
+                  child: Text(
+                    isAr ? "إلغاء" : "Cancel",
+                    style: TextStyle(color: textColor.withOpacity(0.7)),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFCC00),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() => isSubmitting = true);
+                            final createdDept = await AdminServices().createDepartment({
+                              'name': nameController.text.trim(),
+                              'description': descController.text.trim().isEmpty ? null : descController.text.trim(),
+                            });
+                            setState(() => isSubmitting = false);
+                            if (dialogContext.mounted) {
+                              Navigator.pop(dialogContext);
+                              if (createdDept != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isAr ? "تم إنشاء القسم الجديد بنجاح!" : "Department created successfully!",
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                // Show setup wizard
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (context) => DepartmentSetupWizard(
+                                    departmentId: createdDept['department_id'],
+                                    departmentName: createdDept['name'] ?? '',
+                                    onFinished: () {},
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isAr ? "فشل إنشاء القسم، يرجى المحاولة لاحقاً" : "Failed to create department",
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                        )
+                      : Text(
+                          isAr ? "إضافة" : "Add",
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

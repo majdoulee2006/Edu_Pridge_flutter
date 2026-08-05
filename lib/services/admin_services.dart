@@ -374,7 +374,7 @@ class AdminServices {
     }
   }
 
-  Future<bool> createDepartment(Map<String, dynamic> deptData) async {
+  Future<Map<String, dynamic>?> createDepartment(Map<String, dynamic> deptData) async {
     try {
       final token = await _getToken();
       Response response = await _dio.post(
@@ -382,10 +382,31 @@ class AdminServices {
         data: deptData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-      return response.statusCode == 201 || (response.statusCode == 200 && response.data['success'] == true);
+      if (response.statusCode == 201 || (response.statusCode == 200 && response.data['success'] == true)) {
+        return response.data['data'] as Map<String, dynamic>?;
+      }
+      return null;
     } catch (e) {
       debugPrint("❌ Admin Create Department Error: $e");
       rethrow;
+    }
+  }
+
+  Future<bool> assignProgramsToDepartment(int departmentId, List<int> programIds) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/admin/departments/assign-programs",
+        data: {
+          'department_id': departmentId,
+          'program_ids': programIds,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      debugPrint("❌ Admin Assign Programs Error: $e");
+      return false;
     }
   }
 

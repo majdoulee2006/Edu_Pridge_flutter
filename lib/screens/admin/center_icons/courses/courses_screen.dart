@@ -7,6 +7,8 @@ import 'package:edu_pridge_flutter/screens/admin/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/nav_bar/profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/nav_bar/notifications_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/nav_bar/messages_screen.dart';
+import 'add_department_dialog.dart';
+import 'department_setup_wizard.dart';
 
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({super.key});
@@ -18,6 +20,7 @@ class CoursesScreen extends StatefulWidget {
 class _CoursesScreenState extends State<CoursesScreen> {
   final List<String> departments = [
     "جميع الأقسام",
+    "دورات مستقلة (بدون قسم)",
     "نظم معلومات",
     "طبي",
     "هندسي",
@@ -49,7 +52,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
   Future<void> _loadData() async {
     setState(() => isLoading = true);
     int? deptId;
-    if (selectedDept != "جميع الأقسام" && allDepartmentsApi.isNotEmpty) {
+    bool isIndependent = selectedDept == "دورات مستقلة (بدون قسم)";
+
+    if (selectedDept != "جميع الأقسام" && !isIndependent && allDepartmentsApi.isNotEmpty) {
       final deptObj = allDepartmentsApi.firstWhere(
         (d) => d['name'].toString().trim().contains(selectedDept) || selectedDept.contains(d['name'].toString().trim()),
         orElse: () => null,
@@ -64,7 +69,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
       setState(() {
         allDepartmentsApi = data['departments'] ?? [];
         allProgramsList = data['programs'] ?? [];
-        _applyFilter(deptId);
+        _applyFilter(deptId, isIndependent);
         isLoading = false;
       });
     } else {
@@ -72,8 +77,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
   }
 
-  void _applyFilter(int? deptId) {
-    if (selectedDept == "جميع الأقسام" || deptId == null) {
+  void _applyFilter(int? deptId, bool isIndependent) {
+    if (isIndependent) {
+      filteredProgramsList = allProgramsList.where((p) => p['department_id'] == null).toList();
+    } else if (selectedDept == "جميع الأقسام" || deptId == null) {
       filteredProgramsList = allProgramsList;
     } else {
       filteredProgramsList = allProgramsList.where((p) => p['department_id'] == deptId).toList();
@@ -109,7 +116,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
 
-    String modalDept = formDepartments.first;
+    final modalDepartments = ["بدون قسم محدد (دورة مستقلة)", ...formDepartments];
+    String modalDept = "بدون قسم محدد (دورة مستقلة)";
     String modalYear = formYears.first;
     String modalSemester = formSemesters.first;
     bool isSaving = false;
@@ -202,7 +210,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             _buildDropdown(
                               hint: "اختر القسم",
                               value: modalDept,
-                              items: formDepartments,
+                              items: modalDepartments,
                               onChanged: (val) {
                                 if (val != null) setModalState(() => modalDept = val);
                               },
@@ -270,11 +278,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
                               setModalState(() => isSaving = true);
                               try {
-                                final deptObj = allDepartmentsApi.firstWhere(
-                                  (d) => d['name'].toString().trim().contains(modalDept) || modalDept.contains(d['name'].toString().trim()),
-                                  orElse: () => null,
-                                );
-                                int? dId = deptObj != null ? deptObj['department_id'] : null;
+                                int? dId;
+                                if (modalDept != "بدون قسم محدد (دورة مستقلة)") {
+                                  final deptObj = allDepartmentsApi.firstWhere(
+                                    (d) => d['name'].toString().trim().contains(modalDept) || modalDept.contains(d['name'].toString().trim()),
+                                    orElse: () => null,
+                                  );
+                                  dId = deptObj != null ? deptObj['department_id'] : null;
+                                }
                                 final yearVal = modalYear == "سنة اولى" ? "1" : "2";
                                 final semVal = modalSemester == "فصل أول" ? 1 : 2;
 
@@ -845,6 +856,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -894,7 +907,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 🌟 الخيارات العلوية: إضافة دورة جديدة وتخصيص رئيس قسم 🌟
+                    // 🌟 الخيارات العلوية: إضافة دورة جديدة، تخصيص رئيس قسم، وإضافة قسم جديد 🌟
                     Row(
                       children: [
                         Expanded(
@@ -906,13 +919,42 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             isDark,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _buildActionButton(
                             "تخصيص رئيس قسم",
                             Icons.manage_accounts_outlined,
                             Colors.blueAccent,
                             () => _showAssignHodModal(context, isDark, primaryYellow),
+                            isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildActionButton(
+                            "إضافة قسم جديد",
+                            Icons.domain_add,
+                            const Color(0xFF10B981),
+                            () async {
+                              final result = await showDialog<dynamic>(
+                                context: context,
+                                builder: (_) => const AddDepartmentDialog(),
+                              );
+                              if (result != null && result is Map<String, dynamic>) {
+                                await _loadData();
+                                if (context.mounted) {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => DepartmentSetupWizard(
+                                      departmentId: result['department_id'],
+                                      departmentName: result['name'] ?? '',
+                                      onFinished: () => _loadData(),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                             isDark,
                           ),
                         ),
