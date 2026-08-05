@@ -344,7 +344,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
         backgroundColor: isDark ? const Color(0xFF181B20) : Colors.white,
         child: Container(
           width: MediaQuery.of(context).size.width * 0.9,
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
           padding: const EdgeInsets.all(22.0),
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
