@@ -69,12 +69,13 @@ class ParentService {
     return false;
   }
 
-  // 3️⃣ طلب موعد جديد من الإدارة
+  // 3️⃣ طلب موعد جديد من الإدارة أو رئيس القسم
   Future<bool> requestMeeting({
     required String subject,
     required String reason,
     int? studentId,
     String? preferredDate,
+    String targetPerson = 'hod', // 'hod' = رئيس القسم, 'admin' = الإدارة
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -88,6 +89,7 @@ class ParentService {
           "reason": reason,
           "student_id": studentId,
           "preferred_date": preferredDate,
+          "target_person": targetPerson,
         },
         options: Options(headers: {
           "Accept": "application/json",

@@ -83,13 +83,7 @@ class NotificationPolling {
           .reduce(max);
 
       final key = await _shownKey();
-      final lastShownId = prefs.getInt(key);
-
-      // أول مرة (بعد تنصيب أو تسجيل دخول) → احفظ الـ ID بصمت بدون بانر
-      if (lastShownId == null) {
-        await prefs.setInt(key, maxId);
-        return;
-      }
+      final lastShownId = prefs.getInt(key) ?? 0;
 
       // فقط إذا وصل إشعار بـ ID أحدث → اعرضه
       if (maxId > lastShownId) {

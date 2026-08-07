@@ -60,6 +60,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     final subjectController = TextEditingController();
     final reasonController = TextEditingController();
     DateTime? selectedDate;
+    String selectedTarget = 'hod'; // 'hod' = رئيس القسم, 'admin' = الإدارة العامة
     String? sheetError;
 
     showModalBottomSheet(
@@ -100,7 +101,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       ),
                       const SizedBox(height: 20),
                       const Text(
-                        "طلب موعد لقاء مع الإدارة",
+                        "طلب موعد لقاء",
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -133,6 +134,74 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                             selectedChildId = val;
                           });
                         },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 🌟 اختيار الجهة المطلوبة (رئيس القسم / الإدارة العامة)
+                      const Text("الجهة المطلوبة للقاء:", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              avatar: Icon(
+                                Icons.workspace_premium_outlined,
+                                size: 18,
+                                color: selectedTarget == 'hod' ? Colors.black : Colors.tealAccent,
+                              ),
+                              label: const SizedBox(
+                                width: double.infinity,
+                                child: Text(
+                                  "رئيس القسم",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 13),
+                                ),
+                              ),
+                              selected: selectedTarget == 'hod',
+                              selectedColor: const Color(0xFFFFCC00),
+                              labelStyle: TextStyle(
+                                color: selectedTarget == 'hod' ? Colors.black : (isDark ? Colors.white : Colors.black87),
+                                fontWeight: FontWeight.bold,
+                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setModalState(() => selectedTarget = 'hod');
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ChoiceChip(
+                              avatar: Icon(
+                                Icons.admin_panel_settings_outlined,
+                                size: 18,
+                                color: selectedTarget == 'admin' ? Colors.black : Colors.blueAccent,
+                              ),
+                              label: const SizedBox(
+                                width: double.infinity,
+                                child: Text(
+                                  "الإدارة العامة",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 13),
+                                ),
+                              ),
+                              selected: selectedTarget == 'admin',
+                              selectedColor: const Color(0xFFFFCC00),
+                              labelStyle: TextStyle(
+                                color: selectedTarget == 'admin' ? Colors.black : (isDark ? Colors.white : Colors.black87),
+                                fontWeight: FontWeight.bold,
+                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setModalState(() => selectedTarget = 'admin');
+                                }
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
 
@@ -249,6 +318,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                             subject: subjectController.text.trim(),
                             reason: reasonController.text.trim(),
                             studentId: selectedChildId,
+                            targetPerson: selectedTarget,
                             preferredDate: selectedDate != null
                                 ? intl.DateFormat('yyyy-MM-dd').format(selectedDate!)
                                 : null,
@@ -453,9 +523,29 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  "بخصوص الطالب: $childName",
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "بخصوص الطالب: $childName",
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: (req['target_person'] == 'admin' ? Colors.blue : Colors.teal).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        req['target_person'] == 'admin' ? "الجهة: الإدارة العامة" : "الجهة: رئيس القسم",
+                        style: TextStyle(
+                          color: req['target_person'] == 'admin' ? Colors.blue : Colors.teal,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 const Divider(),

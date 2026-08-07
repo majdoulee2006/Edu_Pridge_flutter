@@ -5,6 +5,8 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/calendar
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activities/activities_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/vacations/vacations_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/accounts/accounts_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
+
 class AffairsOfficerSpeedDial extends StatefulWidget {
   const AffairsOfficerSpeedDial({super.key});
 
@@ -88,48 +90,65 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
                         height: 160,
                         child: Stack(
                           children: [
+                            // 1. التقويم
                             _buildMenuItem(
                               'التقويم',
                               Icons.calendar_month_outlined,
                               Colors.orange,
-                              22.5, 0.0, 0.4, itemTextColor,
-                                  () {
+                              18.0, 0.0, 0.3, itemTextColor,
+                              () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (context) => const AffairsOfficerCalendarScreen()),
                                 );
                               },
                             ),
+                            // 2. الأنشطة
                             _buildMenuItem(
                               'الأنشطة',
                               Icons.local_activity_outlined,
                               Colors.green,
-                              67.5, 0.2, 0.6, itemTextColor,
-                                  () {
+                              54.0, 0.2, 0.5, itemTextColor,
+                              () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (context) => const AffairsOfficerActivitiesScreen()),
                                 );
                               },
                             ),
+                            // 3. المواعيد (في منتصف القائمة نصف الدائرية تماماً)
+                            _buildMenuItem(
+                              'المواعيد',
+                              Icons.calendar_today_rounded,
+                              Colors.teal,
+                              90.0, 0.4, 0.7, itemTextColor,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const AffairsAppointmentsScreen()),
+                                );
+                              },
+                            ),
+                            // 4. الأذون
                             _buildMenuItem(
                               'الأذون',
                               Icons.assignment_turned_in_outlined,
                               Colors.blue,
-                              112.5, 0.4, 0.8, itemTextColor,
-                                  () {
+                              126.0, 0.6, 0.9, itemTextColor,
+                              () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (context) => const AffairsOfficerVacationsScreen()),
                                 );
                               },
                             ),
+                            // 5. الحسابات
                             _buildMenuItem(
                               'الحسابات',
                               Icons.manage_accounts_outlined,
                               Colors.purple,
-                              157.5, 0.6, 1.0, itemTextColor,
-                                    () {
+                              162.0, 0.7, 1.0, itemTextColor,
+                              () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (context) => const AffairsOfficerAccountsScreen()),
@@ -262,7 +281,7 @@ class MenuBackgroundPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     Offset center = Offset(size.width / 2, size.height);
-    List<double> angles = [math.pi / 4, math.pi / 2, 3 * math.pi / 4];
+    List<double> angles = [math.pi * 0.2, math.pi * 0.4, math.pi * 0.6, math.pi * 0.8];
 
     for (double angle in angles) {
       if (math.pi * progress >= angle) {

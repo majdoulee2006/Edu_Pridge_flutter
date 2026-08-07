@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/main.dart' show appNavigatorKey;
 
+import 'package:flutter/services.dart';
+
 OverlayEntry? _currentBanner;
 
 void showInAppBanner(BuildContext context, String title, String message, {VoidCallback? onTap}) {
+  try {
+    SystemSound.play(SystemSoundType.click);
+  } catch (_) {}
   final overlayState = appNavigatorKey.currentState?.overlay ?? Overlay.of(context);
   _currentBanner?.remove();
   late OverlayEntry entry;

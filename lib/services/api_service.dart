@@ -33,15 +33,25 @@ class ApiService {
         return;
       }
 
+      // 2. فحص آي بي الكمبيوتر المباشر على الواي فاي
+      final wifi = await _tryConnect('192.168.1.110');
+      if (wifi != null) {
+        _serverIp = '192.168.1.110';
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('server_ip', '192.168.1.110');
+        debugPrint("🎯 ApiService initialized instantly via 192.168.1.110:8000");
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
-      _serverIp = prefs.getString('server_ip') ?? '127.0.0.1';
+      _serverIp = prefs.getString('server_ip') ?? '192.168.1.110';
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية
       autoDiscoverServer();
     } catch (e) {
       debugPrint("🚨 Error initializing ApiService: $e");
-      _serverIp = '127.0.0.1';
+      _serverIp = '192.168.1.110';
     }
   }
 
@@ -68,8 +78,8 @@ class ApiService {
     }
     
     try {
-      // 1. تجربة الآيبيهات المعروفة بسرعة أولاً
-      final knownIps = ['192.168.21.75', '192.168.137.1', '192.168.137.242', '10.0.2.2'];
+      // 1. تجربة الآيبيهات المعروفة و 127.0.0.1 (ADB) بسرعة أولاً
+      final knownIps = ['127.0.0.1', '192.168.1.101', '192.168.1.109', '192.168.1.103', '192.168.21.53', '192.168.21.75', '192.168.137.1', '192.168.137.242', '10.0.2.2'];
       for (final ip in knownIps) {
         final res = await _tryConnect(ip);
         if (res != null) {

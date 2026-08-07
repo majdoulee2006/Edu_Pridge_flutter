@@ -1,13 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-// 🚀 1. استيراد شاشة طلبات الإجازة
+// 🚀 استيرادات شاشات رئيس القسم
 import '../screens/Head of department/center_icons/leave_requests_screen.dart';
 import '../screens/Head of department/center_icons/accounts/accounts_management_screen.dart';
 import '../screens/Head of department/center_icons/main_organization _interface_screen.dart';
-
-// ✅ تصحيح مسار استدعاء شاشة طلب التقارير
 import '../screens/Head of department/center_icons/request_reports_screen.dart';
+import '../screens/Head of department/center_icons/appointments/hod_appointments_screen.dart';
 
 class Boss_Center_Icon extends StatefulWidget {
   const Boss_Center_Icon({super.key});
@@ -93,11 +92,11 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                               'الإجازات',
                               Icons.event_note_rounded,
                               Colors.blueAccent,
-                              22.5,
+                              18.0,
                               0.0,
-                              0.4,
+                              0.3,
                               itemTextColor,
-                                  () {
+                              () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (context) => const LeaveRequestsScreen()),
@@ -109,11 +108,11 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                               'الحسابات',
                               Icons.account_balance_wallet_outlined,
                               Colors.orangeAccent,
-                              67.5,
-                              0.2,
-                              0.6,
+                              54.0,
+                              0.15,
+                              0.45,
                               itemTextColor,
-                                  () {
+                              () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -122,16 +121,34 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                                 );
                               },
                             ),
-                            // 3. زر التنظيم
+                            // 3. 🌟 زر مواعيد (الجديد بالمنتصف للأعلى)
+                            _buildMenuItem(
+                              'مواعيد',
+                              Icons.calendar_month_outlined,
+                              Colors.tealAccent,
+                              90.0,
+                              0.3,
+                              0.6,
+                              itemTextColor,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const HodAppointmentsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            // 4. زر التنظيم
                             _buildMenuItem(
                               'التنظيم',
                               Icons.auto_fix_high_rounded,
                               Colors.greenAccent,
-                              112.5,
-                              0.4,
-                              0.8,
+                              126.0,
+                              0.45,
+                              0.75,
                               itemTextColor,
-                                  () {
+                              () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -140,17 +157,16 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                                 );
                               },
                             ),
-                            // 4. زر طلب التقارير
+                            // 5. زر طلب التقارير
                             _buildMenuItem(
                               'طلب التقارير',
                               Icons.analytics_outlined,
                               Colors.redAccent,
-                              157.5,
+                              162.0,
                               0.6,
-                              1.0,
+                              0.9,
                               itemTextColor,
-                                  () {
-                                // ✅ تصحيح التنقل لزر طلب التقارير
+                              () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (context) => const ReportRequestScreen()),
@@ -192,15 +208,15 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
   }
 
   Widget _buildMenuItem(
-      String title,
-      IconData icon,
-      Color color,
-      double angleInDegrees,
-      double startAnim,
-      double endAnim,
-      Color textColor,
-      VoidCallback onTapAction,
-      ) {
+    String title,
+    IconData icon,
+    Color color,
+    double angleInDegrees,
+    double startAnim,
+    double endAnim,
+    Color textColor,
+    VoidCallback onTapAction,
+  ) {
     double angleInRadians = angleInDegrees * math.pi / 180.0;
     double radius = 100.0;
     double x = 160 + radius * math.cos(angleInRadians);
@@ -282,7 +298,12 @@ class MenuBackgroundPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     Offset center = Offset(size.width / 2, size.height);
-    List<double> angles = [math.pi / 4, math.pi / 2, 3 * math.pi / 4];
+    List<double> angles = [
+      0.2 * math.pi,
+      0.4 * math.pi,
+      0.6 * math.pi,
+      0.8 * math.pi,
+    ];
 
     for (double angle in angles) {
       if (math.pi * progress >= angle) {

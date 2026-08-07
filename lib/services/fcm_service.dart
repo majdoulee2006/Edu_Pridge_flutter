@@ -11,6 +11,10 @@ import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lecture
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/appointments/hod_appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
+
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
@@ -23,7 +27,7 @@ class FcmService {
   // VAPID key من Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
   static const String _vapidKey = "BPYnQg1rycEHNqFlogeie2VW-AfHoxmUkriiP649VN9aTE4l2rb1dmgbcYuXAXtkYZwwZOYch7YsusLihZfjIQg";
 
-  static void handleNotificationData(Map<String, dynamic> data) {
+  static Future<void> handleNotificationData(Map<String, dynamic> data) async {
     final type = data['type']?.toString();
     final relatedIdStr = data['related_id']?.toString() ??
         data['lecture_id']?.toString() ??
@@ -33,7 +37,20 @@ class FcmService {
     final ctx = appNavigatorKey.currentContext;
     if (ctx == null) return;
 
+    final prefs = await SharedPreferences.getInstance();
+    final userRole = prefs.getString('user_role') ?? '';
+
     switch (type) {
+      case 'meeting_request':
+      case 'summon':
+        if (userRole == 'head' || userRole == 'department_head') {
+          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const HodAppointmentsScreen()));
+        } else if (userRole == 'affairs') {
+          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AffairsAppointmentsScreen()));
+        } else if (userRole == 'parent') {
+          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
+        }
+        break;
       case 'lecture':
         Navigator.push(
           ctx,
@@ -164,8 +181,9 @@ class FcmService {
       final authToken = prefs.getString('token') ?? '';
       if (authToken.isEmpty) return;
 
-      // تجنب إرسال نفس الـ token مرتين
-      final lastSent = prefs.getString('fcm_token_sent') ?? '';
+      final userId = prefs.getString('user_id') ?? prefs.getInt('user_id')?.toString() ?? 'guest';
+      final key = 'fcm_token_sent_$userId';
+      final lastSent = prefs.getString(key) ?? '';
       if (lastSent == token) return;
 
       await Dio().post(
@@ -173,8 +191,8 @@ class FcmService {
         data: {'fcm_token': token},
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
       );
-      await prefs.setString('fcm_token_sent', token);
-      debugPrint('✅ FCM token sent to server');
+      await prefs.setString(key, token);
+      debugPrint('✅ FCM token sent to server for user $userId');
     } catch (e) {
       debugPrint('⛔ FCM token send error: $e');
     }
@@ -184,6 +202,8 @@ class FcmService {
   static Future<void> sendTokenAfterLogin() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id') ?? prefs.getInt('user_id')?.toString() ?? 'guest';
+      await prefs.remove('fcm_token_sent_$userId');
       await prefs.remove('fcm_token_sent');
       await _refreshAndSendToken(vapidKey: kIsWeb ? _vapidKey : null);
     } catch (e) {

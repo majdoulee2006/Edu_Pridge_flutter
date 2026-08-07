@@ -90,6 +90,28 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     }
   }
 
+  List<dynamic> _getFilteredCourses() {
+    if (_selectedDepartment == null) return [];
+    final selDeptStr = _selectedDepartment.toString();
+    final selDeptInt = int.tryParse(selDeptStr);
+
+    return _courses.where((c) {
+      final deptIds = c['department_ids'];
+      if (deptIds is List) {
+        if (deptIds.contains(selDeptInt) ||
+            deptIds.contains(selDeptStr) ||
+            deptIds.map((e) => e.toString()).contains(selDeptStr)) {
+          return true;
+        }
+      }
+      final singleDeptId = c['department_id'] ?? c['dept_id'];
+      if (singleDeptId != null && singleDeptId.toString() == selDeptStr) {
+        return true;
+      }
+      return false;
+    }).toList();
+  }
+
   final TextEditingController _categoryController = TextEditingController();
 
   DateTime? _selectedDate;
@@ -250,14 +272,15 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryYellow = const Color(0xFFFFCC00);
     final textColor = isDark ? Colors.white : Colors.black;
-    final cardColor = isDark ? const Color(0xFF1E2633) : Colors.white;
+    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F9F9);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     return Directionality(
       textDirection: ui.TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
+          backgroundColor: bgColor,
           elevation: 0,
           title: const Text(
             "تعديل النشاط",
@@ -355,104 +378,114 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "القسم (اختياري):",
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
-                                ),
-                                const SizedBox(height: 8),
-                                DropdownButtonFormField<String>(
-                                  isExpanded: true,
-                                  value: _departments.any((d) => d['department_id'].toString() == _selectedDepartment) ? _selectedDepartment : null,
-                                  decoration: InputDecoration(
-                                    fillColor: cardColor,
-                                    filled: true,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                    Builder(
+                      builder: (context) {
+                        final filteredCourses = _getFilteredCourses();
+                        final isDeptSelected = _selectedDepartment != null;
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "القسم (اختياري):",
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                                   ),
-                                  dropdownColor: cardColor,
-                                  style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
-                                  items: [
-                                    const DropdownMenuItem<String>(value: null, child: Text("كل الأقسام", overflow: TextOverflow.ellipsis)),
-                                    ..._departments.map((dept) {
-                                      return DropdownMenuItem<String>(
-                                        value: dept['department_id'].toString(),
-                                        child: Text(dept['name'].toString(), overflow: TextOverflow.ellipsis),
-                                      );
-                                    }).toList(),
-                                  ],
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _selectedDepartment = val;
-                                      _selectedCourse = null; // Reset course selection when department changes
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "الدورة (اختياري):",
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
-                                ),
-                                const SizedBox(height: 8),
-                                DropdownButtonFormField<String>(
-                                  isExpanded: true,
-                                  value: _courses.where((c) {
-                                    if (_selectedDepartment == null) return true;
-                                    final deptIds = c['department_ids'];
-                                    if (deptIds is List) {
-                                      return deptIds.contains(int.tryParse(_selectedDepartment!)) ||
-                                          deptIds.contains(_selectedDepartment);
-                                    }
-                                    return false;
-                                  }).any((c) => c['course_id'].toString() == _selectedCourse) ? _selectedCourse : null,
-                                  decoration: InputDecoration(
-                                    fillColor: cardColor,
-                                    filled: true,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String>(
+                                    isExpanded: true,
+                                    value: _departments.any((d) => (d['department_id'] ?? d['id']).toString() == _selectedDepartment)
+                                        ? _selectedDepartment
+                                        : null,
+                                    decoration: InputDecoration(
+                                      fillColor: cardColor,
+                                      filled: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                                    ),
+                                    dropdownColor: cardColor,
+                                    style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                    items: [
+                                      const DropdownMenuItem<String>(value: null, child: Text("كل الأقسام", overflow: TextOverflow.ellipsis)),
+                                      ..._departments.map((dept) {
+                                        final deptId = (dept['department_id'] ?? dept['id']).toString();
+                                        final deptName = (dept['name'] ?? dept['title'] ?? '').toString();
+                                        return DropdownMenuItem<String>(
+                                          value: deptId,
+                                          child: Text(deptName, overflow: TextOverflow.ellipsis),
+                                        );
+                                      }),
+                                    ],
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _selectedDepartment = val;
+                                        _selectedCourse = null; // إعادة تعيين الدورة إلى كل الدورات عند تغيير القسم
+                                      });
+                                    },
                                   ),
-                                  dropdownColor: cardColor,
-                                  style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
-                                  items: [
-                                    const DropdownMenuItem<String>(value: null, child: Text("كل الدورات")),
-                                    ..._courses.where((c) {
-                                      if (_selectedDepartment == null) {
-                                        return true; // Show all courses if no department is selected
-                                      }
-                                      final deptIds = c['department_ids'];
-                                      if (deptIds is List) {
-                                        return deptIds.contains(int.tryParse(_selectedDepartment!)) ||
-                                            deptIds.contains(_selectedDepartment);
-                                      }
-                                      return false;
-                                    }).map((c) {
-                                      return DropdownMenuItem<String>(
-                                        value: c['course_id'].toString(),
-                                        child: Text(c['title'].toString(), overflow: TextOverflow.ellipsis),
-                                      );
-                                    }).toList(),
-                                  ],
-                                  onChanged: (val) {
-                                    setState(() => _selectedCourse = val);
-                                  },
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "الدورة (اختياري):",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isDeptSelected ? textColor : Colors.grey,
+                                      fontFamily: 'Noto Sans Arabic',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String>(
+                                    isExpanded: true,
+                                    value: (isDeptSelected && filteredCourses.any((c) => (c['course_id'] ?? c['id']).toString() == _selectedCourse))
+                                        ? _selectedCourse
+                                        : null,
+                                    decoration: InputDecoration(
+                                      fillColor: isDeptSelected ? cardColor : cardColor.withAlpha(128),
+                                      filled: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                                    ),
+                                    dropdownColor: cardColor,
+                                    style: TextStyle(color: isDeptSelected ? textColor : Colors.grey, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                    items: [
+                                      DropdownMenuItem<String>(
+                                        value: null,
+                                        child: Text(
+                                          isDeptSelected ? "كل الدورات في هذا القسم" : "كل الدورات (إجباري عند اختيار كل الأقسام)",
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (isDeptSelected)
+                                        ...filteredCourses.map((c) {
+                                          final courseId = (c['course_id'] ?? c['id']).toString();
+                                          final courseTitle = (c['title'] ?? c['name'] ?? '').toString();
+                                          return DropdownMenuItem<String>(
+                                            value: courseId,
+                                            child: Text(courseTitle, overflow: TextOverflow.ellipsis),
+                                          );
+                                        }),
+                                    ],
+                                    onChanged: isDeptSelected
+                                        ? (val) {
+                                            setState(() => _selectedCourse = val);
+                                          }
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                     const SizedBox(height: 20),
 
                     // التاريخ والوقت

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 // استيراد الواجهات من مجلد center_icons مثل هيكلية المشروع
@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/screens/admin/center_icons/reports/reports_sc
 import 'package:edu_pridge_flutter/screens/admin/center_icons/classes/classes_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/center_icons/courses/courses_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/center_icons/accounts/accounts_main_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
 
 class AdminSpeedDial extends StatefulWidget {
   const AdminSpeedDial({super.key});
@@ -91,32 +92,40 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
                               'التقارير',
                               Icons.bar_chart_outlined,
                               Colors.blue,
-                              22.5, 0.0, 0.4, itemTextColor,
-                                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsScreen())),
+                              18.0, 0.0, 0.3, itemTextColor,
+                              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsScreen())),
                             ),
                             // 2. الفصول والمواد
                             _buildMenuItem(
                               'الفصول والمواد',
                               Icons.class_outlined,
                               Colors.orange,
-                              67.5, 0.2, 0.6, itemTextColor,
-                                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassesScreen())),
+                              54.0, 0.2, 0.5, itemTextColor,
+                              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassesScreen())),
                             ),
-                            // 3. الدورات
+                            // 3. المواعيد (في المنتصف تماماً)
+                            _buildMenuItem(
+                              'المواعيد',
+                              Icons.calendar_today_rounded,
+                              Colors.teal,
+                              90.0, 0.4, 0.7, itemTextColor,
+                              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AffairsAppointmentsScreen())),
+                            ),
+                            // 4. الدورات
                             _buildMenuItem(
                               'الدورات',
                               Icons.layers_outlined,
                               Colors.purple,
-                              112.5, 0.4, 0.8, itemTextColor,
-                                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CoursesScreen())),
+                              126.0, 0.6, 0.9, itemTextColor,
+                              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CoursesScreen())),
                             ),
-                            // 4. إدارة الحسابات
+                            // 5. إدارة الحسابات
                             _buildMenuItem(
                               'إدارة الحسابات',
                               Icons.manage_accounts_outlined,
                               Colors.green,
-                              157.5, 0.6, 1.0, itemTextColor,
-                                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountsMainScreen())),
+                              162.0, 0.7, 1.0, itemTextColor,
+                              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountsMainScreen())),
                             ),
                           ],
                         ),
@@ -192,7 +201,7 @@ class MenuBackgroundPainter extends CustomPainter {
     int alphaValue = (255 * 0.2 * progress).toInt();
     Paint linePaint = Paint()..color = lineColor.withAlpha(alphaValue)..strokeWidth = 1.5;
     Offset center = Offset(size.width / 2, size.height);
-    for (double angle in [math.pi / 4, math.pi / 2, 3 * math.pi / 4]) {
+    for (double angle in [math.pi * 0.2, math.pi * 0.4, math.pi * 0.6, math.pi * 0.8]) {
       if (math.pi * progress >= angle) {
         canvas.drawLine(center, Offset(center.dx + size.height * math.cos(angle), center.dy - size.height * math.sin(angle)), linePaint);
       }

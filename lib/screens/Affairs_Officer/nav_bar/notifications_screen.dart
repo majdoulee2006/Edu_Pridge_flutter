@@ -7,6 +7,8 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
+
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
@@ -70,7 +72,7 @@ class _AffairsOfficerNotificationsScreenState
     if (_notifications[index]['is_read'] == true) return;
     try {
       final token = await _getToken();
-      await Dio().put(
+      await Dio().post(
         "${ApiService().baseUrl}/affairs/notifications/$id/read",
         options: Options(headers: {
           "Accept": "application/json",
@@ -88,7 +90,7 @@ class _AffairsOfficerNotificationsScreenState
     setState(() => _isMarkingAll = true);
     try {
       final token = await _getToken();
-      await Dio().put(
+      await Dio().post(
         "${ApiService().baseUrl}/affairs/notifications/read-all",
         options: Options(headers: {
           "Accept": "application/json",
@@ -131,6 +133,13 @@ class _AffairsOfficerNotificationsScreenState
           }),
         ),
       );
+    } else if (type == 'meeting_request' || type == 'summon') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AffairsAppointmentsScreen(),
+        ),
+      );
     }
   }
 
@@ -141,6 +150,10 @@ class _AffairsOfficerNotificationsScreenState
         return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': 'إعلان'};
       case 'leave_request':
         return {'color': Colors.blue, 'icon': Icons.description_outlined, 'label': 'طلب إجازة'};
+      case 'meeting_request':
+        return {'color': Colors.teal, 'icon': Icons.calendar_month_outlined, 'label': 'طلب موعد'};
+      case 'summon':
+        return {'color': Colors.deepOrange, 'icon': Icons.person_add_alt_1_outlined, 'label': 'استدعاء إداري'};
       case 'report':
         return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': 'تقرير'};
       case 'attendance':

@@ -12,6 +12,7 @@ import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_scre
 import 'package:edu_pridge_flutter/screens/parents/center_icons/reports_screen/reports_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/performance_screen/performance_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 class ParentsNotificationsScreen extends StatefulWidget {
@@ -189,6 +190,10 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       case 'marks':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
         break;
+      case 'meeting_request':
+      case 'summon':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
+        break;
     }
   }
 
@@ -207,6 +212,10 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         return {'color': Colors.green, 'icon': Icons.grade_rounded, 'label': 'نتيجة علامة'};
       case 'marks':
         return {'color': Colors.amber, 'icon': Icons.grade_rounded, 'label': 'نتائج امتحانات'};
+      case 'meeting_request':
+        return {'color': Colors.teal, 'icon': Icons.calendar_month_outlined, 'label': 'طلب موعد'};
+      case 'summon':
+        return {'color': Colors.deepOrange, 'icon': Icons.person_add_alt_1_outlined, 'label': 'استدعاء إداري'};
       case 'holiday':
         return {'color': Colors.green, 'icon': Icons.beach_access_rounded, 'label': 'عطلة رسمية'};
       case 'event':

@@ -479,6 +479,7 @@ class _AssignmentCard extends StatefulWidget {
     this.onSubmitSuccess,
     this.grade,
     this.feedback,
+    this.studentNotes,
   });
 
   @override
@@ -901,59 +902,6 @@ class _AssignmentCardState extends State<_AssignmentCard> {
           ),
 
           if (isExpanded) ...[
-<<<<<<< HEAD
-=======
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
-            ),
-            Row(
-              children: [
-                Container(width: 4, height: 18, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
-                const SizedBox(width: 8),
-                Text('تفاصيل الواجب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.detailText,
-              style: TextStyle(
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                fontSize: 13,
-                height: 1.5,
-              ),
-            ),
-          ],
-
-          if (isExpanded && widget.studentNotes != null && widget.studentNotes!.trim().isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withAlpha(10) : const Color(0xFFF9F9F9),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.notes_rounded, size: 16, color: Color(0xFFFFCC00)),
-                      const SizedBox(width: 6),
-                      Text('ملاحظاتك المعادة مع الحل:', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(widget.studentNotes!.trim(), style: TextStyle(color: textColor, fontSize: 13, height: 1.5)),
-                ],
-              ),
-            ),
-          ],
-
-          if (isExpanded && !widget.showSubmitForm && (widget.grade != null || (widget.feedback != null && widget.feedback!.isNotEmpty))) ...[
->>>>>>> 619c095 (Merge conflicts resolution and UI synchronization)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
@@ -1218,7 +1166,6 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
             ),
 
-<<<<<<< HEAD
             // ملف المعلم — يظهر دائماً إذا موجود
             if (widget.teacherFilePath != null) ...[
               Row(
@@ -1241,11 +1188,6 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
               const SizedBox(height: 10),
             ],
-
-
-
-=======
->>>>>>> 619c095 (Merge conflicts resolution and UI synchronization)
             if (_pickedFile != null)
               Container(
                 width: double.infinity,

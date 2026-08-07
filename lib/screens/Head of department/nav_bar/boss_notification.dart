@@ -12,6 +12,7 @@ import '../../../widgets/boss_center_icon.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import '../center_icons/leave_requests_screen.dart';
 import '../center_icons/request_reports_screen.dart';
+import '../center_icons/appointments/hod_appointments_screen.dart';
 
 class BossNotification {
   final int id;
@@ -98,10 +99,18 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
               time:        n['created_at'] as String? ?? '',
               icon: type == 'leave_request'
                   ? Icons.event_busy_outlined
-                  : Icons.notifications_outlined,
+                  : type == 'meeting_request'
+                      ? Icons.calendar_month_outlined
+                      : type == 'summon'
+                          ? Icons.person_add_alt_1_outlined
+                          : Icons.notifications_outlined,
               iconColor: type == 'leave_request'
                   ? const Color(0xFFCCAA00)
-                  : Colors.orange,
+                  : type == 'meeting_request'
+                      ? Colors.teal
+                      : type == 'summon'
+                          ? Colors.deepOrange
+                          : Colors.orange,
               isUnread:    n['is_read'] == false,
               type:        type,
               relatedId:   n['related_id'] != null ? (n['related_id'] as num).toInt() : null,
@@ -563,6 +572,8 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
   String _labelForType(String type) {
     switch (type) {
       case 'leave_request': return 'طلب إجازة';
+      case 'meeting_request': return 'طلب موعد لقاء';
+      case 'summon': return 'استدعاء ولي أمر';
       case 'announcement':  return 'إعلان';
       case 'report':        return 'تقرير';
       default:              return 'إشعار';
@@ -577,8 +588,30 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
 
     return GestureDetector(
       onTap: () {
-        if (n.type == 'grade_report_ready') {
+        _markAsRead(n.id, index);
+        if (n.type == 'grade_report_ready' || n.type == 'report') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportRequestScreen()));
+        } else if (n.type == 'meeting_request' || n.type == 'summon') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const HodAppointmentsScreen()));
+        } else if (n.type == 'announcement') {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => AnnouncementDetailScreen(announcement: {
+              'title':      n.title,
+              'content':    n.description,
+              'time_ago':   n.time,
+              'created_at': n.time,
+              'author_name': 'الإدارة',
+            }),
+          ));
+        } else if (n.isLeaveRequest) {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => LeaveRequestsScreen(
+              fromSource: "notification",
+              highlightId: n.relatedId,
+            ),
+          )).then((refreshed) {
+            if (refreshed == true) _fetchNotifications();
+          });
         }
       },
       child: Container(
