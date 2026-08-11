@@ -39,6 +39,23 @@ class FcmService {
 
     final prefs = await SharedPreferences.getInstance();
     final userRole = prefs.getString('user_role') ?? '';
+    final token = prefs.getString('token') ?? '';
+
+    // إرسال طلب للباك إند لتمييز الإشعار كمقروء عند فتحه من الخارج
+    if (token.isNotEmpty && type != null) {
+      try {
+        await Dio().put(
+          '${ApiService().baseUrl}/notifications/read-by-type',
+          data: {
+            'type': type,
+            if (intId != null) 'related_id': intId,
+          },
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
+      } catch (e) {
+        debugPrint('⛔ markByTypeAndRelatedId error: $e');
+      }
+    }
 
     switch (type) {
       case 'meeting_request':

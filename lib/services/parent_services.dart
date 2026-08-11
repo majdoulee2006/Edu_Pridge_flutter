@@ -180,4 +180,76 @@ class ParentService {
     }
     return false;
   }
-}
+
+  // 7️⃣ كشف علامات الطفل الأكاديمي
+  Future<Map<String, dynamic>?> getChildAcademicCard(int childId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return null;
+
+      final response = await _dio.get(
+        "$baseUrl/parent/children/$childId/academic-card",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching child academic card: $e");
+    }
+    return null;
+  }
+
+  // 8️⃣ تصدير كشف علامات الطفل PDF
+  Future<Map<String, dynamic>?> exportChildAcademicCardPdf(int childId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return null;
+
+      final response = await _dio.get(
+        "$baseUrl/parent/children/$childId/academic-card/export-pdf",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ Error exporting child academic card PDF: $e");
+    }
+    return null;
+  }
+
+  // 9️⃣ تصدير كشف علامات الطفل Excel
+  Future<Map<String, dynamic>?> exportChildAcademicCardExcel(int childId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return null;
+
+      final response = await _dio.get(
+        "$baseUrl/parent/children/$childId/academic-card/export-excel",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ Error exporting child academic card Excel: $e");
+    }
+    return null;
+  }
+}

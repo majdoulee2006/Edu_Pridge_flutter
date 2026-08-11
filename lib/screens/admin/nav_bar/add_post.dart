@@ -22,7 +22,9 @@ class _AddPostScreenState extends State<AddPostScreen> {
   
   String selectedAudience = "all"; // all, students, teachers, department
   int? selectedDepartmentId;
+  int? selectedCourseId;
   List<dynamic> departments = [];
+  List<dynamic> courses = [];
   bool isLoadingDepts = false;
   bool isSubmitting = false;
 
@@ -34,8 +36,28 @@ class _AddPostScreenState extends State<AddPostScreen> {
       _contentController.text = widget.announcement!['content'] ?? '';
       _linkController.text = widget.announcement!['link_url'] ?? widget.announcement!['link'] ?? '';
       selectedAudience = widget.announcement!['target_audience'] ?? 'all';
+      if (widget.announcement!['department_id'] != null) {
+        selectedDepartmentId = int.tryParse(widget.announcement!['department_id'].toString());
+      }
+      if (widget.announcement!['course_id'] != null) {
+        selectedCourseId = int.tryParse(widget.announcement!['course_id'].toString());
+      }
     }
     _loadDepartments();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      final cList = await AdminServices().getCourses();
+      if (cList != null && mounted) {
+        setState(() {
+          courses = cList;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading courses: $e");
+    }
   }
 
   Future<void> _loadDepartments() async {
@@ -44,10 +66,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
       final depts = await AdminServices().getDepartments();
       if (depts != null && depts.isNotEmpty) {
         setState(() {
-          departments = depts.where((d) {
-            String name = d['name']?.toString().trim() ?? '';
-            return ['نظم معلومات', 'تجاري', 'طبي', 'هندسي'].contains(name);
-          }).toList();
+          departments = depts;
           isLoadingDepts = false;
         });
       } else {
@@ -59,10 +78,10 @@ class _AddPostScreenState extends State<AddPostScreen> {
       if (departments.isEmpty) {
         // Fallback static list
         departments = [
-          {'department_id': 1, 'name': 'نظم معلومات'},
-          {'department_id': 2, 'name': 'تجاري'},
-          {'department_id': 3, 'name': 'طبي'},
-          {'department_id': 4, 'name': 'هندسي'},
+          {'department_id': 1, 'name': 'قسم نظم المعلومات'},
+          {'department_id': 2, 'name': 'قسم تجاري'},
+          {'department_id': 3, 'name': 'قسم طبي'},
+          {'department_id': 4, 'name': 'قسم هندسي'},
         ];
       }
       if (mounted) setState(() => isLoadingDepts = false);
@@ -119,6 +138,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
           content: content,
           targetAudience: selectedAudience,
           departmentId: selectedAudience == 'department' ? selectedDepartmentId : null,
+          courseId: selectedAudience == 'department' ? selectedCourseId : null,
           imagePath: selectedImagePath,
           link: link,
         );
@@ -128,6 +148,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
           content: content,
           targetAudience: selectedAudience,
           departmentId: selectedAudience == 'department' ? selectedDepartmentId : null,
+          courseId: selectedAudience == 'department' ? selectedCourseId : null,
           imagePath: selectedImagePath,
           link: link,
         );
@@ -236,35 +257,90 @@ class _AddPostScreenState extends State<AddPostScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // اختيار القسم إذا كان الجمهور قسم معين
+                    // اختيار القسم والدورة إذا كان الجمهور قسم معين
                     if (selectedAudience == "department") ...[
-                      Text(
-                        "اختر القسم الموجه له:",
-                        style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                      ),
-                      const SizedBox(height: 8),
-                      isLoadingDepts
-                          ? const CircularProgressIndicator()
-                          : DropdownButtonFormField<int>(
-                              value: selectedDepartmentId,
-                              decoration: InputDecoration(
-                                fillColor: cardColor,
-                                filled: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-                              ),
-                              dropdownColor: cardColor,
-                              items: departments.map((dept) {
-                                return DropdownMenuItem<int>(
-                                  value: dept['department_id'],
-                                  child: Text(dept['name'] ?? ''),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  selectedDepartmentId = val;
-                                });
-                              },
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "القسم المعين:",
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                                ),
+                                const SizedBox(height: 8),
+                                isLoadingDepts
+                                    ? const CircularProgressIndicator()
+                                    : DropdownButtonFormField<int>(
+                                        value: selectedDepartmentId,
+                                        decoration: InputDecoration(
+                                          fillColor: cardColor,
+                                          filled: true,
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                                        ),
+                                        dropdownColor: cardColor,
+                                        items: departments.map((dept) {
+                                          return DropdownMenuItem<int>(
+                                            value: dept['department_id'],
+                                            child: Text(dept['name'] ?? '', overflow: TextOverflow.ellipsis),
+                                          );
+                                        }).toList(),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            selectedDepartmentId = val;
+                                            selectedCourseId = null;
+                                          });
+                                        },
+                                      ),
+                              ],
                             ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "الدورة (اختياري):",
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                                ),
+                                const SizedBox(height: 8),
+                                DropdownButtonFormField<int>(
+                                  value: selectedCourseId,
+                                  decoration: InputDecoration(
+                                    fillColor: cardColor,
+                                    filled: true,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                                  ),
+                                  dropdownColor: cardColor,
+                                  items: [
+                                    const DropdownMenuItem<int>(value: null, child: Text("كل الدورات")),
+                                    ...courses.where((c) {
+                                      if (selectedDepartmentId == null) return true;
+                                      final deptIds = c['department_ids'];
+                                      if (deptIds is List) {
+                                        return deptIds.contains(selectedDepartmentId);
+                                      }
+                                      return true;
+                                    }).map((c) {
+                                      return DropdownMenuItem<int>(
+                                        value: c['course_id'],
+                                        child: Text(c['title'] ?? '', overflow: TextOverflow.ellipsis),
+                                      );
+                                    }).toList(),
+                                  ],
+                                  onChanged: (val) {
+                                    setState(() {
+                                      selectedCourseId = val;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 20),
                     ],
 

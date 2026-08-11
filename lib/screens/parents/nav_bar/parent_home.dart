@@ -10,7 +10,9 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/parents/parent_services_menu_screen.dart';
 import '../../../widgets/parents_center_icon.dart';
+
 
 class ParentsHomeScreen extends StatefulWidget {
   const ParentsHomeScreen({super.key});
@@ -360,13 +362,19 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
             ],
           ),
           GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(userName: _parentName, userRole: "ولي أمر"))),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ParentServicesMenuScreen(parentName: _parentName),
+              ),
+            ),
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: cardColor, shape: BoxShape.circle),
-              child: const Icon(Icons.settings_outlined, color: Color(0xFFF1C40F), size: 26),
+              child: const Icon(Icons.menu_rounded, color: Color(0xFFFFCC00), size: 26),
             ),
           ),
+
         ],
       ),
     );

@@ -35,6 +35,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
   int? _selectedProgramId;
   String? _selectedProgramName;
   int _selectedYear = 1;
+  int _selectedCycle = 0; // 0: الكل, 1: الدورة الأولى, 2: الدورة الثانية
 
   static const _dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
   static const _dayNames = {
@@ -109,7 +110,19 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
     if (prog.isEmpty) return [];
     final schedule = prog['schedule'] as Map<String, dynamic>? ?? {};
     final yearData = schedule['$_selectedYear'] as List<dynamic>? ?? [];
-    return yearData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final list = yearData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+
+    if (_selectedCycle != 0) {
+      return list.where((s) {
+        final semId = (s['semester_id'] as num?)?.toInt();
+        final semName = (s['semester_name'] as String? ?? '');
+        if (semId != null) return semId == _selectedCycle;
+        if (_selectedCycle == 1) return semName.contains('الأول') || semName.contains('1');
+        if (_selectedCycle == 2) return semName.contains('الثاني') || semName.contains('2');
+        return true;
+      }).toList();
+    }
+    return list;
   }
 
   @override
@@ -248,39 +261,44 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
         ),
         const SizedBox(height: 10),
 
-        // مفتاح السنة
+        // مفتاح السنة والدورة
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(children: [
-            _yearToggle(1, yellow, cardColor),
-            const SizedBox(width: 10),
-            _yearToggle(2, yellow, cardColor),
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TableViewScreen()),
-                );
-                _fetchPrograms(); // تحديث البيانات بعد العودة
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(10)),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.table_chart_outlined, color: Colors.black, size: 16),
-                    SizedBox(width: 4),
-                    Text('عرض التفاصيل', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12, fontFamily: 'Cairo')),
-                  ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                _yearToggle(1, yellow, cardColor),
+                const SizedBox(width: 8),
+                _yearToggle(2, yellow, cardColor),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const TableViewScreen()),
+                    );
+                    _fetchPrograms(); // تحديث البيانات بعد العودة
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(10)),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.table_chart_outlined, color: Colors.black, size: 15),
+                        SizedBox(width: 4),
+                        Text('عرض التفاصيل', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11, fontFamily: 'Cairo')),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const Spacer(),
-            if (_selectedProgramName != null)
-              Text(_selectedProgramName!, style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
-          ]),
+                const Spacer(),
+                if (_selectedProgramName != null)
+                  Text(_selectedProgramName!, style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
+              ]),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
 
@@ -292,13 +310,45 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
     );
   }
 
+  Widget _cycleToggle(int cycle, String label, Color yellow, Color cardColor, {bool isExam = false}) {
+    final active = isExam ? _examSelectedCycle == cycle : _selectedCycle == cycle;
+    return GestureDetector(
+      onTap: () => setState(() {
+        if (isExam) {
+          _examSelectedCycle = cycle;
+        } else {
+          _selectedCycle = cycle;
+        }
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? yellow : cardColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: active ? yellow : Colors.grey.withValues(alpha: 0.2)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Cairo',
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: active ? Colors.black : Colors.grey,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _yearToggle(int year, Color yellow, Color cardColor) {
     final active = _selectedYear == year;
     return GestureDetector(
       onTap: () => setState(() => _selectedYear = year),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
           color: active ? yellow : cardColor,
           borderRadius: BorderRadius.circular(10),
@@ -319,7 +369,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           children: [
             Icon(Icons.calendar_today_outlined, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 10),
-            Text('لا يوجد جدول لهذا القسم والسنة', style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Cairo')),
+            Text('لا يوجد جدول لهذا القسم والدورة المختارة', style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Cairo')),
           ],
         ),
       );
@@ -367,6 +417,8 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                   final s   = entry.value;
                   final start = _trimTime(s['start_time'] as String? ?? '');
                   final end   = _trimTime(s['end_time']   as String? ?? '');
+                  final semId = (s['semester_id'] as num?)?.toInt();
+                  final semName = s['semester_name'] as String?;
                   return Container(
                     decoration: BoxDecoration(
                       border: idx < list.length - 1
@@ -380,8 +432,35 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                         decoration: BoxDecoration(color: Colors.blueAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                         child: Center(child: Text('${idx + 1}', style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 13))),
                       ),
-                      title: Text(s['course_name'] as String? ?? '—',
-                          style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor)),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(s['course_name'] as String? ?? '—',
+                                style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor)),
+                          ),
+                          if (semName != null || semId != null) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (semId == 2)
+                                    ? Colors.purple.withValues(alpha: 0.12)
+                                    : Colors.teal.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                semName ?? (semId == 1 ? 'الدورة 1' : 'الدورة 2'),
+                                style: TextStyle(
+                                  fontFamily: 'Cairo',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: (semId == 2) ? Colors.purple : Colors.teal,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                       subtitle: Text('$start - $end', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Cairo')),
                       trailing: s['room'] != null
                           ? Container(
@@ -405,6 +484,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
 
   // ─── تبويب الجداول الامتحانية ────────────────────────────────────
   int _examSelectedYear = 1;
+  int _examSelectedCycle = 0; // 0: الكل, 1: الدورة الأولى, 2: الدورة الثانية
   int? _examSelectedProgramId;
 
   List<Map<String, dynamic>> get _filteredExams {
@@ -413,9 +493,24 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
     return _exams.where((e) {
       final prog = e['program_name'] as String? ?? '';
       final year = (e['year'] as num?)?.toInt() ?? 1;
+      final semId = (e['semester_id'] as num?)?.toInt();
+      final semName = (e['semester_name'] as String? ?? '');
+
       final programMatch = selectedProgName == null || prog == selectedProgName;
       final yearMatch = year == _examSelectedYear;
-      return programMatch && yearMatch;
+
+      bool cycleMatch = true;
+      if (_examSelectedCycle != 0) {
+        if (semId != null) {
+          cycleMatch = semId == _examSelectedCycle;
+        } else if (_examSelectedCycle == 1) {
+          cycleMatch = semName.contains('الأول') || semName.contains('1');
+        } else if (_examSelectedCycle == 2) {
+          cycleMatch = semName.contains('الثاني') || semName.contains('2');
+        }
+      }
+
+      return programMatch && yearMatch && cycleMatch;
     }).toList();
   }
 
@@ -477,11 +572,16 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
         // ── تبويب السنة ──
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(children: [
-            _examYearToggle(1, yellow, cardColor),
-            const SizedBox(width: 10),
-            _examYearToggle(2, yellow, cardColor),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                _examYearToggle(1, yellow, cardColor),
+                const SizedBox(width: 10),
+                _examYearToggle(2, yellow, cardColor),
+              ]),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
 
@@ -600,6 +700,9 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
             final period  = e['period'] as String?;
             final examType = e['exam_type'] as String? ?? e['exam_name'] as String?;
 
+            final semId = (e['semester_id'] as num?)?.toInt();
+            final semName = e['semester_name'] as String?;
+
             return Container(
               decoration: BoxDecoration(
                 border: idx < exams.length - 1
@@ -620,9 +723,36 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                         style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
                 ),
-                title: Text(
-                  e['course_name'] as String? ?? '—',
-                  style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        e['course_name'] as String? ?? '—',
+                        style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
+                      ),
+                    ),
+                    if (semName != null || semId != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: (semId == 2)
+                              ? Colors.purple.withValues(alpha: 0.12)
+                              : Colors.teal.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          semName ?? (semId == 1 ? 'الدورة 1' : 'الدورة 2'),
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: (semId == 2) ? Colors.purple : Colors.teal,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

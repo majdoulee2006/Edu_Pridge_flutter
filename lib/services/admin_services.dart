@@ -503,6 +503,7 @@ class AdminServices {
     String? imagePath,
     String? targetAudience,
     int? departmentId,
+    int? courseId,
     String? link,
   }) async {
     try {
@@ -518,6 +519,9 @@ class AdminServices {
       }
       if (departmentId != null) {
         data['department_id'] = departmentId;
+      }
+      if (courseId != null) {
+        data['course_id'] = courseId;
       }
       
       if (imagePath != null && imagePath.isNotEmpty) {
@@ -693,6 +697,7 @@ class AdminServices {
     required String content,
     String? targetAudience,
     int? departmentId,
+    int? courseId,
     String? imagePath,
     String? link,
   }) async {
@@ -703,6 +708,7 @@ class AdminServices {
         'content': content,
         if (targetAudience != null) 'target_audience': targetAudience,
         if (departmentId != null) 'department_id': departmentId,
+        if (courseId != null) 'course_id': courseId,
         if (link != null && link.isNotEmpty) 'link_url': link,
         if (imagePath != null)
           'image': await MultipartFile.fromFile(

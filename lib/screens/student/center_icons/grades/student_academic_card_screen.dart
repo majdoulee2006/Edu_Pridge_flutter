@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 
@@ -16,6 +17,7 @@ class StudentAcademicCardScreen extends StatefulWidget {
 
 class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
   bool _isLoading = true;
+  bool _isExporting = false;
   Map<String, dynamic>? _cardData;
   String? _errorMessage;
 
@@ -56,6 +58,28 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
     }
   }
 
+  Future<void> _exportPdf() async {
+    setState(() => _isExporting = true);
+    final res = await StudentServices().exportAcademicCardPdf();
+    setState(() => _isExporting = false);
+
+    if (!mounted) return;
+    if (res != null && res['file_url'] != null) {
+      final Uri url = Uri.parse(res['file_url']);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم إنشاء الملف: ${res['file_url']}'), backgroundColor: AppColors.accent),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('فشل تصدير ملف PDF'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -76,6 +100,13 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
         backgroundColor: cardBg,
         foregroundColor: textColor,
         actions: [
+          IconButton(
+            icon: _isExporting
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent))
+                : const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
+            tooltip: "تصدير PDF",
+            onPressed: _isExporting ? null : _exportPdf,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: "تحديث",
@@ -103,6 +134,30 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                     children: [
                       // 1. Header Student Card (بطاقة التعريف الأكاديمية)
                       _buildStudentCardHeader(cardBg, textColor, subColor, isDark),
+
+                      const SizedBox(height: 16),
+
+                      // زر تصدير PDF
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: _isExporting ? null : _exportPdf,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFCC00),
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 2,
+                          ),
+                          icon: _isExporting
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                              : const Icon(Icons.picture_as_pdf_rounded, color: Colors.black, size: 22),
+                          label: Text(
+                            _isExporting ? "جاري تصدير الملف..." : "تصدير بطاقة الطالب والأداء الأكاديمي (PDF)",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Tajawal'),
+                          ),
+                        ),
+                      ),
 
                       const SizedBox(height: 20),
 
@@ -479,23 +534,40 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                             ),
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isPassed ? Colors.green.withOpacity(0.12) : Colors.red.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            isPassed ? "ناجح" : "راسب",
-                            style: TextStyle(
-                              color: isPassed ? Colors.green.shade700 : Colors.red.shade700,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
+                        Builder(
+                          builder: (context) {
+                            final statusStr = (c['status'] ?? (total >= 50 ? 'ناجح' : 'راسب')).toString();
+                            Color bgStatusColor = Colors.orange.withOpacity(0.12);
+                            Color textStatusColor = Colors.orange.shade800;
+
+                            if (statusStr == 'ناجح') {
+                              bgStatusColor = Colors.green.withOpacity(0.12);
+                              textStatusColor = Colors.green.shade700;
+                            } else if (statusStr == 'راسب') {
+                              bgStatusColor = Colors.red.withOpacity(0.12);
+                              textStatusColor = Colors.red.shade700;
+                            }
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: bgStatusColor,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                statusStr,
+                                style: TextStyle(
+                                  color: textStatusColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
+
                     const Divider(height: 20),
 
                     // Marks Breakdown (المذاكرة - الشفهي - الامتحان)

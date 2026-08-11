@@ -84,6 +84,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
 
+    bool isExamGrade = notify.type == 'grade' ||
+        notify.type == 'marks' ||
+        notify.type == 'exam' ||
+        notify.type == 'exam_grade' ||
+        title.contains('علامة') ||
+        title.contains('درجة') ||
+        title.contains('فحص') ||
+        title.contains('امتحان') ||
+        msg.contains('علامة') ||
+        msg.contains('درجة') ||
+        msg.contains('فحص') ||
+        msg.contains('امتحان');
+
+    if (isExamGrade) {
+      Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen(initialTab: 1)));
+      return;
+    }
+
     switch (notify.type) {
       case 'announcement':
       case 'administrative':
@@ -115,7 +133,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case 'grade':
       case 'marks':
-        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen()));
+      case 'exam':
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen(initialTab: 1)));
         break;
       default:
         // عرض تفاصيل الإشعار العام

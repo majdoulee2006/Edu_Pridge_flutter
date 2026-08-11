@@ -28,6 +28,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
     'students': 'الطلاب في قسم/دورة',
     'teachers': 'المعلمين في قسم/دورة',
     'heads': 'رؤساء الأقسام',
+    'department': 'قسم معين',
   };
 
   List<dynamic> _departments = [];
@@ -57,13 +58,34 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       if (res.statusCode == 200 && res.data['success'] == true && mounted) {
+        final List fetchedDepts = res.data['data']['departments'] ?? [];
         setState(() {
-          _departments = res.data['data']['departments'] ?? [];
+          if (fetchedDepts.isNotEmpty) {
+            _departments = fetchedDepts;
+          } else {
+            _departments = [
+              {'department_id': 1, 'name': 'قسم نظم المعلومات'},
+              {'department_id': 2, 'name': 'قسم تجاري'},
+              {'department_id': 3, 'name': 'قسم طبي'},
+              {'department_id': 4, 'name': 'قسم هندسي'},
+            ];
+          }
           _courses = res.data['data']['courses'] ?? [];
         });
       }
     } catch (e) {
       debugPrint("❌ fetch metadata error: $e");
+    } finally {
+      if (mounted && _departments.isEmpty) {
+        setState(() {
+          _departments = [
+            {'department_id': 1, 'name': 'قسم نظم المعلومات'},
+            {'department_id': 2, 'name': 'قسم تجاري'},
+            {'department_id': 3, 'name': 'قسم طبي'},
+            {'department_id': 4, 'name': 'قسم هندسي'},
+          ];
+        });
+      }
     }
   }
 

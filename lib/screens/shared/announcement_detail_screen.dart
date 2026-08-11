@@ -3,6 +3,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AnnouncementDetailScreen extends StatefulWidget {
   final Map<String, dynamic> announcement;
@@ -15,6 +16,38 @@ class AnnouncementDetailScreen extends StatefulWidget {
 
 class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
   bool _isSavingImage = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _markAsRead();
+  }
+
+  Future<void> _markAsRead() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return;
+
+      final relatedIdStr = widget.announcement['announcement_id']?.toString() 
+                        ?? widget.announcement['id']?.toString();
+      final relatedId = int.tryParse(relatedIdStr ?? '');
+
+      // Assuming most announcements here fall under 'announcement' or 'administrative'
+      final type = widget.announcement['type']?.toString() ?? 'announcement';
+
+      await Dio().put(
+        '${ApiService().baseUrl}/notifications/read-by-type',
+        data: {
+          'type': type,
+          if (relatedId != null) 'related_id': relatedId,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+    } catch (e) {
+      debugPrint('⛔ Mark announcement read error: $e');
+    }
+  }
 
   Future<void> _saveImage(String imageUrl) async {
     if (_isSavingImage) return;

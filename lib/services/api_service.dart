@@ -413,4 +413,90 @@ class ApiService {
       return false;
     }
   }
+
+  // ── Educator / Teacher Parent Summons APIs ──────────────────────────
+  Future<List<dynamic>?> getEducatorStudents() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/teacher/educator-students",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getEducatorStudents Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> requestTeacherParentSummon(int studentId, String reasonTitle, String details) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.post(
+        "$baseUrl/teacher/parent-summons/request",
+        data: {
+          'student_id': studentId,
+          'reason_title': reasonTitle,
+          'details': details,
+        },
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return (response.statusCode == 200 || response.statusCode == 201) && (response.data['success'] == true);
+    } catch (e) {
+      debugPrint("requestTeacherParentSummon Error: $e");
+      return false;
+    }
+  }
+
+  Future<List<dynamic>?> getTeacherSummonsHistory({String status = 'all'}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/teacher/parent-summons-history?status=$status",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getTeacherSummonsHistory Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> forwardSummonToAffairs(int id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.post(
+        "$baseUrl/department-head/appointments/summons/$id/forward",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return (response.statusCode == 200 && response.data['success'] == true);
+    } catch (e) {
+      debugPrint("forwardSummonToAffairs Error: $e");
+      return false;
+    }
+  }
+
+  Future<bool> issueParentSummon(int id, String summonDate, {String notes = ''}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.post(
+        "$baseUrl/affairs/appointments/summons/$id/issue",
+        data: {'summon_date': summonDate, 'notes': notes},
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return (response.statusCode == 200 && response.data['success'] == true);
+    } catch (e) {
+      debugPrint("issueParentSummon Error: $e");
+      return false;
+    }
+  }
 }

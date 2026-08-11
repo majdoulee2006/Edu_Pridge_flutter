@@ -43,19 +43,20 @@ class StudentServices {
   // ==========================================
   // X. جلب المواد الدراسية الخاصة بالطالب
   // ==========================================
-  Future<List<dynamic>?> getCourses() async {
+  Future<List<dynamic>?> getCourses({bool failedOnly = false}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
       Response response = await _dio.get(
         "${ApiService().baseUrl}/student/courses",
+        queryParameters: failedOnly ? {'failed_only': 'true'} : null,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         var data = response.data['data'];
-        if (data != null && data is List && data.isEmpty) {
+        if (data != null && data is List && data.isEmpty && !failedOnly) {
           return [
             {'title': 'مبادئ البرمجة (مادة وهمية)'},
             {'title': 'هياكل البيانات (مادة وهمية)'},
@@ -540,6 +541,25 @@ class StudentServices {
       }
     } catch (e) {
       debugPrint("❌ Academic Card Fetch Error: $e");
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> exportAcademicCardPdf() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/student/academic-card/export-pdf",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ Academic Card Export PDF Error: $e");
     }
     return null;
   }

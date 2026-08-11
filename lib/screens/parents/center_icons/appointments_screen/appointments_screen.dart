@@ -60,7 +60,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     final subjectController = TextEditingController();
     final reasonController = TextEditingController();
     DateTime? selectedDate;
-    String selectedTarget = 'hod'; // 'hod' = رئيس القسم, 'admin' = الإدارة العامة
     String? sheetError;
 
     showModalBottomSheet(
@@ -71,6 +70,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
         final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
         return StatefulBuilder(
           builder: (modalContext, setModalState) {
+            final selectedChild = _children.firstWhere(
+              (c) => int.tryParse(c['student_id']?.toString() ?? '') == selectedChildId,
+              orElse: () => null,
+            );
+            final String hodName = selectedChild?['hod_name'] ?? 'رئيس القسم المعني';
+            final String deptName = selectedChild?['department_name'] ?? '';
+
             return Container(
               padding: EdgeInsets.only(
                 top: 20,
@@ -110,7 +116,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       ),
                       const SizedBox(height: 20),
 
-                      // اختيار الابن المعني
+                      // 1. اختيار الابن المعني
                       const Text("الابن المعني:", style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<int>(
@@ -137,75 +143,36 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // 🌟 اختيار الجهة المطلوبة (رئيس القسم / الإدارة العامة)
-                      const Text("الجهة المطلوبة للقاء:", style: TextStyle(fontWeight: FontWeight.bold)),
+                      // 2. اسم رئيس القسم تبع الابن (تلقائي)
+                      const Text("رئيس القسم:", style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ChoiceChip(
-                              avatar: Icon(
-                                Icons.workspace_premium_outlined,
-                                size: 18,
-                                color: selectedTarget == 'hod' ? Colors.black : Colors.tealAccent,
-                              ),
-                              label: const SizedBox(
-                                width: double.infinity,
-                                child: Text(
-                                  "رئيس القسم",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 13),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                          border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.person_pin_rounded, color: Color(0xFFFFCC00)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "رئيس القسم : $hodName ${deptName.isNotEmpty ? '($deptName)' : ''}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white : Colors.black87,
                                 ),
                               ),
-                              selected: selectedTarget == 'hod',
-                              selectedColor: const Color(0xFFFFCC00),
-                              labelStyle: TextStyle(
-                                color: selectedTarget == 'hod' ? Colors.black : (isDark ? Colors.white : Colors.black87),
-                                fontWeight: FontWeight.bold,
-                              ),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setModalState(() => selectedTarget = 'hod');
-                                }
-                              },
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ChoiceChip(
-                              avatar: Icon(
-                                Icons.admin_panel_settings_outlined,
-                                size: 18,
-                                color: selectedTarget == 'admin' ? Colors.black : Colors.blueAccent,
-                              ),
-                              label: const SizedBox(
-                                width: double.infinity,
-                                child: Text(
-                                  "الإدارة العامة",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 13),
-                                ),
-                              ),
-                              selected: selectedTarget == 'admin',
-                              selectedColor: const Color(0xFFFFCC00),
-                              labelStyle: TextStyle(
-                                color: selectedTarget == 'admin' ? Colors.black : (isDark ? Colors.white : Colors.black87),
-                                fontWeight: FontWeight.bold,
-                              ),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setModalState(() => selectedTarget = 'admin');
-                                }
-                              },
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
 
-                      // عنوان الطلب
+                      // 3. موضوع اللقاء
                       const Text("موضوع اللقاء:", style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       TextField(
@@ -219,8 +186,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // تفاصيل الطلب
-                      const Text("تفاصيل أو سبب اللقاء:", style: TextStyle(fontWeight: FontWeight.bold)),
+                      // 4. تفاصيل أو السبب
+                      const Text("تفاصيل أو السبب:", style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: reasonController,
@@ -234,7 +201,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // اختيار التاريخ المفضل
+                      // 5. التاريخ المفضل للزيارة
                       const Text("التاريخ المفضل للزيارة:", style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       InkWell(
@@ -292,44 +259,36 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       
                       const SizedBox(height: 24),
 
-                      // زر الإرسال
+                      // 6. زر الإرسال
                       ElevatedButton(
                         onPressed: () async {
                           debugPrint("🚀 [AppointmentsScreen] onPressed clicked!");
-                          debugPrint("📝 Subject: '${subjectController.text}', Reason: '${reasonController.text}'");
                           
                           if (subjectController.text.trim().isEmpty ||
                               reasonController.text.trim().isEmpty) {
-                            debugPrint("⚠️ Validation failed: Subject or Reason is empty!");
                             setModalState(() {
                               sheetError = "يرجى ملء جميع الحقول المطلوبة (الموضوع وتفاصيل الزيارة)";
                             });
                             return;
                           }
 
-                          debugPrint("✅ Validation passed. Closing sheet...");
                           Navigator.pop(modalContext);
-                          
-                          debugPrint("🔄 Setting isLoading = true");
                           setState(() => _isLoading = true);
 
-                          debugPrint("🌐 Sending API Request to backend...");
                           final success = await _parentService.requestMeeting(
                             subject: subjectController.text.trim(),
                             reason: reasonController.text.trim(),
                             studentId: selectedChildId,
-                            targetPerson: selectedTarget,
+                            targetPerson: 'hod',
                             preferredDate: selectedDate != null
                                 ? intl.DateFormat('yyyy-MM-dd').format(selectedDate!)
                                 : null,
                           );
 
-                          debugPrint("🏁 API Request finished. Success: $success");
-
                           if (success) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text("✅ تم إرسال طلب الموعد للإدارة بنجاح"),
+                                content: Text("✅ تم إرسال طلب الموعد لرئيس القسم بنجاح"),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -435,44 +394,85 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     );
   }
 
-  Widget _buildMyRequestsTab(bool isDark) {
-    if (_myRequests.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.calendar_month_outlined, size: 80, color: Colors.grey.shade600),
-            const SizedBox(height: 16),
-            const Text(
-              "لم تقم بطلب أي موعد لقاء مع الإدارة بعد.",
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _showNewRequestBottomSheet,
-              icon: const Icon(Icons.add),
-              label: const Text("اطلب موعداً الآن"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFCC00),
-                foregroundColor: Colors.black,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+  String _myReqFilterStatus = 'all';
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      itemCount: _myRequests.length,
-      itemBuilder: (context, index) {
-        final req = _myRequests[index];
-        final childName = _getChildName(req['student_id']);
-        final dateStr = req['preferred_date'] != null
-            ? intl.DateFormat('yyyy-MM-dd').format(DateTime.parse(req['preferred_date']))
-            : 'غير محدد';
-        final status = req['status'] ?? 'pending';
+  List<dynamic> get _filteredMyRequests {
+    if (_myReqFilterStatus == 'all') return _myRequests;
+    if (_myReqFilterStatus == 'pending') {
+      return _myRequests.where((r) => (r['status'] ?? '').toString() == 'pending').toList();
+    }
+    return _myRequests.where((r) => (r['status'] ?? '').toString() != 'pending').toList();
+  }
+
+  Widget _buildMyRequestsTab(bool isDark) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
+          child: Row(
+            children: [
+              const Text("التصفية:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(width: 10),
+              ChoiceChip(
+                label: const Text("الكل"),
+                selected: _myReqFilterStatus == 'all',
+                selectedColor: const Color(0xFFFFCC00),
+                onSelected: (_) => setState(() => _myReqFilterStatus = 'all'),
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                label: const Text("المعلقة"),
+                selected: _myReqFilterStatus == 'pending',
+                selectedColor: const Color(0xFFFFCC00),
+                onSelected: (_) => setState(() => _myReqFilterStatus = 'pending'),
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                label: const Text("المكتملة/المعالجة"),
+                selected: _myReqFilterStatus == 'completed',
+                selectedColor: const Color(0xFFFFCC00),
+                onSelected: (_) => setState(() => _myReqFilterStatus = 'completed'),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _filteredMyRequests.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.calendar_month_outlined, size: 80, color: Colors.grey.shade600),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "لا توجد مواعيد في هذه القائمة حالياً.",
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _showNewRequestBottomSheet,
+                        icon: const Icon(Icons.add),
+                        label: const Text("اطلب موعداً الآن"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFCC00),
+                          foregroundColor: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _filteredMyRequests.length,
+                  itemBuilder: (context, index) {
+                    final req = _filteredMyRequests[index];
+                    final childName = _getChildName(req['student_id']);
+                    final dateStr = req['preferred_date'] != null
+                        ? intl.DateFormat('yyyy-MM-dd').format(DateTime.parse(req['preferred_date']))
+                        : 'غير محدد';
+                    final status = req['status'] ?? 'pending';
 
         Color statusColor = Colors.orange;
         String statusText = "قيد الانتظار";
@@ -603,6 +603,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
           ),
         );
       },
+    ),
+    ),
+    ],
     );
   }
 

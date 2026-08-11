@@ -4,6 +4,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_student_services_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_academic_card_screen.dart';
 
 class AffairsStudentServicesMenuScreen extends StatelessWidget {
   const AffairsStudentServicesMenuScreen({super.key});
@@ -60,6 +61,25 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                       const SizedBox(height: 12),
 
                       _buildServiceCard(
+                        icon: Icons.history_edu_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "استعلام كشف العلامات" : "Academic Card Search",
+                        subtitle: isAr
+                            ? "البحث عن بطاقات الطلاب حسب القسم والدورة وتصديرها PDF و Excel"
+                            : "Search student academic cards by department/batch & export PDF/Excel",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AffairsAcademicCardScreen(),
+                          ),
+                        ),
+                      ),
+
+                      _buildServiceCard(
                         icon: Icons.gavel_rounded,
                         iconColor: const Color(0xFFFFCC00),
                         title: isAr ? "طلبات الاسترحام" : "Mercy Petitions",
@@ -81,6 +101,7 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+
 
                       _buildServiceCard(
                         icon: Icons.badge_rounded,
@@ -123,6 +144,29 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                               serviceType: 'makeup',
                               titleAr: 'امتحانات الإكمال',
                               titleEn: 'Makeup Exam Requests',
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      _buildServiceCard(
+                        icon: Icons.phonelink_erase_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "طلبات فك قفل الجهاز" : "Device Reset Requests",
+                        subtitle: isAr
+                            ? "مراجعة واعتماد طلبات الطلاب لفك ربط/قفل الجهاز وتصفيره"
+                            : "Review and approve student device unlock requests",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminStudentServicesScreen(
+                              serviceType: 'device_reset',
+                              titleAr: 'طلبات فك قفل الجهاز',
+                              titleEn: 'Device Reset Requests',
                             ),
                           ),
                         ),

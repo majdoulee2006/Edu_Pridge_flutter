@@ -196,7 +196,12 @@ class StudentServicesMenuScreen extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const FacePhotoChangeFormScreen(),
+                            builder: (_) => const StudentServiceRequestsListScreen(
+                              serviceType: 'face_photo',
+                              titleAr: 'طلبات صورة بصمة الوجه',
+                              titleEn: 'Face Photo Requests',
+                              formScreen: FacePhotoChangeFormScreen(),
+                            ),
                           ),
                         ),
                       ),
@@ -278,118 +283,18 @@ class StudentServicesMenuScreen extends StatelessWidget {
       } catch (_) {}
     }
 
-    final controller = TextEditingController(text: initialId);
-
     if (!context.mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-        final textColor = isDark ? Colors.white : Colors.black;
-
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: cardColor,
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.badge_rounded, color: AppColors.accent, size: 24),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  isAr ? "كشف علامات الطالب" : "Student Academic Card",
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                    fontFamily: 'Tajawal',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isAr
-                    ? "يرجى إدخال الرقم الجامعي للطالب لاستعراض بطاقة الكشف الأكاديمي والدرجات الحالية:"
-                    : "Please enter the student's university ID to view the academic transcript card:",
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                decoration: InputDecoration(
-                  labelText: isAr ? "الرقم الجامعي *" : "University ID *",
-                  hintText: "مثال: 202601",
-                  prefixIcon: const Icon(Icons.numbers_rounded, color: AppColors.accent),
-                  filled: true,
-                  fillColor: isDark ? Colors.black26 : Colors.grey.shade100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              ),
-            ],
-          ),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                isAr ? "إلغاء" : "Cancel",
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              onPressed: () {
-                final idStr = controller.text.trim();
-                if (idStr.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(isAr ? "يرجى إدخال الرقم الجامعي أولاً" : "Please enter university ID")),
-                  );
-                  return;
-                }
-                Navigator.pop(context); // Close dialog
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => StudentAcademicCardScreen(universityId: idStr),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.visibility_rounded, size: 18),
-              label: Text(
-                isAr ? "عرض بطاقة الطالب" : "View Card",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
+    // فتح بطاقة الطالب مباشرة برقمه الخاص المعتمد في حسابه فقط
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StudentAcademicCardScreen(universityId: initialId),
+      ),
     );
   }
+
+
 
   Widget _buildSectionTitle(String title, Color subColor) {
     return Padding(
@@ -1166,14 +1071,33 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
   }
 
   Future<void> _fetchCourses() async {
-    final data = await StudentServices().getCourses();
-    if (data != null && mounted) {
+    List<String> failedCourses = [];
+    
+    // 1. محاولة جلب المواد الراسب فيها عبر API المخصص
+    final data = await StudentServices().getCourses(failedOnly: true);
+    if (data != null && data.isNotEmpty) {
+      failedCourses = data.map((e) => e['title'].toString()).toList();
+    } else {
+      // 2. خطة بديلة: جلب الكشف الأكاديمي وتصفية المواد التي حالتها "راسب" أو درجتها أقل من 50
+      final cardData = await StudentServices().getAcademicCard(null);
+      if (cardData != null && cardData['courses'] is List) {
+        final cardCourses = cardData['courses'] as List;
+        for (var c in cardCourses) {
+          final status = c['status']?.toString() ?? '';
+          final total = double.tryParse(c['total_score']?.toString() ?? '0') ?? 0;
+          if (status == 'راسب' || (status != 'لم يتم التقدم' && total < 50)) {
+            final title = c['course_title']?.toString() ?? c['title']?.toString() ?? '';
+            if (title.isNotEmpty && !failedCourses.contains(title)) {
+              failedCourses.add(title);
+            }
+          }
+        }
+      }
+    }
+
+    if (mounted) {
       setState(() {
-        _availableCourses = (data as List).map((e) => e['title'].toString()).toList();
-        _isLoadingCourses = false;
-      });
-    } else if (mounted) {
-      setState(() {
+        _availableCourses = failedCourses;
         _isLoadingCourses = false;
       });
     }
@@ -1354,34 +1278,55 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: _isLoadingCourses 
-                          ? Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Center(child: CircularProgressIndicator(color: const Color(0xFFFFCC00))),
+                          ? const Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00))),
                             )
-                          : Column(
-                          children: _availableCourses.map((course) {
-                            final isSelected = _selectedCourses.contains(course);
-                            return CheckboxListTile(
-                              title: Text(course, style: TextStyle(color: textColor, fontSize: 14)),
-                              value: isSelected,
-                              activeColor: const Color(0xFFFFCC00),
-                              checkColor: Colors.black,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                              onChanged: (bool? val) {
-                                setState(() {
-                                  if (val == true) {
-                                    _selectedCourses.add(course);
-                                  } else {
-                                    _selectedCourses.remove(course);
-                                  }
-                                });
-                              },
-                            );
-                          }).toList(),
-                        ),
+                          : _availableCourses.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      isAr ? "لا توجد مواد راسب بها" : "No failed courses found",
+                                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      isAr ? "جميع موادك مجتازة بنجاح، لا يمكنك تقديم طلب إكمال." : "All your courses are passed. No makeup request needed.",
+                                      style: TextStyle(color: subColor, fontSize: 12),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Column(
+                                children: _availableCourses.map((course) {
+                                  final isSelected = _selectedCourses.contains(course);
+                                  return CheckboxListTile(
+                                    title: Text(course, style: TextStyle(color: textColor, fontSize: 14)),
+                                    value: isSelected,
+                                    activeColor: const Color(0xFFFFCC00),
+                                    checkColor: Colors.black,
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                    onChanged: (bool? val) {
+                                      setState(() {
+                                        if (val == true) {
+                                          _selectedCourses.add(course);
+                                        } else {
+                                          _selectedCourses.remove(course);
+                                        }
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
                       ),
-                      if (_selectedCourses.isEmpty)
+                      if (_availableCourses.isNotEmpty && _selectedCourses.isEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 8, right: 16, left: 16),
                           child: Text(

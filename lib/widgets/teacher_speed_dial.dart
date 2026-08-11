@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 // 🌟 مسارات شاشات المعلم (نفسها اللي بكودك ما انحذف منها شي) 🌟
@@ -6,6 +6,7 @@ import '../screens/teacher/center_icons/assignments_screen/assignments_screen.da
 import '../screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
 import '../screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
 import '../screens/teacher/center_icons/scedual_screen/scedual_screen.dart';
+import '../screens/teacher/center_icons/parent_summon/teacher_parent_summon_screen.dart';
 
 class CustomSpeedDialEduBridge extends StatefulWidget {
   const CustomSpeedDialEduBridge({super.key});
@@ -111,9 +112,9 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               'لوحتي',
                               Icons.grid_view_rounded,
                               Colors.orange,
-                              22.5,
-                              0.0, // يبدأ فوراً
-                              0.4, // ينتهي عند 40% من وقت الحركة
+                              18.0,
+                              0.0,
+                              0.3,
                               itemTextColor,
                               () {
                                 Navigator.push(
@@ -129,9 +130,9 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               'الواجبات',
                               Icons.assignment_outlined,
                               Colors.blue,
-                              67.5,
-                              0.2, // يبدأ متأخراً قليلاً
-                              0.6,
+                              54.0,
+                              0.2,
+                              0.5,
                               itemTextColor,
                               () {
                                 Navigator.push(
@@ -144,10 +145,28 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               },
                             ),
                             _buildMenuItem(
+                              'أهل الطالب',
+                              Icons.supervisor_account_rounded,
+                              Colors.deepOrange,
+                              90.0,
+                              0.3,
+                              0.7,
+                              itemTextColor,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const TeacherParentSummonScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildMenuItem(
                               'المحاضرات',
                               Icons.play_circle_outline,
                               Colors.purple,
-                              112.5,
+                              126.0,
                               0.4,
                               0.8,
                               itemTextColor,
@@ -165,8 +184,8 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               'الحضور',
                               Icons.how_to_reg_outlined,
                               Colors.green,
-                              157.5,
-                              0.6, // يبدأ أخيراً
+                              162.0,
+                              0.6,
                               1.0,
                               itemTextColor,
                               () {

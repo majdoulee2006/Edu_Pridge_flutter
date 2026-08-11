@@ -25,14 +25,15 @@ import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+  final int initialTab;
+  const ScheduleScreen({super.key, this.initialTab = 0});
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  int _selectedTab = 0; // 0 = جدول الحصص، 1 = جدول الامتحانات
+  late int _selectedTab; // 0 = جدول الحصص، 1 = جدول الامتحانات
   int _selectedDateIndex = 0; // تبدأ من 0 برمجياً
   int _selectedLectureIndex =
       0; // 🌟 متغير جديد: لتحديد الحصة المحددة بالإطار الأصفر
@@ -49,6 +50,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.initialTab;
     _fetchSchedules();
     _fetchExams();
   }

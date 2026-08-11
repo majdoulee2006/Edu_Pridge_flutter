@@ -545,4 +545,171 @@ class AffairsServices {
       return {'success': false, 'message': e.response?.data['message'] ?? 'فشل تغيير كلمة المرور'};
     }
   }
+
+  // 10. Student Academic Card & Exports
+  Future<List<dynamic>?> getAcademicStudents({int? programId, String? department, String? level, String? search}) async {
+    try {
+      final token = await _getToken();
+      final Map<String, dynamic> queryParams = {};
+      if (programId != null) queryParams['program_id'] = programId;
+      if (department != null && department.isNotEmpty) queryParams['department'] = department;
+      if (level != null && level.isNotEmpty) queryParams['level'] = level;
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/students-academic",
+        queryParameters: queryParams,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("❌ getAcademicStudents Error: $e");
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> getStudentAcademicCard(int studentId) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/academic-card",
+        queryParameters: {'student_id': studentId},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ getStudentAcademicCard Error: $e");
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> exportAcademicCardPdf(int studentId) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/academic-card/export-pdf",
+        queryParameters: {'student_id': studentId},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ exportAcademicCardPdf Error: $e");
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> exportAcademicCardExcel(int studentId) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/academic-card/export-excel",
+        queryParameters: {'student_id': studentId},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ exportAcademicCardExcel Error: $e");
+    }
+    return null;
+  }
+
+  // ==========================================
+  // 12. Appointments & Summons
+  // ==========================================
+  Future<Map<String, dynamic>?> getAppointmentsMetadata() async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/appointments/metadata",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("❌ getAppointmentsMetadata Error: $e");
+    }
+    return null;
+  }
+
+  Future<List<dynamic>?> getMeetingRequests() async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/appointments/meetings",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("❌ getMeetingRequests Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> respondToMeetingRequest(
+    int id, {
+    required String status,
+    String? scheduledAt,
+    String? adminResponse,
+  }) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/affairs/appointments/meetings/$id/respond",
+        data: {
+          'status': status,
+          if (scheduledAt != null) 'scheduled_at': scheduledAt,
+          if (adminResponse != null) 'admin_response': adminResponse,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      debugPrint("❌ respondToMeetingRequest Error: $e");
+      return false;
+    }
+  }
+
+  Future<List<dynamic>?> getSummons() async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/appointments/summons",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("❌ getSummons Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> storeSummon(Map<String, dynamic> summonData) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/affairs/appointments/summons",
+        data: summonData,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 201 || (response.statusCode == 200 && response.data['success'] == true);
+    } catch (e) {
+      debugPrint("❌ storeSummon Error: $e");
+      return false;
+    }
+  }
 }
+
+

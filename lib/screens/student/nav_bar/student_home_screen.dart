@@ -15,6 +15,8 @@ import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/qr_scanner/qr_scanner_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 
+import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedule_screen.dart';
+
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
@@ -54,6 +56,27 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   void _navigateForNotif(Map<String, dynamic> n) {
     final type = n['type']?.toString() ?? '';
+    final title = n['title']?.toString() ?? '';
+    final message = n['message']?.toString() ?? n['body']?.toString() ?? '';
+
+    bool isExamGrade = type == 'grade' ||
+        type == 'marks' ||
+        type == 'exam' ||
+        type == 'exam_grade' ||
+        title.contains('علامة') ||
+        title.contains('درجة') ||
+        title.contains('فحص') ||
+        title.contains('امتحان') ||
+        message.contains('علامة') ||
+        message.contains('درجة') ||
+        message.contains('فحص') ||
+        message.contains('امتحان');
+
+    if (isExamGrade) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleScreen(initialTab: 1)));
+      return;
+    }
+
     switch (type) {
       case 'assignment':
       case 'academic':
@@ -61,8 +84,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         break;
       case 'announcement':
       case 'administrative':
-        final title   = n['title']?.toString() ?? '';
-        final message = n['message']?.toString() ?? '';
         final isAnnouncement = type == 'announcement';
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => AnnouncementDetailScreen(

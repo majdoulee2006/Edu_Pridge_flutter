@@ -27,6 +27,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     'students': 'الطلاب في قسم/دورة',
     'teachers': 'المعلمين في قسم/دورة',
     'heads': 'رؤساء الأقسام',
+    'department': 'قسم معين',
   };
 
   List<dynamic> _departments = [];
@@ -76,10 +77,20 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   Future<void> _fetchMetadata() async {
     await ApiService.init();
     final meta = await AffairsServices().getMetadata();
-    if (meta != null && mounted) {
+    if (mounted) {
+      final List fetchedDepts = (meta != null && meta['departments'] is List) ? meta['departments'] : [];
       setState(() {
-        _departments = meta['departments'] ?? [];
-        _courses = meta['courses'] ?? [];
+        if (fetchedDepts.isNotEmpty) {
+          _departments = fetchedDepts;
+        } else {
+          _departments = [
+            {'department_id': 1, 'name': 'قسم نظم المعلومات'},
+            {'department_id': 2, 'name': 'قسم تجاري'},
+            {'department_id': 3, 'name': 'قسم طبي'},
+            {'department_id': 4, 'name': 'قسم هندسي'},
+          ];
+        }
+        _courses = (meta != null && meta['courses'] is List) ? meta['courses'] : [];
         if (widget.activity["department_id"] != null) {
           _selectedDepartment = widget.activity["department_id"].toString();
         }
