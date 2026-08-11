@@ -326,15 +326,20 @@ class MenuBackgroundPainter extends CustomPainter {
       fillPaint,
     );
 
-    // 🌟 استخدام withAlpha بدلاً من withOpacity لتجنب التحذيرات
-    int alphaValue = (255 * progress).toInt();
+    // 🌟 حساب قيمة ألفا للخطوط بدلاً من Opacity لتجنب التحذيرات 🌟
+    int alphaValue = (255 * 0.2 * progress).toInt();
     Paint linePaintPaint = Paint()
       ..color = lineColor
-          .withAlpha(alphaValue) // شفافة في البداية وتوضح تدريجياً
+          .withAlpha(alphaValue) // خطوط فاصلة أنيقة وذكية
       ..strokeWidth = 1.5;
 
     Offset center = Offset(size.width / 2, size.height);
-    List<double> angles = [math.pi / 4, math.pi / 2, 3 * math.pi / 4];
+    List<double> angles = [
+      0.2 * math.pi,
+      0.4 * math.pi,
+      0.6 * math.pi,
+      0.8 * math.pi,
+    ];
 
     for (double angle in angles) {
       // لا نرسم الخط الفاصل إلا إذا وصلت الدائرة إليه
