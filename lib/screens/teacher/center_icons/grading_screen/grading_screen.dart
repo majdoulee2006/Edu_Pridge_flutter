@@ -544,6 +544,13 @@ class _GradingScreenState extends State<GradingScreen> {
       ),
     );
 
+    final maxPoints = double.tryParse(widget.submission['max_points']?.toString() ?? '') ?? 100.0;
+    final currentGrade = double.tryParse(_gradeController.text.trim());
+    Color activeGradeColor = textColor;
+    if (currentGrade != null) {
+      activeGradeColor = currentGrade < (maxPoints / 2) ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -555,8 +562,25 @@ class _GradingScreenState extends State<GradingScreen> {
         TextField(
           controller: _gradeController,
           textAlign: TextAlign.center,
-          style: TextStyle(color: textColor),
-          keyboardType: TextInputType.number,
+          style: TextStyle(color: activeGradeColor, fontWeight: FontWeight.bold, fontSize: 18),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (val) {
+            String cleanVal = val;
+            // حظر إدخال علامة سالبة
+            if (cleanVal.contains('-')) {
+              cleanVal = cleanVal.replaceAll('-', '');
+              _gradeController.text = cleanVal;
+              _gradeController.selection = TextSelection.fromPosition(TextPosition(offset: cleanVal.length));
+            }
+            final parsed = double.tryParse(cleanVal);
+            if (parsed != null && parsed > maxPoints) {
+              // حظر تجاوز العلامة القصوى
+              final maxStr = maxPoints % 1 == 0 ? maxPoints.toInt().toString() : maxPoints.toString();
+              _gradeController.text = maxStr;
+              _gradeController.selection = TextSelection.fromPosition(TextPosition(offset: maxStr.length));
+            }
+            setState(() {});
+          },
           decoration: InputDecoration(
             hintText: "0",
             filled: true,
