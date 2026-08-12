@@ -452,30 +452,91 @@ class _SubjectCardState extends State<_SubjectCard> {
       dir = await getDownloadsDirectory();
     } catch (_) {}
     dir ??= await getApplicationDocumentsDirectory();
-    final fileName = Uri.parse(url).pathSegments.last;
-    return '${dir.path}/$fileName';
+
+    String rawName = 'lecture_file.pdf';
+    try {
+      final uri = Uri.parse(url);
+      if (uri.pathSegments.isNotEmpty) {
+        rawName = Uri.decodeComponent(uri.pathSegments.last);
+      }
+    } catch (_) {}
+
+    return '${dir.path}/$rawName';
   }
 
   Future<void> _download(String url) async {
+    if (url.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ لا يوجد ملف أو رابط مرفق لهذه المحاضرة'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     if (_downloading[url] == true) return;
     setState(() => _downloading[url] = true);
+
     try {
-      // Fix URL for Android device (127.0.0.1 → localhost via ADB)
       final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
       final savePath = await _getSavePath(url);
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
-      await Dio().download(
-        fixedUrl,
-        savePath,
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
-      );
-      if (mounted) {
+
+      // إعداد قائمة آي بيهات احتياطية للتحميل في حال تغير عنوان السيرفر
+      List<String> urlsToTry = [fixedUrl];
+      if (fixedUrl.contains('127.0.0.1')) {
+        urlsToTry.add(fixedUrl.replaceFirst('127.0.0.1', '172.20.10.3'));
+        urlsToTry.add(fixedUrl.replaceFirst('127.0.0.1', '192.168.21.53'));
+      } else if (fixedUrl.contains('172.20.10.3')) {
+        urlsToTry.add(fixedUrl.replaceFirst('172.20.10.3', '127.0.0.1'));
+      } else if (!fixedUrl.contains('127.0.0.1') && !fixedUrl.contains('172.20.10.3')) {
+        urlsToTry.add(fixedUrl.replaceFirst(RegExp(r'https?://[^/]+'), 'http://172.20.10.3:8000'));
+        urlsToTry.add(fixedUrl.replaceFirst(RegExp(r'https?://[^/]+'), 'http://127.0.0.1:8000'));
+      }
+
+      bool success = false;
+      String lastError = '';
+
+      for (final targetUrl in urlsToTry) {
+        try {
+          await Dio().download(
+            targetUrl,
+            savePath,
+            options: Options(
+              headers: {'Authorization': 'Bearer $token'},
+              connectTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 30),
+            ),
+          );
+          success = true;
+          break;
+        } catch (e) {
+          lastError = e.toString();
+          debugPrint('⛔ Download attempt failed for $targetUrl: $e');
+        }
+      }
+
+      if (success && mounted) {
         setState(() => _downloaded[url] = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('تم التحميل بنجاح ✓ — محفوظ في مجلد التنزيلات'),
             backgroundColor: Colors.green,
+          ),
+        );
+      } else if (mounted) {
+        String msg = 'فشل التحميل، تأكد من الاتصال بالسيرفر';
+        if (lastError.contains('404')) {
+          msg = '⚠️ الملف غير موجود على السيرفر (404)';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -484,8 +545,9 @@ class _SubjectCardState extends State<_SubjectCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('فشل التحميل، تأكد من الاتصال'),
-              backgroundColor: Colors.red),
+            content: Text('فشل التحميل، تأكد من الاتصال بالسيرفر'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
