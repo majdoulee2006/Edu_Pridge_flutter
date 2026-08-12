@@ -4,7 +4,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_student_services_screen.dart';
-import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_academic_card_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/grades/student_academic_card_screen.dart';
 
 class AffairsStudentServicesMenuScreen extends StatelessWidget {
   const AffairsStudentServicesMenuScreen({super.key});
@@ -74,7 +74,7 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const AffairsAcademicCardScreen(),
+                            builder: (_) => const StudentAcademicCardScreen(),
                           ),
                         ),
                       ),

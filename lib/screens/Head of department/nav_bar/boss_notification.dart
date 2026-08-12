@@ -12,7 +12,7 @@ import '../../../widgets/boss_center_icon.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import '../center_icons/leave_requests_screen.dart';
 import '../center_icons/request_reports_screen.dart';
-import '../center_icons/appointments/hod_appointments_screen.dart';
+import '../../parents/center_icons/appointments_screen/appointments_screen.dart';
 
 class BossNotification {
   final int id;
@@ -589,10 +589,10 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     return GestureDetector(
       onTap: () {
         _markAsRead(n.id, index);
-        if (n.type == 'grade_report_ready' || n.type == 'report') {
+        if (n.type == 'grade_report_ready' || n.type == 'report' || n.type == 'new_report') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportRequestScreen()));
         } else if (n.type == 'meeting_request' || n.type == 'summon') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const HodAppointmentsScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
         } else if (n.type == 'announcement') {
           Navigator.push(context, MaterialPageRoute(
             builder: (_) => AnnouncementDetailScreen(announcement: {

@@ -6,7 +6,7 @@ import 'package:edu_pridge_flutter/screens/admin/center_icons/reports/reports_sc
 import 'package:edu_pridge_flutter/screens/admin/center_icons/classes/classes_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/center_icons/courses/courses_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/center_icons/accounts/accounts_main_screen.dart';
-import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
 class AdminSpeedDial extends StatefulWidget {
   const AdminSpeedDial({super.key});
@@ -109,7 +109,7 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
                               Icons.calendar_today_rounded,
                               Colors.teal,
                               90.0, 0.4, 0.7, itemTextColor,
-                              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AffairsAppointmentsScreen())),
+                              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AppointmentsScreen())),
                             ),
                             // 4. الدورات
                             _buildMenuItem(

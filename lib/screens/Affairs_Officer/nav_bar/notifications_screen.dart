@@ -7,7 +7,7 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 
-import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
@@ -137,7 +137,7 @@ class _AffairsOfficerNotificationsScreenState
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const AffairsAppointmentsScreen(),
+          builder: (_) => const AppointmentsScreen(),
         ),
       );
     }

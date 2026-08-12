@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/student/student_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/requests/boss_student_service_requests_screen.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/leave_requests_screen.dart';
 
 // ─── BossServicesMenuScreen ──────────────────────────────────────────────
 class BossServicesMenuScreen extends StatelessWidget {
@@ -57,8 +58,24 @@ class BossServicesMenuScreen extends StatelessWidget {
                     physics: const BouncingScrollPhysics(),
                     children: [
                       // القسم الأول: الخدمات الإدارية والطلبات
-                      _buildSectionTitle(isAr ? "إدارة الطلبات" : "Manage Requests", subColor),
-                      const SizedBox(height: 10),
+                      _buildServiceCard(
+                        icon: Icons.event_note_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "طلبات الإجازات والأذونات" : "Leave Requests",
+                        subtitle: isAr
+                            ? "مراجعة والرد على طلبات الإجازات اليومية والساعية للطلاب والمعلمين"
+                            : "Review and respond to daily and hourly leave requests",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LeaveRequestsScreen(fromSource: "home")),
+                          );
+                        },
+                      ),
 
                       _buildServiceCard(
                         icon: Icons.gavel_rounded,

@@ -5,7 +5,7 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/calendar
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activities/activities_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/vacations/vacations_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/accounts/accounts_screen.dart';
-import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
 class AffairsOfficerSpeedDial extends StatefulWidget {
   const AffairsOfficerSpeedDial({super.key});
@@ -125,7 +125,7 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
                               () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (context) => const AffairsAppointmentsScreen()),
+                                  MaterialPageRoute(builder: (context) => const AppointmentsScreen()),
                                 );
                               },
                             ),

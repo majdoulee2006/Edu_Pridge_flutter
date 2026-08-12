@@ -4,11 +4,11 @@ import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 
 class StudentAcademicCardScreen extends StatefulWidget {
-  final String universityId;
+  final String? universityId;
 
   const StudentAcademicCardScreen({
     super.key,
-    required this.universityId,
+    this.universityId,
   });
 
   @override
@@ -34,7 +34,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
     });
 
     try {
-      final res = await StudentServices().getAcademicCard(widget.universityId);
+      final res = await StudentServices().getAcademicCard(widget.universityId ?? '');
       if (mounted) {
         if (res != null && res['success'] == true) {
           setState(() {

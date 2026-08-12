@@ -1450,7 +1450,50 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                 if ((r['teacher_name'] as String?) != null)
                   Text('المدرب: ${r['teacher_name']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 const Divider(height: 20),
-                Text(r['notes'] ?? 'لا يوجد محتوى.', style: TextStyle(fontSize: 13, height: 1.5, color: textColor)),
+                Builder(
+                  builder: (context) {
+                    String noteText = r['notes'] ?? 'لا يوجد محتوى.';
+                    int? rating;
+                    if (noteText.startsWith('[التقييم:')) {
+                      final match = RegExp(r'\[التقييم: (\d) من 5\]').firstMatch(noteText);
+                      if (match != null) {
+                        rating = int.tryParse(match.group(1)!);
+                        noteText = noteText.replaceFirst(match.group(0)! + '\n', '');
+                        noteText = noteText.replaceFirst(match.group(0)!, '').trim();
+                      }
+                    }
+                    
+                    IconData getSmileyIcon(int val) {
+                      switch (val) {
+                        case 1: return Icons.sentiment_very_dissatisfied;
+                        case 2: return Icons.sentiment_dissatisfied;
+                        case 3: return Icons.sentiment_neutral;
+                        case 4: return Icons.sentiment_satisfied;
+                        case 5: return Icons.sentiment_very_satisfied;
+                        default: return Icons.sentiment_neutral;
+                      }
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (rating != null) ...[
+                          Row(
+                            children: [
+                              const Text('تقييم المعلم:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              const SizedBox(width: 10),
+                              Icon(getSmileyIcon(rating), color: Colors.amber, size: 32),
+                              const SizedBox(width: 5),
+                              Text('($rating/5)', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                            ],
+                          ),
+                          const SizedBox(height: 15),
+                        ],
+                        Text(noteText.isEmpty ? 'لا يوجد محتوى.' : noteText, style: TextStyle(fontSize: 13, height: 1.5, color: textColor)),
+                      ],
+                    );
+                  }
+                ),
               ],
             ),
           ),

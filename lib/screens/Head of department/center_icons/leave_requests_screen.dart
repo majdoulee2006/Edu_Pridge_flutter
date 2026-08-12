@@ -64,7 +64,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'] as List? ?? [];
         setState(() {
-          allRequests = data.map((r) {
+          allRequests = data.map<Map<String, dynamic>>((r) {
             final typeVal = (r['type'] ?? '').toString();
             final isDaily = typeVal == 'full_day' || typeVal == 'daily' || typeVal == 'يوم كامل' || typeVal.isEmpty;
             return {
@@ -281,6 +281,16 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
   }
 
   Widget _buildLeaveCard(bool isDark, Color cardColor, Color textColor, Map<String, dynamic> data, bool isHighlighted) {
+    final String name = (data['name'] ?? 'غير معروف').toString();
+    final String role = (data['role'] ?? '').toString();
+    final String image = (data['image'] ?? '').toString();
+    final String reason = (data['reason'] ?? 'لا يوجد سبب').toString();
+    final String type = (data['type'] ?? 'يوم كامل').toString();
+    final String status = (data['status'] ?? 'pending').toString();
+    final int requestId = int.tryParse(data['id']?.toString() ?? '0') ?? 0;
+    final bool isPending = status == 'pending_hod' || status == 'pending' || status == 'pending_parent';
+    final bool isRejected = status == 'rejected';
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(20),
@@ -303,9 +313,9 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
               CircleAvatar(
                 radius: 30,
                 backgroundColor: const Color(0xFFCCAA00),
-                backgroundImage: (data['image'] as String).isNotEmpty ? NetworkImage(data['image'] as String) : null,
-                child: (data['image'] as String).isEmpty
-                    ? Text((data['name'] as String).isNotEmpty ? (data['name'] as String)[0] : '؟',
+                backgroundImage: image.isNotEmpty ? NetworkImage(image) : null,
+                child: image.isEmpty
+                    ? Text(name.isNotEmpty ? name[0] : '؟',
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))
                     : null,
               ),
@@ -313,15 +323,15 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(data['name'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
-                  Text(data['role'], style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
+                  if (role.isNotEmpty) Text(role, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                 ],
               ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                child: Text(data['type'], style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Text(type, style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -333,15 +343,15 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
               color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8F9FA),
               borderRadius: BorderRadius.circular(15),
             ),
-            child: Text(data['reason'], style: TextStyle(fontSize: 14, height: 1.4, color: textColor)),
+            child: Text(reason, style: TextStyle(fontSize: 14, height: 1.4, color: textColor)),
           ),
           const SizedBox(height: 15),
-          if (data['status'] == 'pending_hod') ...[
+          if (isPending) ...[
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _respondToRequest(data['id'] as int, 'approved'),
+                    onPressed: () => _respondToRequest(requestId, 'approved'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFFCC00),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -353,7 +363,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
                 const SizedBox(width: 15),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _respondToRequest(data['id'] as int, 'rejected'),
+                    onPressed: () => _respondToRequest(requestId, 'rejected'),
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -368,17 +378,17 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: data['status'] == 'rejected'
+                color: isRejected
                     ? Colors.red.withValues(alpha: 0.1)
                     : Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Center(
                 child: Text(
-                  data['status'] == 'rejected' ? '❌ تم رفض الطلب' : '✅ تمت الموافقة',
+                  isRejected ? '❌ تم رفض الطلب' : '✅ تمت الموافقة',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: data['status'] == 'rejected' ? Colors.red : Colors.green,
+                    color: isRejected ? Colors.red : Colors.green,
                   ),
                 ),
               ),

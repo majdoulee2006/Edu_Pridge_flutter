@@ -6,7 +6,7 @@ import '../screens/Head of department/center_icons/leave_requests_screen.dart';
 import '../screens/Head of department/center_icons/accounts/accounts_management_screen.dart';
 import '../screens/Head of department/center_icons/main_organization _interface_screen.dart';
 import '../screens/Head of department/center_icons/request_reports_screen.dart';
-import '../screens/Head of department/center_icons/appointments/hod_appointments_screen.dart';
+import '../screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
 class Boss_Center_Icon extends StatefulWidget {
   const Boss_Center_Icon({super.key});
@@ -134,7 +134,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const HodAppointmentsScreen(),
+                                    builder: (context) => const AppointmentsScreen(),
                                   ),
                                 );
                               },

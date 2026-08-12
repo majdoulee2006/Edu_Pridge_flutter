@@ -6,7 +6,6 @@ import '../screens/teacher/center_icons/assignments_screen/assignments_screen.da
 import '../screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
 import '../screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
 import '../screens/teacher/center_icons/scedual_screen/scedual_screen.dart';
-import '../screens/teacher/center_icons/parent_summon/teacher_parent_summon_screen.dart';
 
 class CustomSpeedDialEduBridge extends StatefulWidget {
   const CustomSpeedDialEduBridge({super.key});
@@ -157,7 +156,7 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const TeacherParentSummonScreen(),
+                                        const AttendanceScreen(),
                                   ),
                                 );
                               },

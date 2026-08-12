@@ -11,8 +11,6 @@ import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lecture
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 
-import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/appointments/hod_appointments_screen.dart';
-import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
@@ -60,13 +58,7 @@ class FcmService {
     switch (type) {
       case 'meeting_request':
       case 'summon':
-        if (userRole == 'head' || userRole == 'department_head') {
-          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const HodAppointmentsScreen()));
-        } else if (userRole == 'affairs') {
-          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AffairsAppointmentsScreen()));
-        } else if (userRole == 'parent') {
-          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
-        }
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
         break;
       case 'lecture':
         Navigator.push(

@@ -281,7 +281,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         data: {
           "qr_token":       widget.qrToken,
           "face_embedding": embedding,
-          "scanned_at":     DateTime.now().toIso8601String(),
+          "scanned_at":     DateTime.now().toUtc().toIso8601String(),
         },
         options: Options(
           headers: {
