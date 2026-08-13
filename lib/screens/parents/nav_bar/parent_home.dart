@@ -287,7 +287,8 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                                         children: [
                                           _buildStudentCard(
                                             child['full_name'] ?? "بدون اسم",
-                                            child['level'] ?? "غير محدد",
+                                            child['level'] ?? child['academic_year'] ?? "غير محدد",
+                                            child['semester'] ?? child['active_semester'] ?? "",
                                             gpa,
                                             attendance,
                                             cardColor,
@@ -392,7 +393,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     );
   }
 
-  Widget _buildStudentCard(String name, String level, String gpa, String attendance,
+  Widget _buildStudentCard(String name, String level, String semester, String gpa, String attendance,
       Color cardColor, Color textColor, {bool isSelected = false}) {
     return Container(
       width: 220,
@@ -411,7 +412,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
           const CircleAvatar(radius: 35, backgroundColor: Color(0xFFE0E7FF), child: Icon(Icons.person, size: 40, color: Colors.indigo)),
           const SizedBox(height: 12),
           Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor), textAlign: TextAlign.center),
-          Text(level, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+          Text(semester.isNotEmpty ? "$level • $semester" : level, style: const TextStyle(color: Colors.grey, fontSize: 11), textAlign: TextAlign.center),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

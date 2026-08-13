@@ -201,9 +201,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildDivider(textColor),
                           _buildStaticRow(
                             label: "السنة الدراسية",
-                            value: userData?['academic_year']?.toString() ?? 'غير محدد',
+                            value: userData?['academic_year']?.toString() ?? userData?['level']?.toString() ?? 'غير محدد',
                             icon: Icons.auto_awesome_mosaic_rounded,
                             color: Colors.orange,
+                            textColor: textColor,
+                          ),
+                          _buildDivider(textColor),
+                          _buildStaticRow(
+                            label: "الفصل الدراسي النشط",
+                            value: userData?['semester']?.toString() ?? userData?['active_semester']?.toString() ?? 'غير محدد',
+                            icon: Icons.calendar_month_rounded,
+                            color: Colors.indigo,
                             textColor: textColor,
                           ),
                           _buildDivider(textColor),
@@ -312,16 +320,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo'),
         ),
         const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             _buildChip('طالب', const Color(0xFF263238), Colors.white70),
-            const SizedBox(width: 8),
             _buildChip(
               'ID: ${userData?['student_code'] ?? userData?['username'] ?? '—'}',
               const Color(0xFFFFCC00).withValues(alpha: 0.2),
               const Color(0xFFFFCC00),
             ),
+            if (userData?['academic_year'] != null || userData?['level'] != null)
+              _buildChip(
+                userData?['academic_year']?.toString() ?? userData?['level']?.toString() ?? '',
+                Colors.orange.withValues(alpha: 0.2),
+                Colors.orange,
+              ),
+            if (userData?['semester'] != null || userData?['active_semester'] != null)
+              _buildChip(
+                userData?['semester']?.toString() ?? userData?['active_semester']?.toString() ?? '',
+                Colors.indigo.withValues(alpha: 0.2),
+                Colors.indigoAccent,
+              ),
           ],
         ),
       ],

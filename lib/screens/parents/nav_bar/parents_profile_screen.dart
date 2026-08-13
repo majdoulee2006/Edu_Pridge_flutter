@@ -33,6 +33,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   String studentName = "لم يتم تحديد ابن";
   String studentDept = "غير متوفر"; 
   String studentYear = "غير متوفر";
+  String studentSemester = "غير متوفر";
 
   @override
   void initState() {
@@ -137,7 +138,8 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
             setState(() {
               studentName = res.data['full_name'] ?? studentName;
               studentDept = res.data['department'] ?? "غير محدد";
-              studentYear = res.data['level'] ?? "غير محدد";
+              studentYear = res.data['level'] ?? res.data['academic_year'] ?? "غير محدد";
+              studentSemester = res.data['semester'] ?? res.data['active_semester'] ?? "غير محدد";
             });
           }
         }
@@ -219,6 +221,8 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
                     _buildStaticRow("القسم", studentDept, Icons.account_balance_rounded, Colors.purple, textColor),
                     Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
                     _buildStaticRow("السنة الدراسية", studentYear, Icons.auto_awesome_mosaic_rounded, Colors.orange, textColor),
+                    Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
+                    _buildStaticRow("الفصل الدراسي النشط", studentSemester, Icons.calendar_month_rounded, Colors.indigo, textColor),
                   ]),
 
                   const SizedBox(height: 25),
