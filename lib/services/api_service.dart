@@ -33,9 +33,18 @@ class ApiService {
         return;
       }
 
-      // 2. فحص آي بي الكمبيوتر المباشر على الواي فاي
-      final wifi = await _tryConnect('192.168.1.110');
-      if (wifi != null) {
+      // 2. فحص آي بي الكمبيوتر المباشر على الواي فاي (192.168.21.53 & 192.168.1.110)
+      final wifiCurrent = await _tryConnect('192.168.21.53');
+      if (wifiCurrent != null) {
+        _serverIp = '192.168.21.53';
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('server_ip', '192.168.21.53');
+        debugPrint("🎯 ApiService initialized instantly via 192.168.21.53:8000");
+        return;
+      }
+
+      final wifiOld = await _tryConnect('192.168.1.110');
+      if (wifiOld != null) {
         _serverIp = '192.168.1.110';
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('server_ip', '192.168.1.110');
