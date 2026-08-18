@@ -14,6 +14,7 @@ class AppSettings {
   static ValueNotifier<bool>   isSoundsEnabled       = ValueNotifier(true);
   static ValueNotifier<bool>   isVibrationEnabled    = ValueNotifier(false);
   static ValueNotifier<bool>   isNotificationsEnabled= ValueNotifier(true);
+  static ValueNotifier<Color>  primaryColor          = ValueNotifier(const Color(0xFFF2F20D));
 
   static Future<void> loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,6 +24,23 @@ class AppSettings {
     isSoundsEnabled.value        = prefs.getBool('sounds_enabled')        ?? true;
     isVibrationEnabled.value     = prefs.getBool('vibration_enabled')     ?? false;
     isNotificationsEnabled.value = prefs.getBool('notifications_enabled') ?? true;
+    await syncSystemThemeFromApi();
+  }
+
+  static Future<void> syncSystemThemeFromApi() async {
+    try {
+      final res = await ApiService.dio.get('/system/settings');
+      if (res.data != null && res.data['success'] == true) {
+        final data = res.data['data'];
+        if (data != null && data['primary_color'] != null) {
+          final hexString = data['primary_color'].toString().replaceAll('#', '');
+          final colorInt = int.parse('FF$hexString', radix: 16);
+          primaryColor.value = Color(colorInt);
+        }
+      }
+    } catch (e) {
+      debugPrint("System theme sync error: $e");
+    }
   }
 
   static Future<void> setDarkMode(bool v) async {

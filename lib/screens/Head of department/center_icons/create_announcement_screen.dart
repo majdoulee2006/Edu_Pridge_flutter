@@ -171,6 +171,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   }
 
   Future<void> _submitAnnouncement() async {
+    if (isSubmitting) return;
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
 
@@ -183,7 +184,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
       return;
     }
 
-    setState(() => isSubmitting = true);
+    isSubmitting = true;
+    setState(() {});
 
     try {
       final prefs = await SharedPreferences.getInstance();

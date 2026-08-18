@@ -118,46 +118,63 @@ class EduBridgeApp extends StatelessWidget {
             return ValueListenableBuilder<String>(
               valueListenable: AppSettings.language,
               builder: (context, lang, _) {
-                return MaterialApp(
-                  navigatorKey: appNavigatorKey,
-                  debugShowCheckedModeBanner: false,
-                  title: 'Edu-Bridge',
-                  locale: Locale(lang),
-                  supportedLocales: const [Locale('ar'), Locale('en')],
-                  localizationsDelegates: const [
-                    GlobalMaterialLocalizations.delegate,
-                    GlobalWidgetsLocalizations.delegate,
-                    GlobalCupertinoLocalizations.delegate,
-                  ],
-                  themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-                  theme: ThemeData(
-                    primarySwatch: Colors.green,
-                    fontFamily: 'Tajawal',
-                    scaffoldBackgroundColor: const Color(0xFFE8E8EE), // خلفية رمادية دافئة
-                    cardColor: const Color(0xFFF2F2F7),              // كارد أغمق من الأبيض
-                    brightness: Brightness.light,
-                    dividerColor: const Color(0xFFD0D0DA),
-                    textTheme: const TextTheme(
-                      bodyLarge: TextStyle(color: Color(0xFF1C1C1E)),
-                      bodyMedium: TextStyle(color: Color(0xFF3A3A3C)),
-                    ),
-                  ),
-                  darkTheme: ThemeData(
-                    primarySwatch: Colors.green,
-                    fontFamily: 'Tajawal',
-                    scaffoldBackgroundColor: const Color(0xFF121212),
-                    cardColor: const Color(0xFF1E1E1E),
-                    brightness: Brightness.dark,
-                  ),
-                  builder: (context, child) {
-                    return MediaQuery(
-                      data: MediaQuery.of(context).copyWith(
-                        textScaler: TextScaler.linear(fontScale),
+                return ValueListenableBuilder<Color>(
+                  valueListenable: AppSettings.primaryColor,
+                  builder: (context, sysPrimaryColor, _) {
+                    return MaterialApp(
+                      navigatorKey: appNavigatorKey,
+                      debugShowCheckedModeBanner: false,
+                      title: 'Edu-Bridge',
+                      locale: Locale(lang),
+                      supportedLocales: const [Locale('ar'), Locale('en')],
+                      localizationsDelegates: const [
+                        GlobalMaterialLocalizations.delegate,
+                        GlobalWidgetsLocalizations.delegate,
+                        GlobalCupertinoLocalizations.delegate,
+                      ],
+                      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+                      theme: ThemeData(
+                        primaryColor: sysPrimaryColor,
+                        colorScheme: ColorScheme.light(
+                          primary: sysPrimaryColor,
+                          secondary: sysPrimaryColor,
+                        ),
+                        fontFamily: 'Tajawal',
+                        scaffoldBackgroundColor: const Color(0xFFE8E8EE),
+                        cardColor: const Color(0xFFF2F2F7),
+                        brightness: Brightness.light,
+                        dividerColor: const Color(0xFFD0D0DA),
+                        textTheme: const TextTheme(
+                          bodyLarge: TextStyle(color: Color(0xFF1C1C1E)),
+                          bodyMedium: TextStyle(color: Color(0xFF3A3A3C)),
+                        ),
                       ),
-                      child: child!,
+                      darkTheme: ThemeData(
+                        primaryColor: sysPrimaryColor,
+                        colorScheme: ColorScheme.dark(
+                          primary: sysPrimaryColor,
+                          secondary: sysPrimaryColor,
+                        ),
+                        fontFamily: 'Tajawal',
+                        scaffoldBackgroundColor: const Color(0xFF121212),
+                        cardColor: const Color(0xFF1E1E1E),
+                        brightness: Brightness.dark,
+                        textTheme: const TextTheme(
+                          bodyLarge: TextStyle(color: Colors.white),
+                          bodyMedium: TextStyle(color: Color(0xFFE5E7EB)),
+                        ),
+                      ),
+                      builder: (context, child) {
+                        return MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                            textScaler: TextScaler.linear(fontScale),
+                          ),
+                          child: child!,
+                        );
+                      },
+                      home: const _AppRouter(),
                     );
                   },
-                  home: const _AppRouter(),
                 );
               },
             );

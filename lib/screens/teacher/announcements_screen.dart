@@ -329,6 +329,7 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
   }
 
   Future<void> _submit() async {
+    if (_isSaving) return;
     if (_titleController.text.trim().isEmpty) {
       _showSnack('يرجى إدخال عنوان الإعلان');
       return;
@@ -338,7 +339,8 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
       return;
     }
 
-    setState(() => _isSaving = true);
+    _isSaving = true;
+    setState(() {});
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';

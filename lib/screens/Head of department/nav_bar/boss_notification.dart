@@ -317,13 +317,15 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                     height: 50,
                     child: ElevatedButton(
                       onPressed: isSending ? null : () async {
+                        if (isSending) return;
                         if (titleCtrl.text.trim().isEmpty || messageCtrl.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('يرجى ملء جميع الحقول'), backgroundColor: Colors.red),
                           );
                           return;
                         }
-                        setSheet(() => isSending = true);
+                        isSending = true;
+                        setSheet(() {});
                         try {
                           final token = await _getToken();
                           await Dio().post(
@@ -344,7 +346,10 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                             );
                           }
                         } catch (e) {
-                          setSheet(() => isSending = false);
+                          isSending = false;
+                          if (ctx.mounted) {
+                            setSheet(() {});
+                          }
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('حدث خطأ، حاول مجدداً'), backgroundColor: Colors.red),
