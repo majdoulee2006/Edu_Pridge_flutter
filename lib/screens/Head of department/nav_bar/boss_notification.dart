@@ -589,7 +589,15 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
       BossNotification n, Color cardColor, bool isDark, int index) {
     final color = n.iconColor;
     final label = _labelForType(n.type);
-    final dateStr = n.time.length >= 10 ? n.time.substring(0, 10) : n.time;
+    String dateStr = n.time;
+    try {
+      final dt = DateTime.parse(n.time).toLocal();
+      dateStr = "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+    } catch (e) {
+      if (n.time.length >= 16) {
+        dateStr = n.time.substring(0, 16).replaceAll('T', ' ');
+      }
+    }
 
     return GestureDetector(
       onTap: () {

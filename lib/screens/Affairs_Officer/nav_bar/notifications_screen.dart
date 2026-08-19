@@ -12,6 +12,7 @@ import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_scr
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/vacations/vacations_screen.dart';
 
 class AffairsOfficerNotificationsScreen extends StatefulWidget {
   const AffairsOfficerNotificationsScreen({super.key});
@@ -138,6 +139,13 @@ class _AffairsOfficerNotificationsScreenState
         context,
         MaterialPageRoute(
           builder: (_) => const AppointmentsScreen(),
+        ),
+      );
+    } else if (type == 'leave_request' || type == 'leave') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AffairsOfficerVacationsScreen(),
         ),
       );
     }
