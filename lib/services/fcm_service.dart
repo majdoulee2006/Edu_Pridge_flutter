@@ -11,6 +11,8 @@ import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lecture
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 
+import 'package:edu_pridge_flutter/screens/Head of department/center_icons/appointments/hod_appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
