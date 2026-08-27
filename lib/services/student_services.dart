@@ -127,18 +127,22 @@ class StudentServices {
   // ==========================================
   // 4. جلب الإشعارات (أكاديمي + إداري)
   // ==========================================
-  Future<Map<String, dynamic>?> getNotifications() async {
+  Future<Map<String, dynamic>?> getNotifications({int page = 1, String filter = 'all'}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
       Response response = await _dio.get(
         "${ApiService().baseUrl}/student/notifications",
+        queryParameters: {
+          'page': page,
+          'filter': filter,
+        },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        return response.data['data'];
+        return response.data; // Return the whole response map which includes data, current_page, has_more
       }
     } catch (e) {
       debugPrint("❌ Notifications Fetch Error: $e");

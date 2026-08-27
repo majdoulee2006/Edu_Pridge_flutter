@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/utils/network_helper.dart';
 import 'otp_screen.dart';
 
 class EditPasswordScreen extends StatefulWidget {
@@ -72,6 +73,11 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
     final chatId = _chatIdController.text.trim();
     if (chatId.isEmpty) {
       _showSnack("يرجى إدخال Telegram Chat ID", isError: true);
+      return;
+    }
+
+    if (!await NetworkHelper.hasInternet()) {
+      _showSnack("لا يوجد اتصال بالإنترنت", isError: true);
       return;
     }
 

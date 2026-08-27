@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:edu_pridge_flutter/utils/network_helper.dart';
 import 'otp_screen.dart';
 
 class EditPhoneScreen extends StatefulWidget {
@@ -57,6 +58,12 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
     }
 
     final fullPhone = '$_selectedCode$phone';
+
+    if (!await NetworkHelper.hasInternet()) {
+      _showSnack("لا يوجد اتصال بالإنترنت", isError: true);
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {

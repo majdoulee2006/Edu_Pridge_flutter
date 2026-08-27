@@ -23,18 +23,38 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  List<AppNotification> academicNotifications = [];
-  List<AppNotification> administrativeNotifications = [];
+  List<AppNotification> notifications = [];
   bool isLoading = true;
+  bool isLoadingMore = false;
   bool _isMarkingAll = false;
   String _userName = '';
   String _avatarUrl = '';
+  
+  String currentFilter = 'all';
+  int currentPage = 1;
+  bool hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
     _loadUserData();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!isLoading && !isLoadingMore && hasMore) {
+        _fetchMoreNotifications();
+      }
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -47,20 +67,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  // 🌟 جلب الإشعارات باستخدام الـ Service النظيف
-  Future<void> _fetchNotifications() async {
+  Future<void> _fetchNotifications({bool refresh = false}) async {
+    if (refresh) {
+      setState(() {
+        currentPage = 1;
+        hasMore = true;
+        notifications.clear();
+      });
+    }
     setState(() => isLoading = true);
     try {
-      final data = await StudentServices().getNotifications();
-
-      if (data != null) {
+      final response = await StudentServices().getNotifications(page: currentPage, filter: currentFilter);
+      if (response != null) {
         setState(() {
-          academicNotifications = (data['academic'] as List)
-              .map((e) => AppNotification.fromJson(e))
-              .toList();
-          administrativeNotifications = (data['administrative'] as List)
-              .map((e) => AppNotification.fromJson(e))
-              .toList();
+          notifications = (response['data'] as List).map((e) => AppNotification.fromJson(e)).toList();
+          hasMore = response['has_more'] ?? false;
           isLoading = false;
         });
       } else {
@@ -70,6 +91,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       debugPrint("❌ خطأ في جلب الإشعارات: $e");
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _fetchMoreNotifications() async {
+    setState(() => isLoadingMore = true);
+    currentPage++;
+    try {
+      final response = await StudentServices().getNotifications(page: currentPage, filter: currentFilter);
+      if (response != null) {
+        setState(() {
+          notifications.addAll((response['data'] as List).map((e) => AppNotification.fromJson(e)).toList());
+          hasMore = response['has_more'] ?? false;
+          isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("❌ خطأ في جلب المزيد من الإشعارات: $e");
+      if (mounted) setState(() {
+        isLoadingMore = false;
+        currentPage--;
+      });
+    }
+  }
+
+  void _changeFilter(String filter) {
+    if (currentFilter == filter) return;
+    setState(() {
+      currentFilter = filter;
+    });
+    _fetchNotifications(refresh: true);
   }
 
   void _navigateForNotification(BuildContext ctx, AppNotification notify) {
@@ -397,169 +447,156 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final success = await StudentServices().markAllNotificationsAsRead();
     if (success && mounted) {
       setState(() {
-        for (final n in academicNotifications) { n.isRead = true; }
-        for (final n in administrativeNotifications) { n.isRead = true; }
+        for (final n in notifications) { n.isRead = true; }
       });
     }
     if (mounted) setState(() => _isMarkingAll = false);
   }
 
-  int get _unreadCount =>
-      academicNotifications.where((n) => !n.isRead).length +
-      administrativeNotifications.where((n) => !n.isRead).length;
+  int get _unreadCount => notifications.where((n) => !n.isRead).length;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return DefaultTabController(
-      length: 2,
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: isDark
+            ? Theme.of(context).scaffoldBackgroundColor
+            : const Color(0xFFFAFAFA),
+        appBar: AppBar(
           backgroundColor: isDark
               ? Theme.of(context).scaffoldBackgroundColor
               : const Color(0xFFFAFAFA),
-          appBar: AppBar(
-            backgroundColor: isDark
-                ? Theme.of(context).scaffoldBackgroundColor
-                : const Color(0xFFFAFAFA),
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back,
-                color: isDark ? Colors.white : Colors.black,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+            onPressed: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StudentHomeScreen(),
               ),
-              onPressed: () => Navigator.pushReplacement(
+            ),
+          ),
+          title: Text(
+            'الإشعارات',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+          actions: [
+            if (_unreadCount > 0)
+              _isMarkingAll
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00))),
+                    )
+                  : TextButton(
+                      onPressed: _markAllAsRead,
+                      child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                    )
+            else
+              IconButton(
+                icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SettingsScreen(
+                    userName: _userName, userRole: 'طالب', profileImageUrl: _avatarUrl,
+                  )),
+                ),
+              ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                _buildFiltersBar(isDark),
+                Expanded(
+                  child: isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(color: Colors.amber),
+                        )
+                      : _NotificationsListView(
+                          notifications: notifications,
+                          onRefresh: () => _fetchNotifications(refresh: true),
+                          onTapNotification: _markAsRead,
+                          onNavigate: _navigateForNotification,
+                          scrollController: _scrollController,
+                          isLoadingMore: isLoadingMore,
+                        ),
+                ),
+              ],
+            ),
+            CustomBottomNav(
+              currentIndex: 2,
+              centerButton: const CustomSpeedDialEduBridge(),
+              onHomeTap: () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const StudentHomeScreen(),
                 ),
               ),
-            ),
-            title: Text(
-              'الإشعارات',
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-                fontWeight: FontWeight.bold,
+              onProfileTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              ),
+              onNotificationsTap: () {},
+              onMessagesTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MessagesScreen(),
+                ),
               ),
             ),
-            centerTitle: true,
-            actions: [
-              if (_unreadCount > 0)
-                _isMarkingAll
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00))),
-                      )
-                    : TextButton(
-                        onPressed: _markAllAsRead,
-                        child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
-                      )
-              else
-                IconButton(
-                  icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SettingsScreen(
-                      userName: _userName, userRole: 'طالب', profileImageUrl: _avatarUrl,
-                    )),
-                  ),
-                ),
-            ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(70),
-              child: _buildCustomTabBar(isDark),
-            ),
-          ),
-          body: isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Colors.amber),
-                )
-              : Stack(
-                  children: [
-                    TabBarView(
-                      children: [
-                        _NotificationsListView(
-                          notifications: academicNotifications,
-                          onRefresh: _fetchNotifications,
-                          onTapNotification: _markAsRead,
-                          onNavigate: _navigateForNotification,
-                        ),
-                        _NotificationsListView(
-                          notifications: administrativeNotifications,
-                          onRefresh: _fetchNotifications,
-                          onTapNotification: _markAsRead,
-                          onNavigate: _navigateForNotification,
-                        ),
-                      ],
-                    ),
-                    CustomBottomNav(
-                      currentIndex: 2,
-                      centerButton: const CustomSpeedDialEduBridge(),
-                      onHomeTap: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const StudentHomeScreen(),
-                        ),
-                      ),
-                      onProfileTap: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProfileScreen(),
-                        ),
-                      ),
-                      onNotificationsTap: () {},
-                      onMessagesTap: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MessagesScreen(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildCustomTabBar(bool isDark) {
+  Widget _buildFiltersBar(bool isDark) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      height: 50,
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withAlpha(20) : const Color(0xFFF2F2F2),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: TabBar(
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicator: BoxDecoration(
-          color: const Color(0xFFFFCC00),
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(12),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        labelColor: Colors.black,
-        unselectedLabelColor: isDark
-            ? Colors.grey.shade400
-            : Colors.grey.shade600,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
-        // 🌟 التابات الأكاديمية على اليمين (index 0) والإدارية على اليسار (index 1)
-        tabs: const [
-          Tab(text: 'إشعارات أكاديمية'),
-          Tab(text: 'إشعارات إدارية'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildFilterChip('الكل', 'all', isDark),
+          _buildFilterChip('غير المقروءة', 'unread', isDark),
+          _buildFilterChip('المقروءة', 'read', isDark),
         ],
-        dividerColor: Colors.transparent,
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value, bool isDark) {
+    final isSelected = currentFilter == value;
+    return GestureDetector(
+      onTap: () => _changeFilter(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFCC00) : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFFCC00).withAlpha(80), blurRadius: 8, offset: const Offset(0, 3))] : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
       ),
     );
   }
@@ -570,11 +607,15 @@ class _NotificationsListView extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final Function(AppNotification) onTapNotification;
   final void Function(BuildContext, AppNotification)? onNavigate;
+  final ScrollController scrollController;
+  final bool isLoadingMore;
 
   const _NotificationsListView({
     required this.notifications,
     required this.onRefresh,
     required this.onTapNotification,
+    required this.scrollController,
+    this.isLoadingMore = false,
     this.onNavigate,
   });
 
@@ -592,14 +633,24 @@ class _NotificationsListView extends StatelessWidget {
       onRefresh: onRefresh,
       color: Colors.amber,
       child: ListView.builder(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(
           left: 20,
           right: 20,
           top: 10,
           bottom: 120,
         ),
-        itemCount: notifications.length,
+        itemCount: notifications.length + (isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
+          if (index == notifications.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(color: Colors.amber),
+              ),
+            );
+          }
           final notify = notifications[index];
           return _buildNotificationCard(context, notify);
         },
@@ -674,7 +725,7 @@ class _NotificationsListView extends StatelessWidget {
                       Directionality(
                         textDirection: TextDirection.ltr,
                         child: Text(
-                          notify.timeAgo,
+                          notify.formattedDate ?? notify.timeAgo,
                           style: TextStyle(
                             color: notify.isRead
                                 ? Colors.grey.shade500

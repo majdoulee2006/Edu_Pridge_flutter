@@ -24,13 +24,33 @@ class ParentsNotificationsScreen extends StatefulWidget {
 
 class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen> {
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   bool _isMarkingAll = false;
   List<Map<String, dynamic>> _notifications = [];
+  String _currentFilter = 'all';
+  int _currentPage = 1;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && !_isLoadingMore && _hasMore) {
+        _fetchMoreNotifications();
+      }
+    }
   }
 
   Future<String> _getToken() async {
@@ -38,13 +58,19 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     return prefs.getString('token') ?? '';
   }
 
-  Future<void> _fetchNotifications() async {
+  Future<void> _fetchNotifications({bool refresh = false}) async {
+    if (refresh) {
+      _currentPage = 1;
+      _hasMore = true;
+      _notifications.clear();
+    }
     setState(() => _isLoading = true);
     try {
       final token = await _getToken();
       if (token.isEmpty) { setState(() => _isLoading = false); return; }
       final res = await Dio().get(
         "${ApiService().baseUrl}/parent/notifications",
+        queryParameters: {'page': _currentPage, 'filter': _currentFilter},
         options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
       );
       if (res.statusCode == 200 && mounted) {
@@ -52,6 +78,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         List list = raw is List ? raw : (raw['data'] ?? []);
         setState(() {
           _notifications = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          _hasMore = raw is Map ? (raw['has_more'] ?? false) : false;
           _isLoading = false;
         });
       }
@@ -59,6 +86,38 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       debugPrint("⛔ Parent notifications error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _fetchMoreNotifications() async {
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+    try {
+      final token = await _getToken();
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/parent/notifications",
+        queryParameters: {'page': _currentPage, 'filter': _currentFilter},
+        options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final raw = res.data;
+        List list = raw is List ? raw : (raw['data'] ?? []);
+        setState(() {
+          _notifications.addAll(list.map((e) => Map<String, dynamic>.from(e as Map)).toList());
+          _hasMore = raw is Map ? (raw['has_more'] ?? false) : false;
+        });
+      }
+    } catch (e) {
+      debugPrint("⛔ Load More Error: $e");
+      if (mounted) setState(() => _currentPage--);
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  void _changeFilter(String filter) {
+    if (_currentFilter == filter) return;
+    _currentFilter = filter;
+    _fetchNotifications(refresh: true);
   }
 
   Future<void> _markAsRead(int id, int index) async {
@@ -225,6 +284,30 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     }
   }
 
+  Widget _buildFilterChip(String label, String value, bool isDark) {
+    final isSelected = _currentFilter == value;
+    return GestureDetector(
+      onTap: () => _changeFilter(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFCC00) : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFFCC00).withAlpha(80), blurRadius: 8, offset: const Offset(0, 3))] : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
@@ -240,36 +323,63 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         body: SizedBox.expand(
           child: Stack(
           children: [
-            _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
-                : RefreshIndicator(
-                    onRefresh: _fetchNotifications,
-                    color: const Color(0xFFFFCC00),
-                    child: _notifications.isEmpty
-                        ? ListView(
-                            children: [
-                              SizedBox(
-                                height: 400,
-                                child: Center(child: Text("لا توجد إشعارات حالياً", style: TextStyle(color: textColor.withValues(alpha: 0.5)))),
-                              ),
-                            ],
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                            itemCount: _notifications.length,
-                            itemBuilder: (context, index) {
-                              final n = _notifications[index];
-                              final int nId = (n['id'] as num?)?.toInt() ?? 0;
-                              return GestureDetector(
-                                onTap: () {
-                                  _markAsRead(nId, index);
-                                  _onNotificationTap(n);
-                                },
-                                child: _buildNotificationCard(n, cardColor, textColor, isDark, index),
-                              );
-                            },
-                          ),
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildFilterChip('الكل', 'all', isDark),
+                      _buildFilterChip('غير المقروءة', 'unread', isDark),
+                      _buildFilterChip('المقروءة', 'read', isDark),
+                    ],
                   ),
+                ),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
+                      : RefreshIndicator(
+                          onRefresh: () => _fetchNotifications(refresh: true),
+                          color: const Color(0xFFFFCC00),
+                          child: _notifications.isEmpty
+                              ? ListView(
+                                  children: [
+                                    SizedBox(
+                                      height: 400,
+                                      child: Center(child: Text("لا توجد إشعارات حالياً", style: TextStyle(color: textColor.withValues(alpha: 0.5)))),
+                                    ),
+                                  ],
+                                )
+                              : ListView.builder(
+                                  controller: _scrollController,
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                                  itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
+                                  itemBuilder: (context, index) {
+                                    if (index == _notifications.length) {
+                                      return const Center(
+                                        child: Padding(
+                                          padding: EdgeInsets.all(8.0),
+                                          child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                                        ),
+                                      );
+                                    }
+                                    final n = _notifications[index];
+                                    final int nId = (n['id'] as num?)?.toInt() ?? 0;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        _markAsRead(nId, index);
+                                        _onNotificationTap(n);
+                                      },
+                                      child: _buildNotificationCard(n, cardColor, textColor, isDark, index),
+                                    );
+                                  },
+                                ),
+                        ),
+                ),
+              ],
+            ),
             CustomBottomNav(
               currentIndex: 2,
               centerButton: const Parents_Center_Icon(),
