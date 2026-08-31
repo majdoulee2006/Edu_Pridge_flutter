@@ -10,6 +10,7 @@ import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/arc_face_service.dart';
 
 class FaceCaptureScreen extends StatefulWidget {
   final String qrToken;
@@ -96,7 +97,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
           return;
         }
 
-        final embedding = await _extractPixelEmbedding(faces.first, tempPath);
+        final embedding = await ArcFaceService.extractArcFaceEmbedding(faces.first, tempPath);
 
         if (embedding.isEmpty) {
           _showErrorDialog("فشل استخراج بصمة وجهك من الصورة. يرجى التواصل مع الدعم الفني.");
@@ -271,7 +272,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
     List<double> embedding = [];
     try {
-      embedding = await _extractPixelEmbedding(face, imagePath);
+      embedding = await ArcFaceService.extractArcFaceEmbedding(face, imagePath);
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';

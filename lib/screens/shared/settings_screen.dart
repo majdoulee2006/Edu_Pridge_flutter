@@ -29,7 +29,7 @@ class AppSettings {
 
   static Future<void> syncSystemThemeFromApi() async {
     try {
-      final res = await ApiService.dio.get('/system/settings');
+      final res = await Dio().get('${ApiService().baseUrl}/system/settings');
       if (res.data != null && res.data['success'] == true) {
         final data = res.data['data'];
         if (data != null && data['primary_color'] != null) {
