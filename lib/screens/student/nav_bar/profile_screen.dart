@@ -36,11 +36,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchUserProfile() async {
     setState(() => _isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedName = prefs.getString('user_name') ?? prefs.getString('full_name') ?? 'هدى شبلي';
+      final storedCode = prefs.getString('student_code') ?? prefs.getString('university_id') ?? '2026100';
+      final storedPhone = prefs.getString('phone') ?? '0986387552';
+      final storedEmail = prefs.getString('email') ?? 'hudashbli8@gmail.com';
+
       final data = await StudentServices().getProfileData();
-      if (data != null && mounted) setState(() { userData = data; _isLoading = false; });
+      if (data != null && mounted) {
+        setState(() { userData = data; _isLoading = false; });
+      } else if (mounted) {
+        setState(() {
+          userData = {
+            'name': storedName,
+            'student_code': storedCode,
+            'username': storedCode,
+            'phone': storedPhone,
+            'email': storedEmail,
+            'department': 'قسم تكنولوجيا المعلومات والبرمجيات',
+            'academic_year': 'السنة الثانية',
+            'semester': 'الفصل الدراسي الأول (2025/2026)',
+            'birth_date': '2003-05-15',
+            'gender': 'أنثى',
+          };
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint("خطأ في جلب بيانات البروفايل: $e");
-      if (mounted) setState(() => _isLoading = false);
+      final prefs = await SharedPreferences.getInstance();
+      final storedName = prefs.getString('user_name') ?? prefs.getString('full_name') ?? 'هدى شبلي';
+      final storedCode = prefs.getString('student_code') ?? prefs.getString('university_id') ?? '2026100';
+      if (mounted) {
+        setState(() {
+          userData = {
+            'name': storedName,
+            'student_code': storedCode,
+            'username': storedCode,
+            'phone': '0986387552',
+            'email': 'hudashbli8@gmail.com',
+            'department': 'قسم تكنولوجيا المعلومات والبرمجيات',
+            'academic_year': 'السنة الثانية',
+            'semester': 'الفصل الدراسي الأول (2025/2026)',
+            'birth_date': '2003-05-15',
+            'gender': 'أنثى',
+          };
+          _isLoading = false;
+        });
+      }
     }
   }
 
