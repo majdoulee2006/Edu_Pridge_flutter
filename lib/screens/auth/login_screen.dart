@@ -25,9 +25,30 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _rememberMe = false;
 
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedUsername = prefs.getString('saved_username') ?? '';
+    final savedPassword = prefs.getString('saved_password') ?? '';
+    
+    if (savedUsername.isNotEmpty && savedPassword.isNotEmpty) {
+      setState(() {
+        _usernameController.text = savedUsername;
+        _passwordController.text = savedPassword;
+        _rememberMe = true;
+      });
+    }
+  }
 
   Future<String> _getDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -243,6 +264,14 @@ class _LoginScreenState extends State<LoginScreen> {
         final telegramChatId = userData['telegram_chat_id']?.toString() ?? '';
         if (telegramChatId.isNotEmpty) await prefs.setString('telegram_chat_id', telegramChatId);
 
+        if (_rememberMe) {
+          await prefs.setString('saved_username', _usernameController.text.trim());
+          await prefs.setString('saved_password', _passwordController.text);
+        } else {
+          await prefs.remove('saved_username');
+          await prefs.remove('saved_password');
+        }
+
         debugPrint("✅ تم حفظ التوكن بنجاح: $token");
 
         FcmService.sendTokenAfterLogin();
@@ -414,26 +443,50 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 15),
 
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordScreen(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _rememberMe,
+                            activeColor: primaryYellow,
+                            checkColor: Colors.black,
+                            onChanged: (value) {
+                              setState(() {
+                                _rememberMe = value ?? false;
+                              });
+                            },
                           ),
-                        );
-                      },
-                      child: const Text(
-                        "نسيت كلمة المرور؟",
-                        style: TextStyle(
-                          color: primaryYellow,
-                          fontSize: 12,
-                          fontFamily: 'Cairo',
+                          Text(
+                            "تذكرني",
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.8),
+                              fontSize: 13,
+                              fontFamily: 'Cairo',
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ForgotPasswordScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "نسيت كلمة المرور؟",
+                          style: TextStyle(
+                            color: primaryYellow,
+                            fontSize: 12,
+                            fontFamily: 'Cairo',
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
 
                   const SizedBox(height: 30),

@@ -19,6 +19,7 @@ class BossNotification {
   final String title;
   final String description;
   final String time;
+  final String? formattedDate;
   final IconData icon;
   final Color iconColor;
   final bool isUnread;
@@ -31,6 +32,7 @@ class BossNotification {
     required this.title,
     required this.description,
     required this.time,
+    this.formattedDate,
     required this.icon,
     required this.iconColor,
     this.isUnread = false,
@@ -54,24 +56,39 @@ class BossNotificationScreen extends StatefulWidget {
 
 class _BossNotificationScreenState extends State<BossNotificationScreen> {
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   bool _isMarkingAll = false;
   List<BossNotification> notifications = [];
+  String _currentFilter = 'all';
+  int _currentPage = 1;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
     NotificationPolling.latestNew.addListener(_onNewNotif);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     NotificationPolling.latestNew.removeListener(_onNewNotif);
+    _scrollController.dispose();
     super.dispose();
   }
 
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && !_isLoadingMore && _hasMore) {
+        _fetchMoreNotifications();
+      }
+    }
+  }
+
   void _onNewNotif() {
-    if (mounted) _fetchNotifications();
+    if (mounted) _fetchNotifications(refresh: true);
   }
 
   Future<String> _getToken() async {
@@ -79,44 +96,54 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     return prefs.getString('token') ?? '';
   }
 
-  Future<void> _fetchNotifications() async {
+  BossNotification _mapNotification(Map<String, dynamic> n) {
+    final type = n['type'] as String? ?? 'general';
+    return BossNotification(
+      id:          (n['id'] as num).toInt(),
+      title:       n['title'] as String? ?? '',
+      description: n['body'] as String? ?? n['message'] as String? ?? '',
+      time:        n['time_ago'] as String? ?? n['created_at'] as String? ?? '',
+      formattedDate: n['formatted_date'] as String?,
+      icon: type == 'leave_request'
+          ? Icons.event_busy_outlined
+          : type == 'meeting_request'
+              ? Icons.calendar_month_outlined
+              : type == 'summon'
+                  ? Icons.person_add_alt_1_outlined
+                  : Icons.notifications_outlined,
+      iconColor: type == 'leave_request'
+          ? const Color(0xFFCCAA00)
+          : type == 'meeting_request'
+              ? Colors.teal
+              : type == 'summon'
+                  ? Colors.deepOrange
+                  : Colors.orange,
+      isUnread:    n['is_read'] == false,
+      type:        type,
+      relatedId:   n['related_id'] != null ? (n['related_id'] as num).toInt() : null,
+      leaveStatus: n['leave_status'] as String?,
+    );
+  }
+
+  Future<void> _fetchNotifications({bool refresh = false}) async {
+    if (refresh) {
+      _currentPage = 1;
+      _hasMore = true;
+      notifications.clear();
+    }
     setState(() => _isLoading = true);
     try {
       final token = await _getToken();
       final response = await Dio().get(
         "${ApiService().baseUrl}/department-head/notifications",
+        queryParameters: {'page': _currentPage, 'filter': _currentFilter},
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'] as List? ?? [];
         setState(() {
-          notifications = data.map((n) {
-            final type = n['type'] as String? ?? 'general';
-            return BossNotification(
-              id:          (n['id'] as num).toInt(),
-              title:       n['title'] as String? ?? '',
-              description: n['body'] as String? ?? n['message'] as String? ?? '',
-              time:        n['created_at'] as String? ?? '',
-              icon: type == 'leave_request'
-                  ? Icons.event_busy_outlined
-                  : type == 'meeting_request'
-                      ? Icons.calendar_month_outlined
-                      : type == 'summon'
-                          ? Icons.person_add_alt_1_outlined
-                          : Icons.notifications_outlined,
-              iconColor: type == 'leave_request'
-                  ? const Color(0xFFCCAA00)
-                  : type == 'meeting_request'
-                      ? Colors.teal
-                      : type == 'summon'
-                          ? Colors.deepOrange
-                          : Colors.orange,
-              isUnread:    n['is_read'] == false,
-              type:        type,
-              relatedId:   n['related_id'] != null ? (n['related_id'] as num).toInt() : null,
-              leaveStatus: n['leave_status'] as String?,
-            );
-          }).toList();
+          notifications = data.map((n) => _mapNotification(Map<String, dynamic>.from(n as Map))).toList();
+          _hasMore = response.data['has_more'] ?? false;
         });
       }
     } catch (e) {
@@ -124,6 +151,37 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _fetchMoreNotifications() async {
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+    try {
+      final token = await _getToken();
+      final response = await Dio().get(
+        "${ApiService().baseUrl}/department-head/notifications",
+        queryParameters: {'page': _currentPage, 'filter': _currentFilter},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = response.data['data'] as List? ?? [];
+        setState(() {
+          notifications.addAll(data.map((n) => _mapNotification(Map<String, dynamic>.from(n as Map))).toList());
+          _hasMore = response.data['has_more'] ?? false;
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Load More Error: $e');
+      if (mounted) setState(() => _currentPage--);
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  void _changeFilter(String filter) {
+    if (_currentFilter == filter) return;
+    _currentFilter = filter;
+    _fetchNotifications(refresh: true);
   }
 
   Future<void> _markAsRead(int id, int index) async {
@@ -379,6 +437,30 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     );
   }
 
+  Widget _buildFilterChip(String label, String value, bool isDark) {
+    final isSelected = _currentFilter == value;
+    return GestureDetector(
+      onTap: () => _changeFilter(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFCCAA00) : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFCCAA00).withAlpha(80), blurRadius: 8, offset: const Offset(0, 3))] : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -396,32 +478,55 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
               Column(
                 children: [
                   _buildHeader(context, isDark),
+                  // شريط الفلترة
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildFilterChip('الكل', 'all', isDark),
+                        _buildFilterChip('غير المقروءة', 'unread', isDark),
+                        _buildFilterChip('المقروءة', 'read', isDark),
+                      ],
+                    ),
+                  ),
                   Expanded(
                     child: _isLoading
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFFCCAA00)))
                         : RefreshIndicator(
-                            onRefresh: _fetchNotifications,
+                            onRefresh: () => _fetchNotifications(refresh: true),
                             color: const Color(0xFFCCAA00),
-                            child: SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildSectionTitle("الإشعارات"),
-                                  if (notifications.isEmpty)
-                                    const Padding(
-                                      padding: EdgeInsets.all(40),
-                                      child: Center(
-                                        child: Text("لا توجد إشعارات حالياً",
-                                            style: TextStyle(color: Colors.grey)),
+                            child: notifications.isEmpty
+                                ? ListView(
+                                    children: const [
+                                      Padding(
+                                        padding: EdgeInsets.all(40),
+                                        child: Center(
+                                          child: Text("لا توجد إشعارات حالياً",
+                                              style: TextStyle(color: Colors.grey)),
+                                        ),
                                       ),
-                                    )
-                                  else
-                                    ...notifications.asMap().entries.map((e) =>
-                                      GestureDetector(
+                                    ],
+                                  )
+                                : ListView.builder(
+                                    controller: _scrollController,
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.only(bottom: 150),
+                                    itemCount: notifications.length + (_isLoadingMore ? 1 : 0),
+                                    itemBuilder: (context, index) {
+                                      if (index == notifications.length) {
+                                        return const Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(8.0),
+                                            child: CircularProgressIndicator(color: Color(0xFFCCAA00)),
+                                          ),
+                                        );
+                                      }
+                                      final e = notifications[index];
+                                      return GestureDetector(
                                         onTap: () {
-                                          _markAsRead(e.value.id, e.key);
-                                          final n = e.value;
+                                          _markAsRead(e.id, index);
+                                          final n = e;
                                           if (n.type == 'announcement') {
                                             Navigator.push(context, MaterialPageRoute(
                                               builder: (_) => AnnouncementDetailScreen(announcement: {
@@ -442,17 +547,14 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                                                 highlightId: n.relatedId,
                                               ),
                                             )).then((refreshed) {
-                                              if (refreshed == true) _fetchNotifications();
+                                              if (refreshed == true) _fetchNotifications(refresh: true);
                                             });
                                           }
                                         },
-                                        child: _buildNotificationCard(e.value, cardColor, isDark, e.key),
-                                      ),
-                                    ),
-                                  const SizedBox(height: 150),
-                                ],
-                              ),
-                            ),
+                                        child: _buildNotificationCard(e, cardColor, isDark, index),
+                                      );
+                                    },
+                                  ),
                           ),
                   ),
                 ],
@@ -589,7 +691,15 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
       BossNotification n, Color cardColor, bool isDark, int index) {
     final color = n.iconColor;
     final label = _labelForType(n.type);
-    final dateStr = n.time.length >= 10 ? n.time.substring(0, 10) : n.time;
+    String dateStr = n.time;
+    try {
+      final dt = DateTime.parse(n.time).toLocal();
+      dateStr = "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+    } catch (e) {
+      if (n.time.length >= 16) {
+        dateStr = n.time.substring(0, 16).replaceAll('T', ' ');
+      }
+    }
 
     return GestureDetector(
       onTap: () {

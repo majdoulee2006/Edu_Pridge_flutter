@@ -173,26 +173,23 @@ class ApiService {
   }
 
   String get baseUrl {
-    if (kIsWeb) {
-      return "http://127.0.0.1:$_port/api";
-    } else {
-      return "http://$_serverIp:$_port/api";
-    }
+    return "http://192.168.126.25:$_port/api";
   }
 
   // تصليح روابط الميديا الراجعة من السيرفر
   static String? fixMediaUrl(String? url) {
     if (url == null || url.isEmpty) return null;
+    String hardcodedIp = '192.168.126.25';
     if (!kIsWeb) {
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
         String cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-        return 'http://$_serverIp:$_port/$cleanUrl';
+        return 'http://$hardcodedIp:$_port/$cleanUrl';
       }
       return url
-          .replaceFirst('http://127.0.0.1:', 'http://$_serverIp:')
-          .replaceFirst('http://localhost:', 'http://$_serverIp:')
-          .replaceFirst('http://localhost/', 'http://$_serverIp:$_port/')
-          .replaceFirst('http://127.0.0.1/', 'http://$_serverIp:$_port/');
+          .replaceFirst('http://127.0.0.1:', 'http://$hardcodedIp:')
+          .replaceFirst('http://localhost:', 'http://$hardcodedIp:')
+          .replaceFirst('http://localhost/', 'http://$hardcodedIp:$_port/')
+          .replaceFirst('http://127.0.0.1/', 'http://$hardcodedIp:$_port/');
     }
     return url;
   }
@@ -428,6 +425,57 @@ class ApiService {
       return (response.statusCode == 200 && response.data['success'] == true);
     } catch (e) {
       debugPrint("respondHeadStudentServiceRequest Error: $e");
+      return false;
+    }
+  }
+
+  // ── Head of Department Appointments & Summons ──────────────────────────
+  Future<List<dynamic>?> getMeetingRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/department-head/appointments/meetings",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getMeetingRequests Error: $e");
+    }
+    return null;
+  }
+
+  Future<List<dynamic>?> getSummons() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/department-head/appointments/summons",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getSummons Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> respondToMeetingRequest(int id, String status) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.put(
+        "$baseUrl/department-head/appointments/meetings/$id/respond",
+        data: {'status': status},
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return (response.statusCode == 200 && response.data['success'] == true);
+    } catch (e) {
+      debugPrint("respondToMeetingRequest Error: $e");
       return false;
     }
   }

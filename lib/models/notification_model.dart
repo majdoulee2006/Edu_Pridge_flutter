@@ -7,6 +7,7 @@ class AppNotification {
   final String type;
   bool isRead;
   final String timeAgo;
+  final String? formattedDate;
   final String? imageUrl;
   final String? linkUrl;
   final int? relatedId;
@@ -18,6 +19,7 @@ class AppNotification {
     required this.type,
     required this.isRead,
     required this.timeAgo,
+    this.formattedDate,
     this.imageUrl,
     this.linkUrl,
     this.relatedId,
@@ -31,6 +33,7 @@ class AppNotification {
       type: json['type'] ?? 'general',
       isRead: json['is_read'] == 1 || json['is_read'] == true,
       timeAgo: json['time_ago'] ?? '',
+      formattedDate: json['formatted_date'] as String?,
       imageUrl: json['image_url'] as String?,
       linkUrl: json['link_url'] as String?,
       relatedId: json['related_id'] is int ? json['related_id'] as int : null,

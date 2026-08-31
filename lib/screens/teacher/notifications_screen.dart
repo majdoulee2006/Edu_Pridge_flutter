@@ -24,13 +24,33 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   bool _isMarkingAll = false;
   List<Map<String, dynamic>> _notifications = [];
+  String _currentFilter = 'all';
+  int _currentPage = 1;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && !_isLoadingMore && _hasMore) {
+        _fetchMoreNotifications();
+      }
+    }
   }
 
   Future<String> _getToken() async {
@@ -38,12 +58,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return prefs.getString('token') ?? '';
   }
 
-  Future<void> _fetchNotifications() async {
+  Future<void> _fetchNotifications({bool refresh = false}) async {
+    if (refresh) {
+      _currentPage = 1;
+      _hasMore = true;
+      _notifications.clear();
+    }
     setState(() => _isLoading = true);
     try {
       final token = await _getToken();
       final response = await Dio().get(
         "${ApiService().baseUrl}/teacher/notifications",
+        queryParameters: {'page': _currentPage, 'filter': _currentFilter},
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (response.statusCode == 200 && response.data['success'] == true) {
@@ -51,6 +77,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           _notifications = (response.data['data'] as List? ?? [])
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList();
+          _hasMore = response.data['has_more'] ?? false;
         });
       }
     } catch (e) {
@@ -58,6 +85,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _fetchMoreNotifications() async {
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+    try {
+      final token = await _getToken();
+      final response = await Dio().get(
+        "${ApiService().baseUrl}/teacher/notifications",
+        queryParameters: {'page': _currentPage, 'filter': _currentFilter},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        setState(() {
+          _notifications.addAll((response.data['data'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList());
+          _hasMore = response.data['has_more'] ?? false;
+        });
+      }
+    } catch (e) {
+      debugPrint('⛔ Load More Error: $e');
+      if (mounted) setState(() => _currentPage--);
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  void _changeFilter(String filter) {
+    if (_currentFilter == filter) return;
+    _currentFilter = filter;
+    _fetchNotifications(refresh: true);
   }
 
   Future<void> _markAsRead(int id, int index) async {
@@ -176,8 +235,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Widget _buildFilterChip(String label, String value, bool isDark) {
+    final isSelected = _currentFilter == value;
+    return GestureDetector(
+      onTap: () => _changeFilter(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFCC00) : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFFCC00).withAlpha(80), blurRadius: 8, offset: const Offset(0, 3))] : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark     = Theme.of(context).brightness == Brightness.dark;
     final bgColor    = Theme.of(context).scaffoldBackgroundColor;
     final cardColor  = Theme.of(context).cardColor;
     final textColor  = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
@@ -244,65 +328,91 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         body: Stack(
           children: [
-            // force stack to fill screen so Positioned.fill works correctly
             const SizedBox.expand(),
 
-            // المحتوى
-            RefreshIndicator(
-              onRefresh: _fetchNotifications,
-              color: const Color(0xFFFFCC00),
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                          color: Color(0xFFFFCC00)),
-                    )
-                  : _notifications.isEmpty
-                      ? ListView(
-                          children: [
-                            SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.5,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+            Column(
+              children: [
+                // شريط الفلترة
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildFilterChip('الكل', 'all', isDark),
+                      _buildFilterChip('غير المقروءة', 'unread', isDark),
+                      _buildFilterChip('المقروءة', 'read', isDark),
+                    ],
+                  ),
+                ),
+
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => _fetchNotifications(refresh: true),
+                    color: const Color(0xFFFFCC00),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                                color: Color(0xFFFFCC00)),
+                          )
+                        : _notifications.isEmpty
+                            ? ListView(
                                 children: [
-                                  Icon(Icons.notifications_off_outlined,
-                                      size: 64,
-                                      color: Colors.grey.shade600),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'لا توجد إشعارات',
-                                    style: TextStyle(
-                                        color: Colors.grey, fontSize: 16),
+                                  SizedBox(
+                                    height: MediaQuery.of(context).size.height * 0.5,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.notifications_off_outlined,
+                                            size: 64,
+                                            color: Colors.grey.shade600),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'لا توجد إشعارات',
+                                          style: TextStyle(
+                                              color: Colors.grey, fontSize: 16),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
+                              )
+                            : ListView.separated(
+                                controller: _scrollController,
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                                itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
+                                separatorBuilder: (context, i) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (context, index) {
+                                  if (index == _notifications.length) {
+                                    return const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(8.0),
+                                        child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                                      ),
+                                    );
+                                  }
+                                  final n = _notifications[index];
+                                  final style =
+                                      _styleForType(n['type'] as String?);
+                                  final isRead = n['is_read'] == true;
+                                  return _buildNotifCard(
+                                    context,
+                                    id: n['id'] as int,
+                                    index: index,
+                                    title: n['title'] as String? ?? '',
+                                    message: n['message'] as String? ?? '',
+                                    time: n['formatted_date'] as String? ?? n['time_ago'] as String? ?? '',
+                                    isRead: isRead,
+                                    style: style,
+                                    cardColor: cardColor,
+                                    textColor: textColor,
+                                  );
+                                },
                               ),
-                            ),
-                          ],
-                        )
-                      : ListView.separated(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-                          itemCount: _notifications.length,
-                          separatorBuilder: (context, i) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final n = _notifications[index];
-                            final style =
-                                _styleForType(n['type'] as String?);
-                            final isRead = n['is_read'] == true;
-                            return _buildNotifCard(
-                              context,
-                              id: n['id'] as int,
-                              index: index,
-                              title: n['title'] as String? ?? '',
-                              message: n['message'] as String? ?? '',
-                              time: n['created_at'] as String? ?? '',
-                              isRead: isRead,
-                              style: style,
-                              cardColor: cardColor,
-                              textColor: textColor,
-                            );
-                          },
-                        ),
+                  ),
+                ),
+              ],
             ),
 
             // الشريط السفلي
@@ -335,7 +445,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     required Color cardColor,
     required Color textColor,
   }) {
-    final dateStr = time.contains('T') ? time.split('T')[0] : time.split(' ')[0];
+    final dateStr = time;
     return GestureDetector(
       onTap: () {
         _markAsRead(id, index);

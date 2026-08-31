@@ -12,6 +12,7 @@ import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_scr
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/vacations/vacations_screen.dart';
 
 class AffairsOfficerNotificationsScreen extends StatefulWidget {
   const AffairsOfficerNotificationsScreen({super.key});
@@ -24,13 +25,33 @@ class AffairsOfficerNotificationsScreen extends StatefulWidget {
 class _AffairsOfficerNotificationsScreenState
     extends State<AffairsOfficerNotificationsScreen> {
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   bool _isMarkingAll = false;
   List<Map<String, dynamic>> _notifications = [];
+  String _currentFilter = 'all';
+  int _currentPage = 1;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && !_isLoadingMore && _hasMore) {
+        _fetchMoreNotifications();
+      }
+    }
   }
 
   Future<String> _getToken() async {
@@ -38,7 +59,12 @@ class _AffairsOfficerNotificationsScreenState
     return prefs.getString('token') ?? '';
   }
 
-  Future<void> _fetchNotifications() async {
+  Future<void> _fetchNotifications({bool refresh = false}) async {
+    if (refresh) {
+      _currentPage = 1;
+      _hasMore = true;
+      _notifications.clear();
+    }
     setState(() => _isLoading = true);
     try {
       final token = await _getToken();
@@ -48,6 +74,7 @@ class _AffairsOfficerNotificationsScreenState
       }
       final res = await Dio().get(
         "${ApiService().baseUrl}/affairs/notifications",
+        queryParameters: {'page': _currentPage, 'filter': _currentFilter},
         options: Options(headers: {
           "Accept": "application/json",
           "Authorization": "Bearer $token"
@@ -59,6 +86,7 @@ class _AffairsOfficerNotificationsScreenState
         setState(() {
           _notifications =
               list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          _hasMore = raw is Map ? (raw['has_more'] ?? false) : false;
           _isLoading = false;
         });
       }
@@ -66,6 +94,42 @@ class _AffairsOfficerNotificationsScreenState
       debugPrint("⛔ Affairs notifications error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _fetchMoreNotifications() async {
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+    try {
+      final token = await _getToken();
+      final res = await Dio().get(
+        "${ApiService().baseUrl}/affairs/notifications",
+        queryParameters: {'page': _currentPage, 'filter': _currentFilter},
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token"
+        }),
+      );
+      if (res.statusCode == 200 && mounted) {
+        final raw = res.data;
+        final List list = raw is List ? raw : (raw['data'] ?? []);
+        setState(() {
+          _notifications.addAll(
+              list.map((e) => Map<String, dynamic>.from(e as Map)).toList());
+          _hasMore = raw is Map ? (raw['has_more'] ?? false) : false;
+        });
+      }
+    } catch (e) {
+      debugPrint("⛔ Load More Error: $e");
+      if (mounted) setState(() => _currentPage--);
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  void _changeFilter(String filter) {
+    if (_currentFilter == filter) return;
+    _currentFilter = filter;
+    _fetchNotifications(refresh: true);
   }
 
   Future<void> _markAsRead(int id, int index) async {
@@ -140,6 +204,13 @@ class _AffairsOfficerNotificationsScreenState
           builder: (_) => const AppointmentsScreen(),
         ),
       );
+    } else if (type == 'leave_request' || type == 'leave') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AffairsOfficerVacationsScreen(),
+        ),
+      );
     }
   }
 
@@ -163,6 +234,30 @@ class _AffairsOfficerNotificationsScreenState
       default:
         return {'color': Colors.blueGrey, 'icon': Icons.notifications_active, 'label': 'إشعار'};
     }
+  }
+
+  Widget _buildFilterChip(String label, String value, bool isDark) {
+    final isSelected = _currentFilter == value;
+    return GestureDetector(
+      onTap: () => _changeFilter(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFCC00) : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFFCC00).withAlpha(80), blurRadius: 8, offset: const Offset(0, 3))] : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -224,11 +319,24 @@ class _AffairsOfficerNotificationsScreenState
                     ),
                   ),
 
+                  // شريط الفلترة
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildFilterChip('الكل', 'all', isDark),
+                        _buildFilterChip('غير المقروءة', 'unread', isDark),
+                        _buildFilterChip('المقروءة', 'read', isDark),
+                      ],
+                    ),
+                  ),
+
                   Expanded(
                     child: _isLoading
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                         : RefreshIndicator(
-                            onRefresh: _fetchNotifications,
+                            onRefresh: () => _fetchNotifications(refresh: true),
                             color: const Color(0xFFFFCC00),
                             child: _notifications.isEmpty
                                 ? ListView(children: [
@@ -241,10 +349,19 @@ class _AffairsOfficerNotificationsScreenState
                                     )
                                   ])
                                 : ListView.builder(
-                                    physics: const BouncingScrollPhysics(),
+                                    controller: _scrollController,
+                                    physics: const AlwaysScrollableScrollPhysics(),
                                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
-                                    itemCount: _notifications.length,
+                                    itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
                                     itemBuilder: (context, index) {
+                                      if (index == _notifications.length) {
+                                        return const Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(8.0),
+                                            child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                                          ),
+                                        );
+                                      }
                                       final n = _notifications[index];
                                       return GestureDetector(
                                         onTap: () => _onTap(n, index),
@@ -276,7 +393,7 @@ class _AffairsOfficerNotificationsScreenState
     final style = _styleFor(n['type']?.toString());
     final Color color = style['color'] as Color;
     final bool isUnread = n['is_read'] != true;
-    final String dateStr = (n['created_at']?.toString() ?? '').split('T')[0];
+    final String dateStr = n['formatted_date']?.toString() ?? n['time_ago']?.toString() ?? (n['created_at']?.toString() ?? '').split('T')[0];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

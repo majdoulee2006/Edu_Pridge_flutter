@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/firebase_auth_service.dart';
+import 'package:edu_pridge_flutter/utils/network_helper.dart';
 
 class PhoneAuthScreen extends StatefulWidget {
   /// رقم الهاتف (اختياري — إذا فُرِّر يُستخدم مباشرة، وإلا يُقرأ من SharedPreferences)
@@ -53,6 +54,12 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   Future<void> _requestCode() async {
     final phone = _phoneCtrl.text.trim();
     if (phone.isEmpty) { setState(() => _error = 'أدخل رقم الهاتف'); return; }
+
+    if (!await NetworkHelper.hasInternet()) {
+      setState(() => _error = 'لا يوجد اتصال بالإنترنت');
+      return;
+    }
+
     setState(() { _loading = true; _error = ''; });
 
     await _service.verifyPhoneNumber(
