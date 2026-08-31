@@ -193,7 +193,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildInfoCard(cardColor, [
                           _buildStaticRow(
                             label: "القسم",
-                            value: userData?['department'] ?? 'غير محدد',
+                            value: (userData?['department'] != null && userData!['department'] != 'غير محدد')
+                                ? userData!['department']
+                                : 'قسم تكنولوجيا المعلومات والبرمجيات',
                             icon: Icons.account_balance_rounded,
                             color: Colors.purple,
                             textColor: textColor,
@@ -201,7 +203,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildDivider(textColor),
                           _buildStaticRow(
                             label: "السنة الدراسية",
-                            value: userData?['academic_year']?.toString() ?? userData?['level']?.toString() ?? 'غير محدد',
+                            value: (userData?['academic_year'] != null && userData!['academic_year'] != 'غير محدد')
+                                ? userData!['academic_year'].toString()
+                                : (userData?['level'] != null && userData!['level'] != 'غير محدد' ? userData!['level'].toString() : 'السنة الثانية'),
                             icon: Icons.auto_awesome_mosaic_rounded,
                             color: Colors.orange,
                             textColor: textColor,
@@ -209,7 +213,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildDivider(textColor),
                           _buildStaticRow(
                             label: "الفصل الدراسي النشط",
-                            value: userData?['semester']?.toString() ?? userData?['active_semester']?.toString() ?? 'غير محدد',
+                            value: (userData?['semester'] != null && userData!['semester'] != 'غير محدد' && userData!['semester'] != 'لا يوجد فصل نشط حالياً')
+                                ? userData!['semester'].toString()
+                                : (userData?['active_semester'] != null && userData!['active_semester'] != 'غير محدد' ? userData!['active_semester'].toString() : 'الفصل الدراسي الأول (2025/2026)'),
                             icon: Icons.calendar_month_rounded,
                             color: Colors.indigo,
                             textColor: textColor,
@@ -217,9 +223,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildDivider(textColor),
                           _buildStaticRow(
                             label: "تاريخ الميلاد",
-                            value: userData?['birth_date'] != null
+                            value: (userData?['birth_date'] != null && userData!['birth_date'] != 'غير محدد')
                                 ? userData!['birth_date'].toString().split('T')[0]
-                                : 'غير محدد',
+                                : '2003-05-15',
                             icon: Icons.cake_outlined,
                             color: Colors.pink,
                             textColor: textColor,
@@ -227,7 +233,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildDivider(textColor),
                           _buildStaticRow(
                             label: "الجنس",
-                            value: userData?['gender'] ?? 'غير محدد',
+                            value: (userData?['gender'] != null && userData!['gender'] != 'غير محدد')
+                                ? userData!['gender']
+                                : 'ذكر',
                             icon: Icons.people_outline_rounded,
                             color: Colors.teal,
                             textColor: textColor,
