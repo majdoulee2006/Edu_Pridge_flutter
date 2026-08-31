@@ -29,40 +29,31 @@ class ApiService {
         _serverIp = '127.0.0.1';
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('server_ip', '127.0.0.1');
-        debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8000");
+        debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8001");
         return;
       }
 
-      // 2. فحص آي بي الكمبيوتر المباشر على الواي فاي (172.20.10.3 & 192.168.21.53)
+      // 2. فحص آي بي الكمبيوتر المباشر على الواي فاي (192.168.1.100)
+      final wifiCurrent = await _tryConnect('192.168.1.100');
+      if (wifiCurrent != null) {
+        _serverIp = '192.168.1.100';
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('server_ip', '192.168.1.100');
+        debugPrint("🎯 ApiService initialized instantly via 192.168.1.100:8001");
+        return;
+      }
+
       final wifiHotspot = await _tryConnect('172.20.10.3');
       if (wifiHotspot != null) {
         _serverIp = '172.20.10.3';
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('server_ip', '172.20.10.3');
-        debugPrint("🎯 ApiService initialized instantly via 172.20.10.3:8000");
-        return;
-      }
-
-      final wifiCurrent = await _tryConnect('192.168.21.53');
-      if (wifiCurrent != null) {
-        _serverIp = '192.168.21.53';
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('server_ip', '192.168.21.53');
-        debugPrint("🎯 ApiService initialized instantly via 192.168.21.53:8000");
-        return;
-      }
-
-      final wifiOld = await _tryConnect('192.168.1.110');
-      if (wifiOld != null) {
-        _serverIp = '192.168.1.110';
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('server_ip', '192.168.1.110');
-        debugPrint("🎯 ApiService initialized instantly via 192.168.1.110:8000");
+        debugPrint("🎯 ApiService initialized instantly via 172.20.10.3:8001");
         return;
       }
 
       final prefs = await SharedPreferences.getInstance();
-      _serverIp = prefs.getString('server_ip') ?? '192.168.1.110';
+      _serverIp = prefs.getString('server_ip') ?? '192.168.1.100';
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية
@@ -173,23 +164,23 @@ class ApiService {
   }
 
   String get baseUrl {
-    return "http://192.168.126.25:$_port/api";
+    return "http://$_serverIp:$_port/api";
   }
 
   // تصليح روابط الميديا الراجعة من السيرفر
   static String? fixMediaUrl(String? url) {
     if (url == null || url.isEmpty) return null;
-    String hardcodedIp = '192.168.126.25';
+    String activeIp = _serverIp;
     if (!kIsWeb) {
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
         String cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-        return 'http://$hardcodedIp:$_port/$cleanUrl';
+        return "http://$activeIp:$_port/$cleanUrl";
       }
       return url
-          .replaceFirst('http://127.0.0.1:', 'http://$hardcodedIp:')
-          .replaceFirst('http://localhost:', 'http://$hardcodedIp:')
-          .replaceFirst('http://localhost/', 'http://$hardcodedIp:$_port/')
-          .replaceFirst('http://127.0.0.1/', 'http://$hardcodedIp:$_port/');
+          .replaceAll('localhost', activeIp)
+          .replaceAll('127.0.0.1', activeIp)
+          .replaceAll('10.0.2.2', activeIp)
+          .replaceAll('192.168.126.25', activeIp);
     }
     return url;
   }
