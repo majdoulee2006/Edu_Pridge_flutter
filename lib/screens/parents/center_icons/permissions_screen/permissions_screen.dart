@@ -114,6 +114,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     int? selectedStudentId = children.isNotEmpty ? (children[0]['student_id'] as int?) : null;
     String selectedType = 'full_day';
     DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    TimeOfDay selectedTime = TimeOfDay.now();
     final reasonController = TextEditingController();
     bool isSubmitting = false;
 
@@ -225,36 +226,89 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Date picker
-                    Text("التاريخ", style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: ctx,
-                          initialDate: selectedDate,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 90)),
-                        );
-                        if (picked != null) setModalState(() => selectedDate = picked);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-                          borderRadius: BorderRadius.circular(16),
+                    // Date & Time pickers
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("التاريخ", style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: ctx,
+                                    initialDate: selectedDate,
+                                    firstDate: DateTime.now(),
+                                    lastDate: DateTime.now().add(const Duration(days: 90)),
+                                  );
+                                  if (picked != null) setModalState(() => selectedDate = picked);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.calendar_today_outlined, size: 18, color: textColor.withValues(alpha: 0.5)),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}",
+                                          style: TextStyle(color: textColor, fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.calendar_today_outlined, size: 18, color: textColor.withValues(alpha: 0.5)),
-                            const SizedBox(width: 10),
-                            Text(
-                              "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}",
-                              style: TextStyle(color: textColor),
-                            ),
-                          ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("الوقت/الساعة", style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final pickedTime = await showTimePicker(
+                                    context: ctx,
+                                    initialTime: selectedTime,
+                                  );
+                                  if (pickedTime != null) setModalState(() => selectedTime = pickedTime);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.access_time, size: 18, color: textColor.withValues(alpha: 0.5)),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}",
+                                          style: TextStyle(color: textColor, fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                     const SizedBox(height: 16),
 
@@ -290,12 +344,14 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           try {
                             final token = await _getToken();
                             final dateStr = "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}";
+                            final timeStr = "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}";
                             await Dio().post(
                               "${ApiService().baseUrl}/parent/leave-requests/submit",
                               data: {
                                 "student_id": selectedStudentId,
                                 "type": selectedType,
                                 "date": dateStr,
+                                "time": timeStr,
                                 "reason": reasonController.text.trim(),
                               },
                               options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
