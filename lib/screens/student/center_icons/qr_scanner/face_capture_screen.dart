@@ -52,7 +52,12 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       orElse: () => cameras.first,
     );
 
-    _cameraController = CameraController(front, ResolutionPreset.medium, enableAudio: false);
+    _cameraController = CameraController(
+      front,
+      ResolutionPreset.high,
+      enableAudio: false,
+      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+    );
     await _cameraController!.initialize();
     if (!mounted) return;
     setState(() {});

@@ -65,10 +65,8 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
           final d = (response.data['data'] ?? response.data) as Map<String, dynamic>;
           final rawAvatar = d['avatar'] as String?;
           String? avatarUrl;
-          if (rawAvatar != null && rawAvatar.startsWith('http')) {
+          if (rawAvatar != null && rawAvatar.isNotEmpty) {
             avatarUrl = ApiService.fixMediaUrl(rawAvatar);
-          } else if (rawAvatar != null && rawAvatar.isNotEmpty) {
-            avatarUrl = ApiService.fixMediaUrl('http://127.0.0.1:8001/storage/$rawAvatar');
           }
           if (avatarUrl != null) {
             await prefs.setString('parent_avatar_url', avatarUrl);

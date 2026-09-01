@@ -8,7 +8,7 @@ class ApiService {
   // ==========================================
   // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
   // ==========================================
-  static String _serverIp = '127.0.0.1'; // PC Localhost (ADB Reversed)
+  static String _serverIp = 'http://82.137.250.43:8080/edu_bridge/public'; // Public Server Link
   static const String _port = '8001';
   static bool _isDiscovering = false;
 
@@ -23,11 +23,21 @@ class ApiService {
   // تهيئة الإعدادات وتحميل آخر آي بي تم اكتشافه، ثم بدء البحث التلقائي
   static Future<void> init() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedIp = prefs.getString('server_ip');
+      if (savedIp != null && savedIp.isNotEmpty) {
+        _serverIp = savedIp;
+        // إذا كان رابط سيرفر خارجي (Domain أو IP خارجي)، نعتمده مباشرة دون تغيير
+        if (savedIp.startsWith('http://') || savedIp.startsWith('https://') || (!savedIp.startsWith('192.168.') && !savedIp.startsWith('10.') && !savedIp.startsWith('172.') && savedIp != '127.0.0.1')) {
+          debugPrint("📡 ApiService initialized with remote server URL: $_serverIp");
+          return;
+        }
+      }
+
       // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1)
       final usb = await _tryConnect('127.0.0.1');
       if (usb != null) {
         _serverIp = '127.0.0.1';
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setString('server_ip', '127.0.0.1');
         debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8001");
         return;
@@ -37,7 +47,6 @@ class ApiService {
       final wifiCurrent = await _tryConnect('192.168.1.100');
       if (wifiCurrent != null) {
         _serverIp = '192.168.1.100';
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setString('server_ip', '192.168.1.100');
         debugPrint("🎯 ApiService initialized instantly via 192.168.1.100:8001");
         return;
@@ -46,21 +55,18 @@ class ApiService {
       final wifiHotspot = await _tryConnect('172.20.10.3');
       if (wifiHotspot != null) {
         _serverIp = '172.20.10.3';
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setString('server_ip', '172.20.10.3');
         debugPrint("🎯 ApiService initialized instantly via 172.20.10.3:8001");
         return;
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      _serverIp = prefs.getString('server_ip') ?? '192.168.1.100';
+      _serverIp = savedIp ?? 'http://82.137.250.43:8080/edu_bridge/public';
       debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
       
       // بدء الاكتشاف التلقائي في الخلفية
       autoDiscoverServer();
     } catch (e) {
       debugPrint("🚨 Error initializing ApiService: $e");
-      _serverIp = '192.168.1.110';
     }
   }
 
@@ -69,6 +75,10 @@ class ApiService {
     if (kIsWeb) {
       _serverIp = '127.0.0.1';
       _isDiscovering = false;
+      return;
+    }
+    if (_serverIp.startsWith('http://') || _serverIp.startsWith('https://') || (!serverIp.startsWith('192.168.') && !serverIp.startsWith('10.') && !serverIp.startsWith('172.') && serverIp != '127.0.0.1')) {
+      debugPrint("🌐 Skipping local auto-discovery because remote server is set: $_serverIp");
       return;
     }
     if (_isDiscovering) return;
@@ -164,25 +174,41 @@ class ApiService {
   }
 
   String get baseUrl {
-    return "http://$_serverIp:$_port/api";
+    String cleanIp = _serverIp.trim();
+    if (cleanIp.startsWith('http://') || cleanIp.startsWith('https://')) {
+      if (cleanIp.endsWith('/api')) return cleanIp;
+      return cleanIp.endsWith('/') ? "${cleanIp}api" : "$cleanIp/api";
+    }
+    // If user provided IP or hostname without scheme
+    if (cleanIp.contains(':')) {
+      return "http://$cleanIp/api";
+    }
+    return "http://$cleanIp:$_port/api";
   }
 
   // تصليح روابط الميديا الراجعة من السيرفر
   static String? fixMediaUrl(String? url) {
     if (url == null || url.isEmpty) return null;
-    String activeIp = _serverIp;
-    if (!kIsWeb) {
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        String cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-        return "http://$activeIp:$_port/$cleanUrl";
-      }
-      return url
-          .replaceAll('localhost', activeIp)
-          .replaceAll('127.0.0.1', activeIp)
-          .replaceAll('10.0.2.2', activeIp)
-          .replaceAll('192.168.126.25', activeIp);
+    String cleanUrl = url.trim();
+
+    // إذا كان الرابط كاملاً بالـ HTTP أو HTTPS، نرجعه كما هو
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      return cleanUrl;
     }
-    return url;
+
+    String path = cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl;
+    String base;
+    String activeIp = _serverIp.trim();
+
+    if (activeIp.startsWith('http://') || activeIp.startsWith('https://')) {
+      base = activeIp.replaceAll(RegExp(r'/api/?$'), '').replaceAll(RegExp(r'/$'), '');
+    } else if (activeIp.contains(':')) {
+      base = "http://$activeIp";
+    } else {
+      base = "http://$activeIp:$_port";
+    }
+
+    return "$base/$path";
   }
 
   final Dio _dio = Dio();
