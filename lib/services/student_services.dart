@@ -567,6 +567,28 @@ class StudentServices {
     }
     return null;
   }
+
+  // ==========================================
+  // 17. جلب الإنذارات الأكاديمية
+  // ==========================================
+  Future<List<dynamic>> getWarnings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/student/warnings",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'] ?? [];
+      }
+    } catch (e) {
+      debugPrint("❌ Get Warnings Error: $e");
+    }
+    return [];
+  }
 }
 
 
