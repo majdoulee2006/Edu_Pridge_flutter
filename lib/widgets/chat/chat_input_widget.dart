@@ -62,12 +62,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }
 
   void _stopAndSendVoiceRecording() {
+    final int finalSecs = _recordingSeconds;
     _recordingTimer?.cancel();
     setState(() {
       _isRecordingVoice = false;
     });
+    final durationStr = _formatRecordingTime(finalSecs);
     widget.onSend(
-      "[Voice Note]",
+      "[Voice Note|$durationStr]",
       fileName: "voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a",
     );
   }
@@ -80,6 +82,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     });
   }
 
+  PlatformFile? _stagedFile;
+  double _uploadProgress = 0.0;
+  bool _isUploadingFile = false;
+
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -88,13 +94,36 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
     if (result != null) {
       final file = result.files.single;
-      widget.onSend(
-        "[Attachment]",
-        filePath: file.path,
-        fileBytes: file.bytes,
-        fileName: file.name,
-      );
+      setState(() {
+        _stagedFile = file;
+        _isUploadingFile = true;
+        _uploadProgress = 0.0;
+      });
+
+      // Simulate smooth upload progress bar before ready to send
+      Timer.periodic(const Duration(milliseconds: 150), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        setState(() {
+          _uploadProgress += 0.2;
+          if (_uploadProgress >= 1.0) {
+            _uploadProgress = 1.0;
+            _isUploadingFile = false;
+            timer.cancel();
+          }
+        });
+      });
     }
+  }
+
+  void _clearStagedFile() {
+    setState(() {
+      _stagedFile = null;
+      _isUploadingFile = false;
+      _uploadProgress = 0.0;
+    });
   }
 
   Future<void> _pickVoiceNote() async {
@@ -130,7 +159,63 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       color: bgColor,
-      child: _isRecordingVoice
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_stagedFile != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.insert_drive_file, color: Colors.blue),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _stagedFile!.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: _uploadProgress,
+                          backgroundColor: Colors.grey.shade400,
+                          color: _isUploadingFile ? Colors.blue : Colors.green,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (!_isUploadingFile)
+                    IconButton(
+                      icon: const Icon(Icons.send_rounded, color: Colors.green, size: 24),
+                      onPressed: () {
+                        final f = _stagedFile!;
+                        _clearStagedFile();
+                        widget.onSend(
+                          "[Attachment]",
+                          filePath: f.path,
+                          fileBytes: f.bytes,
+                          fileName: f.name,
+                        );
+                      },
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                    onPressed: _clearStagedFile,
+                  ),
+                ],
+              ),
+            ),
+          _isRecordingVoice
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -253,6 +338,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                 ),
               ],
             ),
+        ],
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/widgets/facebook_image_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
@@ -104,9 +105,22 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
     final author      = rawAuthor.startsWith('نشر') ? rawAuthor : 'نشر بواسطة: $rawAuthor';
     final timeAgo     = widget.announcement['time_ago']    as String?
                      ?? widget.announcement['created_at']  as String? ?? '';
-    final imageUrl    = ApiService.fixMediaUrl(widget.announcement['image_url'] as String?) ?? '';
     final linkUrl     = widget.announcement['link_url']    as String? ?? '';
     final targetLabel = _targetLabel(widget.announcement);
+
+    List<String> imageUrls = [];
+    if (widget.announcement['image_urls'] != null && widget.announcement['image_urls'] is List) {
+      imageUrls = (widget.announcement['image_urls'] as List)
+          .map((url) => ApiService.fixMediaUrl(url.toString()) ?? '')
+          .where((url) => url.isNotEmpty)
+          .toList();
+    }
+    if (imageUrls.isEmpty && widget.announcement['image_url'] != null) {
+      final single = ApiService.fixMediaUrl(widget.announcement['image_url'].toString());
+      if (single != null && single.isNotEmpty) {
+        imageUrls.add(single);
+      }
+    }
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -187,38 +201,9 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
               ),
               const SizedBox(height: 16),
 
-              // الصورة
-              if (imageUrl.isNotEmpty) ...[
-                GestureDetector(
-                  onTap: () => _openFullScreen(imageUrl),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: Image.network(
-                            imageUrl,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (ctx, e, s) => const SizedBox(),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 8, left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(Icons.fullscreen, color: Colors.white, size: 20),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              // الصور (شبكة متعددة الصور)
+              if (imageUrls.isNotEmpty) ...[
+                FacebookImageGrid(imageUrls: imageUrls, maxHeight: 350),
                 const SizedBox(height: 16),
               ],
 

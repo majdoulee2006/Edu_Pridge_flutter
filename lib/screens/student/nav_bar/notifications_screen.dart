@@ -94,12 +94,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           notifications = [
             AppNotification.fromJson({
               'id': 1,
-              'title': 'مرحباً بك في نظام إديو بريدج 🎓',
+              'title': 'مرحباً بك في نظام Edu-Bridge 🎓',
               'message': 'نتمنى لك عاماً أكاديمياً مليئاً بالتوفيق والنجاح. يمكنك متابعة المحاضرات والجداول والواجبات مباشرة عبر التطبيق.',
               'type': 'announcement',
               'category': 'administrative',
               'sender_name': 'إدارة الكلية',
-              'is_read': false,
+              'is_read': true,
               'time_ago': 'منذ قليل',
             }),
             AppNotification.fromJson({
@@ -458,12 +458,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   // 🌟 دالة تحويل الإشعار لمقروء
   Future<void> _markAsRead(AppNotification notify) async {
-    if (notify.isRead) return;
-    bool success = await StudentServices().markNotificationAsRead(notify.id);
-    if (success) {
+    if (!notify.isRead) {
       setState(() {
         notify.isRead = true;
       });
+      await StudentServices().markNotificationAsRead(notify.id);
     }
   }
 
@@ -595,9 +594,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildFilterChip('الكل', 'all', isDark),
-          _buildFilterChip('غير المقروءة', 'unread', isDark),
-          _buildFilterChip('المقروءة', 'read', isDark),
+          Expanded(child: _buildFilterChip('الكل', 'all', isDark)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildFilterChip('أكاديمية 🎓', 'academic', isDark)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildFilterChip('إدارية 🏢', 'administrative', isDark)),
         ],
       ),
     );

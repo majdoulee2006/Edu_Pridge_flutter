@@ -14,6 +14,7 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications
 import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
 
 // Chat Micro-Widgets & Service
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import '../../../services/chat_service.dart';
 import '../../../widgets/chat/contact_tile_widget.dart';
 
@@ -159,20 +160,24 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
         },
         leading: Stack(
           children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
-              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-              child: avatarUrl == null || avatarUrl.isEmpty
-                  ? Text(
-                      initial,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    )
-                  : null,
-            ),
+            Builder(builder: (_) {
+              final rawAvatar = contact['image']?.toString() ?? '';
+              final fixedAvatar = ApiService.fixMediaUrl(rawAvatar);
+              return CircleAvatar(
+                radius: 28,
+                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
+                backgroundImage: fixedAvatar != null && fixedAvatar.isNotEmpty ? NetworkImage(fixedAvatar) : null,
+                child: fixedAvatar == null || fixedAvatar.isEmpty
+                    ? Text(
+                        initial,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                      )
+                    : null,
+              );
+            }),
             if (isOnline)
               Positioned(
                 bottom: 0,
@@ -217,53 +222,58 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
             ),
           ],
         ),
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (role.isNotEmpty) ...[
-              Container(
-                margin: EdgeInsets.zero,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
-                    width: 0.5,
+        trailing: SizedBox(
+          width: 90,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (role.isNotEmpty)
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCC00).withAlpha(38),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: const Color(0xFFFFCC00).withAlpha(102),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      role,
+                      style: const TextStyle(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFD4AC0D),
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  role,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFD4AC0D),
-                  ),
-                ),
-              ),
-            ],
-            Text(
-              time,
-              style: TextStyle(
-                fontSize: 11,
-                color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
-                fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            if (hasUnread) ...[
               const SizedBox(height: 1),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
-                child: Text(
-                  '$unreadCount',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+              Text(
+                time,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
+                  fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
+              if (hasUnread) ...[
+                const SizedBox(height: 1),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
+                  child: Text(
+                    '$unreadCount',
+                    style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

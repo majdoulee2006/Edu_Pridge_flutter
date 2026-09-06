@@ -158,8 +158,20 @@ class FcmService {
     });
 
     // إشعار وقت التطبيق مفتوح (foreground) — عرض بانر حقيقي
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       if (!AppSettings.isNotificationsEnabled.value) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final currentToken = prefs.getString('token') ?? '';
+      final currentUserId = prefs.getString('user_id') ?? '';
+
+      // 1. إذا كان المستخدم مسجل خروج ⬅️ لا تعرض أي إشعار
+      if (currentToken.isEmpty || currentUserId.isEmpty) return;
+
+      final senderId = message.data['sender_id']?.toString() ?? '';
+      // 2. إذا كان المُرسِل هو نفسه المستخدم الحالي ⬅️ لا تعرض أي إشعار له لرسائله
+      if (senderId.isNotEmpty && senderId == currentUserId) return;
+
       debugPrint('🔔 Foreground FCM: ${message.notification?.title}');
       final title = message.notification?.title ?? message.data['title'] ?? '';
       final body = message.notification?.body ?? message.data['body'] ?? '';
@@ -223,8 +235,20 @@ class FcmService {
   }
 
   static Future<void> deleteToken() async {
-    await _messaging.deleteToken();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('fcm_token_sent');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('token') ?? '';
+      if (authToken.isNotEmpty) {
+        await Dio().post(
+          '${ApiService().baseUrl}/user/fcm-token',
+          data: {'fcm_token': ''},
+          options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+        );
+      }
+      await _messaging.deleteToken();
+      await prefs.remove('fcm_token_sent');
+    } catch (e) {
+      debugPrint('⛔ FCM deleteToken error: $e');
+    }
   }
 }

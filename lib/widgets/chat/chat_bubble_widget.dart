@@ -1,8 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:dio/dio.dart';
 
 class ChatBubbleWidget extends StatefulWidget {
+  final String messageId;
   final String text;
   final bool isSender;
   final String? attachment;
@@ -14,6 +19,7 @@ class ChatBubbleWidget extends StatefulWidget {
 
   const ChatBubbleWidget({
     super.key,
+    this.messageId = '',
     required this.text,
     required this.isSender,
     this.attachment,
@@ -49,7 +55,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
         lower.contains('.aac') ||
         lower.contains('voice_notes') ||
         lower.contains('voice-note') ||
-        widget.text == '[Voice Note]';
+        widget.text.startsWith('[Voice Note');
   }
 
   bool _isVideo(String url) {
@@ -60,10 +66,55 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
         lower.contains('.avi');
   }
 
-  Future<void> _openAttachment(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+  bool _isDownloading = false;
+
+  Future<void> _openAttachment(String rawUrl) async {
+    if (_isDownloading) return;
+    setState(() {
+      _isDownloading = true;
+    });
+
+    String finalUrl = rawUrl;
+    if (widget.messageId.isNotEmpty && widget.messageId != '0') {
+      finalUrl = "${ApiService.serverIp}/public-download/message/${widget.messageId}";
+    }
+
+    try {
+      final tempDir = await getTemporaryDirectory();
+      String fileName = "attachment_${widget.messageId}";
+      
+      String ext = "";
+      if (rawUrl.contains('.')) {
+        ext = rawUrl.split('.').last.split('?').first;
+      }
+      
+      if (ext.isEmpty || ext.length > 5) {
+        if (widget.text.startsWith('[Voice Note') || _isAudio(rawUrl)) {
+          ext = "m4a";
+        } else {
+          ext = "pdf";
+        }
+      }
+
+      fileName = "$fileName.$ext";
+      final savePath = "${tempDir.path}/$fileName";
+      final file = File(savePath);
+
+      final dio = Dio();
+      await dio.download(finalUrl, savePath);
+
+      final result = await OpenFilex.open(savePath);
+      if (result.type != ResultType.done) {
+        debugPrint("OpenFilex result error: ${result.message}");
+      }
+    } catch (e) {
+      debugPrint("Native File Open Error: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+      }
     }
   }
 
@@ -103,7 +154,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
 
     Widget mediaContent = const SizedBox.shrink();
 
-    if ((fixedUrl != null && fixedUrl.isNotEmpty) || widget.text == '[Voice Note]') {
+    if ((fixedUrl != null && fixedUrl.isNotEmpty) || widget.text.startsWith('[Voice Note')) {
       if (fixedUrl != null && _isImage(fixedUrl)) {
         mediaContent = GestureDetector(
           onTap: () => _openAttachment(fixedUrl),
@@ -130,7 +181,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
             ),
           ),
         );
-      } else if ((fixedUrl != null && _isAudio(fixedUrl)) || widget.text == '[Voice Note]') {
+      } else if ((fixedUrl != null && _isAudio(fixedUrl)) || widget.text.startsWith('[Voice Note')) {
         // 🎙️ مشغل التسجيل الصوتي بتصميم الواتس اب المميز
         mediaContent = Container(
           margin: const EdgeInsets.only(top: 6),
@@ -143,12 +194,12 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
             mainAxisSize: MainAxisSize.min,
             children: [
               GestureDetector(
-                onTap: () {
+                onTap: () async {
                   setState(() {
                     _isPlayingAudio = !_isPlayingAudio;
                   });
                   if (fixedUrl != null && fixedUrl.isNotEmpty) {
-                    _openAttachment(fixedUrl);
+                    await _openAttachment(fixedUrl);
                   }
                 },
                 child: CircleAvatar(
@@ -185,13 +236,24 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      _isPlayingAudio ? "جاري التشغيل..." : "تسجيل صوتي (0:15)",
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: widget.isSender ? Colors.black87 : Colors.black54,
-                      ),
+                    Builder(
+                      builder: (context) {
+                        String durationDisplay = "0:15";
+                        if (widget.text.contains('[Voice Note|')) {
+                          final parts = widget.text.split('|');
+                          if (parts.length > 1) {
+                            durationDisplay = parts[1].replaceAll(']', '');
+                          }
+                        }
+                        return Text(
+                          _isPlayingAudio ? "جاري التشغيل..." : "تسجيل صوتي ($durationDisplay)",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: widget.isSender ? Colors.black87 : Colors.black54,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -218,42 +280,71 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
           ),
         );
       } else if (fixedUrl != null) {
-        // Document/File
+        // Document/File with Download & Eye buttons for receiver
         final String fileName = fixedUrl.split('/').last;
-        mediaContent = GestureDetector(
-          onTap: () => _openAttachment(fixedUrl),
-          child: Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: widget.isSender ? Colors.black.withAlpha(25) : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withAlpha(51)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.insert_drive_file, color: widget.isSender ? Colors.black : Colors.blue),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    fileName.length > 20 ? "...${fileName.substring(fileName.length - 17)}" : fileName,
-                    style: TextStyle(
-                      color: widget.isSender ? Colors.black : Colors.black87,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+        mediaContent = Container(
+          margin: const EdgeInsets.only(top: 6),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: widget.isSender ? Colors.black.withAlpha(25) : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.withAlpha(51)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _isDownloading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue),
+                    )
+                  : Icon(Icons.insert_drive_file, color: widget.isSender ? Colors.black : Colors.blue),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  _isDownloading ? "جاري التنزيل..." : (fileName.length > 16 ? "...${fileName.substring(fileName.length - 14)}" : fileName),
+                  style: TextStyle(
+                    color: widget.isSender ? Colors.black : Colors.black87,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              // 📥 زر تنزيل الملف
+              InkWell(
+                onTap: () => _openAttachment(fixedUrl),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withAlpha(25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.file_download_rounded, size: 18, color: Colors.blue),
+                ),
+              ),
+              const SizedBox(width: 6),
+              // 👁️ زر العين لمعاينة الملف بداخل التطبيق
+              InkWell(
+                onTap: () => _openAttachment(fixedUrl),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withAlpha(25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.remove_red_eye_rounded, size: 18, color: Colors.green),
+                ),
+              ),
+            ],
           ),
         );
       }
     }
 
-    final showText = widget.text != "[Attachment]" && widget.text != "[Voice Note]";
+    final showText = widget.text != "[Attachment]" && !widget.text.startsWith("[Voice Note");
 
     return GestureDetector(
       onLongPress: widget.onLongPress,

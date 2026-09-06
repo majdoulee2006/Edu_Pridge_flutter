@@ -43,9 +43,10 @@ class ChatService extends ChangeNotifier {
   }
 
   Future<void> _ensureUserId() async {
-    if (_currentUserId == null || _currentUserId!.isEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      _currentUserId = prefs.getString('user_id') ?? '';
+    final prefs = await SharedPreferences.getInstance();
+    final storedId = prefs.getString('user_id') ?? '';
+    if (storedId.isNotEmpty) {
+      _currentUserId = storedId;
     }
   }
 
@@ -209,11 +210,41 @@ class ChatService extends ChangeNotifier {
         };
       }
 
-      await _dio.post(
+      final response = await _dio.post(
         '/send-message',
         data: postData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
+        onSendProgress: (count, total) {
+          if (total > 0) {
+            debugPrint("📤 File Upload Progress: ${(count / total * 100).toStringAsFixed(0)}%");
+          }
+        },
       );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final serverData = response.data['data'];
+        if (serverData != null && serverData['id'] != null) {
+          final realId = serverData['id'].toString();
+          final realAttachment = serverData['attachment']?.toString();
+          
+          final list = _messagesCache[targetId];
+          if (list != null && list.isNotEmpty) {
+            final idx = list.indexWhere((m) => m.id == tempMsg.id);
+            if (idx != -1) {
+              list[idx] = ChatMessage(
+                id: realId,
+                message: list[idx].text,
+                isMe: true,
+                timestamp: list[idx].timestamp,
+                attachment: realAttachment ?? list[idx].attachment,
+                isRead: false,
+                isDelivered: true,
+              );
+              notifyListeners();
+            }
+          }
+        }
+      }
     } catch (e) {
       debugPrint("Send Message API Warning (kept locally): $e");
     }
@@ -241,7 +272,7 @@ class ChatService extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteMessage(String messageId) async {
+  Future<void> deleteMessage(String messageId, {bool deleteForEveryone = false}) async {
     if (_activeContactId != null && _messagesCache.containsKey(_activeContactId)) {
       _messagesCache[_activeContactId]!.removeWhere((m) => m.id == messageId);
       notifyListeners();
@@ -251,6 +282,7 @@ class ChatService extends ChangeNotifier {
       final token = await _getToken();
       await _dio.delete(
         '/messages/$messageId',
+        data: {'type': deleteForEveryone ? 'everyone' : 'me'},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
     } catch (e) {
@@ -280,22 +312,29 @@ class ChatService extends ChangeNotifier {
         onEvent: (event) {
           if (event.eventName == 'MessageSent') {
             final data = jsonDecode(event.data);
-            final newMsg = ChatMessage.fromJson(data['message'], userId);
             final senderId = data['message']['sender_id'].toString();
             
-            if (!_messagesCache.containsKey(senderId)) {
-              _messagesCache[senderId] = [];
-            }
-            _messagesCache[senderId]!.insert(0, newMsg);
-            
-            final idx = _contacts.indexWhere((c) => c['id'].toString() == senderId);
-            if (idx != -1) {
-              _contacts[idx]['last_message'] = newMsg.message;
-              _contacts[idx]['message'] = newMsg.message;
-              _contacts[idx]['time'] = 'الآن';
-              _contacts[idx]['is_read'] = false;
-            }
-            notifyListeners();
+            _ensureUserId().then((_) {
+              final newMsg = ChatMessage.fromJson(data['message'], _currentUserId ?? '');
+              
+              if (!_messagesCache.containsKey(senderId)) {
+                _messagesCache[senderId] = [];
+              }
+              _messagesCache[senderId]!.insert(0, newMsg);
+              
+              final idx = _contacts.indexWhere((c) => c['id'].toString() == senderId);
+              if (idx != -1) {
+                _contacts[idx]['last_message'] = newMsg.message;
+                _contacts[idx]['message'] = newMsg.message;
+                _contacts[idx]['time'] = 'الآن';
+                _contacts[idx]['is_read'] = false;
+                final currentUnread = _contacts[idx]['unread'] ?? 0;
+                _contacts[idx]['unread'] = currentUnread + 1;
+              } else {
+                fetchContacts();
+              }
+              notifyListeners();
+            });
           }
         },
       );

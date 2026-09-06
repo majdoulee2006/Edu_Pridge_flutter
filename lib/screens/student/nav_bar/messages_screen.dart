@@ -10,6 +10,7 @@ import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.da
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/models/chat_model.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
 
 import 'student_home_screen.dart';
@@ -80,9 +81,6 @@ class _MessagesViewState extends State<MessagesView> {
     }).toList();
 
     List<ChatModel> filteredChats = allChats.where((chat) {
-      if (chat.lastMessage == 'انقر لبدء المحادثة...') {
-        return false;
-      }
       bool matchesCategory = false;
       if (selectedCategory == 'الكل') {
         matchesCategory = true;
@@ -286,11 +284,24 @@ class _MessagesViewState extends State<MessagesView> {
       child: ListTile(
         leading: Stack(
           children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-              backgroundImage: (chat.avatarUrl != null && chat.avatarUrl.toString().isNotEmpty) ? NetworkImage(chat.avatarUrl) : null,
-            ),
+            Builder(builder: (_) {
+              final rawAvatar = chat.avatarUrl ?? '';
+              final fixedAvatar = ApiService.fixMediaUrl(rawAvatar);
+              return CircleAvatar(
+                radius: 28,
+                backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                backgroundImage: (fixedAvatar != null && fixedAvatar.isNotEmpty) ? NetworkImage(fixedAvatar) : null,
+                child: (fixedAvatar == null || fixedAvatar.isEmpty)
+                    ? Text(
+                        chat.title.isNotEmpty ? chat.title[0] : '؟',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                      )
+                    : null,
+              );
+            }),
             if (chat.isOnline)
               Positioned(
                 bottom: 0,
@@ -333,53 +344,58 @@ class _MessagesViewState extends State<MessagesView> {
             ),
           ],
         ),
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (chat.role.isNotEmpty) ...[
-              Container(
-                margin: EdgeInsets.zero,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
-                    width: 0.5,
+        trailing: SizedBox(
+          width: 90,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (chat.role.isNotEmpty)
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCC00).withAlpha(38),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: const Color(0xFFFFCC00).withAlpha(102),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      chat.role,
+                      style: const TextStyle(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFD4AC0D),
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  chat.role,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFD4AC0D),
-                  ),
-                ),
-              ),
-            ],
-            Text(
-              chat.time,
-              style: TextStyle(
-                fontSize: 11,
-                color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
-                fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            if (hasUnread) ...[
               const SizedBox(height: 1),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
-                child: Text(
-                  '${chat.unreadCount}',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+              Text(
+                chat.time,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
+                  fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
+              if (hasUnread) ...[
+                const SizedBox(height: 1),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
+                  child: Text(
+                    '${chat.unreadCount}',
+                    style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
         onTap: () {
           final contactToPass = {

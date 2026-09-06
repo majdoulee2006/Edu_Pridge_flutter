@@ -226,9 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 25),
-                        _sectionTitle(isAr ? "اتصال السيرفر" : "Server Connection", subColor),
-                        _buildServerIpTile(cardColor, textColor, isAr),
+
 
                         const SizedBox(height: 40),
                         _appInfoSection(textColor, subColor),
@@ -467,45 +465,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildServerIpTile(Color cardColor, Color textColor, bool isAr) {
-    final controller = TextEditingController(text: ApiService.serverIp);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              style: TextStyle(color: textColor, fontSize: 14),
-              decoration: InputDecoration(
-                labelText: isAr ? "عنوان السيرفر (IP)" : "Server IP Address",
-                labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-                border: InputBorder.none,
-                hintText: "192.168.1.100",
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.save_outlined, color: Color(0xFFFFCC00)),
-            onPressed: () async {
-              final newIp = controller.text.trim();
-              if (newIp.isNotEmpty) {
-                await ApiService.setServerIp(newIp);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(isAr ? "تم حفظ عنوان السيرفر: $newIp" : "Server IP saved: $newIp")),
-                );
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _sectionTitle(String title, Color subColor) {
     return Padding(

@@ -38,7 +38,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
-  String? selectedImagePath;
+  List<String> selectedImagePaths = [];
 
   bool isSubmitting = false;
 
@@ -99,28 +99,17 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
     super.dispose();
   }
 
-  Future<void> _pickAndCropImage() async {
+  Future<void> _pickMultiImages() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: pickedFile.path,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'تعديل الصورة',
-            toolbarColor: const Color(0xFFFFCC00),
-            toolbarWidgetColor: Colors.black,
-            initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: false,
-          ),
-          IOSUiSettings(title: 'تعديل الصورة'),
-        ],
-      );
-      if (croppedFile != null) {
-        setState(() {
-          selectedImagePath = croppedFile.path;
-        });
-      }
+    final List<XFile> pickedFiles = await picker.pickMultiImage();
+    if (pickedFiles.isNotEmpty) {
+      setState(() {
+        for (var file in pickedFiles) {
+          if (!selectedImagePaths.contains(file.path)) {
+            selectedImagePaths.add(file.path);
+          }
+        }
+      });
     }
   }
 
@@ -206,10 +195,16 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
 
       FormData formData = FormData.fromMap(mapData);
 
-      if (selectedImagePath != null) {
+      for (int i = 0; i < selectedImagePaths.length; i++) {
+        formData.files.add(MapEntry(
+          'images[]',
+          await MultipartFile.fromFile(selectedImagePaths[i]),
+        ));
+      }
+      if (selectedImagePaths.isNotEmpty) {
         formData.files.add(MapEntry(
           'image',
-          await MultipartFile.fromFile(selectedImagePath!),
+          await MultipartFile.fromFile(selectedImagePaths[0]),
         ));
       }
 
@@ -574,40 +569,108 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // إرفاق صورة للإعلان
-                    Text(
-                      "إرفاق صورة للإعلان (اختياري):",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                    // إرفاق صور للإعلان
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "إرفاق صور للإعلان (اختياري):",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                        ),
+                        if (selectedImagePaths.isNotEmpty)
+                          Text(
+                            "${selectedImagePaths.length} صور محدّدة",
+                            style: const TextStyle(color: Color(0xFFFFCC00), fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: _pickAndCropImage,
-                      child: Container(
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.grey.withAlpha(50)),
-                        ),
-                        child: selectedImagePath != null
-                            ? ClipRRect(
+                    selectedImagePaths.isEmpty
+                        ? GestureDetector(
+                            onTap: _pickMultiImages,
+                            child: Container(
+                              height: 140,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: cardColor,
                                 borderRadius: BorderRadius.circular(15),
-                                child: Image.file(
-                                  File(selectedImagePath!),
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : Column(
+                                border: Border.all(color: Colors.grey.withAlpha(50)),
+                              ),
+                              child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey.shade400),
+                                  Icon(Icons.add_photo_alternate_outlined, size: 42, color: Colors.amber.shade700),
                                   const SizedBox(height: 8),
-                                  Text("اضغط لإضافة صورة", style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Noto Sans Arabic')),
+                                  Text("اضغط لاختيار صور للإعلان (يمكن اختيار أكثر من صورة)", style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontFamily: 'Noto Sans Arabic')),
                                 ],
                               ),
-                      ),
-                    ),
+                            ),
+                          )
+                        : SizedBox(
+                            height: 130,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: selectedImagePaths.length + 1,
+                              itemBuilder: (context, index) {
+                                if (index == selectedImagePaths.length) {
+                                  return GestureDetector(
+                                    onTap: _pickMultiImages,
+                                    child: Container(
+                                      width: 100,
+                                      margin: const EdgeInsets.only(left: 8),
+                                      decoration: BoxDecoration(
+                                        color: cardColor,
+                                        borderRadius: BorderRadius.circular(15),
+                                        border: Border.all(color: const Color(0xFFFFCC00), width: 1.5),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.add_a_photo, color: Color(0xFFFFCC00), size: 30),
+                                          const SizedBox(height: 4),
+                                          const Text("إضافة المزيد", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic')),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Stack(
+                                  children: [
+                                    Container(
+                                      width: 120,
+                                      margin: const EdgeInsets.only(left: 10),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(15),
+                                        image: DecorationImage(
+                                          image: FileImage(File(selectedImagePaths[index])),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 4,
+                                      right: 14,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            selectedImagePaths.removeAt(index);
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
                   ],
                 ),
               ),

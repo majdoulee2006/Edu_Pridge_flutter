@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/chat_service.dart';
+import '../../services/api_service.dart';
 import '../../widgets/chat/chat_bubble_widget.dart';
 import '../../widgets/chat/chat_input_widget.dart';
 
@@ -22,9 +23,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch messages when entering the chat room
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatService>().fetchMessages(widget.contact['id']);
+      final rawId = widget.contact['id']?.toString() ?? '';
+      if (rawId.isNotEmpty) {
+        context.read<ChatService>().fetchMessages(rawId);
+      }
     });
   }
 
@@ -50,21 +53,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   border: InputBorder.none,
                 ),
                 onSubmitted: (val) {
-                  context.read<ChatService>().searchMessages(widget.contact['id'].toString(), val);
+                  final rawId = widget.contact['id']?.toString() ?? '';
+                  context.read<ChatService>().searchMessages(rawId, val);
                 },
               )
             : Directionality(
                 textDirection: TextDirection.rtl,
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      backgroundImage: (widget.contact['image'] != null && widget.contact['image'].toString().isNotEmpty)
-                          ? NetworkImage(widget.contact['image'].toString())
-                          : null,
-                      child: (widget.contact['image'] == null || widget.contact['image'].toString().isEmpty)
-                          ? Text((widget.contact['name']?.toString() ?? '؟').isNotEmpty ? (widget.contact['name']?.toString() ?? '؟')[0] : '؟')
-                          : null,
-                    ),
+                    Builder(builder: (_) {
+                      final rawImage = widget.contact['image']?.toString() ?? '';
+                      final fixedUrl = ApiService.fixMediaUrl(rawImage);
+                      final name = widget.contact['name']?.toString() ?? '؟';
+                      final initial = name.isNotEmpty ? name[0] : '؟';
+                      return CircleAvatar(
+                        backgroundImage: (fixedUrl != null && fixedUrl.isNotEmpty)
+                            ? NetworkImage(fixedUrl)
+                            : null,
+                        child: (fixedUrl == null || fixedUrl.isEmpty)
+                            ? Text(initial)
+                            : null,
+                      );
+                    }),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -119,44 +129,53 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             itemBuilder: (context, index) {
                               final msg = chatService.messages[index];
                               return ChatBubbleWidget(
+                                messageId: msg.id,
                                 text: msg.text,
                                 isSender: msg.isMe,
                                 attachment: msg.attachment,
                                 time: msg.time,
                                 isRead: msg.isRead,
                                 isDelivered: msg.isDelivered,
-                                onLongPress: msg.isMe && msg.attachment == null && msg.text != '[Voice Note]'
-                                    ? () {
-                                        showModalBottomSheet(
-                                          context: context,
-                                          builder: (ctx) => SafeArea(
-                                            child: Wrap(
-                                              children: [
-                                                ListTile(
-                                                  leading: const Icon(Icons.edit, color: Colors.blue),
-                                                  title: const Text('تعديل الرسالة'),
-                                                  onTap: () {
-                                                    Navigator.pop(ctx);
-                                                    setState(() {
-                                                      _editingMessageId = msg.id;
-                                                      _inputController.text = msg.text;
-                                                    });
-                                                  },
-                                                ),
-                                                ListTile(
-                                                  leading: const Icon(Icons.delete, color: Colors.red),
-                                                  title: const Text('حذف الرسالة'),
-                                                  onTap: () {
-                                                    Navigator.pop(ctx);
-                                                    chatService.deleteMessage(msg.id);
-                                                  },
-                                                ),
-                                              ],
+                                onLongPress: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    builder: (ctx) => SafeArea(
+                                      child: Wrap(
+                                        children: [
+                                          if (msg.isMe && msg.attachment == null && msg.text != '[Voice Note]')
+                                            ListTile(
+                                              leading: const Icon(Icons.edit, color: Colors.blue),
+                                              title: const Text('تعديل الرسالة'),
+                                              onTap: () {
+                                                Navigator.pop(ctx);
+                                                setState(() {
+                                                  _editingMessageId = msg.id;
+                                                  _inputController.text = msg.text;
+                                                });
+                                              },
                                             ),
+                                          ListTile(
+                                            leading: const Icon(Icons.delete_outline, color: Colors.orange),
+                                            title: const Text('حذف لدي'),
+                                            onTap: () {
+                                              Navigator.pop(ctx);
+                                              chatService.deleteMessage(msg.id, deleteForEveryone: false);
+                                            },
                                           ),
-                                        );
-                                      }
-                                    : null,
+                                          if (msg.isMe)
+                                            ListTile(
+                                              leading: const Icon(Icons.delete_forever, color: Colors.red),
+                                              title: const Text('حذف لدى الجميع 🗑️'),
+                                              onTap: () {
+                                                Navigator.pop(ctx);
+                                                chatService.deleteMessage(msg.id, deleteForEveryone: true);
+                                              },
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),
