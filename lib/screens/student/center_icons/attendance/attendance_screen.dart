@@ -24,6 +24,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   
   bool _isLoading = true;
   List<dynamic> _attendanceList = [];
+  List<dynamic> _warnings = [];
   
 
   final TextEditingController _dateController = TextEditingController();
@@ -40,6 +41,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     _fetchAttendance();
     _initDefaultDateTime();
     _fetchMyLeaveRequests();
+    _fetchWarnings();
+  }
+
+  Future<void> _fetchWarnings() async {
+    try {
+      final data = await StudentServices().getWarnings();
+      if (mounted) setState(() => _warnings = data);
+    } catch (_) {}
   }
 
   Future<void> _fetchMyLeaveRequests() async {
@@ -639,14 +648,73 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _fetchAttendance,
+      onRefresh: () async {
+        await _fetchAttendance();
+        await _fetchWarnings();
+      },
       color: const Color(0xFFFFCC00),
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 120),
-        itemCount: _attendanceList.length,
+        itemCount: _attendanceList.length + (_warnings.isNotEmpty ? 1 : 0),
         itemBuilder: (context, index) {
-          final record = _attendanceList[index];
+          if (_warnings.isNotEmpty && index == 0) {
+            final latestWarning = _warnings.first;
+            final level = latestWarning['warning_level'] ?? 'first';
+            final days = latestWarning['absence_days'] ?? 0;
+            Color bannerColor = const Color(0xFFF59E0B);
+            String title = "إنذار غياب أول ($days أيام)";
+            if (level == 'second') {
+              bannerColor = const Color(0xFFF97316);
+              title = "إنذار ثانٍ واستدعاء ولي أمر ($days أيام)";
+            } else if (level == 'final') {
+              bannerColor = const Color(0xFFEF4444);
+              title = "إنذار نهائي - إحالة للإدارة ($days أيام)";
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: bannerColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: bannerColor, width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: bannerColor, size: 24),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            color: bannerColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    latestWarning['message'] ?? '',
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black87,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final recordIndex = _warnings.isNotEmpty ? index - 1 : index;
+          final record = _attendanceList[recordIndex];
           String status = record['status'] ?? 'present'; 
           String subject = record['course_name'] ?? '';
           
