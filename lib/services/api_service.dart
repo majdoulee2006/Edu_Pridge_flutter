@@ -186,28 +186,47 @@ class ApiService {
     return "http://$cleanIp:$_port/api";
   }
 
-  // تصليح روابط الميديا الراجعة من السيرفر
+  // 🌟 الرابط الأساسي للسيرفر بدون /api
+  static String get baseHttpUrl {
+    String activeIp = _serverIp.trim();
+    if (activeIp.startsWith('http://') || activeIp.startsWith('https://')) {
+      return activeIp.replaceAll(RegExp(r'/api/?$'), '').replaceAll(RegExp(r'/$'), '');
+    } else if (activeIp.contains(':')) {
+      return "http://$activeIp";
+    } else {
+      return "http://$activeIp:$_port";
+    }
+  }
+
+  // تصليح روابط الميديا والملفات الراجعة من السيرفر
   static String? fixMediaUrl(String? url) {
     if (url == null || url.isEmpty) return null;
     String cleanUrl = url.trim();
 
-    // إذا كان الرابط كاملاً بالـ HTTP أو HTTPS، نرجعه كما هو
+    final base = baseHttpUrl;
+
+    // إذا كان الرابط كاملاً بالـ HTTP أو HTTPS
     if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      try {
+        final uri = Uri.parse(cleanUrl);
+        final host = uri.host;
+        // إذا كان الرابط يحتوي على IP محلي قديم أو localhost، نعيد توجيهه للسيرفر النشط الحالي
+        final isLocalOrPrivate = host == 'localhost' ||
+            host == '127.0.0.1' ||
+            host.startsWith('192.168.') ||
+            host.startsWith('10.') ||
+            host.startsWith('172.');
+
+        if (isLocalOrPrivate) {
+          final pathWithQuery = uri.hasQuery ? "${uri.path}?${uri.query}" : uri.path;
+          final normalizedPath = pathWithQuery.startsWith('/') ? pathWithQuery.substring(1) : pathWithQuery;
+          return "$base/$normalizedPath";
+        }
+      } catch (_) {}
       return cleanUrl;
     }
 
     String path = cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl;
-    String base;
-    String activeIp = _serverIp.trim();
-
-    if (activeIp.startsWith('http://') || activeIp.startsWith('https://')) {
-      base = activeIp.replaceAll(RegExp(r'/api/?$'), '').replaceAll(RegExp(r'/$'), '');
-    } else if (activeIp.contains(':')) {
-      base = "http://$activeIp";
-    } else {
-      base = "http://$activeIp:$_port";
-    }
-
     return "$base/$path";
   }
 

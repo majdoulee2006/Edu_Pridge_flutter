@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../services/audio_record_service.dart';
 
 class ChatInputWidget extends StatefulWidget {
   final Function(String text, {String? filePath, List<int>? fileBytes, String? fileName}) onSend;
@@ -35,6 +37,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   @override
   void dispose() {
     _recordingTimer?.cancel();
+    AudioRecordService().cancelRecording();
     super.dispose();
   }
 
@@ -46,11 +49,26 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     }
   }
 
-  void _startVoiceRecording() {
+  Future<void> _startVoiceRecording() async {
+    final started = await AudioRecordService().startRecording();
+    if (!started) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر الوصول إلى الميكروفون أو بدء التسجيل. يرجى التحقق من الأذونات.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
     setState(() {
       _isRecordingVoice = true;
       _recordingSeconds = 0;
     });
+
     _recordingTimer?.cancel();
     _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
@@ -61,25 +79,45 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     });
   }
 
-  void _stopAndSendVoiceRecording() {
+  Future<void> _stopAndSendVoiceRecording() async {
     final int finalSecs = _recordingSeconds;
     _recordingTimer?.cancel();
     setState(() {
       _isRecordingVoice = false;
     });
+
+    final filePath = await AudioRecordService().stopRecording();
+    if (filePath == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('فشل حفظ التسجيل الصوتي'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     final durationStr = _formatRecordingTime(finalSecs);
+    final fileName = filePath.split(Platform.pathSeparator).last;
+
     widget.onSend(
       "[Voice Note|$durationStr]",
-      fileName: "voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a",
+      filePath: filePath,
+      fileName: fileName,
     );
   }
 
-  void _cancelVoiceRecording() {
+  Future<void> _cancelVoiceRecording() async {
     _recordingTimer?.cancel();
-    setState(() {
-      _isRecordingVoice = false;
-      _recordingSeconds = 0;
-    });
+    await AudioRecordService().cancelRecording();
+    if (mounted) {
+      setState(() {
+        _isRecordingVoice = false;
+        _recordingSeconds = 0;
+      });
+    }
   }
 
   PlatformFile? _stagedFile;
