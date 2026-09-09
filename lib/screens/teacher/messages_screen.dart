@@ -39,7 +39,7 @@ class _MessagesViewState extends State<MessagesView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final chatService = context.read<ChatService>();
-      chatService.fetchContacts();
+      chatService.startContactsPolling();
 
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id') ?? '';
@@ -47,6 +47,12 @@ class _MessagesViewState extends State<MessagesView> {
         chatService.initPusher(userId);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    context.read<ChatService>().stopContactsPolling();
+    super.dispose();
   }
 
   List<Map<String, dynamic>> _filterList(List<Map<String, dynamic>> list) {
@@ -296,7 +302,9 @@ class _MessagesViewState extends State<MessagesView> {
   Widget _buildChatTile(BuildContext context, Map<String, dynamic> chat, ChatService chatServiceInstance, {IconData? iconData}) {
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    final isUnread  = chat['is_read'] != true;
+    final bool isMyMsg   = chat['is_my_message'] == true;
+    final int unreadCnt  = (chat['unread'] ?? 0) as int;
+    final bool isUnread  = !isMyMsg && unreadCnt > 0;
     final name      = chat['name']?.toString() ?? 'مجهول';
     final initial   = name.isNotEmpty ? name[0] : '؟';
     final role      = chat['role']?.toString() ?? '';

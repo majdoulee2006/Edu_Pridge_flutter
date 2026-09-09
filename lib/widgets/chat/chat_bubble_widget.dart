@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:dio/dio.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'in_app_media_viewer.dart';
 
 class ChatBubbleWidget extends StatefulWidget {
   final String messageId;
@@ -24,8 +26,8 @@ class ChatBubbleWidget extends StatefulWidget {
     required this.isSender,
     this.attachment,
     this.time,
-    this.status = 'read',
-    this.isRead = true,
+    this.status = 'sent',
+    this.isRead = false,
     this.isDelivered = false,
     this.onLongPress,
   });
@@ -35,7 +37,12 @@ class ChatBubbleWidget extends StatefulWidget {
 }
 
 class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
+  // ── Audio Player State ──
+  AudioPlayer? _audioPlayer;
+  Duration _audioDuration = Duration.zero;
+  Duration _audioPosition = Duration.zero;
   bool _isPlayingAudio = false;
+  bool _isAudioBuffering = false;
 
   bool _isImage(String url) {
     final lower = url.toLowerCase();
@@ -53,6 +60,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
         lower.contains('.m4a') ||
         lower.contains('.ogg') ||
         lower.contains('.aac') ||
+        lower.contains('.webm') ||
         lower.contains('voice_notes') ||
         lower.contains('voice-note') ||
         widget.text.startsWith('[Voice Note');
@@ -60,88 +68,266 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
 
   bool _isVideo(String url) {
     final lower = url.toLowerCase();
+    if (lower.contains('voice_notes') || lower.contains('voice-note') || widget.text.startsWith('[Voice Note')) {
+      return false;
+    }
     return lower.contains('.mp4') ||
         lower.contains('.mov') ||
-        lower.contains('.webm') ||
-        lower.contains('.avi');
+        lower.contains('.avi') ||
+        lower.contains('.mkv');
   }
 
   bool _isDownloading = false;
 
-  Future<void> _openAttachment(String rawUrl) async {
-    if (_isDownloading) return;
-    setState(() {
-      _isDownloading = true;
-    });
+  @override
+  void dispose() {
+    _audioPlayer?.stop();
+    _audioPlayer?.dispose();
+    _audioPlayer = null;
+    super.dispose();
+  }
 
-    String finalUrl = rawUrl;
-    if (widget.messageId.isNotEmpty && widget.messageId != '0') {
-      finalUrl = "${ApiService.serverIp}/public-download/message/${widget.messageId}";
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
+  }
+
+  Future<void> _toggleAudio(String? fixedUrl) async {
+    if (_isPlayingAudio) {
+      await _audioPlayer?.pause();
+      if (mounted) setState(() => _isPlayingAudio = false);
+      return;
+    }
+
+    if (_audioPlayer != null && _audioPosition > Duration.zero && _audioPosition < _audioDuration) {
+      await _audioPlayer?.resume();
+      if (mounted) setState(() => _isPlayingAudio = true);
+      return;
+    }
+
+    String? playSource = fixedUrl;
+    bool isLocal = false;
+
+    // Check if attachment is a valid local file path (recorded on this device)
+    if (widget.attachment != null && File(widget.attachment!).existsSync()) {
+      playSource = widget.attachment!;
+      isLocal = true;
+    } else if (playSource == null || playSource.isEmpty) {
+      if (widget.messageId.isNotEmpty && widget.messageId != '0') {
+        playSource = "${ApiService.baseHttpUrl}/public-download/message/${widget.messageId}";
+      }
+    }
+
+    if (playSource == null || playSource.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ ملف التسجيل الصوتي غير متوفر على السيرفر'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isAudioBuffering = true;
+        _isPlayingAudio = true;
+      });
     }
 
     try {
-      final tempDir = await getTemporaryDirectory();
-      String fileName = "attachment_${widget.messageId}";
-      
-      String ext = "";
-      if (rawUrl.contains('.')) {
-        ext = rawUrl.split('.').last.split('?').first;
-      }
-      
-      if (ext.isEmpty || ext.length > 5) {
-        if (widget.text.startsWith('[Voice Note') || _isAudio(rawUrl)) {
-          ext = "m4a";
+      _audioPlayer ??= AudioPlayer();
+
+      _audioPlayer!.onPlayerStateChanged.listen((state) {
+        if (!mounted) return;
+        setState(() {
+          _isPlayingAudio = (state == PlayerState.playing);
+          if (state == PlayerState.playing || state == PlayerState.stopped || state == PlayerState.paused) {
+            _isAudioBuffering = false;
+          }
+        });
+      });
+
+      _audioPlayer!.onDurationChanged.listen((d) {
+        if (!mounted) return;
+        setState(() => _audioDuration = d);
+      });
+
+      _audioPlayer!.onPositionChanged.listen((p) {
+        if (!mounted) return;
+        setState(() {
+          _audioPosition = p;
+          _isAudioBuffering = false;
+        });
+      });
+
+      _audioPlayer!.onPlayerComplete.listen((_) {
+        if (!mounted) return;
+        setState(() {
+          _isPlayingAudio = false;
+          _audioPosition = Duration.zero;
+        });
+      });
+
+      if (isLocal) {
+        await _audioPlayer!.play(DeviceFileSource(playSource));
+      } else {
+        // Download audio locally to temp before playing to guarantee cross-platform support
+        final tempDir = await getTemporaryDirectory();
+        final ext = playSource.contains('.') ? ".${playSource.split('.').last.split('?').first}" : ".m4a";
+        final tempAudioPath = "${tempDir.path}/voice_${widget.messageId}$ext";
+        final tempFile = File(tempAudioPath);
+
+        if (!tempFile.existsSync() || tempFile.lengthSync() < 100) {
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('token') ?? '';
+          final dio = Dio();
+          await dio.download(
+            playSource,
+            tempAudioPath,
+            options: Options(
+              headers: token.isNotEmpty ? {'Authorization': 'Bearer $token'} : null,
+              validateStatus: (status) => status != null && status < 500,
+            ),
+          );
+        }
+
+        if (tempFile.existsSync() && tempFile.lengthSync() > 100) {
+          // Binary Header Validation: ensure file is valid audio and not an HTML error response (e.g. 404 page)
+          final firstBytes = await tempFile.openRead(0, 100).first;
+          final headerContent = String.fromCharCodes(firstBytes).toLowerCase();
+          if (headerContent.contains('<!doctype') || headerContent.contains('<html') || headerContent.contains('404 not found')) {
+            await tempFile.delete();
+            throw Exception("ملف التسجيل الصوتي غير متوفر على السيرفر");
+          }
+          await _audioPlayer!.play(DeviceFileSource(tempAudioPath));
         } else {
-          ext = "pdf";
+          await _audioPlayer!.play(UrlSource(playSource));
         }
       }
+    } catch (e) {
+      debugPrint("❌ In-App Audio Play Error: $e");
+      if (mounted) {
+        setState(() {
+          _isPlayingAudio = false;
+          _isAudioBuffering = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ تعذر تشغيل التسجيل الصوتي، الملف غير متوفر أو تالف'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
 
-      fileName = "$fileName.$ext";
-      final savePath = "${tempDir.path}/$fileName";
-      final file = File(savePath);
+  Future<void> _openAttachment(String rawUrl) async {
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
+
+    try {
+      // 1. Check if attachment is a local file on this device (e.g. sent by current user)
+      if (rawUrl.isNotEmpty && File(rawUrl).existsSync()) {
+        await OpenFilex.open(rawUrl);
+        return;
+      }
+      if (widget.attachment != null && File(widget.attachment!).existsSync()) {
+        await OpenFilex.open(widget.attachment!);
+        return;
+      }
+
+      // 2. Prepare save path in temporary directory
+      final tempDir = await getTemporaryDirectory();
+      String originalName = rawUrl.split('/').last.split('?').first;
+      if (originalName.isEmpty || !originalName.contains('.')) {
+        originalName = "file_${widget.messageId}.pdf";
+      }
+
+      final savePath = "${tempDir.path}/$originalName";
+      final cachedFile = File(savePath);
+
+      // 3. If file was already downloaded and exists locally with valid size, open directly
+      if (cachedFile.existsSync() && cachedFile.lengthSync() > 100) {
+        await OpenFilex.open(savePath);
+        return;
+      }
+
+      // 4. Resolve download URL using ApiService.fixMediaUrl
+      String? downloadUrl = ApiService.fixMediaUrl(rawUrl);
+      if ((downloadUrl == null || downloadUrl.isEmpty) && widget.messageId.isNotEmpty && widget.messageId != '0') {
+        downloadUrl = "${ApiService.baseHttpUrl}/public-download/message/${widget.messageId}";
+      }
+
+      if (downloadUrl == null || downloadUrl.isEmpty) {
+        throw Exception("رابط الملف غير صالح");
+      }
+
+      // 5. Get auth token for protected routes
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
 
       final dio = Dio();
-      await dio.download(finalUrl, savePath);
+      await dio.download(
+        downloadUrl,
+        savePath,
+        options: Options(
+          headers: token.isNotEmpty ? {'Authorization': 'Bearer $token'} : null,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
 
-      final result = await OpenFilex.open(savePath);
-      if (result.type != ResultType.done) {
-        debugPrint("OpenFilex result error: ${result.message}");
+      final downloadedFile = File(savePath);
+      if (downloadedFile.existsSync() && downloadedFile.lengthSync() > 100) {
+        // Validate file content is not an HTML error response (e.g. 404/403 page)
+        final firstBytes = await downloadedFile.openRead(0, 100).first;
+        final headerContent = String.fromCharCodes(firstBytes).toLowerCase();
+        if (headerContent.contains('<!doctype') || headerContent.contains('<html') || headerContent.contains('404 not found')) {
+          await downloadedFile.delete();
+          throw Exception("الملف المرفق غير موجود على السيرفر أو لم يتم رفعه بنجاح");
+        }
+        await OpenFilex.open(savePath);
+      } else {
+        throw Exception("فشل تنزيل الملف من السيرفر");
       }
     } catch (e) {
       debugPrint("Native File Open Error: $e");
-    } finally {
       if (mounted) {
-        setState(() {
-          _isDownloading = false;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تعذر تحميل أو فتح الملف: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
     }
   }
 
   Widget _buildTickIcon() {
     if (!widget.isSender) return const SizedBox.shrink();
 
-    // WhatsApp style ticks:
-    // read -> double blue ticks
-    // delivered -> double gray ticks
-    // sent -> single gray tick
-    if (widget.status == 'read' || widget.isRead) {
+    if (widget.isRead || widget.status == 'read') {
       return const Icon(
         Icons.done_all,
         size: 16,
-        color: Color(0xFF34B7F1), // WhatsApp Blue Tick
+        color: Color(0xFF34B7F1), // Double Blue Ticks (Read)
       );
-    } else if (widget.status == 'delivered') {
+    } else if (widget.isDelivered || widget.status == 'delivered') {
       return const Icon(
         Icons.done_all,
         size: 16,
-        color: Colors.grey,
+        color: Colors.grey, // Double Grey Ticks (Delivered)
       );
     } else {
       return const Icon(
         Icons.check,
         size: 16,
-        color: Colors.grey,
+        color: Colors.grey, // Single Grey Tick (Sent)
       );
     }
   }
@@ -156,8 +342,9 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
 
     if ((fixedUrl != null && fixedUrl.isNotEmpty) || widget.text.startsWith('[Voice Note')) {
       if (fixedUrl != null && _isImage(fixedUrl)) {
+        // 🖼️ صورة تفاعلية تفتح بداخل التطبيق
         mediaContent = GestureDetector(
-          onTap: () => _openAttachment(fixedUrl),
+          onTap: () => InAppMediaViewer.show(context, fixedUrl, title: 'صورة مرفقة'),
           child: Container(
             margin: const EdgeInsets.only(top: 6),
             constraints: const BoxConstraints(maxHeight: 200, maxWidth: 250),
@@ -167,99 +354,140 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15),
-              child: Image.network(
-                fixedUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    padding: const EdgeInsets.all(20),
-                    color: Colors.grey,
-                    child: const Icon(Icons.broken_image, color: Colors.white),
-                  );
-                },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.network(
+                    fixedUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        padding: const EdgeInsets.all(20),
+                        color: Colors.grey,
+                        child: const Icon(Icons.broken_image, color: Colors.white),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    bottom: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withAlpha(120),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         );
       } else if ((fixedUrl != null && _isAudio(fixedUrl)) || widget.text.startsWith('[Voice Note')) {
-        // 🎙️ مشغل التسجيل الصوتي بتصميم الواتس اب المميز
+        // 🎙️ مشغل صوت احترافي داخل الفقاعة (In-App Voice Note Player)
+        String durationHint = "0:15";
+        if (widget.text.contains('[Voice Note|')) {
+          final parts = widget.text.split('|');
+          if (parts.length > 1) {
+            durationHint = parts[1].replaceAll(']', '');
+          }
+        }
+
+        final displayCurrentTime = _formatDuration(_audioPosition);
+        final displayTotalTime = _audioDuration > Duration.zero
+            ? _formatDuration(_audioDuration)
+            : durationHint;
+
         mediaContent = Container(
           margin: const EdgeInsets.only(top: 6),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: widget.isSender ? Colors.black.withAlpha(25) : Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // زر التشغيل / الإيقاف المؤقت
               GestureDetector(
-                onTap: () async {
-                  setState(() {
-                    _isPlayingAudio = !_isPlayingAudio;
-                  });
-                  if (fixedUrl != null && fixedUrl.isNotEmpty) {
-                    await _openAttachment(fixedUrl);
-                  }
-                },
+                onTap: () => _toggleAudio(fixedUrl),
                 child: CircleAvatar(
-                  radius: 18,
+                  radius: 20,
                   backgroundColor: widget.isSender ? Colors.black : const Color(0xFFFFCC00),
-                  child: Icon(
-                    _isPlayingAudio ? Icons.pause : Icons.play_arrow_rounded,
-                    color: widget.isSender ? Colors.white : Colors.black,
-                    size: 22,
-                  ),
+                  child: _isAudioBuffering
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: widget.isSender ? Colors.white : Colors.black,
+                          ),
+                        )
+                      : Icon(
+                          _isPlayingAudio ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          color: widget.isSender ? Colors.white : Colors.black,
+                          size: 26,
+                        ),
                 ),
               ),
-              const SizedBox(width: 10),
-              // Waveform representation
+              const SizedBox(width: 8),
+              // شريط التقدم والوقت
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: List.generate(
-                        14,
-                        (i) => Container(
-                          width: 3,
-                          height: (i % 3 == 0 ? 18.0 : (i % 2 == 0 ? 12.0 : 8.0)),
-                          decoration: BoxDecoration(
-                            color: _isPlayingAudio
-                                ? (widget.isSender ? Colors.black : const Color(0xFF00A884))
-                                : (widget.isSender ? Colors.black45 : Colors.grey.shade600),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 4,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+                        activeTrackColor: widget.isSender ? Colors.black : const Color(0xFF00A884),
+                        inactiveTrackColor: widget.isSender ? Colors.black26 : Colors.grey.shade500,
+                        thumbColor: widget.isSender ? Colors.black : const Color(0xFF00A884),
+                      ),
+                      child: Slider(
+                        value: _audioPosition.inMilliseconds
+                            .clamp(0, (_audioDuration.inMilliseconds > 0 ? _audioDuration.inMilliseconds : 1))
+                            .toDouble(),
+                        max: (_audioDuration.inMilliseconds > 0 ? _audioDuration.inMilliseconds : 1).toDouble(),
+                        onChanged: (val) {
+                          if (_audioPlayer != null && _audioDuration > Duration.zero) {
+                            _audioPlayer!.seek(Duration(milliseconds: val.toInt()));
+                          }
+                        },
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Builder(
-                      builder: (context) {
-                        String durationDisplay = "0:15";
-                        if (widget.text.contains('[Voice Note|')) {
-                          final parts = widget.text.split('|');
-                          if (parts.length > 1) {
-                            durationDisplay = parts[1].replaceAll(']', '');
-                          }
-                        }
-                        return Text(
-                          _isPlayingAudio ? "جاري التشغيل..." : "تسجيل صوتي ($durationDisplay)",
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: widget.isSender ? Colors.black87 : Colors.black54,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _isPlayingAudio ? displayCurrentTime : "تسجيل صوتي",
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: widget.isSender ? Colors.black87 : Colors.black54,
+                            ),
                           ),
-                        );
-                      },
+                          Text(
+                            displayTotalTime,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: widget.isSender ? Colors.black87 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.mic, color: widget.isSender ? Colors.black54 : Colors.grey.shade700, size: 20),
+              const SizedBox(width: 4),
+              Icon(Icons.mic_rounded, color: widget.isSender ? Colors.black54 : Colors.grey.shade700, size: 20),
             ],
           ),
         );
@@ -280,8 +508,8 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
           ),
         );
       } else if (fixedUrl != null) {
-        // Document/File with Download & Eye buttons for receiver
-        final String fileName = fixedUrl.split('/').last;
+        // 📄 مستند أو ملف
+        final String fileName = fixedUrl.split('/').last.split('?').first;
         mediaContent = Container(
           margin: const EdgeInsets.only(top: 6),
           padding: const EdgeInsets.all(10),
@@ -303,7 +531,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  _isDownloading ? "جاري التنزيل..." : (fileName.length > 16 ? "...${fileName.substring(fileName.length - 14)}" : fileName),
+                  _isDownloading ? "جاري التنزيل..." : (fileName.length > 18 ? "...${fileName.substring(fileName.length - 16)}" : fileName),
                   style: TextStyle(
                     color: widget.isSender ? Colors.black : Colors.black87,
                     fontSize: 12,
@@ -313,7 +541,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
                 ),
               ),
               const SizedBox(width: 8),
-              // 📥 زر تنزيل الملف
+              // 📥 زر تنزيل وفتح الملف
               InkWell(
                 onTap: () => _openAttachment(fixedUrl),
                 child: Container(
@@ -326,7 +554,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
                 ),
               ),
               const SizedBox(width: 6),
-              // 👁️ زر العين لمعاينة الملف بداخل التطبيق
+              // 👁️ زر المعاينة
               InkWell(
                 onTap: () => _openAttachment(fixedUrl),
                 child: Container(
@@ -353,7 +581,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
           decoration: BoxDecoration(
             color: widget.isSender
                 ? const Color(0xFFFFCC00)
@@ -411,3 +639,4 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
     );
   }
 }
+

@@ -42,7 +42,7 @@ class _MessagesViewState extends State<MessagesView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final chatService = context.read<ChatService>();
-      chatService.fetchContacts();
+      chatService.startContactsPolling();
       
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id') ?? '';
@@ -50,6 +50,12 @@ class _MessagesViewState extends State<MessagesView> {
         chatService.initPusher(userId);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    context.read<ChatService>().stopContactsPolling();
+    super.dispose();
   }
 
   @override

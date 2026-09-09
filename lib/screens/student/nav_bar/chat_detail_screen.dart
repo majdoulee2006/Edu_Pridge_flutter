@@ -32,8 +32,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatService>().fetchMessages(widget.receiverId.toString());
+      context.read<ChatService>().startSmartPolling(widget.receiverId.toString());
     });
+  }
+
+  @override
+  void dispose() {
+    context.read<ChatService>().stopSmartPolling();
+    _messageController.dispose();
+    super.dispose();
   }
 
   String _formatTime(DateTime dt) {

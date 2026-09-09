@@ -154,7 +154,9 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
   }
 
   Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor, ChatService chatServiceInstance) {
-    final bool isUnread  = contact['is_read'] != true;
+    final int unreadCount = contact['unread'] ?? 0;
+    final bool isMyMessage = contact['is_my_message'] == true;
+    final bool isUnread = !isMyMessage && unreadCount > 0;
     final String name    = contact['name']?.toString() ?? 'مستخدم غير معروف';
     final String initial = name.isNotEmpty ? name[0] : '؟';
     final String role    = contact['role']?.toString() ?? '';

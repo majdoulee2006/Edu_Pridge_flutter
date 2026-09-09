@@ -6,9 +6,10 @@ import 'package:flutter/foundation.dart';
 class ApiService {
 
   // ==========================================
-  // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
+  // 🌟 رابط السيرفر الأساسي المرفوع على الإنترنت
   // ==========================================
-  static String _serverIp = 'http://82.137.250.43:8080/edu_bridge/public'; // Public Server Link
+  static const String defaultServerUrl = 'http://82.137.250.43:8080/edu_bridge/public';
+  static String _serverIp = defaultServerUrl; // Public Server Link
   static const String _port = '8001';
   static bool _isDiscovering = false;
 
@@ -20,51 +21,22 @@ class ApiService {
     await prefs.setString('server_ip', ip);
   }
 
-  // تهيئة الإعدادات وتحميل آخر آي بي تم اكتشافه، ثم بدء البحث التلقائي
+  // تهيئة الإعدادات وتحميل السيرفر المعتمد
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedIp = prefs.getString('server_ip');
       if (savedIp != null && savedIp.isNotEmpty) {
-        _serverIp = savedIp;
-        // إذا كان رابط سيرفر خارجي (Domain أو IP خارجي)، نعتمده مباشرة دون تغيير
-        if (savedIp.startsWith('http://') || savedIp.startsWith('https://') || (!savedIp.startsWith('192.168.') && !savedIp.startsWith('10.') && !savedIp.startsWith('172.') && savedIp != '127.0.0.1')) {
-          debugPrint("📡 ApiService initialized with remote server URL: $_serverIp");
+        if (savedIp.startsWith('http://') || savedIp.startsWith('https://')) {
+          _serverIp = savedIp;
+          debugPrint("📡 ApiService initialized with saved server URL: $_serverIp");
           return;
         }
       }
 
-      // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1)
-      final usb = await _tryConnect('127.0.0.1');
-      if (usb != null) {
-        _serverIp = '127.0.0.1';
-        await prefs.setString('server_ip', '127.0.0.1');
-        debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8001");
-        return;
-      }
-
-      // 2. فحص آي بي الكمبيوتر المباشر على الواي فاي (192.168.1.100)
-      final wifiCurrent = await _tryConnect('192.168.1.100');
-      if (wifiCurrent != null) {
-        _serverIp = '192.168.1.100';
-        await prefs.setString('server_ip', '192.168.1.100');
-        debugPrint("🎯 ApiService initialized instantly via 192.168.1.100:8001");
-        return;
-      }
-
-      final wifiHotspot = await _tryConnect('172.20.10.3');
-      if (wifiHotspot != null) {
-        _serverIp = '172.20.10.3';
-        await prefs.setString('server_ip', '172.20.10.3');
-        debugPrint("🎯 ApiService initialized instantly via 172.20.10.3:8001");
-        return;
-      }
-
-      _serverIp = savedIp ?? 'http://82.137.250.43:8080/edu_bridge/public';
-      debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
-      
-      // بدء الاكتشاف التلقائي في الخلفية
-      autoDiscoverServer();
+      _serverIp = defaultServerUrl;
+      await prefs.setString('server_ip', defaultServerUrl);
+      debugPrint("📡 ApiService initialized with public server URL: $_serverIp");
     } catch (e) {
       debugPrint("🚨 Error initializing ApiService: $e");
     }
@@ -183,31 +155,55 @@ class ApiService {
     if (cleanIp.contains(':')) {
       return "http://$cleanIp/api";
     }
-    return "http://$cleanIp:$_port/api";
+    final isNumericIp = RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$').hasMatch(cleanIp);
+    if (isNumericIp) {
+      return "http://$cleanIp:$_port/api";
+    }
+    return "http://$cleanIp/api";
   }
 
-  // تصليح روابط الميديا الراجعة من السيرفر
+  // 🌟 الرابط الأساسي للسيرفر بدون /api
+  static String get baseHttpUrl {
+    String activeIp = _serverIp.trim();
+    if (activeIp.startsWith('http://') || activeIp.startsWith('https://')) {
+      return activeIp.replaceAll(RegExp(r'/api/?$'), '').replaceAll(RegExp(r'/$'), '');
+    } else if (activeIp.contains(':')) {
+      return "http://$activeIp";
+    } else {
+      final isNumericIp = RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$').hasMatch(activeIp);
+      return isNumericIp ? "http://$activeIp:$_port" : "http://$activeIp";
+    }
+  }
+
+  // تصليح روابط الميديا والملفات الراجعة من السيرفر
   static String? fixMediaUrl(String? url) {
     if (url == null || url.isEmpty) return null;
     String cleanUrl = url.trim();
 
-    // إذا كان الرابط كاملاً بالـ HTTP أو HTTPS، نرجعه كما هو
+    final base = baseHttpUrl;
+
+    // إذا كان الرابط كاملاً بالـ HTTP أو HTTPS
     if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      try {
+        final uri = Uri.parse(cleanUrl);
+        final host = uri.host;
+        // إذا كان الرابط يحتوي على IP محلي قديم أو localhost، نعيد توجيهه للسيرفر النشط الحالي
+        final isLocalOrPrivate = host == 'localhost' ||
+            host == '127.0.0.1' ||
+            host.startsWith('192.168.') ||
+            host.startsWith('10.') ||
+            host.startsWith('172.');
+
+        if (isLocalOrPrivate) {
+          final pathWithQuery = uri.hasQuery ? "${uri.path}?${uri.query}" : uri.path;
+          final normalizedPath = pathWithQuery.startsWith('/') ? pathWithQuery.substring(1) : pathWithQuery;
+          return "$base/$normalizedPath";
+        }
+      } catch (_) {}
       return cleanUrl;
     }
 
     String path = cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl;
-    String base;
-    String activeIp = _serverIp.trim();
-
-    if (activeIp.startsWith('http://') || activeIp.startsWith('https://')) {
-      base = activeIp.replaceAll(RegExp(r'/api/?$'), '').replaceAll(RegExp(r'/$'), '');
-    } else if (activeIp.contains(':')) {
-      base = "http://$activeIp";
-    } else {
-      base = "http://$activeIp:$_port";
-    }
-
     return "$base/$path";
   }
 

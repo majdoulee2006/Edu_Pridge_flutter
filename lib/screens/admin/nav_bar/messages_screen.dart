@@ -141,7 +141,8 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
 
   Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor) {
     final int unreadCount = contact['unread'] ?? 0;
-    final bool hasUnread = unreadCount > 0;
+    final bool isMyMessage = contact['is_my_message'] == true;
+    final bool hasUnread = !isMyMessage && unreadCount > 0;
     final String name = contact['name'] ?? 'مستخدم غير معروف';
     final String initial = name.isNotEmpty ? name[0] : '؟';
     final String role = contact['role'] ?? '';
@@ -152,7 +153,6 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
     final String? avatarUrl = contact['image'];
     final bool isOnline = contact['is_online'] ?? false;
     final bool isRead = contact['is_read'] == true;
-      final bool isMyMessage = contact['is_my_message'] == true;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

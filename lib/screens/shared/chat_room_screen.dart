@@ -26,9 +26,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final rawId = widget.contact['id']?.toString() ?? '';
       if (rawId.isNotEmpty) {
-        context.read<ChatService>().fetchMessages(rawId);
+        context.read<ChatService>().startSmartPolling(rawId);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    context.read<ChatService>().stopSmartPolling();
+    _inputController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override

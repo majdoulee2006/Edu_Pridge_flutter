@@ -1,27 +1,27 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
-import 'dart:convert';
-import '../models/chat_message_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/chat_message_model.dart';
 import 'api_service.dart';
 
 const String PUSHER_APP_KEY = '7ddc52d35c1e7beb4c83';
 const String PUSHER_CLUSTER = 'eu';
 
 class ChatService extends ChangeNotifier {
-  late final Dio _dio;
-  late PusherChannelsFlutter _pusher;
+  PusherChannelsFlutter? _pusher;
+  Timer? _messagesPollingTimer;
+  Timer? _contactsPollingTimer;
 
-  ChatService() {
-    _dio = Dio(BaseOptions(baseUrl: ApiService().baseUrl));
-  }
-  
   // Cache messages per contact ID
   final Map<String, List<ChatMessage>> _messagesCache = {};
   
   String? _activeContactId;
+  String? get activeContactId => _activeContactId;
+
   List<ChatMessage> get messages => _activeContactId != null && _messagesCache.containsKey(_activeContactId)
       ? _messagesCache[_activeContactId]!
       : [];
@@ -37,6 +37,13 @@ class ChatService extends ChangeNotifier {
   
   String? _currentUserId;
 
+  // 🌟 Dynamic Dio instance getter matching ApiService.baseUrl
+  Dio get _dio => Dio(BaseOptions(
+        baseUrl: ApiService().baseUrl,
+        connectTimeout: const Duration(seconds: 12),
+        receiveTimeout: const Duration(seconds: 12),
+      ));
+
   Future<String> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token') ?? '';
@@ -50,9 +57,14 @@ class ChatService extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchContacts() async {
-    _isLoadingContacts = true;
-    notifyListeners();
+  // ==========================================
+  // 1. جلب قائمة جهات الاتصال (Contacts)
+  // ==========================================
+  Future<void> fetchContacts({bool silent = false}) async {
+    if (!silent) {
+      _isLoadingContacts = true;
+      notifyListeners();
+    }
 
     try {
       final token = await _getToken();
@@ -66,47 +78,30 @@ class ChatService extends ChangeNotifier {
         _contacts = data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
     } catch (e) {
-      debugPrint("Fetch Contacts Error: $e");
+      debugPrint("📡 Fetch Contacts API Warning: $e");
     } finally {
-      _isLoadingContacts = false;
+      if (!silent) {
+        _isLoadingContacts = false;
+      }
       notifyListeners();
     }
   }
 
-  Future<void> fetchMessages(String contactId) async {
+  // ==========================================
+  // 2. جلب المحادثة مع شخص محدد (Messages)
+  // ==========================================
+  Future<void> fetchMessages(String contactId, {bool silent = false}) async {
     _activeContactId = contactId.toString();
-    
-    // Check if we already have messages cached for this contact
+
     if (!_messagesCache.containsKey(_activeContactId)) {
-      // Pre-fill initial conversation history for known mock contacts
-      if (_activeContactId == '1') {
-        _messagesCache[_activeContactId!] = [
-          ChatMessage(id: 'm1', message: 'تم اعتماد جدول الامتحانات الجديد', isMe: false, timestamp: DateTime.now().subtract(const Duration(minutes: 40)), isRead: true),
-        ];
-      } else if (_activeContactId == '2') {
-        _messagesCache[_activeContactId!] = [
-          ChatMessage(id: 'm2', message: 'يرجى مراجعة طلبات التسجيل المتأخرة', isMe: false, timestamp: DateTime.now().subtract(const Duration(minutes: 55)), isRead: true),
-        ];
-      } else if (_activeContactId == '3') {
-        _messagesCache[_activeContactId!] = [
-          ChatMessage(id: 'm3', message: 'هل انتهيت من تقييم مشاريع فلاتر؟', isMe: false, timestamp: DateTime.now().subtract(const Duration(hours: 1)), isRead: true),
-        ];
-      } else if (_activeContactId == '4') {
-        _messagesCache[_activeContactId!] = [
-          ChatMessage(id: 'm4', message: 'أستاذ، متى موعد تسليم الوظيفة؟', isMe: false, timestamp: DateTime.now().subtract(const Duration(hours: 2)), isRead: true),
-        ];
-      } else if (_activeContactId == '5') {
-        _messagesCache[_activeContactId!] = [
-          ChatMessage(id: 'm5', message: 'شكراً جزيلاً لك أستاذ على الشرح', isMe: false, timestamp: DateTime.now().subtract(const Duration(days: 1)), isRead: true),
-        ];
-      } else {
-        _messagesCache[_activeContactId!] = [];
-      }
+      _messagesCache[_activeContactId!] = [];
     }
 
-    _isLoading = true;
-    notifyListeners();
-    
+    if (!silent && _messagesCache[_activeContactId!]!.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
+
     try {
       await _ensureUserId();
       final token = await _getToken();
@@ -118,28 +113,69 @@ class ChatService extends ChangeNotifier {
       
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'] ?? [];
-        final fetched = data.map((e) => ChatMessage.fromJson(e, _currentUserId ?? '')).toList();
-        if (fetched.isNotEmpty) {
-          _messagesCache[_activeContactId!] = fetched;
-        }
+        final fetched = data.map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e as Map), _currentUserId ?? '')).toList();
+        
+        // Merge or replace safely
+        _messagesCache[_activeContactId!] = fetched;
       }
 
+      // Mark conversation as read on server
       try {
         await _dio.put(
           '/messages/$_activeContactId/mark-read',
           options: Options(headers: {'Authorization': 'Bearer $token'}),
         );
-      } catch (e) {
-        debugPrint("Mark Read API Error: $e");
-      }
+      } catch (_) {}
+
     } catch (e) {
-      debugPrint("Fetch Messages Error: $e");
+      debugPrint("📡 Fetch Messages API Warning: $e");
     } finally {
-      _isLoading = false;
+      if (!silent) {
+        _isLoading = false;
+      }
       notifyListeners();
     }
   }
 
+  // ==========================================
+  // 3. المحرك الهجين الذكي (Smart Polling Engine)
+  // ==========================================
+  void startSmartPolling(String contactId) {
+    _activeContactId = contactId;
+    _messagesPollingTimer?.cancel();
+
+    // Fetch immediately
+    fetchMessages(contactId, silent: true);
+
+    // Poll every 3 seconds for local institute server / offline fallback
+    _messagesPollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (_activeContactId != null && _activeContactId == contactId) {
+        fetchMessages(contactId, silent: true);
+      }
+    });
+  }
+
+  void stopSmartPolling() {
+    _messagesPollingTimer?.cancel();
+    _messagesPollingTimer = null;
+  }
+
+  void startContactsPolling() {
+    _contactsPollingTimer?.cancel();
+    fetchContacts(silent: true);
+    _contactsPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      fetchContacts(silent: true);
+    });
+  }
+
+  void stopContactsPolling() {
+    _contactsPollingTimer?.cancel();
+    _contactsPollingTimer = null;
+  }
+
+  // ==========================================
+  // 4. إرسال رسالة (Send Message)
+  // ==========================================
   Future<void> sendMessage(
     String contactId,
     String text, {
@@ -156,14 +192,15 @@ class ChatService extends ChangeNotifier {
       isMe: true,
       timestamp: DateTime.now(),
       attachment: filePath ?? fileName,
-      isRead: false, // 🌟 Sent messages start with single gray checkmark
+      isRead: false,
+      isDelivered: false,
     );
 
     if (!_messagesCache.containsKey(targetId)) {
       _messagesCache[targetId] = [];
     }
     
-    // Insert new message locally
+    // Insert new message locally for immediate UI feedback
     _messagesCache[targetId]!.insert(0, tempMsg);
     _activeContactId = targetId;
     
@@ -176,17 +213,17 @@ class ChatService extends ChangeNotifier {
       _contacts[idx]['is_read'] = true;
     }
 
-    _isLoading = false; // 🌟 Force loading to false so sent message displays immediately!
+    _isLoading = false;
     notifyListeners();
 
     try {
       final token = await _getToken();
 
       dynamic postData;
-      if (fileBytes != null || filePath != null) {
+      if (fileBytes != null || (filePath != null && filePath.isNotEmpty)) {
         MultipartFile multipartFile;
-        if (kIsWeb) {
-          final resolvedFileName = fileName ?? filePath?.split('/').last ?? 'attachment';
+        if (kIsWeb || fileBytes != null) {
+          final resolvedFileName = fileName ?? (filePath != null ? filePath.split('/').last : 'attachment.bin');
           multipartFile = MultipartFile.fromBytes(
             fileBytes ?? [],
             filename: resolvedFileName,
@@ -236,7 +273,7 @@ class ChatService extends ChangeNotifier {
                 message: list[idx].text,
                 isMe: true,
                 timestamp: list[idx].timestamp,
-                attachment: realAttachment ?? list[idx].attachment,
+                attachment: ApiService.fixMediaUrl(realAttachment ?? list[idx].attachment),
                 isRead: false,
                 isDelivered: true,
               );
@@ -246,10 +283,13 @@ class ChatService extends ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint("Send Message API Warning (kept locally): $e");
+      debugPrint(" Send Message API Warning (kept locally): $e");
     }
   }
 
+  // ==========================================
+  // 5. تعديل وحذف الرسائل (Edit & Delete)
+  // ==========================================
   Future<void> editMessage(String messageId, String newText) async {
     if (_activeContactId != null && _messagesCache.containsKey(_activeContactId)) {
       final list = _messagesCache[_activeContactId]!;
@@ -280,9 +320,10 @@ class ChatService extends ChangeNotifier {
 
     try {
       final token = await _getToken();
+      final typeStr = deleteForEveryone ? 'everyone' : 'me';
       await _dio.delete(
-        '/messages/$messageId',
-        data: {'type': deleteForEveryone ? 'everyone' : 'me'},
+        '/messages/$messageId?type=$typeStr',
+        data: {'type': typeStr},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
     } catch (e) {
@@ -292,7 +333,7 @@ class ChatService extends ChangeNotifier {
 
   Future<void> searchMessages(String contactId, String query) async {
     if (query.isEmpty) {
-      fetchMessages(contactId);
+      fetchMessages(contactId, silent: true);
       return;
     }
     if (_messagesCache.containsKey(contactId)) {
@@ -303,45 +344,75 @@ class ChatService extends ChangeNotifier {
     }
   }
 
+  // ==========================================
+  // 6. تهيئة Pusher للشبكات الأونلاين (Pusher Realtime)
+  // ==========================================
   void initPusher(String userId) async {
     try {
       _pusher = PusherChannelsFlutter.getInstance();
-      await _pusher.init(
+      await _pusher!.init(
         apiKey: PUSHER_APP_KEY,
         cluster: PUSHER_CLUSTER,
         onEvent: (event) {
-          if (event.eventName == 'MessageSent') {
-            final data = jsonDecode(event.data);
-            final senderId = data['message']['sender_id'].toString();
-            
-            _ensureUserId().then((_) {
-              final newMsg = ChatMessage.fromJson(data['message'], _currentUserId ?? '');
-              
-              if (!_messagesCache.containsKey(senderId)) {
-                _messagesCache[senderId] = [];
-              }
-              _messagesCache[senderId]!.insert(0, newMsg);
-              
-              final idx = _contacts.indexWhere((c) => c['id'].toString() == senderId);
-              if (idx != -1) {
-                _contacts[idx]['last_message'] = newMsg.message;
-                _contacts[idx]['message'] = newMsg.message;
-                _contacts[idx]['time'] = 'الآن';
-                _contacts[idx]['is_read'] = false;
-                final currentUnread = _contacts[idx]['unread'] ?? 0;
-                _contacts[idx]['unread'] = currentUnread + 1;
+          if (event.eventName == 'MessageSent' || event.eventName.contains('MessageSent')) {
+            try {
+              final rawData = jsonDecode(event.data);
+              Map<String, dynamic> data;
+              if (rawData is Map<String, dynamic>) {
+                data = rawData;
               } else {
-                fetchContacts();
+                data = Map<String, dynamic>.from(rawData);
               }
-              notifyListeners();
-            });
+
+              // Extract sender_id safely from top-level or nested message
+              final senderId = (data['sender_id'] ?? data['message_data']?['sender_id'] ?? data['message']?['sender_id'])?.toString() ?? '';
+              
+              if (senderId.isNotEmpty) {
+                _ensureUserId().then((_) {
+                  final newMsg = ChatMessage.fromJson(data, _currentUserId ?? '');
+                  
+                  if (!_messagesCache.containsKey(senderId)) {
+                    _messagesCache[senderId] = [];
+                  }
+
+                  // Prevent duplicates
+                  if (!_messagesCache[senderId]!.any((m) => m.id == newMsg.id)) {
+                    _messagesCache[senderId]!.insert(0, newMsg);
+                  }
+                  
+                  final idx = _contacts.indexWhere((c) => c['id'].toString() == senderId);
+                  if (idx != -1) {
+                    _contacts[idx]['last_message'] = newMsg.message;
+                    _contacts[idx]['message'] = newMsg.message;
+                    _contacts[idx]['time'] = 'الآن';
+                    _contacts[idx]['is_read'] = false;
+                    final currentUnread = _contacts[idx]['unread'] ?? 0;
+                    _contacts[idx]['unread'] = currentUnread + 1;
+                  } else {
+                    fetchContacts(silent: true);
+                  }
+                  notifyListeners();
+                });
+              }
+            } catch (e) {
+              debugPrint("Pusher Event Parse Warning: $e");
+            }
           }
         },
       );
-      await _pusher.subscribe(channelName: 'private-chat.$userId');
-      await _pusher.connect();
+      
+      await _pusher!.subscribe(channelName: 'private-chat.$userId');
+      await _pusher!.connect();
     } catch (e) {
-      debugPrint("Pusher Error: $e");
+      debugPrint("📡 Pusher Init Warning (System will use Smart Polling Fallback): $e");
     }
+  }
+
+  @override
+  void dispose() {
+    stopSmartPolling();
+    stopContactsPolling();
+    _pusher?.disconnect();
+    super.dispose();
   }
 }

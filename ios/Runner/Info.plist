@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>يحتاج التطبيق للوصول إلى الميكروفون لتسجيل وإرسال الرسائل الصوتية في المحادثات.</string>
 </dict>
 </plist>
