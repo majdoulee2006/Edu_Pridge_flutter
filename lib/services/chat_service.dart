@@ -8,8 +8,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message_model.dart';
 import 'api_service.dart';
 
-const String PUSHER_APP_KEY = '7ddc52d35c1e7beb4c83';
+const String PUSHER_APP_KEY = '06c5a41f8d5f2e4e5497';
 const String PUSHER_CLUSTER = 'eu';
+
+// معطّلة مؤقتاً: مكتبة Pusher الأصلية بتوقف خيط تنفيذ كامل بانتظار رد
+// المصادقة، وبيئة الاختبار الحالية (سيرفر تجريبي php artisan serve + كيبل
+// USB) بترجع أحياناً رد فاضي بسبب الزحمة على نفس النفق، فبيصير تجميد
+// بالواجهة. الشات شغال 100% بدونها عبر الـ polling (تحديث كل ثانيتين).
+// فعّليها برجاع القيمة لـ true بعد تجربتها عالسيرفر الحقيقي بالجامعة.
+const bool kEnableRealtimePusher = false;
 
 class ChatService extends ChangeNotifier {
   PusherChannelsFlutter? _pusher;
@@ -351,6 +358,7 @@ class ChatService extends ChangeNotifier {
   // 6. تهيئة Pusher للشبكات الأونلاين (Pusher Realtime)
   // ==========================================
   void initPusher(String userId) async {
+    if (!kEnableRealtimePusher) return;
     try {
       _pusher = PusherChannelsFlutter.getInstance();
       await _pusher!.init(
@@ -379,7 +387,15 @@ class ChatService extends ChangeNotifier {
                 'Accept': 'application/json',
               }),
             );
-            return response.data;
+            // لارافيل بيرجّع رد Broadcast::auth() كنص JSON خام (مو Content-Type
+            // مضبوط دايماً كـ application/json)، فـ Dio أحياناً بيسلّمنا إياه
+            // كـ String حرفي بدل Map — ولو رجعناه هيك للمكتبة الأصلية (جافا)
+            // بتعمل ترميز مضاعف وتفشل بتحليله ("Unable to parse response")
+            dynamic authData = response.data;
+            if (authData is String) {
+              authData = jsonDecode(authData);
+            }
+            return authData;
           } catch (e) {
             debugPrint("📡 Pusher channel auth failed (falling back to polling): $e");
             return {};

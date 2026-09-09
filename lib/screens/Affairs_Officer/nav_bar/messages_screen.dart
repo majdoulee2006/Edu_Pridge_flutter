@@ -102,16 +102,13 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
                 ],
               ),
 
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: CustomBottomNav(
-                  currentIndex: 3,
-                  centerButton: const AffairsOfficerSpeedDial(),
-                  onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AffairsOfficerHomeScreen())),
-                  onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AffairsOfficerProfileScreen())),
-                  onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AffairsOfficerNotificationsScreen())),
-                  onMessagesTap: () {},
-                ),
+              CustomBottomNav(
+                currentIndex: 3,
+                centerButton: const AffairsOfficerSpeedDial(),
+                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AffairsOfficerHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AffairsOfficerProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AffairsOfficerNotificationsScreen())),
+                onMessagesTap: () {},
               ),
             ],
           ),

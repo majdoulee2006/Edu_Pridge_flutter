@@ -189,12 +189,26 @@ class FcmService {
     });
   }
 
-  static Future<void> _refreshAndSendToken({String? vapidKey}) async {
+  static Future<void> _refreshAndSendToken({String? vapidKey, bool isRetry = false}) async {
     try {
       final token = await _messaging.getToken(vapidKey: vapidKey);
-      if (token != null) await _sendTokenToServer(token);
+      if (token != null) {
+        await _sendTokenToServer(token);
+      } else {
+        debugPrint('⛔ FCM getToken() returned null (retry=$isRetry)');
+        // فشل صامت مؤقت (شائع لو نظام Google Play Services مشغول وقتها) —
+        // نعيد المحاولة مرة وحدة بعد مهلة قصيرة بدل ما نستسلم بصمت
+        if (!isRetry) {
+          await Future.delayed(const Duration(seconds: 3));
+          await _refreshAndSendToken(vapidKey: vapidKey, isRetry: true);
+        }
+      }
     } catch (e) {
-      debugPrint('⛔ FCM token error: $e');
+      debugPrint('⛔ FCM token error (retry=$isRetry): $e');
+      if (!isRetry) {
+        await Future.delayed(const Duration(seconds: 3));
+        await _refreshAndSendToken(vapidKey: vapidKey, isRetry: true);
+      }
     }
   }
 

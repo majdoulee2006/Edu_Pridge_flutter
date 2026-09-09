@@ -135,16 +135,13 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
                 ],
               ),
 
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: CustomBottomNav(
-                  currentIndex: 3,
-                  centerButton: const Parents_Center_Icon(),
-                  onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
-                  onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
-                  onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
-                  onMessagesTap: () {},
-                ),
+              CustomBottomNav(
+                currentIndex: 3,
+                centerButton: const Parents_Center_Icon(),
+                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
+                onMessagesTap: () {},
               ),
             ],
           ),

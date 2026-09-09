@@ -121,16 +121,13 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
                 ],
               ),
 
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: CustomBottomNav(
-                  currentIndex: 3,
-                  centerButton: const AdminSpeedDial(),
-                  onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen())),
-                  onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminProfileScreen())),
-                  onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminNotificationsScreen())),
-                  onMessagesTap: () {},
-                ),
+              CustomBottomNav(
+                currentIndex: 3,
+                centerButton: const AdminSpeedDial(),
+                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminNotificationsScreen())),
+                onMessagesTap: () {},
               ),
             ],
           ),

@@ -151,19 +151,16 @@ class _BossMessageViewState extends State<BossMessageView> {
                 ],
               ),
 
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: CustomBottomNav(
-                  currentIndex: 3,
-                  centerButton: const Boss_Center_Icon(),
-                  onHomeTap: () => Navigator.pushReplacement(
-                      context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
-                  onProfileTap: () => Navigator.pushReplacement(
-                      context, MaterialPageRoute(builder: (context) => const BossProfileScreen())),
-                  onNotificationsTap: () => Navigator.pushReplacement(
-                      context, MaterialPageRoute(builder: (context) => const BossNotificationScreen())),
-                  onMessagesTap: () {},
-                ),
+              CustomBottomNav(
+                currentIndex: 3,
+                centerButton: const Boss_Center_Icon(),
+                onHomeTap: () => Navigator.pushReplacement(
+                    context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(
+                    context, MaterialPageRoute(builder: (context) => const BossProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(
+                    context, MaterialPageRoute(builder: (context) => const BossNotificationScreen())),
+                onMessagesTap: () {},
               ),
             ],
           ),
