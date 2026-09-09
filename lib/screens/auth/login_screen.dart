@@ -288,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (e.response?.statusCode == 409 || (e.response?.statusCode == 403 && e.response?.data != null && e.response?.data['device_locked'] == true)) {
         if (mounted) _showDeviceConflictDialog();
       } else {
-        String msg = "تأكد من اتصال السيرفر";
+        String msg = "تعذر الاتصال بالسيرفر (${ApiService.serverIp})";
         if (e.response?.data != null && e.response?.data is Map) {
           msg = e.response?.data['message']?.toString() ?? msg;
         }
@@ -300,6 +300,66 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showServerConfigDialog() {
+    final ipCtrl = TextEditingController(text: ApiService.serverIp);
+    showDialog(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.dns_rounded, color: Color(0xFFFFCC00)),
+              SizedBox(width: 10),
+              Text("إعدادات السيرفر", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "العنوان الحالي للسيرفر:",
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: ipCtrl,
+                style: const TextStyle(fontSize: 13),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: "http://82.137.250.43:8080/edu_bridge/public",
+                  isDense: true,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("إلغاء"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newUrl = ipCtrl.text.trim();
+                if (newUrl.isNotEmpty) {
+                  await ApiService.setServerIp(newUrl);
+                  if (mounted) {
+                    _showSnackBar("تم حفظ رابط السيرفر: $newUrl", isError: false);
+                    Navigator.pop(ctx);
+                    setState(() {});
+                  }
+                }
+              },
+              child: const Text("حفظ وتأكيد"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _navigateToDashboard(String role) {
@@ -365,7 +425,15 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.dns_rounded, color: Colors.grey),
+                      tooltip: "إعدادات السيرفر",
+                      onPressed: _showServerConfigDialog,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(

@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:dio/dio.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'in_app_media_viewer.dart';
 
 class ChatBubbleWidget extends StatefulWidget {
@@ -25,8 +26,8 @@ class ChatBubbleWidget extends StatefulWidget {
     required this.isSender,
     this.attachment,
     this.time,
-    this.status = 'read',
-    this.isRead = true,
+    this.status = 'sent',
+    this.isRead = false,
     this.isDelivered = false,
     this.onLongPress,
   });
@@ -114,7 +115,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
       isLocal = true;
     } else if (playSource == null || playSource.isEmpty) {
       if (widget.messageId.isNotEmpty && widget.messageId != '0') {
-        playSource = "${ApiService.baseHttpUrl}/storage/chat_attachments/voice_note_${widget.messageId}.m4a";
+        playSource = "${ApiService.baseHttpUrl}/public-download/message/${widget.messageId}";
       }
     }
 
@@ -174,7 +175,38 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
       if (isLocal) {
         await _audioPlayer!.play(DeviceFileSource(playSource));
       } else {
-        await _audioPlayer!.play(UrlSource(playSource));
+        // Download audio locally to temp before playing to guarantee cross-platform support
+        final tempDir = await getTemporaryDirectory();
+        final ext = playSource.contains('.') ? ".${playSource.split('.').last.split('?').first}" : ".m4a";
+        final tempAudioPath = "${tempDir.path}/voice_${widget.messageId}$ext";
+        final tempFile = File(tempAudioPath);
+
+        if (!tempFile.existsSync() || tempFile.lengthSync() < 100) {
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('token') ?? '';
+          final dio = Dio();
+          await dio.download(
+            playSource,
+            tempAudioPath,
+            options: Options(
+              headers: token.isNotEmpty ? {'Authorization': 'Bearer $token'} : null,
+              validateStatus: (status) => status != null && status < 500,
+            ),
+          );
+        }
+
+        if (tempFile.existsSync() && tempFile.lengthSync() > 100) {
+          // Binary Header Validation: ensure file is valid audio and not an HTML error response (e.g. 404 page)
+          final firstBytes = await tempFile.openRead(0, 100).first;
+          final headerContent = String.fromCharCodes(firstBytes).toLowerCase();
+          if (headerContent.contains('<!doctype') || headerContent.contains('<html') || headerContent.contains('404 not found')) {
+            await tempFile.delete();
+            throw Exception("ملف التسجيل الصوتي غير متوفر على السيرفر");
+          }
+          await _audioPlayer!.play(DeviceFileSource(tempAudioPath));
+        } else {
+          await _audioPlayer!.play(UrlSource(playSource));
+        }
       }
     } catch (e) {
       debugPrint("❌ In-App Audio Play Error: $e");
@@ -184,9 +216,9 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
           _isAudioBuffering = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ تعذر تشغيل الصوت: $e'),
-            backgroundColor: Colors.red,
+          const SnackBar(
+            content: Text('⚠️ تعذر تشغيل التسجيل الصوتي، الملف غير متوفر أو تالف'),
+            backgroundColor: Colors.orange,
           ),
         );
       }
@@ -197,12 +229,18 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
     if (_isDownloading) return;
     setState(() => _isDownloading = true);
 
-    String finalUrl = rawUrl;
-    if (finalUrl.isEmpty && widget.messageId.isNotEmpty && widget.messageId != '0') {
-      finalUrl = "${ApiService.baseHttpUrl}/public-download/message/${widget.messageId}";
-    }
-
     try {
+      // 1. Check if attachment is a local file on this device (e.g. sent by current user)
+      if (rawUrl.isNotEmpty && File(rawUrl).existsSync()) {
+        await OpenFilex.open(rawUrl);
+        return;
+      }
+      if (widget.attachment != null && File(widget.attachment!).existsSync()) {
+        await OpenFilex.open(widget.attachment!);
+        return;
+      }
+
+      // 2. Prepare save path in temporary directory
       final tempDir = await getTemporaryDirectory();
       String originalName = rawUrl.split('/').last.split('?').first;
       if (originalName.isEmpty || !originalName.contains('.')) {
@@ -210,17 +248,50 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
       }
 
       final savePath = "${tempDir.path}/$originalName";
-      final dio = Dio();
-      await dio.download(finalUrl, savePath);
+      final cachedFile = File(savePath);
 
-      final result = await OpenFilex.open(savePath);
-      if (result.type != ResultType.done && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم تنزيل الملف بنجاح إلى: $savePath'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      // 3. If file was already downloaded and exists locally with valid size, open directly
+      if (cachedFile.existsSync() && cachedFile.lengthSync() > 100) {
+        await OpenFilex.open(savePath);
+        return;
+      }
+
+      // 4. Resolve download URL using ApiService.fixMediaUrl
+      String? downloadUrl = ApiService.fixMediaUrl(rawUrl);
+      if ((downloadUrl == null || downloadUrl.isEmpty) && widget.messageId.isNotEmpty && widget.messageId != '0') {
+        downloadUrl = "${ApiService.baseHttpUrl}/public-download/message/${widget.messageId}";
+      }
+
+      if (downloadUrl == null || downloadUrl.isEmpty) {
+        throw Exception("رابط الملف غير صالح");
+      }
+
+      // 5. Get auth token for protected routes
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final dio = Dio();
+      await dio.download(
+        downloadUrl,
+        savePath,
+        options: Options(
+          headers: token.isNotEmpty ? {'Authorization': 'Bearer $token'} : null,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      final downloadedFile = File(savePath);
+      if (downloadedFile.existsSync() && downloadedFile.lengthSync() > 100) {
+        // Validate file content is not an HTML error response (e.g. 404/403 page)
+        final firstBytes = await downloadedFile.openRead(0, 100).first;
+        final headerContent = String.fromCharCodes(firstBytes).toLowerCase();
+        if (headerContent.contains('<!doctype') || headerContent.contains('<html') || headerContent.contains('404 not found')) {
+          await downloadedFile.delete();
+          throw Exception("الملف المرفق غير موجود على السيرفر أو لم يتم رفعه بنجاح");
+        }
+        await OpenFilex.open(savePath);
+      } else {
+        throw Exception("فشل تنزيل الملف من السيرفر");
       }
     } catch (e) {
       debugPrint("Native File Open Error: $e");
@@ -240,23 +311,23 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
   Widget _buildTickIcon() {
     if (!widget.isSender) return const SizedBox.shrink();
 
-    if (widget.status == 'read' || widget.isRead) {
+    if (widget.isRead || widget.status == 'read') {
       return const Icon(
         Icons.done_all,
         size: 16,
-        color: Color(0xFF34B7F1),
+        color: Color(0xFF34B7F1), // Double Blue Ticks (Read)
       );
-    } else if (widget.status == 'delivered') {
+    } else if (widget.isDelivered || widget.status == 'delivered') {
       return const Icon(
         Icons.done_all,
         size: 16,
-        color: Colors.grey,
+        color: Colors.grey, // Double Grey Ticks (Delivered)
       );
     } else {
       return const Icon(
         Icons.check,
         size: 16,
-        color: Colors.grey,
+        color: Colors.grey, // Single Grey Tick (Sent)
       );
     }
   }

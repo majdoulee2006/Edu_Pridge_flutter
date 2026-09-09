@@ -38,13 +38,19 @@ class _BossMessageViewState extends State<BossMessageView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final chatService = context.read<ChatService>();
-      chatService.fetchContacts();
+      chatService.startContactsPolling();
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id') ?? '';
       if (userId.isNotEmpty) {
         chatService.initPusher(userId);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    context.read<ChatService>().stopContactsPolling();
+    super.dispose();
   }
 
   static final List<Map<String, dynamic>> _activeMockList = [
@@ -82,6 +88,12 @@ class _BossMessageViewState extends State<BossMessageView> {
         : _getMockActiveData();
 
     final activeContacts = allContacts.where((c) {
+      final lastMsg = c['last_message']?.toString();
+      final msgText = c['message']?.toString();
+      final unread = (c['unread'] ?? 0) as int;
+      final hasHistory = (lastMsg != null && lastMsg.isNotEmpty) || (msgText != null && msgText.isNotEmpty) || unread > 0;
+      if (!hasHistory) return false;
+
       final name = (c['name']?.toString() ?? '').toLowerCase();
       if (_searchQuery.isNotEmpty && !name.contains(_searchQuery.toLowerCase())) {
         return false;
@@ -161,7 +173,9 @@ class _BossMessageViewState extends State<BossMessageView> {
   }
 
   Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor, ChatService chatServiceInstance) {
-    final bool isUnread  = contact['is_read'] != true;
+    final bool isMyMsg   = contact['is_my_message'] == true;
+    final int unreadCnt  = (contact['unread'] ?? 0) as int;
+    final bool isUnread  = !isMyMsg && unreadCnt > 0;
     final String name    = contact['name']?.toString() ?? 'مستخدم غير معروف';
     final String initial = name.isNotEmpty ? name[0] : '؟';
     final String role    = contact['role']?.toString() ?? '';
@@ -237,11 +251,13 @@ class _BossMessageViewState extends State<BossMessageView> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        if (!isUnread) ...[
-                          const Icon(Icons.done_all, size: 16, color: Color(0xFF34B7F1)),
-                          const SizedBox(width: 4),
-                        ] else ...[
-                          const Icon(Icons.check, size: 15, color: Colors.grey),
+                        if (isMyMsg) ...[
+                          if (contact['is_read'] == true)
+                            const Icon(Icons.done_all, size: 16, color: Color(0xFF34B7F1))
+                          else if (contact['is_delivered'] == true)
+                            const Icon(Icons.done_all, size: 16, color: Colors.grey)
+                          else
+                            const Icon(Icons.check, size: 15, color: Colors.grey),
                           const SizedBox(width: 4),
                         ],
                         Expanded(
