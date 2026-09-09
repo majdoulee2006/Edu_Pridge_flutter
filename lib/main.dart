@@ -12,6 +12,7 @@ import 'screens/teacher/teacher_home.dart';
 import 'screens/parents/nav_bar/parent_home.dart';
 import 'screens/Head of department/nav_bar/boss_home.dart';
 import 'screens/Affairs_Officer/nav_bar/home_screen.dart';
+import 'screens/admin/nav_bar/home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
 
@@ -88,6 +89,7 @@ class _AppRouterState extends State<_AppRouter> {
         'student' => const StudentHomeScreen(),
         'teacher' => const TeacherHomeScreen(),
         'parent' => const ParentsHomeScreen(),
+        'admin' => const AdminHomeScreen(),
         'department_head' || 'boss' || 'head' => const DeptHeadHomeScreen(),
         'affairs_officer' || 'affairs' => const AffairsOfficerHomeScreen(),
         _ => const OnboardingOne(),

@@ -359,18 +359,31 @@ class ChatService extends ChangeNotifier {
         // نوثّق قنوات البث الخاصة (private-) بأنفسنا عبر توكن الدخول (Bearer)
         // بدل الاعتماد على جلسة متصفح، لأن التطبيق موبايل وليس ويب
         onAuthorizer: (channelName, socketId, options) async {
-          final token = await _getToken();
-          // نفس مسار /api لأن /api/broadcasting/auth هو المسجّل فعلياً
-          // ضمن مجموعة auth:sanctum بـ routes/api.php
-          final response = await Dio().post(
-            '${ApiService().baseUrl}/broadcasting/auth',
-            data: {'socket_id': socketId, 'channel_name': channelName},
-            options: Options(headers: {
-              'Authorization': 'Bearer $token',
-              'Accept': 'application/json',
-            }),
-          );
-          return response.data;
+          // مهم جداً: هالكولباك بيوقف خيط تنفيذ كامل بمكتبة Pusher الأصلية
+          // لحد ما يرجع نتيجة، فلازم نحدد سقف زمني قصير — غير هيك أي بطء
+          // أو انقطاع بالشبكة (متل السيرفر المحلي لما نكون برّا الجامعة)
+          // بيجمّد الشاشة بدل ما يفشل بسرعة ويرجع لـ polling العادي
+          try {
+            final token = await _getToken();
+            // نفس مسار /api لأن /api/broadcasting/auth هو المسجّل فعلياً
+            // ضمن مجموعة auth:sanctum بـ routes/api.php
+            final response = await Dio(BaseOptions(
+              connectTimeout: const Duration(seconds: 5),
+              sendTimeout: const Duration(seconds: 5),
+              receiveTimeout: const Duration(seconds: 5),
+            )).post(
+              '${ApiService().baseUrl}/broadcasting/auth',
+              data: {'socket_id': socketId, 'channel_name': channelName},
+              options: Options(headers: {
+                'Authorization': 'Bearer $token',
+                'Accept': 'application/json',
+              }),
+            );
+            return response.data;
+          } catch (e) {
+            debugPrint("📡 Pusher channel auth failed (falling back to polling): $e");
+            return {};
+          }
         },
         onEvent: (event) {
           if (event.eventName == 'MessageSent' || event.eventName.contains('MessageSent')) {

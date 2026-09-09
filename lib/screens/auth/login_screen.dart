@@ -584,35 +584,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreateAccountScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.person_add_alt_1_rounded, color: primaryYellow),
-                      label: const Text(
-                        "إنشاء حساب جديد",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: primaryYellow,
-                          fontFamily: 'Cairo',
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: primaryYellow, width: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
                   TextButton(
                     onPressed: () => Navigator.push(
                       context,

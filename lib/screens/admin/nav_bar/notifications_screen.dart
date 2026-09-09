@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
+import 'package:edu_pridge_flutter/services/admin_services.dart';
 
 import 'home_screen.dart';
 import 'profile_screen.dart';
@@ -14,36 +15,29 @@ class AdminNotificationsScreen extends StatefulWidget {
 }
 
 class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
+  final AdminServices _adminServices = AdminServices();
+
   int selectedTarget = 0;
+  bool isLoadingData = true;
+  bool isSending = false;
+
+  // بيانات حقيقية من السيرفر
+  List<dynamic> departments = [];
+  List<dynamic> allUsers = [];
 
   // متغيرات لـ "قسم"
-  String? selectedDepartment;
+  int? selectedDepartmentId;
   List<String> selectedCategories = [];
 
   // متغيرات لـ "أفراد"
   final TextEditingController searchController = TextEditingController();
-  String? selectedDeptForIndividuals;
-  String? selectedSpecialization;
+  int? selectedDeptForIndividuals;
   List<String> selectedRoles = [];
-  List<String> selectedUsers = [];
+  List<int> selectedUsers = [];
 
-  // الأقسام
-  final List<String> departments = [
-    "قسم الكومبيوتر ونظم المعلومات",
-    "قسم الطبي",
-    "قسم التجاري",
-  ];
-
-  List<String> getSpecializations(String? dept) {
-    if (dept == "قسم الكومبيوتر ونظم المعلومات") {
-      return ["المعلوماتية", "الاتصالات", "الإلكترون", "الذكاء الصناعي"];
-    } else if (dept == "قسم الطبي") {
-      return ["المخبري", "الصيدلة"];
-    } else if (dept == "قسم التجاري") {
-      return ["المحاسبة", "إدارة الأعمال"];
-    }
-    return [];
-  }
+  // نموذج الرسالة
+  final TextEditingController subjectController = TextEditingController();
+  final TextEditingController messageController = TextEditingController();
 
   final List<String> roles = [
     "رئيس القسم",
@@ -53,8 +47,162 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadData();
+    messageController.addListener(() => setState(() {}));
+  }
+
+  Future<void> _loadData() async {
+    setState(() => isLoadingData = true);
+    final results = await Future.wait([
+      _adminServices.getDepartments(),
+      _adminServices.getUsers(all: true),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      departments = results[0] ?? [];
+      allUsers = results[1] ?? [];
+      isLoadingData = false;
+    });
+  }
+
+  int? _roleLabelToId(String label) {
+    switch (label) {
+      case 'رئيس القسم':
+        return 5;
+      case 'معلمين':
+        return 2;
+      case 'طلاب':
+        return 3;
+      case 'أولياء أمور':
+        return 4;
+    }
+    return null;
+  }
+
+  int _toInt(dynamic v) => v is int ? v : int.parse(v.toString());
+
+  List<dynamic> get _filteredIndividuals {
+    final query = searchController.text.trim().toLowerCase();
+    String? deptName;
+    if (selectedDeptForIndividuals != null) {
+      final match = departments.firstWhere(
+        (d) => d['department_id'] == selectedDeptForIndividuals,
+        orElse: () => null,
+      );
+      deptName = match?['name'];
+    }
+    final roleIds = selectedRoles.map(_roleLabelToId).whereType<int>().toSet();
+
+    return allUsers.where((u) {
+      final name = (u['full_name'] ?? '').toString().toLowerCase();
+      final email = (u['email'] ?? '').toString().toLowerCase();
+      if (query.isNotEmpty && !name.contains(query) && !email.contains(query)) {
+        return false;
+      }
+      if (deptName != null && u['department'] != deptName) return false;
+      if (roleIds.isNotEmpty && !roleIds.contains(_toInt(u['role_id']))) return false;
+      return true;
+    }).toList();
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, textDirection: TextDirection.rtl),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  Future<void> _handleSend() async {
+    final subject = subjectController.text.trim();
+    final message = messageController.text.trim();
+
+    if (subject.isEmpty || message.isEmpty) {
+      _showSnack('يرجى تعبئة الموضوع ونص الرسالة', isError: true);
+      return;
+    }
+
+    String recipientType;
+    List<int>? targetDepartments;
+    List<int>? targetUsers;
+
+    if (selectedTarget == 0) {
+      recipientType = 'all';
+    } else if (selectedTarget == 1) {
+      if (selectedDepartmentId == null) {
+        _showSnack('يرجى اختيار القسم المستهدف', isError: true);
+        return;
+      }
+      if (selectedCategories.isEmpty) {
+        recipientType = 'departments';
+        targetDepartments = [selectedDepartmentId!];
+      } else {
+        // تحديد فئات معينة داخل القسم: نحولها لقائمة أفراد محددين
+        final deptMatch = departments.firstWhere(
+          (d) => d['department_id'] == selectedDepartmentId,
+          orElse: () => null,
+        );
+        final String? deptName = deptMatch?['name'];
+        final roleIds = selectedCategories.map(_roleLabelToId).whereType<int>().toSet();
+        final matched = allUsers
+            .where((u) => u['department'] == deptName && roleIds.contains(_toInt(u['role_id'])))
+            .map<int>((u) => _toInt(u['user_id']))
+            .toList();
+        if (matched.isEmpty) {
+          _showSnack('لا يوجد مستخدمون مطابقون لهذا الاختيار', isError: true);
+          return;
+        }
+        recipientType = 'individuals';
+        targetUsers = matched;
+      }
+    } else {
+      if (selectedUsers.isEmpty) {
+        _showSnack('يرجى اختيار مستخدم واحد على الأقل', isError: true);
+        return;
+      }
+      recipientType = 'individuals';
+      targetUsers = selectedUsers;
+    }
+
+    setState(() => isSending = true);
+    try {
+      final success = await _adminServices.sendBroadcast(
+        recipientType: recipientType,
+        subject: subject,
+        message: message,
+        targetDepartments: targetDepartments,
+        targetUsers: targetUsers,
+      );
+      if (success) {
+        _showSnack('تم إرسال التعميم بنجاح');
+        setState(() {
+          subjectController.clear();
+          messageController.clear();
+          selectedCategories.clear();
+          selectedRoles.clear();
+          selectedUsers.clear();
+          selectedDepartmentId = null;
+          selectedDeptForIndividuals = null;
+        });
+      } else {
+        _showSnack('تعذر إرسال التعميم، حاولي مرة أخرى', isError: true);
+      }
+    } catch (e) {
+      _showSnack('حدث خطأ أثناء الإرسال: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => isSending = false);
+    }
+  }
+
+  @override
   void dispose() {
     searchController.dispose();
+    subjectController.dispose();
+    messageController.dispose();
     super.dispose();
   }
 
@@ -76,44 +224,46 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
             if (!isDark) _buildGridBackground(),
 
             SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(textColor),
-                    const SizedBox(height: 20),
+              child: isLoadingData
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(textColor),
+                          const SizedBox(height: 20),
 
-                    _buildSectionTitle("توجيه الرسالة إلى", primaryYellow),
-                    const SizedBox(height: 15),
+                          _buildSectionTitle("توجيه الرسالة إلى", primaryYellow),
+                          const SizedBox(height: 15),
 
-                    // خيارات التوجيه
-                    Row(
-                      children: [
-                        _buildTargetCard("الجميع", Icons.group, 0, primaryYellow, cardColor, textColor),
-                        const SizedBox(width: 10),
-                        _buildTargetCard("قسم", Icons.business, 1, primaryYellow, cardColor, textColor),
-                        const SizedBox(width: 10),
-                        _buildTargetCard("أفراد", Icons.person_search, 2, primaryYellow, cardColor, textColor),
-                      ],
+                          // خيارات التوجيه
+                          Row(
+                            children: [
+                              _buildTargetCard("الجميع", Icons.group, 0, primaryYellow, cardColor, textColor),
+                              const SizedBox(width: 10),
+                              _buildTargetCard("قسم", Icons.business, 1, primaryYellow, cardColor, textColor),
+                              const SizedBox(width: 10),
+                              _buildTargetCard("أفراد", Icons.person_search, 2, primaryYellow, cardColor, textColor),
+                            ],
+                          ),
+
+                          const SizedBox(height: 30),
+
+                          if (selectedTarget == 1)
+                            _buildDepartmentSection(cardColor, textColor, primaryYellow, isDark)
+                          else if (selectedTarget == 2)
+                            _buildIndividualsSection(cardColor, textColor, primaryYellow, isDark),
+
+                          const SizedBox(height: 25),
+
+                          _buildMessageForm(cardColor, textColor, primaryYellow, isDark),
+                          const SizedBox(height: 25),
+
+                          _buildSendButton(primaryYellow),
+                        ],
+                      ),
                     ),
-
-                    const SizedBox(height: 30),
-
-                    if (selectedTarget == 1)
-                      _buildDepartmentSection(cardColor, textColor, primaryYellow, isDark)
-                    else if (selectedTarget == 2)
-                      _buildIndividualsSection(cardColor, textColor, primaryYellow, isDark),
-
-                    const SizedBox(height: 25),
-
-                    _buildMessageForm(cardColor, textColor, primaryYellow, isDark),
-                    const SizedBox(height: 25),
-
-                    _buildSendButton(primaryYellow),
-                  ],
-                ),
-              ),
             ),
 
             CustomBottomNav(
@@ -147,10 +297,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
             color: textColor,
           ),
         ),
-        IconButton(
-          icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 26),
-          onPressed: () {},
-        ),
+        const SizedBox(width: 26),
       ],
     );
   }
@@ -161,16 +308,21 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildFieldLabel("اختر القسم"),
-        DropdownButtonFormField<String>(
-          value: selectedDepartment,
+        DropdownButtonFormField<int>(
+          value: selectedDepartmentId,
           decoration: _inputDecoration("اختر القسم المستهدف", isDark),
           dropdownColor: cardColor,
-          items: departments.map((dept) => DropdownMenuItem(value: dept, child: Text(dept))).toList(),
-          onChanged: (value) => setState(() => selectedDepartment = value),
+          items: departments
+              .map((dept) => DropdownMenuItem<int>(
+                    value: _toInt(dept['department_id']),
+                    child: Text(dept['name']?.toString() ?? ''),
+                  ))
+              .toList(),
+          onChanged: (value) => setState(() => selectedDepartmentId = value),
         ),
         const SizedBox(height: 25),
 
-        _buildFieldLabel("الفئات المستهدفة داخل القسم"),
+        _buildFieldLabel("الفئات المستهدفة داخل القسم (اختياري — اتركيها فاضية لإرسال للقسم كامل)"),
         Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -198,7 +350,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
 
   // ====================== الأفراد ======================
   Widget _buildIndividualsSection(Color cardColor, Color textColor, Color yellow, bool isDark) {
-    final specs = getSpecializations(selectedDeptForIndividuals);
+    final filtered = _filteredIndividuals;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,27 +364,17 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         const SizedBox(height: 20),
 
         _buildFieldLabel("اختر القسم"),
-        DropdownButtonFormField<String>(
+        DropdownButtonFormField<int>(
           value: selectedDeptForIndividuals,
-          decoration: _inputDecoration("اختر القسم", isDark),
+          decoration: _inputDecoration("كل الأقسام", isDark),
           dropdownColor: cardColor,
-          items: departments.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (v) {
-            setState(() {
-              selectedDeptForIndividuals = v;
-              selectedSpecialization = null;
-            });
-          },
-        ),
-        const SizedBox(height: 20),
-
-        _buildFieldLabel("التخصص"),
-        DropdownButtonFormField<String>(
-          value: selectedSpecialization,
-          decoration: _inputDecoration("اختر التخصص", isDark),
-          dropdownColor: cardColor,
-          items: specs.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (v) => setState(() => selectedSpecialization = v),
+          items: departments
+              .map((d) => DropdownMenuItem<int>(
+                    value: _toInt(d['department_id']),
+                    child: Text(d['name']?.toString() ?? ''),
+                  ))
+              .toList(),
+          onChanged: (v) => setState(() => selectedDeptForIndividuals = v),
         ),
         const SizedBox(height: 25),
 
@@ -261,7 +403,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
 
         const SizedBox(height: 25),
 
-        _buildFieldLabel("المستخدمون المطابقون (${selectedUsers.length})"),
+        _buildFieldLabel("المستخدمون المطابقون (${filtered.length}) — المحدد (${selectedUsers.length})"),
         Container(
           height: 240,
           decoration: BoxDecoration(
@@ -269,29 +411,37 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
           ),
-          child: ListView.builder(
-            shrinkWrap: true,
-            physics: const BouncingScrollPhysics(),
-            itemCount: 8,
-            itemBuilder: (context, index) {
-              final name = "مستخدم ${index + 1}";
-              bool isSelected = selectedUsers.contains(name);
-              return CheckboxListTile(
-                dense: true,
-                title: Text(name, style: TextStyle(color: textColor)),
-                subtitle: Text("القسم • التخصص", style: TextStyle(color: textColor.withValues(alpha: 0.7))),
-                value: isSelected,
-                activeColor: yellow,
-                checkColor: Colors.black,
-                onChanged: (val) {
-                  setState(() {
-                    if (val == true) selectedUsers.add(name);
-                    else selectedUsers.remove(name);
-                  });
-                },
-              );
-            },
-          ),
+          child: filtered.isEmpty
+              ? Center(
+                  child: Text('لا يوجد مستخدمون مطابقون', style: TextStyle(color: textColor.withValues(alpha: 0.6))),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final user = filtered[index];
+                    final int userId = _toInt(user['user_id']);
+                    final bool isSelected = selectedUsers.contains(userId);
+                    return CheckboxListTile(
+                      dense: true,
+                      title: Text(user['full_name']?.toString() ?? 'مستخدم', style: TextStyle(color: textColor)),
+                      subtitle: Text(
+                        "${user['department'] ?? ''} • ${user['role'] ?? ''}",
+                        style: TextStyle(color: textColor.withValues(alpha: 0.7)),
+                      ),
+                      value: isSelected,
+                      activeColor: yellow,
+                      checkColor: Colors.black,
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) selectedUsers.add(userId);
+                          else selectedUsers.remove(userId);
+                        });
+                      },
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -310,21 +460,22 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildFieldLabel("الموضوع"),
-          TextField(decoration: _inputDecoration("أدخل عنواناً واضحاً للرسالة...", isDark)),
+          TextField(
+            controller: subjectController,
+            decoration: _inputDecoration("أدخل عنواناً واضحاً للرسالة...", isDark),
+          ),
           const SizedBox(height: 20),
           _buildFieldLabel("نص الرسالة"),
           TextField(
+            controller: messageController,
             maxLines: 6,
             decoration: _inputDecoration("اكتب تفاصيل الرسالة الإدارية هنا...", isDark),
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              _buildAttachmentButton(Icons.attach_file, "ملف", isDark),
-              const SizedBox(width: 10),
-              _buildAttachmentButton(Icons.image_outlined, "صورة", isDark),
               const Spacer(),
-              const Text("0 حرف", style: TextStyle(color: Colors.grey, fontSize: 12)),
+              Text("${messageController.text.length} حرف", style: const TextStyle(color: Colors.grey, fontSize: 12)),
             ],
           ),
         ],
@@ -333,21 +484,32 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   Widget _buildSendButton(Color yellow) {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        color: yellow,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: yellow.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text("إرسال التعميم", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
-          SizedBox(width: 10),
-          Icon(Icons.send_rounded, color: Colors.black),
-        ],
+    return GestureDetector(
+      onTap: isSending ? null : _handleSend,
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          color: isSending ? yellow.withValues(alpha: 0.6) : yellow,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: yellow.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 5))],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: isSending
+              ? const [
+                  SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black),
+                  ),
+                ]
+              : const [
+                  Text("إرسال التعميم", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
+                  SizedBox(width: 10),
+                  Icon(Icons.send_rounded, color: Colors.black),
+                ],
+        ),
       ),
     );
   }
@@ -396,23 +558,6 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, right: 5),
       child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
-    );
-  }
-
-  Widget _buildAttachmentButton(IconData icon, String label, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Colors.grey),
-          const SizedBox(width: 5),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        ],
-      ),
     );
   }
 
