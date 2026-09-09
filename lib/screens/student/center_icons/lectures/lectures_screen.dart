@@ -592,8 +592,10 @@ class _SubjectCardState extends State<_SubjectCard> {
 
   Future<void> _openFile(String url) async {
     final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
-    if (kIsWeb) {
-      _launchURL(fixedUrl);
+    
+    // فتح الرابط مباشر بالمتصفح في حال الويب أو الويندوز لتجنب أخطاء قفل ملفات Adobe Acrobat
+    if (kIsWeb || (!kIsWeb && Platform.isWindows)) {
+      await _launchURL(fixedUrl);
       return;
     }
 
@@ -623,7 +625,6 @@ class _SubjectCardState extends State<_SubjectCard> {
         return;
       }
 
-      // إنشاء نسخة مؤقتة باسم فريد لتفادي قفل الملفات في Adobe Acrobat على ويندوز
       String openPath = savePath;
       try {
         final tempDir = await getTemporaryDirectory();
@@ -638,12 +639,12 @@ class _SubjectCardState extends State<_SubjectCard> {
 
       final result = await OpenFilex.open(openPath);
       if (result.type != ResultType.done && mounted) {
-        _launchURL(fixedUrl);
+        await _launchURL(fixedUrl);
       }
     } catch (e) {
       debugPrint('Error opening file: $e');
       if (mounted) {
-        _launchURL(fixedUrl);
+        await _launchURL(fixedUrl);
       }
     }
   }
@@ -841,44 +842,48 @@ class _SubjectCardState extends State<_SubjectCard> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: isDark ? Colors.white : Colors.black87),
-                      ),
-                    ),
-                    if (isHighlighted)
-                      Container(
-                        margin: const EdgeInsets.only(left: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFCC00),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Text(
-                          'المستهدفة',
+            child: GestureDetector(
+              onTap: onOpen,
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
                           style: TextStyle(
-                              fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black),
+                              fontSize: 13,
+                              color: isDark ? Colors.white : Colors.black87),
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(subtitle,
-                    style: TextStyle(
-                        color: isDark ? Colors.grey.shade500 : Colors.grey,
-                        fontSize: 11)),
-              ],
+                      if (isHighlighted)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFCC00),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'المستهدفة',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(subtitle,
+                      style: TextStyle(
+                          color: isDark ? Colors.grey.shade500 : Colors.grey,
+                          fontSize: 11)),
+                ],
+              ),
             ),
           ),
           if (!isFileType)
