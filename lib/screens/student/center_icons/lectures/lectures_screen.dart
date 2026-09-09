@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -590,6 +591,12 @@ class _SubjectCardState extends State<_SubjectCard> {
   }
 
   Future<void> _openFile(String url) async {
+    final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
+    if (kIsWeb) {
+      _launchURL(fixedUrl);
+      return;
+    }
+
     try {
       final savePath = await _getSavePath(url);
       final file = File(savePath);
@@ -616,26 +623,27 @@ class _SubjectCardState extends State<_SubjectCard> {
         return;
       }
 
-      final result = await OpenFilex.open(savePath);
+      // إنشاء نسخة مؤقتة باسم فريد لتفادي قفل الملفات في Adobe Acrobat على ويندوز
+      String openPath = savePath;
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final fileName = file.path.split(Platform.pathSeparator).last;
+        final uniqueFileName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
+        final tempViewFile = File('${tempDir.path}/$uniqueFileName');
+        await file.copy(tempViewFile.path);
+        openPath = tempViewFile.path;
+      } catch (e) {
+        debugPrint('⚠️ Failed to create temp view copy: $e');
+      }
+
+      final result = await OpenFilex.open(openPath);
       if (result.type != ResultType.done && mounted) {
-        if (result.message.contains('in use') || result.message.contains('already open')) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('⚠️ الملف مفتوح حالياً في تطبيق آخر (مثل Adobe Acrobat). يرجى إغلاق الملف قبل إعادة فتحه.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        } else {
-          final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
-          _launchURL(fixedUrl);
-        }
+        _launchURL(fixedUrl);
       }
     } catch (e) {
       debugPrint('Error opening file: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذّر فتح الملف، تأكد من وجود برنامج فتح PDF'), backgroundColor: Colors.red),
-        );
+        _launchURL(fixedUrl);
       }
     }
   }
