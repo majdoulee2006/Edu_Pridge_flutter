@@ -182,6 +182,21 @@ class ApiService {
 
     final base = baseHttpUrl;
 
+    String ensureStoragePrefix(String p) {
+      if (p.startsWith('api/file/')) return p;
+      if (!p.startsWith('storage/') && (
+          p.startsWith('lectures/') ||
+          p.startsWith('assignments/') ||
+          p.startsWith('uploads/') ||
+          p.startsWith('documents/') ||
+          p.startsWith('avatars/') ||
+          p.startsWith('excuses/')
+      )) {
+        return "storage/$p";
+      }
+      return p;
+    }
+
     // إذا كان الرابط كاملاً بالـ HTTP أو HTTPS
     if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
       try {
@@ -196,7 +211,8 @@ class ApiService {
 
         if (isLocalOrPrivate) {
           final pathWithQuery = uri.hasQuery ? "${uri.path}?${uri.query}" : uri.path;
-          final normalizedPath = pathWithQuery.startsWith('/') ? pathWithQuery.substring(1) : pathWithQuery;
+          var normalizedPath = pathWithQuery.startsWith('/') ? pathWithQuery.substring(1) : pathWithQuery;
+          normalizedPath = ensureStoragePrefix(normalizedPath);
           return "$base/$normalizedPath";
         }
       } catch (_) {}
@@ -204,6 +220,7 @@ class ApiService {
     }
 
     String path = cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl;
+    path = ensureStoragePrefix(path);
     return "$base/$path";
   }
 

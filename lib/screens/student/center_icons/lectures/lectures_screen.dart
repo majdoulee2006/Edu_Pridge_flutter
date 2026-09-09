@@ -426,12 +426,25 @@ class _SubjectCardState extends State<_SubjectCard> {
     Directory? dir;
     try { dir = await getDownloadsDirectory(); } catch (_) {}
     dir ??= await getApplicationDocumentsDirectory();
-    for (final file in widget.files) {
-      final url = file['url'] as String? ?? '';
+    for (final fileItem in widget.files) {
+      final url = fileItem['url'] as String? ?? '';
       if (url.isEmpty) continue;
       final fileName = Uri.parse(url).pathSegments.last;
-      final exists = File('${dir.path}/$fileName').existsSync();
-      if (exists && mounted) setState(() => _downloaded[url] = true);
+      final targetFile = File('${dir.path}/$fileName');
+
+      if (targetFile.existsSync()) {
+        try {
+          final bytes = await targetFile.readAsBytes();
+          final headerStr = String.fromCharCodes(bytes.take(100));
+          if (bytes.length < 50 || headerStr.contains('<!DOCTYPE') || headerStr.contains('<html') || headerStr.contains('404 Not Found')) {
+            await targetFile.delete();
+            if (mounted) setState(() => _downloaded[url] = false);
+            continue;
+          }
+        } catch (_) {}
+
+        if (mounted) setState(() => _downloaded[url] = true);
+      }
     }
   }
 
@@ -483,6 +496,7 @@ class _SubjectCardState extends State<_SubjectCard> {
     try {
       final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
       final savePath = await _getSavePath(url);
+      final tempPath = '$savePath.tmp';
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
@@ -503,20 +517,40 @@ class _SubjectCardState extends State<_SubjectCard> {
 
       for (final targetUrl in urlsToTry) {
         try {
-          await Dio().download(
+          final response = await Dio().download(
             targetUrl,
-            savePath,
+            tempPath,
             options: Options(
               headers: {'Authorization': 'Bearer $token'},
               connectTimeout: const Duration(seconds: 10),
               receiveTimeout: const Duration(seconds: 30),
             ),
           );
-          success = true;
-          break;
+
+          if (response.statusCode == 200) {
+            final tempFile = File(tempPath);
+            if (tempFile.existsSync() && tempFile.lengthSync() > 50) {
+              final bytes = await tempFile.readAsBytes();
+              final headerStr = String.fromCharCodes(bytes.take(100));
+              if (!headerStr.contains('<!DOCTYPE') && !headerStr.contains('<html') && !headerStr.contains('404 Not Found')) {
+                final mainFile = File(savePath);
+                if (mainFile.existsSync()) {
+                  try { await mainFile.delete(); } catch (_) {}
+                }
+                await tempFile.rename(savePath);
+                success = true;
+                break;
+              }
+            }
+          }
         } catch (e) {
           lastError = e.toString();
           debugPrint('⛔ Download attempt failed for $targetUrl: $e');
+        } finally {
+          final tempFile = File(tempPath);
+          if (tempFile.existsSync()) {
+            try { await tempFile.delete(); } catch (_) {}
+          }
         }
       }
 
@@ -558,16 +592,49 @@ class _SubjectCardState extends State<_SubjectCard> {
   Future<void> _openFile(String url) async {
     try {
       final savePath = await _getSavePath(url);
+      final file = File(savePath);
+
+      if (!file.existsSync()) {
+        await _download(url);
+        if (!file.existsSync()) return;
+      }
+
+      final bytes = await file.readAsBytes();
+      final headerStr = String.fromCharCodes(bytes.take(100));
+      if (bytes.length < 50 || headerStr.contains('<!DOCTYPE') || headerStr.contains('<html') || headerStr.contains('404 Not Found')) {
+        await file.delete();
+        if (mounted) {
+          setState(() => _downloaded[url] = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ الملف المحفوظ غير مكتمل، جارٍ إعادة التنزيل...'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        await _download(url);
+        return;
+      }
+
       final result = await OpenFilex.open(savePath);
       if (result.type != ResultType.done && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا يوجد تطبيق لفتح هذا النوع من الملفات')),
-        );
+        if (result.message.contains('in use') || result.message.contains('already open')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ الملف مفتوح حالياً في تطبيق آخر (مثل Adobe Acrobat). يرجى إغلاق الملف قبل إعادة فتحه.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        } else {
+          final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
+          _launchURL(fixedUrl);
+        }
       }
     } catch (e) {
+      debugPrint('Error opening file: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذّر فتح الملف'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('تعذّر فتح الملف، تأكد من وجود برنامج فتح PDF'), backgroundColor: Colors.red),
         );
       }
     }
