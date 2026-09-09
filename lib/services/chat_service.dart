@@ -147,8 +147,11 @@ class ChatService extends ChangeNotifier {
     // Fetch immediately
     fetchMessages(contactId, silent: true);
 
-    // Poll every 3 seconds for local institute server / offline fallback
-    _messagesPollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    // هذا الاستطلاع (polling) هو المسار الوحيد الفعّال حالياً لاستقبال الرسائل،
+    // لأن BROADCAST_CONNECTION على السيرفر لسا مضبوطة على "log" وليس "pusher"
+    // (Pusher نفسه موصول بشكل صحيح من جهة التوثيق ويشتغل تلقائياً فور ضبط
+    // بيانات اعتماد Pusher حقيقية بالسيرفر — دون أي تعديل إضافي بهذا الملف)
+    _messagesPollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (_activeContactId != null && _activeContactId == contactId) {
         fetchMessages(contactId, silent: true);
       }
@@ -353,6 +356,22 @@ class ChatService extends ChangeNotifier {
       await _pusher!.init(
         apiKey: PUSHER_APP_KEY,
         cluster: PUSHER_CLUSTER,
+        // نوثّق قنوات البث الخاصة (private-) بأنفسنا عبر توكن الدخول (Bearer)
+        // بدل الاعتماد على جلسة متصفح، لأن التطبيق موبايل وليس ويب
+        onAuthorizer: (channelName, socketId, options) async {
+          final token = await _getToken();
+          // نفس مسار /api لأن /api/broadcasting/auth هو المسجّل فعلياً
+          // ضمن مجموعة auth:sanctum بـ routes/api.php
+          final response = await Dio().post(
+            '${ApiService().baseUrl}/broadcasting/auth',
+            data: {'socket_id': socketId, 'channel_name': channelName},
+            options: Options(headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            }),
+          );
+          return response.data;
+        },
         onEvent: (event) {
           if (event.eventName == 'MessageSent' || event.eventName.contains('MessageSent')) {
             try {
@@ -399,8 +418,14 @@ class ChatService extends ChangeNotifier {
             }
           }
         },
+        onSubscriptionError: (message, error) {
+          debugPrint("📡 Pusher Subscription Error: $message | $error");
+        },
+        onError: (message, code, error) {
+          debugPrint("📡 Pusher Error [$code]: $message");
+        },
       );
-      
+
       await _pusher!.subscribe(channelName: 'private-chat.$userId');
       await _pusher!.connect();
     } catch (e) {
