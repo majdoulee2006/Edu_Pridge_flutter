@@ -219,47 +219,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             ),
                             const SizedBox(height: 15),
 
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel("السنة الدراسية", isDark ? Colors.white : Colors.black),
-                                      _buildDropdown(
-                                        hint: "اختر السنة",
-                                        value: modalYear,
-                                        items: formYears,
-                                        onChanged: (val) {
-                                          if (val != null) setModalState(() => modalYear = val);
-                                        },
-                                        isDark: isDark,
-                                        cardColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel("الفصل الدراسي", isDark ? Colors.white : Colors.black),
-                                      _buildDropdown(
-                                        hint: "اختر الفصل",
-                                        value: modalSemester,
-                                        items: formSemesters,
-                                        onChanged: (val) {
-                                          if (val != null) setModalState(() => modalSemester = val);
-                                        },
-                                        isDark: isDark,
-                                        cardColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+
                           ],
                         ),
                       ),
@@ -286,14 +246,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                   );
                                   dId = deptObj != null ? deptObj['department_id'] : null;
                                 }
-                                final yearVal = modalYear == "سنة اولى" ? "1" : "2";
-                                final semVal = modalSemester == "فصل أول" ? 1 : 2;
-
                                 final success = await AdminServices().createCourse({
                                   "title": titleController.text.trim(),
                                   "description": descriptionController.text.trim(),
-                                  "year": yearVal,
-                                  "semester_id": semVal,
                                   "department_id": dId,
                                 });
 

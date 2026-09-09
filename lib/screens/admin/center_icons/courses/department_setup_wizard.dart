@@ -223,8 +223,6 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       final success = await AdminServices().createCourse({
         'title': _courseTitleCtrl.text.trim(),
         'description': _courseDescCtrl.text.trim(),
-        'year': _courseYear,
-        'semester_id': _courseSemester,
         'department_id': widget.departmentId,
       });
 
@@ -699,45 +697,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
         const SizedBox(height: 8),
         _buildTextField(_courseDescCtrl, "وصف الدورة", isDark, maxLines: 2),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: _courseYear,
-                decoration: InputDecoration(
-                  labelText: "السنة",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                ),
-                items: const [
-                  DropdownMenuItem(value: "1", child: Text("سنة اولى", style: TextStyle(fontSize: 12))),
-                  DropdownMenuItem(value: "2", child: Text("سنة تانية", style: TextStyle(fontSize: 12))),
-                ],
-                onChanged: (v) {
-                  if (v != null) setState(() => _courseYear = v);
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: DropdownButtonFormField<int>(
-                value: _courseSemester,
-                decoration: InputDecoration(
-                  labelText: "الفصل",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 1, child: Text("فصل أول", style: TextStyle(fontSize: 12))),
-                  DropdownMenuItem(value: 2, child: Text("فصل ثاني", style: TextStyle(fontSize: 12))),
-                ],
-                onChanged: (v) {
-                  if (v != null) setState(() => _courseSemester = v);
-                },
-              ),
-            ),
-          ],
-        ),
+
         const SizedBox(height: 16),
 
         Row(
