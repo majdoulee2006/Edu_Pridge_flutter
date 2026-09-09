@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:convert';
 import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
@@ -56,7 +57,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       front,
       ResolutionPreset.high,
       enableAudio: false,
-      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+      imageFormatGroup: !kIsWeb && Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
     );
     await _cameraController!.initialize();
     if (!mounted) return;
@@ -502,7 +503,13 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                   child: SizedBox(
                     width: _cameraController!.value.previewSize?.height ?? 1,
                     height: _cameraController!.value.previewSize?.width ?? 1,
-                    child: CameraPreview(_cameraController!),
+                    child: kIsWeb && _cameraController!.description.lensDirection == CameraLensDirection.front
+                        ? Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+                            child: CameraPreview(_cameraController!),
+                          )
+                        : CameraPreview(_cameraController!),
                   ),
                 ),
               )
