@@ -109,12 +109,23 @@ class _LecturesScreenState extends State<LecturesScreen> {
   }
 
   Map<String, dynamic> _mapLesson(Map<String, dynamic> lesson) {
-    final type = lesson['type'] as String? ?? 'pdf';
+    final rawType = (lesson['file_type'] ?? lesson['type'] ?? '').toString().toLowerCase();
+    final url = (lesson['url'] ?? lesson['content_url'] ?? '').toString().toLowerCase();
     final title = lesson['title'] as String? ?? '';
     final date = lesson['date'] as String? ?? '';
     final fileSize = lesson['file_size'] as String?;
     final duration = lesson['duration'] as String?;
     final lessonId = lesson['id'] ?? lesson['lesson_id'];
+
+    String type = 'pdf';
+    if (rawType == 'image' || url.contains('.png') || url.contains('.jpg') || url.contains('.jpeg') || url.contains('.webp') || url.contains('.gif')) {
+      type = 'image';
+    } else if (rawType == 'video' || url.contains('.mp4') || url.contains('.mov') || url.contains('.avi') || url.contains('.mkv')) {
+      type = 'video';
+    } else if (rawType == 'link') {
+      type = 'link';
+    }
+
     String subtitle = date;
     if (fileSize != null && fileSize.isNotEmpty) {
       subtitle += ' • $fileSize';
@@ -123,6 +134,17 @@ class _LecturesScreenState extends State<LecturesScreen> {
     }
 
     return switch (type) {
+      'image' => {
+        'id': lessonId,
+        'title': title,
+        'subtitle': subtitle,
+        'type': 'image',
+        'url': lesson['url'],
+        'icon': Icons.image_outlined,
+        'actionIcon': Icons.open_in_new_rounded,
+        'color': const Color(0xFF9C27B0),
+        'bgColor': const Color(0xFFF3E5F5),
+      },
       'video' => {
         'id': lessonId,
         'title': title,
@@ -467,13 +489,22 @@ class _SubjectCardState extends State<_SubjectCard> {
     } catch (_) {}
     dir ??= await getApplicationDocumentsDirectory();
 
-    String rawName = 'lecture_file.pdf';
+    String rawName = 'file';
     try {
       final uri = Uri.parse(url);
       if (uri.pathSegments.isNotEmpty) {
         rawName = Uri.decodeComponent(uri.pathSegments.last);
       }
     } catch (_) {}
+
+    if (!rawName.contains('.')) {
+      final lowerUrl = url.toLowerCase();
+      if (lowerUrl.contains('.png')) rawName += '.png';
+      else if (lowerUrl.contains('.jpg') || lowerUrl.contains('.jpeg')) rawName += '.jpg';
+      else if (lowerUrl.contains('.webp')) rawName += '.webp';
+      else if (lowerUrl.contains('.mp4')) rawName += '.mp4';
+      else rawName += '.pdf';
+    }
 
     return '${dir.path}/$rawName';
   }
