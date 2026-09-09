@@ -282,7 +282,17 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                                     context: ctx,
                                     initialTime: selectedTime,
                                   );
-                                  if (pickedTime != null) setModalState(() => selectedTime = pickedTime);
+                                  if (pickedTime != null) {
+                                    if (pickedTime.hour > 15 || (pickedTime.hour == 15 && pickedTime.minute > 0)) {
+                                      if (ctx.mounted) {
+                                        ScaffoldMessenger.of(ctx).showSnackBar(
+                                          const SnackBar(content: Text('عذراً، يجب أن يكون وقت الإذن قبل انتهاء الدوام الرسمي (الساعة 3:00 عصراً)')),
+                                        );
+                                      }
+                                    } else {
+                                      setModalState(() => selectedTime = pickedTime);
+                                    }
+                                  }
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),

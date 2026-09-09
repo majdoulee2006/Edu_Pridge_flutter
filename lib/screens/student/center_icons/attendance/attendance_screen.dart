@@ -381,20 +381,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         final picked = await showTimePicker(
                             context: ctx, initialTime: now);
                         if (picked != null) {
-                          final today = DateTime.now();
-                          final selectedDate = dateCtrl.text.trim();
-                          final isToday = selectedDate ==
-                              "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
-                          if (isToday &&
-                              (picked.hour < now.hour ||
-                                  (picked.hour == now.hour && picked.minute <= now.minute))) {
+                          if (picked.hour > 15 || (picked.hour == 15 && picked.minute > 0)) {
                             if (ctx.mounted) {
                               ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(content: Text('لا يمكن طلب إجازة لوقت مضى — اختر وقتاً لاحقاً')),
+                                const SnackBar(content: Text('عذراً، يجب أن يكون وقت الإذن قبل انتهاء الدوام الرسمي (الساعة 3:00 عصراً)')),
                               );
                             }
                           } else {
-                            setSheet(() => timeCtrl.text = picked.format(ctx));
+                            final today = DateTime.now();
+                            final selectedDate = dateCtrl.text.trim();
+                            final isToday = selectedDate ==
+                                "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+                            if (isToday &&
+                                (picked.hour < now.hour ||
+                                    (picked.hour == now.hour && picked.minute <= now.minute))) {
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(content: Text('لا يمكن طلب إجازة لوقت مضى — اختر وقتاً لاحقاً')),
+                                );
+                              }
+                            } else {
+                              setSheet(() => timeCtrl.text = picked.format(ctx));
+                            }
                           }
                         }
                       }
