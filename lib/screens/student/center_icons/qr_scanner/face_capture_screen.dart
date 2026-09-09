@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'dart:convert';
 import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -33,6 +31,12 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   bool _isMirrored     = false;
   String _hint         = 'وجّه كاميرتك الأمامية نحو وجهك';
 
+  // ── فحص الحيوية (Liveness): نطلب رمشة عين حقيقية قبل قبول الصورة
+  // لمنع خداع النظام بصورة مطبوعة أو معروضة على شاشة أخرى
+  bool _sawEyesOpen   = false;
+  bool _sawEyesClosed = false;
+  bool _blinkConfirmed = false;
+
   Timer? _captureTimer;
 
   @override
@@ -41,10 +45,34 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         enableLandmarks: true,
+        enableClassification: true,
         performanceMode: FaceDetectorMode.accurate,
       ),
     );
     _checkAndInitializeFace();
+  }
+
+  void _resetBlinkState() {
+    _sawEyesOpen = false;
+    _sawEyesClosed = false;
+    _blinkConfirmed = false;
+  }
+
+  // يتحقق أن هناك رمشة عين فعلية (مفتوحة ثم مغلقة ثم مفتوحة) خلال الالتقاط
+  void _trackBlink(Face face) {
+    final double? left = face.leftEyeOpenProbability;
+    final double? right = face.rightEyeOpenProbability;
+    if (left == null || right == null) return; // الجهاز لا يدعم قياس العين، نتجاوز فحص الرمشة
+
+    final double avgOpen = (left + right) / 2;
+
+    if (!_sawEyesOpen && avgOpen > 0.6) {
+      _sawEyesOpen = true;
+    } else if (_sawEyesOpen && !_sawEyesClosed && avgOpen < 0.3) {
+      _sawEyesClosed = true;
+    } else if (_sawEyesOpen && _sawEyesClosed && avgOpen > 0.6) {
+      _blinkConfirmed = true;
+    }
   }
 
   Future<void> _initCamera() async {
@@ -184,15 +212,30 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
             _isCapturing = false;
           });
           _captureTimer?.cancel();
+          _resetBlinkState();
           return;
         }
 
         if (!_isFaceDetected) {
           setState(() {
             _isFaceDetected = true;
-            _hint = 'تم كشف وجهك ✅ — ابقَ ثابتاً...';
           });
         }
+
+        // فحص الحيوية: نطلب رمشة عين حقيقية قبل قبول الالتقاط لمنع خداع
+        // النظام بصورة مطبوعة أو معروضة على شاشة أخرى
+        _trackBlink(face);
+
+        if (!_blinkConfirmed) {
+          setState(() {
+            _hint = _sawEyesClosed
+                ? 'تم رصد الرمشة، افتح عينيك... ✅'
+                : 'ارمش بعينيك لإثبات أنك موجود فعلياً 👁️';
+          });
+          return;
+        }
+
+        setState(() => _hint = 'تم التحقق من حيويتك ✅ — ابقَ ثابتاً...');
 
         if (!_isCapturing) {
           _isCapturing = true;
@@ -207,67 +250,11 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
             _hint = 'لم يتم كشف وجهك، حاول مجدداً';
             _isCapturing = false;
           });
+          _resetBlinkState();
           _captureTimer?.cancel();
         }
       }
     } catch (_) {}
-  }
-
-  // مقارنة pixels الوجه بدقة 64×64 وتعديل الدوران لزيادة الدقة
-  Future<List<double>> _extractPixelEmbedding(Face face, String imagePath) async {
-    try {
-      final bytes = await File(imagePath).readAsBytes();
-      img.Image? image = img.decodeImage(bytes);
-      if (image == null) return [];
-
-      // تصحيح اتجاه الصورة من الـ EXIF
-      image = img.bakeOrientation(image);
-
-      final box = face.boundingBox;
-      final padX = (box.width * 0.2).toInt();
-      final padY = (box.height * 0.2).toInt();
-
-      final x = max(0, box.left.toInt() - padX);
-      final y = max(0, box.top.toInt() - padY);
-      final w = min(image.width - x, box.width.toInt() + padX * 2);
-      final h = min(image.height - y, box.height.toInt() + padY * 2);
-
-      if (w <= 0 || h <= 0) return [];
-
-      // قص منطقة الوجه
-      var cropped = img.copyCrop(image, x: x, y: y, width: w, height: h);
-
-      // تعديل زاوية دوران الوجه (Alignment/Roll Correction) لرفع الدقة
-      if (face.headEulerAngleZ != null && face.headEulerAngleZ != 0) {
-        cropped = img.copyRotate(cropped, angle: -face.headEulerAngleZ!);
-      }
-
-      // تصغير لـ 64×64 لزيادة ميزات التعرف
-      final resized = img.copyResize(cropped, width: 64, height: 64);
-      final gray    = img.grayscale(resized);
-
-      // استخراج قيم البكسلات (سيكون الطول الإجمالي 4096 قيمة)
-      final pixels = <double>[];
-      double sum = 0;
-      for (int py = 0; py < 64; py++) {
-        for (int px = 0; px < 64; px++) {
-          final val = gray.getPixel(px, py).r.toDouble();
-          pixels.add(val);
-          sum += val;
-        }
-      }
-
-      // تطبيع البيانات لإزالة أثر الإضاءة
-      final mean = sum / pixels.length;
-      double variance = 0;
-      for (final v in pixels) variance += (v - mean) * (v - mean);
-      final std = sqrt(variance / pixels.length).clamp(1.0, double.infinity);
-
-      return pixels.map((v) => (v - mean) / std).toList();
-    } catch (e) {
-      debugPrint('Pixel embedding error: $e');
-      return [];
-    }
   }
 
   Future<void> _captureAndSubmit(Face face, String imagePath) async {
@@ -417,7 +404,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                 Text(
                   'نسبة التطابق: ${score.toStringAsFixed(1)}%',
                   style: TextStyle(
-                    color: score >= 75 ? Colors.green : (score >= 50 ? Colors.orange : Colors.red),
+                    color: score >= 85 ? Colors.green : (score >= 70 ? Colors.orange : Colors.red),
                     fontWeight: FontWeight.bold,
                   ),
                 ),

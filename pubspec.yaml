@@ -69,6 +69,7 @@ dependencies:
   flutter_chat_types: ^3.6.2
   record: ^6.1.0
   audioplayers: ^6.1.0
+  tflite_flutter: ^0.12.1
 
 dev_dependencies:
   flutter_test:
@@ -98,6 +99,7 @@ flutter:
     - assets/images/logo.png
     - assets/fonts/Amiri-Regular.ttf
     - assets/fonts/Amiri-Bold.ttf
+    - assets/models/mobile_face_net.tflite
 
 
 
