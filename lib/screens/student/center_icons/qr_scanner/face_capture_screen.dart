@@ -30,6 +30,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   bool _isCapturing    = false;
   bool _isSubmitting   = false;
   bool _isInitializingReference = false;
+  bool _isMirrored     = false;
   String _hint         = 'وجّه كاميرتك الأمامية نحو وجهك';
 
   Timer? _captureTimer;
@@ -503,7 +504,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                   child: SizedBox(
                     width: _cameraController!.value.previewSize?.height ?? 1,
                     height: _cameraController!.value.previewSize?.width ?? 1,
-                    child: kIsWeb && _cameraController!.description.lensDirection == CameraLensDirection.front
+                    child: _isMirrored
                         ? Transform(
                             alignment: Alignment.center,
                             transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
@@ -529,6 +530,40 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                     width: 3,
                   ),
                   borderRadius: BorderRadius.circular(140),
+                ),
+              ),
+            ),
+
+            // زر عكس الكاميرا للمستخدم على الشاشة
+            Positioned(
+              top: 16,
+              left: 16,
+              child: SafeArea(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isMirrored = !_isMirrored;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.5)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.flip_camera_android, color: Color(0xFFFFCC00), size: 20),
+                        SizedBox(width: 6),
+                        Text(
+                          "عكس الكاميرا",
+                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
