@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
@@ -21,7 +21,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   String? selectedGender;
   final String selectedYear = 'أولى';
   DateTime? selectedBirthDate;
-  File? _profileImage;
+  Uint8List? _profileImageBytes;
 
   static const Color primaryYellow = Color(0xFFF6E300);
 
@@ -51,18 +51,18 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   int _selectedChildrenCount = 1;
   final List<TextEditingController> _parentChildIdControllers = [TextEditingController()];
 
-  // فتح الكاميرا لالتقاط صورة البروفايل
+  // فتح المعرض/الكاميرا لالتقاط صورة البروفايل (متوافق مع الويب والموبايل)
   Future<void> _pickProfilePhoto() async {
     final picker = ImagePicker();
     final XFile? photo = await picker.pickImage(
-      source: ImageSource.camera,
+      source: ImageSource.gallery,
       imageQuality: 85,
       maxWidth: 600,
       maxHeight: 600,
-      preferredCameraDevice: CameraDevice.front,
     );
     if (photo != null && mounted) {
-      setState(() => _profileImage = File(photo.path));
+      final bytes = await photo.readAsBytes();
+      setState(() => _profileImageBytes = bytes);
     }
   }
 
@@ -132,9 +132,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           "branch":            selectedBranch ?? '',
           "password":          _studentPasswordController.text,
           "role":              "student",
-          if (_profileImage != null)
-            "avatar": await MultipartFile.fromFile(
-              _profileImage!.path,
+          if (_profileImageBytes != null)
+            "avatar": MultipartFile.fromBytes(
+              _profileImageBytes!,
               filename: 'avatar.jpg',
             ),
         });
@@ -265,14 +265,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                               shape: BoxShape.circle,
                               color: isDark ? Colors.white12 : const Color(0xFFF0F0F0),
                               border: Border.all(color: primaryYellow, width: 3),
-                              image: _profileImage != null
+                              image: _profileImageBytes != null
                                   ? DecorationImage(
-                                      image: FileImage(_profileImage!),
+                                      image: MemoryImage(_profileImageBytes!),
                                       fit: BoxFit.cover,
                                     )
                                   : null,
                             ),
-                            child: _profileImage == null
+                            child: _profileImageBytes == null
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -368,7 +368,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   Widget _buildStudentForm(Color textColor, Color cardColor, bool isDark) {
-    final subColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
     return Column(
       children: [
         // الاسم الأول والأخير
