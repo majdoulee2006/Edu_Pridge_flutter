@@ -37,10 +37,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final storedName = prefs.getString('user_name') ?? prefs.getString('full_name') ?? 'هدى شبلي';
-      final storedCode = prefs.getString('student_code') ?? prefs.getString('university_id') ?? '2026100';
-      final storedPhone = prefs.getString('phone') ?? '0986387552';
-      final storedEmail = prefs.getString('email') ?? 'hudashbli8@gmail.com';
+      final storedName = prefs.getString('user_name') ?? prefs.getString('full_name') ?? 'طالب';
+      final storedCode = prefs.getString('student_code') ?? prefs.getString('university_id') ?? '';
+      final storedPhone = prefs.getString('user_phone') ?? prefs.getString('phone') ?? '';
+      final storedEmail = prefs.getString('email') ?? '';
 
       final data = await StudentServices().getProfileData();
       if (data != null && mounted) {
@@ -53,11 +53,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'username': storedCode,
             'phone': storedPhone,
             'email': storedEmail,
-            'department': 'قسم تكنولوجيا المعلومات والبرمجيات',
+            'department': 'تكنولوجيا المعلومات والبرمجيات',
             'academic_year': 'السنة الثانية',
-            'semester': 'الفصل الدراسي الأول (2025/2026)',
-            'birth_date': '2003-05-15',
-            'gender': 'أنثى',
+            'semester': 'الفصل الدراسي الأول',
+            'birth_date': '2006-01-01',
+            'gender': 'ذكر',
           };
           _isLoading = false;
         });
@@ -65,21 +65,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       debugPrint("خطأ في جلب بيانات البروفايل: $e");
       final prefs = await SharedPreferences.getInstance();
-      final storedName = prefs.getString('user_name') ?? prefs.getString('full_name') ?? 'هدى شبلي';
-      final storedCode = prefs.getString('student_code') ?? prefs.getString('university_id') ?? '2026100';
+      final storedName = prefs.getString('user_name') ?? prefs.getString('full_name') ?? 'طالب';
+      final storedCode = prefs.getString('student_code') ?? prefs.getString('university_id') ?? '';
+      final storedPhone = prefs.getString('user_phone') ?? prefs.getString('phone') ?? '';
+      final storedEmail = prefs.getString('email') ?? '';
       if (mounted) {
         setState(() {
           userData = {
             'name': storedName,
             'student_code': storedCode,
             'username': storedCode,
-            'phone': '0986387552',
-            'email': 'hudashbli8@gmail.com',
-            'department': 'قسم تكنولوجيا المعلومات والبرمجيات',
+            'phone': storedPhone,
+            'email': storedEmail,
+            'department': 'تكنولوجيا المعلومات والبرمجيات',
             'academic_year': 'السنة الثانية',
-            'semester': 'الفصل الدراسي الأول (2025/2026)',
-            'birth_date': '2003-05-15',
-            'gender': 'أنثى',
+            'semester': 'الفصل الدراسي الأول',
+            'birth_date': '2006-01-01',
+            'gender': 'ذكر',
           };
           _isLoading = false;
         });

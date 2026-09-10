@@ -198,6 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
+    await ApiService.init();
 
     try {
       Dio dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 4), receiveTimeout: const Duration(seconds: 4)));
@@ -260,6 +261,9 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('role', role);
         final phone = userData['phone']?.toString() ?? '';
         if (phone.isNotEmpty) await prefs.setString('user_phone', phone);
+
+        final email = userData['email']?.toString() ?? '';
+        if (email.isNotEmpty) await prefs.setString('email', email);
 
         final telegramChatId = userData['telegram_chat_id']?.toString() ?? '';
         if (telegramChatId.isNotEmpty) await prefs.setString('telegram_chat_id', telegramChatId);

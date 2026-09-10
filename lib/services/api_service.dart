@@ -8,7 +8,7 @@ class ApiService {
   // ==========================================
   // 🌟 اكتشاف السيرفر تلقائياً على الشبكة المحلية
   // ==========================================
-  static String _serverIp = 'http://82.137.250.43:8080/edu_bridge/public'; // Public Server Link
+  static String _serverIp = '10.102.114.209';
   static const String _port = '8001';
   static bool _isDiscovering = false;
 
@@ -20,22 +20,12 @@ class ApiService {
     await prefs.setString('server_ip', ip);
   }
 
-  // تهيئة الإعدادات وتحميل آخر آي بي تم اكتشافه، ثم بدء البحث التلقائي
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedIp = prefs.getString('server_ip');
-      if (savedIp != null && savedIp.isNotEmpty) {
-        _serverIp = savedIp;
-        // إذا كان رابط سيرفر خارجي (Domain أو IP خارجي)، نعتمده مباشرة دون تغيير
-        if (savedIp.startsWith('http://') || savedIp.startsWith('https://') || (!savedIp.startsWith('192.168.') && !savedIp.startsWith('10.') && !savedIp.startsWith('172.') && savedIp != '127.0.0.1')) {
-          debugPrint("📡 ApiService initialized with remote server URL: $_serverIp");
-          return;
-        }
-      }
 
       // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1)
-      final usb = await _tryConnect('127.0.0.1');
+      final usb = await _tryConnect('127.0.0.1', timeoutMs: 1000);
       if (usb != null) {
         _serverIp = '127.0.0.1';
         await prefs.setString('server_ip', '127.0.0.1');
@@ -43,30 +33,41 @@ class ApiService {
         return;
       }
 
-      // 2. فحص آي بي الكمبيوتر المباشر على الواي فاي (192.168.1.100)
-      final wifiCurrent = await _tryConnect('192.168.1.100');
-      if (wifiCurrent != null) {
-        _serverIp = '192.168.1.100';
-        await prefs.setString('server_ip', '192.168.1.100');
-        debugPrint("🎯 ApiService initialized instantly via 192.168.1.100:8001");
+      // 2. فحص آي بي الكمبيوتر المباشر الحالي على الشبكة (10.102.114.209)
+      final currentNetworkIp = await _tryConnect('10.102.114.209', timeoutMs: 1000);
+      if (currentNetworkIp != null) {
+        _serverIp = '10.102.114.209';
+        await prefs.setString('server_ip', '10.102.114.209');
+        debugPrint("🎯 ApiService initialized instantly via 10.102.114.209:8001");
         return;
       }
 
-      final wifiHotspot = await _tryConnect('172.20.10.3');
-      if (wifiHotspot != null) {
-        _serverIp = '172.20.10.3';
-        await prefs.setString('server_ip', '172.20.10.3');
-        debugPrint("🎯 ApiService initialized instantly via 172.20.10.3:8001");
+      final oldIp = await _tryConnect('10.255.180.50', timeoutMs: 800);
+      if (oldIp != null) {
+        _serverIp = '10.255.180.50';
+        await prefs.setString('server_ip', '10.255.180.50');
+        debugPrint("🎯 ApiService initialized via 10.255.180.50:8001");
         return;
       }
 
-      _serverIp = savedIp ?? 'http://82.137.250.43:8080/edu_bridge/public';
-      debugPrint("📡 ApiService initialized. Last known IP: $_serverIp");
-      
+      final wifiFallback = await _tryConnect('192.168.55.205', timeoutMs: 600);
+      if (wifiFallback != null) {
+        _serverIp = '192.168.55.205';
+        await prefs.setString('server_ip', '192.168.55.205');
+        debugPrint("🎯 ApiService initialized instantly via 192.168.55.205:8001");
+        return;
+      }
+
+      // 3. افتراض المضيف المحلي 127.0.0.1 لكابل الـ USB
+      _serverIp = '127.0.0.1';
+      await prefs.setString('server_ip', '127.0.0.1');
+      debugPrint("📡 ApiService fallback to USB loopback: 127.0.0.1");
+
       // بدء الاكتشاف التلقائي في الخلفية
       autoDiscoverServer();
     } catch (e) {
       debugPrint("🚨 Error initializing ApiService: $e");
+      _serverIp = '127.0.0.1';
     }
   }
 
@@ -98,7 +99,7 @@ class ApiService {
     
     try {
       // 1. تجربة الآيبيهات المعروفة بسرعة أولاً
-      final knownIps = ['192.168.1.100', '172.20.10.3', '127.0.0.1', '192.168.1.101', '192.168.1.109', '192.168.1.103', '192.168.21.53', '192.168.21.75', '192.168.137.1', '192.168.137.242', '10.0.2.2', '10.63.70.164', '192.168.137.66'];
+      final knownIps = ['10.255.180.50', '10.255.180.52', '127.0.0.1', '192.168.55.205', '192.168.1.114', '192.168.1.100', '172.20.10.3', '192.168.1.101', '192.168.1.109', '192.168.1.103', '192.168.21.53', '192.168.21.75', '192.168.137.1', '192.168.137.242', '10.0.2.2', '10.63.70.164', '192.168.137.66'];
       for (final ip in knownIps) {
         final res = await _tryConnect(ip);
         if (res != null) {
@@ -134,13 +135,13 @@ class ApiService {
           }
         }
       }
-      _serverIp = '127.0.0.1';
+      _serverIp = '192.168.55.205';
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('server_ip', '127.0.0.1');
-      debugPrint("⚠️ Auto-discovery completed: Server not found. Resetting fallback to 127.0.0.1");
+      await prefs.setString('server_ip', '192.168.55.205');
+      debugPrint("⚠️ Auto-discovery completed: Using 192.168.55.205");
     } catch (e) {
       debugPrint("🚨 Error during auto-discovery: $e");
-      _serverIp = '127.0.0.1';
+      _serverIp = '192.168.55.205';
     }
     _isDiscovering = false;
   }
@@ -162,10 +163,9 @@ class ApiService {
     return null;
   }
 
-  static Future<String?> _tryConnect(String ip) async {
+  static Future<String?> _tryConnect(String ip, {int timeoutMs = 400}) async {
     try {
-      // محاولة فتح اتصال TCP سريع على منفذ السيرفر بمهلة زمنية مناسبة (1.5 ثانية)
-      final socket = await Socket.connect(ip, int.parse(_port), timeout: const Duration(milliseconds: 1500));
+      final socket = await Socket.connect(ip, int.parse(_port), timeout: Duration(milliseconds: timeoutMs));
       socket.destroy();
       return ip;
     } catch (_) {

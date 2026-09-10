@@ -69,6 +69,31 @@ class ParentService {
     return false;
   }
 
+  // 2️⃣.5️⃣ دالة إزالة/فك ربط ابن
+  Future<bool> unlinkChild(int studentId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+
+      if (token.isEmpty) return false;
+
+      final response = await _dio.post(
+        "$baseUrl/parent/children/$studentId/unlink",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['success'] == true;
+      }
+    } catch (e) {
+      debugPrint("خطأ في فك ربط الابن: $e");
+    }
+    return false;
+  }
+
   // 3️⃣ طلب موعد جديد من الإدارة أو رئيس القسم
   Future<bool> requestMeeting({
     required String subject,

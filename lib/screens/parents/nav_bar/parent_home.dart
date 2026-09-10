@@ -10,6 +10,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/parent_services.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 
@@ -88,11 +89,15 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return [];
+
       final parentId = prefs.getString('parent_id') ?? '';
-      if (token.isEmpty || parentId.isEmpty) return [];
+      final url = parentId.isNotEmpty
+          ? "${ApiService().baseUrl}/parent/children/$parentId"
+          : "${ApiService().baseUrl}/parent/children";
 
       final res = await Dio().get(
-        "${ApiService().baseUrl}/parent/children/$parentId",
+        url,
         options: Options(headers: {
           "Accept": "application/json",
           "Authorization": "Bearer $token",
@@ -100,7 +105,16 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
       );
 
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return res.data['data'] as List<dynamic>? ?? [];
+        final list = res.data['data'] as List<dynamic>? ?? [];
+        if (list.isNotEmpty && prefs.getInt('selected_student_id') == null) {
+          final firstStudentId = (list.first['student_id'] as num?)?.toInt() ?? (list.first['id'] as num?)?.toInt();
+          final firstStudentName = list.first['full_name'] ?? list.first['name'];
+          if (firstStudentId != null) {
+            await prefs.setInt('selected_student_id', firstStudentId);
+            if (firstStudentName != null) await prefs.setString('selected_student_name', firstStudentName.toString());
+          }
+        }
+        return list;
       }
     } catch (e) {
       debugPrint("⚠️ خطأ في جلب الأبناء: $e");
@@ -179,6 +193,42 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
               }
             },
             child: const Text("إضافة"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmUnlinkStudent(int studentId, String studentName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("إلغاء ربط الابن", textAlign: TextAlign.right),
+        content: Text("هل أنت تأكد من إلغاء ربط ($studentName) من قائمة أبنائك؟", textAlign: TextAlign.right),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("إلغاء"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await ParentService().unlinkChild(studentId);
+              if (mounted) {
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("✅ تم إلغاء ربط $studentName بنجاح")),
+                  );
+                  _refreshChildren();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("⚠️ فشل إلغاء الربط")),
+                  );
+                }
+              }
+            },
+            child: const Text("إلغاء الربط", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -304,6 +354,29 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                                                 child: Icon(Icons.check, size: 16, color: Colors.black),
                                               ),
                                             ),
+                                          Positioned(
+                                            top: 16,
+                                            left: 16,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                final sId = child['student_id'] ?? child['id'];
+                                                if (sId != null) {
+                                                  _confirmUnlinkStudent(
+                                                    int.parse(sId.toString()),
+                                                    child['full_name'] ?? child['name'] ?? '',
+                                                  );
+                                                }
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red.withValues(alpha: 0.85),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                              ),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     );

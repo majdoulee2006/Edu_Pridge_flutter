@@ -305,7 +305,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                color: isDark ? Theme.of(context).cardColor : Colors.white,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
               ),
               child: Column(
@@ -313,12 +313,24 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: Container(width: 40, height: 4,
-                        decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2))),
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
-                  const Text('طلب إجازة جديد',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    'طلب إجازة جديد',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   // نوع الإجازة
                   Container(
@@ -364,6 +376,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   TextField(
                     controller: sheetLeaveType == 0 ? dateCtrl : timeCtrl,
                     readOnly: true,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     onTap: () async {
                       if (sheetLeaveType == 0) {
                         final picked = await showDatePicker(
@@ -401,9 +414,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     },
                     decoration: InputDecoration(
                       hintText: sheetLeaveType == 0 ? 'اختر التاريخ...' : 'اختر الوقت...',
+                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
                       suffixIcon: Icon(sheetLeaveType == 0
                           ? Icons.calendar_today_outlined
-                          : Icons.access_time_outlined, size: 20),
+                          : Icons.access_time_outlined, size: 20, color: isDark ? Colors.white70 : Colors.black54),
                       filled: true,
                       fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -414,8 +428,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   TextField(
                     controller: reasonCtrl,
                     maxLines: 3,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
                       hintText: 'سبب الإجازة...',
+                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
                       filled: true,
                       fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
