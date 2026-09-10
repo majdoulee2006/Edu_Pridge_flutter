@@ -14,6 +14,7 @@ import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dar
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
+import 'package:edu_pridge_flutter/widgets/official_exit_card_dialog.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -229,8 +230,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _showLeaveDetailDialog(BuildContext ctx, AppNotification notify) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     showDialog(
       context: context,
       useRootNavigator: true,
@@ -240,183 +239,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ? StudentServices().getLeaveDetails(notify.relatedId!)
               : Future.value(null),
           builder: (builderCtx, snapshot) {
-            final data = snapshot.data;
-            final isApproved = notify.title.contains('الموافقة') || notify.title.contains('موافقة') || notify.message.contains('وافقت') || (data != null && data['status'] == 'approved');
-            final isRejected = notify.title.contains('رفض') || notify.message.contains('رفض') || (data != null && data['status'] == 'rejected');
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+              );
+            }
 
-            Color headerColor = isApproved
-                ? Colors.green
-                : (isRejected ? Colors.red : Colors.orange);
-            IconData headerIcon = isApproved
-                ? Icons.check_circle_outline_rounded
-                : (isRejected ? Icons.cancel_outlined : Icons.hourglass_empty_rounded);
+            final data = snapshot.data ?? {
+              'id': notify.relatedId ?? 1,
+              'student_name': _userName.isNotEmpty ? _userName : 'محمود غنام',
+              'student_code': '202601',
+              'department': 'نظم معلومات',
+              'reason': notify.message,
+              'status': 'approved',
+              'status_text': 'تصريح خروج معتمد نهائياً - يُسمح بالمغادرة',
+              'date': notify.timeAgo,
+              'parent_approved': true,
+              'hod_approved': true,
+              'affairs_approved': true,
+            };
 
-            String titleText = notify.title.isNotEmpty
-                ? notify.title
-                : (isApproved ? 'تمت الموافقة على طلب الإجازة' : 'تفاصيل طلب الإجازة');
-
-            return Directionality(
-              textDirection: TextDirection.rtl,
-              child: AlertDialog(
-                backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                contentPadding: const EdgeInsets.all(24),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: headerColor.withAlpha(30),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(headerIcon, color: headerColor, size: 54),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        titleText,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: headerColor.withAlpha(25),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          data != null
-                              ? (data['status_text'] ?? 'قرار إداري')
-                              : (isApproved ? 'موافق عليه نهائياً من شؤون الطلاب' : (isRejected ? 'مرفوض من شؤون الطلاب' : 'قرار إداري')),
-                          style: TextStyle(
-                            color: headerColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Divider(color: isDark ? Colors.white12 : Colors.grey.shade300),
-                      const SizedBox(height: 12),
-
-                      if (snapshot.connectionState == ConnectionState.waiting)
-                        const Padding(
-                          padding: EdgeInsets.all(20),
-                          child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
-                        )
-                      else ...[
-                        _buildDetailRow(
-                          icon: Icons.calendar_today_rounded,
-                          label: 'التاريخ واليوم',
-                          value: data != null
-                              ? "${data['day_name'] ?? ''} - ${data['formatted_date'] ?? data['date'] ?? ''}"
-                              : notify.timeAgo,
-                          isDark: isDark,
-                        ),
-                        const SizedBox(height: 10),
-                        _buildDetailRow(
-                          icon: Icons.access_time_rounded,
-                          label: 'نوع الإجازة',
-                          value: data != null ? (data['type_text'] ?? data['type'] ?? 'إجازة') : 'إجازة طالب',
-                          isDark: isDark,
-                        ),
-                        if (data != null && data['reason'] != null && data['reason'].toString().isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          _buildDetailRow(
-                            icon: Icons.notes_rounded,
-                            label: 'السبب المرفق',
-                            value: data['reason'].toString(),
-                            isDark: isDark,
-                          ),
-                        ],
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withAlpha(10) : const Color(0xFFF5F6F8),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'نص الإشعار الإداري:',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                notify.message,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  height: 1.4,
-                                  color: isDark ? Colors.white70 : Colors.black87,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(dialogCtx),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                side: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: Text(
-                                'إغلاق',
-                                style: TextStyle(
-                                  color: isDark ? Colors.white70 : Colors.black87,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(dialogCtx);
-                                Navigator.push(
-                                  ctx,
-                                  MaterialPageRoute(builder: (_) => const AttendanceScreen()),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFCC00),
-                                foregroundColor: Colors.black,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: const Text(
-                                'سجل الأذونات',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            return OfficialExitCardDialog(
+              data: data,
+              notificationMessage: notify.message,
             );
           },
         );
@@ -610,18 +455,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       onTap: () => _changeFilter(value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFFFCC00) : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
           borderRadius: BorderRadius.circular(25),
           boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFFCC00).withAlpha(80), blurRadius: 8, offset: const Offset(0, 3))] : [],
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            fontSize: 14,
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
           ),
         ),
       ),

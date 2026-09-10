@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_service.dart';
+import 'screens/splash_screen.dart';
 import 'screens/onboarding/onboarding_one.dart';
 import 'screens/student/nav_bar/student_home_screen.dart';
 import 'screens/teacher/teacher_home.dart';
@@ -20,39 +21,37 @@ final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await ApiService.init(); // 🌟 كشف السيرفر تلقائياً عند التشغيل
-  if (kIsWeb) {
-    try {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "AIzaSyAgT4rvWSyvaDbHujMmZTDDUZn2xMnts5M",
-          authDomain: "edu-bridge-246fd.firebaseapp.com",
-          projectId: "edu-bridge-246fd",
-          storageBucket: "edu-bridge-246fd.firebasestorage.app",
-          messagingSenderId: "1087208747554",
-          appId: "1:1087208747554:web:ab689779c18d1872f9107b",
-          measurementId: "G-7NNSYEDPYB",
-        ),
-      );
-      await FcmService.initWeb();
-    } catch (e) {
-      debugPrint("Firebase Web init error: $e");
-    }
-  } else {
-    try {
-      await Firebase.initializeApp();
-      await FcmService.init();
-    } catch (e) {
-      debugPrint("Firebase Native init error: $e");
-    }
-  }
   await AppSettings.loadFromPrefs();
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => ChatService(),
       child: const EduBridgeApp(),
     ),
   );
+
+  // Run initializations in background without hanging UI/Splash screen
+  ApiService.init().catchError((e) => debugPrint("ApiService init error: $e"));
+
+  if (kIsWeb) {
+    Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyAgT4rvWSyvaDbHujMmZTDDUZn2xMnts5M",
+        authDomain: "edu-bridge-246fd.firebaseapp.com",
+        projectId: "edu-bridge-246fd",
+        storageBucket: "edu-bridge-246fd.firebasestorage.app",
+        messagingSenderId: "1087208747554",
+        appId: "1:1087208747554:web:ab689779c18d1872f9107b",
+        measurementId: "G-7NNSYEDPYB",
+      ),
+    ).then((_) {
+      FcmService.initWeb().catchError((e) => debugPrint("Firebase Web init error: $e"));
+    }).catchError((e) => debugPrint("Firebase Web init error: $e"));
+  } else {
+    Firebase.initializeApp().then((_) {
+      FcmService.init().catchError((e) => debugPrint("Firebase Native init error: $e"));
+    }).catchError((e) => debugPrint("Firebase Native init error: $e"));
+  }
 }
 
 class _AppRouter extends StatefulWidget {
@@ -174,7 +173,7 @@ class EduBridgeApp extends StatelessWidget {
                           child: child!,
                         );
                       },
-                      home: const _AppRouter(),
+                      home: const SplashScreen(),
                     );
                   },
                 );

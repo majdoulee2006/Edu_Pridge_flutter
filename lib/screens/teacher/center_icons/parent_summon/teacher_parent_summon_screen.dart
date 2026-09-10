@@ -375,16 +375,17 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
           ],
         ),
         floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 50.0),
-          child: FloatingActionButton.extended(
+          padding: const EdgeInsets.only(bottom: 75.0),
+          child: FloatingActionButton(
+            heroTag: 'add_parent_summon_fab',
             backgroundColor: const Color(0xFFFFCC00),
             foregroundColor: Colors.black,
+            elevation: 4,
             onPressed: _showNewSummonModal,
-            icon: const Icon(Icons.add, color: Colors.black),
-            label: const Text("طلب استدعاء جديد", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: const Icon(Icons.add, color: Colors.black, size: 28),
           ),
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       ),
     );
   }

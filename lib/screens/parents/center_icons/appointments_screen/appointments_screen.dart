@@ -404,36 +404,83 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     return _myRequests.where((r) => (r['status'] ?? '').toString() != 'pending').toList();
   }
 
+  Widget _buildFilterChip(String label, String value, bool isDark) {
+    final isSelected = _myReqFilterStatus == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _myReqFilterStatus = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFFFFCC00)
+                : (isDark ? Colors.white.withAlpha(18) : Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFFCC00).withAlpha(80),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : [],
+          ),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.black
+                      : (isDark ? Colors.white70 : Colors.black87),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMyRequestsTab(bool isDark) {
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
+          decoration: BoxDecoration(
+            color: isDark ? Theme.of(context).cardColor : Colors.white,
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? Colors.white10 : Colors.grey.shade200,
+                width: 1,
+              ),
+            ),
+          ),
           child: Row(
             children: [
-              const Text("التصفية:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(
+                "التصفية:",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
               const SizedBox(width: 10),
-              ChoiceChip(
-                label: const Text("الكل"),
-                selected: _myReqFilterStatus == 'all',
-                selectedColor: const Color(0xFFFFCC00),
-                onSelected: (_) => setState(() => _myReqFilterStatus = 'all'),
-              ),
+              _buildFilterChip("الكل", "all", isDark),
               const SizedBox(width: 6),
-              ChoiceChip(
-                label: const Text("المعلقة"),
-                selected: _myReqFilterStatus == 'pending',
-                selectedColor: const Color(0xFFFFCC00),
-                onSelected: (_) => setState(() => _myReqFilterStatus = 'pending'),
-              ),
+              _buildFilterChip("المعلقة", "pending", isDark),
               const SizedBox(width: 6),
-              ChoiceChip(
-                label: const Text("المكتملة/المعالجة"),
-                selected: _myReqFilterStatus == 'completed',
-                selectedColor: const Color(0xFFFFCC00),
-                onSelected: (_) => setState(() => _myReqFilterStatus = 'completed'),
-              ),
+              _buildFilterChip("المكتملة/المعالجة", "completed", isDark),
             ],
           ),
         ),

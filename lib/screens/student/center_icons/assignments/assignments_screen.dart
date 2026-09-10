@@ -955,6 +955,41 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               ),
             ),
             
+            // كرت ملف المعلم المرفق (يظهر مرة واحدة فقط)
+            if (widget.teacherFilePath != null) ...[
+              const SizedBox(height: 15),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.blue.withAlpha(20) : Colors.blue.withAlpha(10),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.blue.withAlpha(40)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.menu_book_rounded, color: Colors.blue, size: 20),
+                        const SizedBox(width: 8),
+                        Text('ملف الواجب المرفق من المعلم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _FileButton(
+                      label: widget.teacherFileName ?? 'ملف الواجب',
+                      sublabel: 'اضغط لفتح وتحميل ملف المعلم المرفق',
+                      color: Colors.blue,
+                      icon: Icons.menu_book_rounded,
+                      url: widget.teacherFilePath!,
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            
             // كرت ملاحظات المعلم (إن وجدت)
             if (widget.notes.isNotEmpty) ...[
               const SizedBox(height: 15),
@@ -1038,7 +1073,7 @@ class _AssignmentCardState extends State<_AssignmentCard> {
           ],
 
           // كرت ملفات وتفاصيل الحل المرسل
-          if (isExpanded && (widget.teacherFilePath != null || widget.submissionFilePath != null || (widget.submissionSolutionText != null && widget.submissionSolutionText!.isNotEmpty) || (widget.submissionStudentNotes != null && widget.submissionStudentNotes!.isNotEmpty))) ...[
+          if (isExpanded && (widget.submissionFilePath != null || (widget.submissionSolutionText != null && widget.submissionSolutionText!.isNotEmpty) || (widget.submissionStudentNotes != null && widget.submissionStudentNotes!.isNotEmpty))) ...[
             const SizedBox(height: 15),
             Container(
               width: double.infinity,
@@ -1059,20 +1094,6 @@ class _AssignmentCardState extends State<_AssignmentCard> {
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  // ملف المعلم
-                  if (widget.teacherFilePath != null) ...[
-                    _FileButton(
-                      label: widget.teacherFileName ?? 'ملف الواجب',
-                      sublabel: 'ملف المعلم المرفق',
-                      color: Colors.blue,
-                      icon: Icons.menu_book_rounded,
-                      url: widget.teacherFilePath!,
-                      isDark: isDark,
-                    ),
-                    if (widget.submissionFilePath != null || (widget.submissionSolutionText != null && widget.submissionSolutionText!.isNotEmpty) || (widget.submissionStudentNotes != null && widget.submissionStudentNotes!.isNotEmpty))
-                      const SizedBox(height: 10),
-                  ],
 
                   // ملف الطالب المُرسَل
                   if (widget.submissionFilePath != null) ...[
@@ -1166,28 +1187,6 @@ class _AssignmentCardState extends State<_AssignmentCard> {
               child: Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
             ),
 
-            // ملف المعلم — يظهر دائماً إذا موجود
-            if (widget.teacherFilePath != null) ...[
-              Row(
-                children: [
-                  Container(width: 4, height: 18, decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(2))),
-                  const SizedBox(width: 8),
-                  Text('ملف الواجب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _FileButton(
-                label: widget.teacherFileName ?? 'ملف الواجب',
-                sublabel: 'اضغط لفتح ملف المعلم',
-                color: Colors.blue,
-                icon: Icons.menu_book_rounded,
-                url: widget.teacherFilePath!,
-                isDark: isDark,
-              ),
-              const SizedBox(height: 15),
-              Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, thickness: 1),
-              const SizedBox(height: 10),
-            ],
             if (_pickedFile != null)
               Container(
                 width: double.infinity,

@@ -23,13 +23,19 @@ class AppSettings {
     language.value               = prefs.getString('language')            ?? 'ar';
     isSoundsEnabled.value        = prefs.getBool('sounds_enabled')        ?? true;
     isVibrationEnabled.value     = prefs.getBool('vibration_enabled')     ?? false;
-    isNotificationsEnabled.value = prefs.getBool('notifications_enabled') ?? true;
-    await syncSystemThemeFromApi();
+    // Fire network sync asynchronously without blocking app launch
+    syncSystemThemeFromApi().catchError((e) => debugPrint("syncSystemThemeFromApi error: $e"));
   }
 
   static Future<void> syncSystemThemeFromApi() async {
     try {
-      final res = await Dio().get('${ApiService().baseUrl}/system/settings');
+      final res = await Dio().get(
+        '${ApiService().baseUrl}/system/settings',
+        options: Options(
+          connectTimeout: const Duration(milliseconds: 1000),
+          receiveTimeout: const Duration(milliseconds: 1000),
+        ),
+      );
       if (res.data != null && res.data['success'] == true) {
         final data = res.data['data'];
         if (data != null && data['primary_color'] != null) {

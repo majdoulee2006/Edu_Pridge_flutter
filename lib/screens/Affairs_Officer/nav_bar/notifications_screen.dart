@@ -306,7 +306,7 @@ class _AffairsOfficerNotificationsScreenState
                                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00)))
                                   : TextButton(
                                       onPressed: _markAllAsRead,
-                                      child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                                      child: Text('تمييز الكل كمقروء', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
                                     )
                             else
                                 IconButton(

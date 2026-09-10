@@ -6,6 +6,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:gal/gal.dart';
+import 'package:printing/printing.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/student_speed_dial.dart';
@@ -126,18 +131,41 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     try {
       final url = await StudentServices().getExportUrl(type);
       if (url != null && url.isNotEmpty) {
-        if (await canLaunchUrl(Uri.parse(url))) {
-          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        } else {
-          throw 'لا يمكن فتح الرابط';
-        }
+        final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
+        
+        Directory? dir;
+        try { dir = await getDownloadsDirectory(); } catch (_) {}
+        dir ??= await getApplicationDocumentsDirectory();
+        
+        final savePath = '${dir.path}/student_exams.pdf';
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token') ?? '';
+
+        await Dio().download(
+          fixedUrl,
+          savePath,
+          options: Options(
+            headers: {'Authorization': 'Bearer $token'},
+            connectTimeout: const Duration(seconds: 15),
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        );
+
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('تم تحميل ملف جدول الامتحانات بنجاح في التنزيلات'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        await OpenFilex.open(savePath);
       } else {
         throw 'الرابط غير متوفر';
       }
     } catch (e) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('حدث خطأ أثناء التنزيل!'),
+        SnackBar(
+          content: Text('حدث خطأ أثناء التنزيل: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -156,32 +184,196 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     try {
       final url = await StudentServices().getScheduleExportUrl();
       if (url != null && url.isNotEmpty) {
-        if (await canLaunchUrl(Uri.parse(url))) {
-          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        } else {
-          throw 'لا يمكن فتح الرابط';
-        }
+        final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
+        
+        Directory? dir;
+        try { dir = await getDownloadsDirectory(); } catch (_) {}
+        dir ??= await getApplicationDocumentsDirectory();
+        
+        String fileName = 'student_schedule.pdf';
+        try {
+          final uri = Uri.parse(fixedUrl);
+          if (uri.pathSegments.isNotEmpty && uri.pathSegments.last.endsWith('.pdf')) {
+            fileName = Uri.decodeComponent(uri.pathSegments.last);
+          }
+        } catch (_) {}
+        
+        final savePath = '${dir.path}/$fileName';
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token') ?? '';
+
+        await Dio().download(
+          fixedUrl,
+          savePath,
+          options: Options(
+            headers: {'Authorization': 'Bearer $token'},
+            connectTimeout: const Duration(seconds: 15),
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        );
+
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('تم تحميل ملف الجدول بنجاح في التنزيلات'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        await OpenFilex.open(savePath);
       } else {
         throw 'الرابط غير متوفر';
       }
     } catch (e) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('حدث خطأ أثناء التنزيل!'),
+        SnackBar(
+          content: Text('حدث خطأ أثناء التنزيل: $e'),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
 
-  Future<void> _exportWidgetAsImage(GlobalKey key, String fileName) async {
+  Future<void> _exportScheduleAsImage() async {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
-        content: Text('جاري تجهيز وتنزيل الصورة...'),
-        backgroundColor: Colors.green,
+        content: Text('جاري إنشاء صورة الجدول الرسمي بدقة عالية...'),
+        backgroundColor: Colors.blue,
       ),
     );
+
+    try {
+      final url = await StudentServices().getScheduleExportUrl();
+      if (url == null || url.isEmpty) {
+        throw 'لم نتمكن من استلام رابط الجدول من السيرفر';
+      }
+
+      final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final response = await Dio().get<List<int>>(
+        fixedUrl,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Authorization': 'Bearer $token'},
+          connectTimeout: const Duration(seconds: 20),
+          receiveTimeout: const Duration(seconds: 40),
+        ),
+      );
+
+      if (response.data == null || response.data!.isEmpty) {
+        throw 'الملف المستلم فارغ';
+      }
+
+      final pdfBytes = Uint8List.fromList(response.data!);
+
+      Uint8List? pngBytes;
+      await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
+        pngBytes = await page.toPng();
+        break;
+      }
+
+      if (pngBytes == null) {
+        throw 'تعذر تحويل الجدول إلى صورة';
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFilePath = '${tempDir.path}/schedule_${DateTime.now().millisecondsSinceEpoch}.png';
+      final tempFile = File(tempFilePath);
+      await tempFile.writeAsBytes(pngBytes);
+
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        await Gal.requestAccess();
+      }
+
+      await Gal.putImage(tempFile.path);
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('تم حفظ صورة الجدول الرسمي في المعرض بدقة عالية بنجاح ✓'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Export schedule as image error: $e');
+      // محاولة بديلة في حال تعذر تنزيل الـ PDF
+      await _exportWidgetAsImage(_classScheduleBoundaryKey, 'weekly_schedule');
+    }
+  }
+
+  Future<void> _exportExamsAsImage() async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('جاري إنشاء صورة جدول الامتحانات بدقة عالية...'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+
+    try {
+      final url = await StudentServices().getExportUrl('pdf');
+      if (url == null || url.isEmpty) {
+        throw 'لم نتمكن من استلام رابط جدول الامتحانات من السيرفر';
+      }
+
+      final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final response = await Dio().get<List<int>>(
+        fixedUrl,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Authorization': 'Bearer $token'},
+          connectTimeout: const Duration(seconds: 20),
+          receiveTimeout: const Duration(seconds: 40),
+        ),
+      );
+
+      if (response.data == null || response.data!.isEmpty) {
+        throw 'الملف المستلم فارغ';
+      }
+
+      final pdfBytes = Uint8List.fromList(response.data!);
+
+      Uint8List? pngBytes;
+      await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
+        pngBytes = await page.toPng();
+        break;
+      }
+
+      if (pngBytes == null) {
+        throw 'تعذر تحويل جدول الامتحانات إلى صورة';
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFilePath = '${tempDir.path}/exam_schedule_${DateTime.now().millisecondsSinceEpoch}.png';
+      final tempFile = File(tempFilePath);
+      await tempFile.writeAsBytes(pngBytes);
+
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        await Gal.requestAccess();
+      }
+
+      await Gal.putImage(tempFile.path);
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('تم حفظ صورة جدول الامتحانات في المعرض بدقة عالية بنجاح ✓'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Export exam schedule as image error: $e');
+      await _exportWidgetAsImage(_examScheduleBoundaryKey, 'exam_schedule');
+    }
+  }
+
+  Future<void> _exportWidgetAsImage(GlobalKey key, String fileName) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final boundary = key.currentContext?.findRenderObject();
       if (boundary is! RenderRepaintBoundary) {
@@ -193,18 +385,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         throw 'فشل تحويل الصورة إلى بيانات';
       }
       final Uint8List pngBytes = byteData.buffer.asUint8List();
-      final String base64Image = base64Encode(pngBytes);
-      final String dataUrl = 'data:image/png;base64,$base64Image';
-      
-      if (await canLaunchUrl(Uri.parse(dataUrl))) {
-        await launchUrl(Uri.parse(dataUrl), mode: LaunchMode.externalApplication);
-      } else {
-        throw 'لا يمكن تحميل الصورة تلقائياً في هذه المنصة';
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFilePath = '${tempDir.path}/${fileName}_${DateTime.now().millisecondsSinceEpoch}.png';
+      final tempFile = File(tempFilePath);
+      await tempFile.writeAsBytes(pngBytes);
+
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        await Gal.requestAccess();
       }
+
+      await Gal.putImage(tempFile.path);
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('تم حفظ الصورة في المعرض بنجاح ✓'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text('خطأ أثناء تصدير الصورة: $e'),
+          content: Text('خطأ أثناء حفظ الصورة في المعرض: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -398,27 +601,26 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
     List<dynamic> lectures = dayData['lectures'] ?? [];
     if (lectures.isEmpty) {
-      final Map<String, List<Map<String, String>>> defaultDayLectures = {
-        'الأحد': [
-          {'course_name': 'برمجة التطبيقات الذكية (Flutter)', 'teacher': 'د. حسام المحمود', 'start_time': '09:00 AM', 'end_time': '11:00 AM', 'room': 'مختبر البرمجيات 1', 'duration': '120 دقيقة'},
-          {'course_name': 'تطبيقات الويب الحديثة', 'teacher': 'د. ريم الخالد', 'start_time': '11:30 AM', 'end_time': '01:30 PM', 'room': 'قاعة الحاسوب 3', 'duration': '120 دقيقة'},
-        ],
-        'الاثنين': [
-          {'course_name': 'قواعد البيانات المتقدمة', 'teacher': 'د. سارة العلي', 'start_time': '10:00 AM', 'end_time': '12:00 PM', 'room': 'قاعة الحاسوب 2', 'duration': '120 دقيقة'},
-        ],
-        'الثلاثاء': [
-          {'course_name': 'هندسة البرمجيات والتصميم', 'teacher': 'د. أحمد المصطفى', 'start_time': '08:30 AM', 'end_time': '10:30 AM', 'room': 'المدرج الرئيسي A', 'duration': '120 دقيقة'},
-        ],
-        'الأربعاء': [
-          {'course_name': 'شبكات الحاسوب وأمن المعلومات', 'teacher': 'د. خالد الزهراني', 'start_time': '11:00 AM', 'end_time': '01:00 PM', 'room': 'مختبر الشبكات', 'duration': '120 دقيقة'},
-        ],
-        'الخميس': [
-          {'course_name': 'الذكاء الاصطناعي وتعلم الآلة', 'teacher': 'د. ريم الخالد', 'start_time': '09:00 AM', 'end_time': '11:30 AM', 'room': 'مختبر الذكاء الاصطناعي', 'duration': '150 دقيقة'},
-        ],
-      };
-      lectures = defaultDayLectures[selectedDayName] ?? [
-        {'course_name': 'محاضرة عامة', 'teacher': 'مدرس الكلية', 'start_time': '09:00 AM', 'end_time': '11:00 AM', 'room': 'قاعة 101', 'duration': '120 دقيقة'}
-      ];
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.calendar_today_outlined, size: 50, color: Colors.grey.withValues(alpha: 0.4)),
+              const SizedBox(height: 12),
+              Text(
+                'لا توجد محاضرات في هذا اليوم',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontFamily: 'Cairo',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     List<Widget> currentSchedule = lectures.asMap().entries.map((entry) {
@@ -530,7 +732,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     ),
                     const SizedBox(width: 5),
                     GestureDetector(
-                      onTap: () => _exportWidgetAsImage(_classScheduleBoundaryKey, 'weekly_schedule'),
+                      onTap: () => _exportScheduleAsImage(),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
@@ -618,34 +820,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
     }
 
-    final List<dynamic> displayExams = _examsData.isNotEmpty
-        ? _examsData
-        : [
-            {
-              'time': '09:00 AM - 11:00 AM',
-              'subject': 'برمجة التطبيقات الذكية (Flutter)',
-              'duration': 'ساعتان',
-              'room': 'المدرج الرئيسي A',
-              'month': 'يونيو',
-              'day_num': '15',
-              'day_name': 'الأحد',
-              'type_label': 'امتحان نهائي',
-              'score': 88,
-              'max_score': 100,
-            },
-            {
-              'time': '11:30 AM - 01:30 PM',
-              'subject': 'قواعد البيانات المتقدمة',
-              'duration': 'ساعتان',
-              'room': 'قاعة الحاسوب 1',
-              'month': 'يونيو',
-              'day_num': '18',
-              'day_name': 'الأربعاء',
-              'type_label': 'امتحان نهائي',
-              'score': 92,
-              'max_score': 100,
-            },
-          ];
+    final List<dynamic> displayExams = _examsData;
 
     return RepaintBoundary(
       key: _examScheduleBoundaryKey,
@@ -705,7 +880,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => _exportWidgetAsImage(_examScheduleBoundaryKey, 'exam_schedule'),
+                    onTap: () => _exportExamsAsImage(),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -746,23 +921,43 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ],
           ),
         const SizedBox(height: 20),
-        ...displayExams.map((exam) {
-          return _buildExamCard(
-            time: exam['time'],
-            title: exam['subject'],
-            duration: exam['duration'] ?? 'غير محدد',
-            location: exam['room'] ?? 'القاعة الامتحانية',
-            month: exam['month'],
-            dayNumber: exam['day_num'].toString(),
-            dayName: exam['day_name'],
-            typeLabel: exam['type_label'] ?? 'نهائي',
-            score: exam['score'],
-            maxScore: exam['max_score'],
-            onTap: exam['event_id'] != null
-                ? () => _showGradeSheet(exam['event_id'] as int, exam['subject'] ?? '')
-                : null,
-          );
-        }),
+        if (displayExams.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(30),
+            alignment: Alignment.center,
+            child: Column(
+              children: [
+                Icon(Icons.event_busy_rounded, size: 50, color: Colors.grey.withValues(alpha: 0.4)),
+                const SizedBox(height: 12),
+                Text(
+                  'لا يوجد برنامج امتحانات متاح حالياً',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...displayExams.map((exam) {
+            return _buildExamCard(
+              time: exam['time'],
+              title: exam['subject'],
+              duration: exam['duration'] ?? 'غير محدد',
+              location: exam['room'] ?? 'القاعة الامتحانية',
+              month: exam['month'],
+              dayNumber: exam['day_num'].toString(),
+              dayName: exam['day_name'],
+              typeLabel: exam['type_label'] ?? 'نهائي',
+              score: exam['score'],
+              maxScore: exam['max_score'],
+              onTap: exam['event_id'] != null
+                  ? () => _showGradeSheet(exam['event_id'] as int, exam['subject'] ?? '')
+                  : null,
+            );
+          }),
         const SizedBox(height: 15),
         Container(
           padding: const EdgeInsets.all(15),
