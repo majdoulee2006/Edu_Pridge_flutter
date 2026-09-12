@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 
@@ -60,23 +64,50 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
 
   Future<void> _exportPdf() async {
     setState(() => _isExporting = true);
-    final res = await StudentServices().exportAcademicCardPdf();
-    setState(() => _isExporting = false);
+    try {
+      final res = await StudentServices().exportAcademicCardPdf();
 
-    if (!mounted) return;
-    if (res != null && res['file_url'] != null) {
-      final Uri url = Uri.parse(res['file_url']);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
+      if (!mounted) return;
+      if (res == null || res['file_url'] == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم إنشاء الملف: ${res['file_url']}'), backgroundColor: AppColors.accent),
+          const SnackBar(content: Text('فشل تصدير ملف PDF'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      // نحمّل الملف مباشرة على الجهاز ونفتحه بعارض PDF المحلي، بدون المرور بمتصفح خارجي (كروم)
+      final fixedUrl = ApiService.fixMediaUrl(res['file_url'] as String) ?? res['file_url'] as String;
+
+      Directory? dir;
+      try {
+        dir = await getDownloadsDirectory();
+      } catch (_) {}
+      dir ??= await getApplicationDocumentsDirectory();
+
+      final savePath = '${dir.path}/academic_card_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+      await Dio().download(
+        fixedUrl,
+        savePath,
+        options: Options(receiveTimeout: const Duration(seconds: 30)),
+      );
+
+      if (!mounted) return;
+
+      final result = await OpenFilex.open(savePath);
+      if (result.type != ResultType.done) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم حفظ الملف: $savePath'), backgroundColor: AppColors.accent),
         );
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('فشل تصدير ملف PDF'), backgroundColor: Colors.red),
-      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر تنزيل الملف: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -500,6 +531,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
               final finalExam = c['final_score'];
               final total = c['total_score'] ?? 0;
               final maxScore = c['max_score'] ?? 100;
+              final weight = c['weight'] ?? 1;
               final isPassed = (c['status'] == 'ناجح') || (total >= 50);
 
               return Container(
@@ -605,6 +637,29 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Weight Row (التثقيل)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "التثقيل:",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: subColor),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "$weight",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.amber.shade800),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
