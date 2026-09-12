@@ -120,8 +120,10 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     _fetchNotifications(refresh: true);
   }
 
+  bool _isRead(dynamic val) => val == true || val == 1 || val == '1' || val == 'true';
+
   Future<void> _markAsRead(int id, int index) async {
-    if (_notifications[index]['is_read'] == true) return;
+    if (_isRead(_notifications[index]['is_read'])) return;
     try {
       final token = await _getToken();
       await Dio().put(
@@ -153,7 +155,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     }
   }
 
-  int get _unreadCount => _notifications.where((n) => n['is_read'] != true).length;
+  int get _unreadCount => _notifications.where((n) => !_isRead(n['is_read'])).length;
 
   Future<void> _respondLeave(int index, String status) async {
     final n = _notifications[index];
@@ -286,22 +288,33 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
 
   Widget _buildFilterChip(String label, String value, bool isDark) {
     final isSelected = _currentFilter == value;
-    return GestureDetector(
-      onTap: () => _changeFilter(value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFFCC00) : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFFCC00).withAlpha(80), blurRadius: 8, offset: const Offset(0, 3))] : [],
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            fontSize: 14,
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _changeFilter(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFFFCC00) : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFFFCC00).withAlpha(80), blurRadius: 8, offset: const Offset(0, 3))] : [],
+          ),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? Colors.black : (isDark ? Colors.white70 : Colors.black87),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -331,7 +344,9 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildFilterChip('الكل', 'all', isDark),
+                      const SizedBox(width: 8),
                       _buildFilterChip('غير المقروءة', 'unread', isDark),
+                      const SizedBox(width: 8),
                       _buildFilterChip('المقروءة', 'read', isDark),
                     ],
                   ),
@@ -427,7 +442,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                 )
               : TextButton(
                   onPressed: _markAllAsRead,
-                  child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                  child: Text('تمييز الكل كمقروء', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
                 )
         else
           IconButton(icon: Icon(Icons.arrow_back, color: textColor), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
@@ -443,7 +458,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     final isPendingParent = isLeave && leaveStatus == 'pending_parent';
     final isPendingHod    = isLeave && (leaveStatus == null || leaveStatus == 'pending_hod');
     final isResolved      = isLeave && (leaveStatus == 'approved' || leaveStatus == 'rejected');
-    final bool isUnread   = n['is_read'] != true;
+    final bool isUnread   = !_isRead(n['is_read']);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),

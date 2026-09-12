@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:provider/provider.dart';
+import '../services/chat_service.dart';
+
 import 'onboarding/onboarding_one.dart';
 import 'student/nav_bar/student_home_screen.dart';
 import 'teacher/teacher_home.dart';
@@ -132,46 +135,69 @@ class _SplashScreenState extends State<SplashScreen>
 
   // ── sequence ──────────────────────────────────────────
   Future<void> _runSequence() async {
-    // lock orientation during splash
-    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    await Future.delayed(const Duration(milliseconds: 180));
-    if (!mounted) return;
-    _masterCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 3900));
-    if (!mounted) return;
-    _navigate();
+    try {
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return;
+      _masterCtrl.forward();
+      await Future.delayed(const Duration(milliseconds: 1800));
+      if (!mounted) return;
+      await _navigate();
+    } catch (e) {
+      debugPrint("SplashScreen sequence error: $e");
+      if (mounted) _navigate();
+    }
   }
 
   Future<void> _navigate() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final role  = prefs.getString('role')  ?? '';
-    if (!mounted) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final role  = prefs.getString('role')  ?? '';
+      final userId = prefs.getString('user_id') ?? '';
+      if (!mounted) return;
 
-    Widget dest;
-    if (token.isEmpty) {
-      dest = const OnboardingOne();
-    } else {
-      dest = switch (role) {
-        'student'                      => const StudentHomeScreen(),
-        'teacher'                      => const TeacherHomeScreen(),
-        'parent'                       => const ParentsHomeScreen(),
-        'admin'                        => const AdminHomeScreen(),
-        'head'  || 'department_head'   => const DeptHeadHomeScreen(),
-        'affairs' || 'affairs_officer' => const AffairsOfficerHomeScreen(),
-        _                              => const OnboardingOne(),
-      };
+      if (token.isNotEmpty && userId.isNotEmpty) {
+        try {
+          context.read<ChatService>().initPusher(userId);
+        } catch (e) {
+          debugPrint('Pusher init error: $e');
+        }
+      }
+
+      Widget dest;
+      if (token.isEmpty) {
+        dest = const OnboardingOne();
+      } else {
+        dest = switch (role.toLowerCase()) {
+          'student'                      => const StudentHomeScreen(),
+          'teacher'                      => const TeacherHomeScreen(),
+          'parent'                       => const ParentsHomeScreen(),
+          'admin'                        => const AdminHomeScreen(),
+          'head'  || 'boss' || 'department_head'   => const DeptHeadHomeScreen(),
+          'affairs' || 'affairs_officer' => const AffairsOfficerHomeScreen(),
+          _                              => const OnboardingOne(),
+        };
+      }
+
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 500),
+          pageBuilder: (context2, a, b) => dest,
+          transitionsBuilder: (context2, anim, b, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      );
+    } catch (e, st) {
+      debugPrint("Navigate error: $e\n$st");
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OnboardingOne()),
+        );
+      }
     }
-
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 700),
-        pageBuilder: (context2, a, b) => dest,
-        transitionsBuilder: (context2, anim, b, child) =>
-            FadeTransition(opacity: anim, child: child),
-      ),
-    );
   }
 
   @override
