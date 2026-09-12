@@ -26,7 +26,7 @@ class ApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedIp = prefs.getString('server_ip');
-      if (savedIp != null && savedIp.isNotEmpty) {
+      if (savedIp != null && savedIp.isNotEmpty && !savedIp.contains('82.137.250.43')) {
         if (savedIp.startsWith('http://') || savedIp.startsWith('https://')) {
           _serverIp = savedIp;
           debugPrint("📡 ApiService initialized with saved server URL: $_serverIp");
@@ -43,18 +43,18 @@ class ApiService {
         return;
       }
 
-      // 2. فحص آي بي الكمبيوتر المباشر الحالي على الشبكة (10.102.114.209)
-      final currentNetworkIp = await _tryConnect('10.102.114.209', timeoutMs: 1000);
+      // 2. فحص آي بي الكمبيوتر المباشر الحالي على الشبكة (192.168.55.205)
+      final currentNetworkIp = await _tryConnect('192.168.55.205', timeoutMs: 1000);
       if (currentNetworkIp != null) {
-        _serverIp = '10.102.114.209';
-        await prefs.setString('server_ip', '10.102.114.209');
-        debugPrint("🎯 ApiService initialized instantly via 10.102.114.209:8001");
+        _serverIp = '192.168.55.205';
+        await prefs.setString('server_ip', '192.168.55.205');
+        debugPrint("🎯 ApiService initialized instantly via 192.168.55.205:8001");
         return;
       }
 
       _serverIp = defaultServerUrl;
       await prefs.setString('server_ip', defaultServerUrl);
-      debugPrint("📡 ApiService initialized with public server URL: $_serverIp");
+      debugPrint("📡 ApiService initialized with local server URL: $_serverIp");
     } catch (e) {
       debugPrint("🚨 Error initializing ApiService: $e");
       _serverIp = defaultServerUrl;
