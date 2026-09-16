@@ -133,6 +133,9 @@ class _MessagesViewState extends State<MessagesView> {
     final bool isAllEmpty = filteredHead.isEmpty && filteredAdmins.isEmpty && filteredTeachers.isEmpty && filteredStudents.isEmpty;
 
     return Scaffold(
+      // نفس إصلاح شاشة رسائل الطالب: يمنع الشريط السفلي من الطلوع فوق
+      // الكيبورد وقت البحث
+      resizeToAvoidBottomInset: false,
       backgroundColor: bgColor,
       extendBody: true,
       appBar: AppBar(

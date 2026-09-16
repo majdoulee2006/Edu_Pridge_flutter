@@ -3,6 +3,7 @@ import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
+import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/academic_card/parent_children_academic_card_screen.dart';
 
 class ParentServicesMenuScreen extends StatelessWidget {
@@ -148,6 +149,18 @@ class ParentServicesMenuScreen extends StatelessWidget {
                             builder: (_) => const PrivacyPolicyScreen(),
                           ),
                         ),
+                      ),
+
+                      _buildServiceCard(
+                        icon: Icons.logout_rounded,
+                        iconColor: Colors.red,
+                        title: isAr ? "تسجيل الخروج" : "Logout",
+                        subtitle: isAr ? "الخروج من الحساب الحالي" : "Sign out of your account",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => showLogoutConfirmation(context, isAr),
                       ),
                     ],
                   ),

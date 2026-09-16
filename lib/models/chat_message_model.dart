@@ -8,6 +8,7 @@ class ChatMessage {
   final String? attachment; // 🌟 Added for media/voice note URL
   bool isRead;
   bool isDelivered; // 🌟 Added for read receipts
+  bool hasFailed; // 🚨 true إذا فشل إرسالها للسيرفر (رفض 403/404 أو انقطاع شبكة)
 
   String get text => message; // For backward compatibility with existing UI
   String get time {
@@ -25,6 +26,7 @@ class ChatMessage {
     this.attachment,
     this.isRead = false,
     this.isDelivered = false,
+    this.hasFailed = false,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> rawJson, String currentUserId) {
@@ -49,7 +51,11 @@ class ChatMessage {
       id: json['id']?.toString() ?? '',
       message: msgText,
       isMe: json['sender_id']?.toString() == currentUserId,
-      timestamp: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      // 🐛 السيرفر بيرجع الوقت بصيغة UTC (بلاحقة Z)، وDateTime.parse بيحوّلها
+      // لكائن DateTime بتوقيت UTC فعلي. بدون .toLocal() هون، أي قراءة لـ
+      // .hour أو .minute كانت بترجع الساعة بتوقيت UTC مباشرة (فرق 3 ساعات
+      // عن توقيت لبنان)، وهيك كان الوقت الظاهر عالرسالة غلط عن وقت الجهاز.
+      timestamp: (DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now().toUtc()).toLocal(),
       attachment: ApiService.fixMediaUrl(rawAttachment),
       isRead: json['is_read'] == 1 || json['is_read'] == true,
       isDelivered: json['is_delivered'] == 1 || json['is_delivered'] == true,

@@ -22,6 +22,17 @@ class CustomBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🐛 الشريط ده Positioned.fill بالنسبة للـ Stack اللي هو فيه، وبما إن
+    // أغلب شاشات التطبيق (أكتر من 50 شاشة) بتستخدم Scaffold بدون
+    // resizeToAvoidBottomInset: false، لما الكيبورد يفتح (متل شاشة بحث)
+    // الـ Stack نفسه بينكمش بمقدار ارتفاع الكيبورد، فـ"أسفل الشاشة" يصير
+    // فعلياً فوق الكيبورد مباشرة، والشريط بيطلع عائم فوق المحتوى. الحل
+    // الأبسط والأسلم (بدل تعديل +50 شاشة لحالها): نخفي الشريط تلقائياً
+    // طول ما الكيبورد مفتوح، بالظبط متل سلوك أغلب التطبيقات المعروفة.
+    if (MediaQuery.of(context).viewInsets.bottom > 0) {
+      return const SizedBox.shrink();
+    }
+
     // 🌟 جلب حالة الثيم والألوان 🌟
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor = isDark ? Theme.of(context).cardColor : Colors.white;

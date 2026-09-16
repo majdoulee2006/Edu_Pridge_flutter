@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/chat_service.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -488,6 +490,13 @@ class _OtpVerifyScreenState extends State<_OtpVerifyScreen> {
       await prefs.setString('role',      userData['role']?.toString() ?? '');
       if (userData['parent_id'] != null) {
         await prefs.setString('parent_id', userData['parent_id'].toString());
+      }
+
+      // 🔄 نفس سبب التعديل بشاشة تسجيل الدخول العادية: إعادة ربط Pusher
+      // بالحساب الجديد فور الدخول، وإلا يضل مشترك بقناة حساب قديم.
+      final newUserId = userData['id']?.toString() ?? '';
+      if (mounted && newUserId.isNotEmpty) {
+        context.read<ChatService>().initPusher(newUserId);
       }
 
       if (!mounted) return;

@@ -1,8 +1,10 @@
 import 'package:edu_pridge_flutter/screens/admin/nav_bar/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/chat_service.dart';
 import 'package:edu_pridge_flutter/services/fcm_service.dart';
 import 'dart:math';
 
@@ -279,6 +281,14 @@ class _LoginScreenState extends State<LoginScreen> {
         debugPrint("✅ تم حفظ التوكن بنجاح: $token");
 
         FcmService.sendTokenAfterLogin();
+
+        // 🔄 لازم نعيد ربط Pusher بحساب المستخدم الجديد هون، وإلا لو كان
+        // حدا سجل خروج من حساب ودخل بحساب تاني بنفس جلسة التطبيق (بدون
+        // إغلاقه كلياً)، بيضل مشترك بقناة الحساب القديم وما يوصلو شي لحظي
+        // للحساب الجديد لحد ما يعاد فتح التطبيق من الصفر.
+        if (mounted && userId.isNotEmpty) {
+          context.read<ChatService>().initPusher(userId);
+        }
 
         if (!mounted) return;
         _showSnackBar(

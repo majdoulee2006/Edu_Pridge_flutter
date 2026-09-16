@@ -10,6 +10,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lectures_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/Head of department/center_icons/appointments/hod_appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
@@ -27,7 +28,7 @@ class FcmService {
   // VAPID key من Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
   static const String _vapidKey = "BPYnQg1rycEHNqFlogeie2VW-AfHoxmUkriiP649VN9aTE4l2rb1dmgbcYuXAXtkYZwwZOYch7YsusLihZfjIQg";
 
-  static Future<void> handleNotificationData(Map<String, dynamic> data) async {
+  static Future<void> handleNotificationData(Map<String, dynamic> data, {String? senderName}) async {
     final type = data['type']?.toString();
     final relatedIdStr = data['related_id']?.toString() ??
         data['lecture_id']?.toString() ??
@@ -84,6 +85,25 @@ class FcmService {
           MaterialPageRoute(builder: (_) => const AttendanceScreen()),
         );
         break;
+      case 'message':
+        // 🐛 كان هون ناقص بالكامل، فأي ضغط على إشعار رسالة ما كان يعمل ولا
+        // شي (يقع بالـ default الفاضي) — حاسس المستخدم إنه فتح شي عشوائي
+        // بدل ما يوديه على المحادثة مباشرة.
+        final chatSenderId = data['sender_id']?.toString();
+        if (chatSenderId != null && chatSenderId.isNotEmpty) {
+          Navigator.push(
+            ctx,
+            MaterialPageRoute(
+              builder: (_) => ChatRoomScreen(
+                contact: {
+                  'id': chatSenderId,
+                  'name': senderName ?? 'مستخدم',
+                },
+              ),
+            ),
+          );
+        }
+        break;
       default:
         break;
     }
@@ -114,7 +134,7 @@ class FcmService {
               ctx,
               title,
               body,
-              onTap: () => handleNotificationData(message.data),
+              onTap: () => handleNotificationData(message.data, senderName: message.notification?.title),
             );
           }
         }
@@ -146,14 +166,14 @@ class FcmService {
     // عند ضغط الإشعار والتطبيق في الخلفية
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('🔔 FCM Opened App: ${message.data}');
-      handleNotificationData(message.data);
+      handleNotificationData(message.data, senderName: message.notification?.title);
     });
 
     // عند فتح التطبيق من الإشعار وهو مغلق تماماً
     _messaging.getInitialMessage().then((RemoteMessage? message) {
       if (message != null) {
         debugPrint('🔔 FCM Initial Message: ${message.data}');
-        handleNotificationData(message.data);
+        handleNotificationData(message.data, senderName: message.notification?.title);
       }
     });
 
@@ -182,7 +202,7 @@ class FcmService {
             ctx,
             title,
             body,
-            onTap: () => handleNotificationData(message.data),
+            onTap: () => handleNotificationData(message.data, senderName: message.notification?.title),
           );
         }
       }

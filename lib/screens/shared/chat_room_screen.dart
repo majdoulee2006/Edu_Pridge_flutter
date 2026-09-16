@@ -144,12 +144,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 time: msg.time,
                                 isRead: msg.isRead,
                                 isDelivered: msg.isDelivered,
+                                isFailed: msg.hasFailed,
                                 onLongPress: () {
                                   showModalBottomSheet(
                                     context: context,
                                     builder: (ctx) => SafeArea(
                                       child: Wrap(
                                         children: [
+                                          if (msg.hasFailed)
+                                            ListTile(
+                                              leading: const Icon(Icons.refresh, color: Colors.red),
+                                              title: const Text('إعادة الإرسال'),
+                                              onTap: () {
+                                                Navigator.pop(ctx);
+                                                chatService.resendMessage(widget.contact['id'].toString(), msg.id);
+                                              },
+                                            ),
                                           if (msg.isMe && msg.attachment == null && msg.text != '[Voice Note]')
                                             ListTile(
                                               leading: const Icon(Icons.edit, color: Colors.blue),

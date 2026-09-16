@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AboutAppScreen extends StatelessWidget {
@@ -34,7 +35,7 @@ class AboutAppScreen extends StatelessWidget {
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
-              body: Padding(
+              body: SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
@@ -72,6 +73,64 @@ class AboutAppScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(color: subColor, fontSize: 14, height: 1.6),
                     ),
+                    const SizedBox(height: 30),
+                    _buildSectionTitle(isAr ? "فريق التطوير" : "Development Team", textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3)),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTeamRow("مجدولين محمود", textColor, subColor),
+                          _buildDivider(subColor),
+                          _buildTeamRow("إسراء منوّر", textColor, subColor),
+                          _buildDivider(subColor),
+                          _buildTeamRow("محمود غنّام", textColor, subColor),
+                          _buildDivider(subColor),
+                          _buildTeamRow("شهد زريقي", textColor, subColor),
+                          _buildDivider(subColor),
+                          _buildTeamRow("هبة الله عيسى", textColor, subColor),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    _buildSectionTitle(isAr ? "تواصل معنا" : "Contact Us", textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3)),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildContactRow(
+                            icon: Icons.email_outlined,
+                            label: "edubridge2006@gmail.com",
+                            textColor: textColor,
+                            onTap: () => _launchEmail("edubridge2006@gmail.com"),
+                          ),
+                          _buildDivider(subColor),
+                          _buildContactRow(
+                            icon: Icons.chat_outlined,
+                            label: "0959031594",
+                            textColor: textColor,
+                            onTap: () => _launchWhatsApp("0959031594"),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -80,5 +139,81 @@ class AboutAppScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Widget _buildSectionTitle(String title, Color textColor) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Text(
+        title,
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+      ),
+    );
+  }
+
+  Widget _buildDivider(Color subColor) {
+    return Divider(height: 1, thickness: 0.5, color: subColor.withValues(alpha: 0.2));
+  }
+
+  Widget _buildTeamRow(String name, Color textColor, Color subColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+      child: Row(
+        children: [
+          Icon(Icons.person_outline_rounded, color: subColor, size: 20),
+          const SizedBox(width: 12),
+          Text(name, style: TextStyle(fontSize: 14.5, color: textColor, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactRow({
+    required IconData icon,
+    required String label,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xFFFFCC00), size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                textDirection: TextDirection.ltr,
+                style: TextStyle(fontSize: 14.5, color: textColor, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> _launchWhatsApp(String localPhone) async {
+    // 🇸🇾 تحويل الرقم المحلي (0959031594) لصيغة دولية (963959031594) عبر
+    // حذف الصفر الأول وإضافة مفتاح سوريا +963، وهاي الصيغة يلي بيحتاجها
+    // رابط wa.me حتى يفتح واتساب صح.
+    final digitsOnly = localPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final withoutLeadingZero = digitsOnly.startsWith('0') ? digitsOnly.substring(1) : digitsOnly;
+    final international = '963$withoutLeadingZero';
+
+    final uri = Uri.parse('https://wa.me/$international');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }

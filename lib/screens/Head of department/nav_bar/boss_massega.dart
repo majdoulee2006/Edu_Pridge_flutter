@@ -102,6 +102,9 @@ class _BossMessageViewState extends State<BossMessageView> {
     }).toList();
 
     return Scaffold(
+      // نفس إصلاح شاشة رسائل الطالب: يمنع الشريط السفلي من الطلوع فوق
+      // الكيبورد وقت البحث
+      resizeToAvoidBottomInset: false,
       backgroundColor: bgColor,
       body: Directionality(
         textDirection: TextDirection.rtl,

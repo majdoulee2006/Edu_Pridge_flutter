@@ -11,12 +11,17 @@ import 'api_service.dart';
 const String PUSHER_APP_KEY = '06c5a41f8d5f2e4e5497';
 const String PUSHER_CLUSTER = 'eu';
 
-// معطّلة مؤقتاً: مكتبة Pusher الأصلية بتوقف خيط تنفيذ كامل بانتظار رد
-// المصادقة، وبيئة الاختبار الحالية (سيرفر تجريبي php artisan serve + كيبل
-// USB) بترجع أحياناً رد فاضي بسبب الزحمة على نفس النفق، فبيصير تجميد
-// بالواجهة. الشات شغال 100% بدونها عبر الـ polling (تحديث كل ثانيتين).
-// فعّليها برجاع القيمة لـ true بعد تجربتها عالسيرفر الحقيقي بالجامعة.
-const bool kEnableRealtimePusher = false;
+// 🔌 تم تفعيلها الآن بعد التأكد إن .env على السيرفر مضبوط فعلياً على
+// BROADCAST_CONNECTION=pusher مع مفاتيح Pusher حقيقية (كانت سابقاً معطّلة
+// لأن بيئة الاختبار المحلية Iphp artisan serve + كيبل USB) كانت بترجع ردود
+// فاضية أحياناً وتجمّد الواجهة أثناء انتظار onAuthorizer). المعالجة الموجودة
+// أصلاً بالأسفل (سقف 5 ثواني على طلب /broadcasting/auth) هي بالضبط الحل
+// لهيك تجميد. الـ polling كل ثانيتين ضل شغال بالتوازي كخط دفاع احتياطي
+// (startSmartPolling منفصل تماماً عن initPusher)، فأسوأ سيناريو لو فشل
+// الاتصال بـ Pusher على السيرفر الحقيقي هو رجوع صامت لنفس سلوك اليوم بالضبط.
+// ⚠️ لازم تجربتها على جهاز حقيقي متصل بسيرفر الإنتاج الفعلي قبل ما تعتمد
+// عليها نهائياً؛ لو رجعت مشكلة التجميد رجّع القيمة لـ false فوراً.
+const bool kEnableRealtimePusher = true;
 
 class ChatService extends ChangeNotifier {
   PusherChannelsFlutter? _pusher;
@@ -62,6 +67,33 @@ class ChatService extends ChangeNotifier {
     if (storedId.isNotEmpty) {
       _currentUserId = storedId;
     }
+  }
+
+  // ==========================================
+  // 0. تصفير كامل عند تسجيل الخروج (Reset on Logout)
+  // ==========================================
+  // 🐛 ChatService كائن واحد بيضل عايش طول ما التطبيق مفتوح (Provider على
+  // مستوى الـ app)، وتسجيل الخروج قبل هيك ما كان يلمسه إطلاقاً. يعني لو
+  // حساب تاني سجل دخول عالتطبيق نفسه بدون ما يسكرو كلياً، كان بيورث:
+  // - كاش رسائل وجهات اتصال الحساب القديم (تكرار رسائل وبيانات غلط)
+  // - نفس معرّف المستخدم القديم لحد ما يتصفح شاشة شات ويعاد جلبها
+  // - اشتراك Pusher القديم (private-chat.<الحساب-القديم>)، فالحساب الجديد
+  //   ما كان يستقبل شي لحظي أبداً لأنه مشترك بقناة حدا تاني
+  // هاي الدالة لازم تنعمل قبل كل تسجيل خروج.
+  Future<void> resetForLogout() async {
+    stopSmartPolling();
+    stopContactsPolling();
+    try {
+      await _pusher?.disconnect();
+    } catch (_) {}
+    _pusher = null;
+    _messagesCache.clear();
+    _contacts = [];
+    _activeContactId = null;
+    _currentUserId = null;
+    _isLoading = false;
+    _isLoadingContacts = false;
+    notifyListeners();
   }
 
   // ==========================================
@@ -154,11 +186,15 @@ class ChatService extends ChangeNotifier {
     // Fetch immediately
     fetchMessages(contactId, silent: true);
 
-    // هذا الاستطلاع (polling) هو المسار الوحيد الفعّال حالياً لاستقبال الرسائل،
-    // لأن BROADCAST_CONNECTION على السيرفر لسا مضبوطة على "log" وليس "pusher"
-    // (Pusher نفسه موصول بشكل صحيح من جهة التوثيق ويشتغل تلقائياً فور ضبط
-    // بيانات اعتماد Pusher حقيقية بالسيرفر — دون أي تعديل إضافي بهذا الملف)
-    _messagesPollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    // 🐢 كان هون كل ثانيتين وهو رقم عالي جداً لسيرفر تطوير محلي (php artisan
+    // serve بيعالج طلب واحد بالمرة على ويندوز، ما في pcntl لتشغيل عدة
+    // عمّال). مع استطلاع الرسائل + جهات الاتصال + استطلاعات شاشات تانية،
+    // كان عم يتجاوز حد الطلبات بالدقيقة بسرعة (429) وتتكدس المهل الزمنية
+    // (timeout)، وهاد اللي كان حاسس المستخدم إنه "عم يعلّق". هلق بما إن
+    // Pusher مفعّل وشغال فعلياً (BROADCAST_CONNECTION=pusher بالسيرفر)،
+    // الاستطلاع صار مجرد خط أمان احتياطي مش المسار الأساسي، فرفعتو لـ6
+    // ثواني بدل ثانيتين.
+    _messagesPollingTimer = Timer.periodic(const Duration(seconds: 6), (_) {
       if (_activeContactId != null && _activeContactId == contactId) {
         fetchMessages(contactId, silent: true);
       }
@@ -173,7 +209,8 @@ class ChatService extends ChangeNotifier {
   void startContactsPolling() {
     _contactsPollingTimer?.cancel();
     fetchContacts(silent: true);
-    _contactsPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    // كانت كل 5 ثواني — نفس سبب تخفيف استطلاع الرسائل فوق، رفعتها لـ15
+    _contactsPollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       fetchContacts(silent: true);
     });
   }
@@ -293,8 +330,39 @@ class ChatService extends ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint(" Send Message API Warning (kept locally): $e");
+      // 🚨 كانت هون الرسالة تضل ظاهرة بالواجهة وكأنها انبعتت بنجاح حتى لو
+      // السيرفر رفضها (403 صلاحيات، 404 رابط خاطئ، أو انقطاع شبكة)، وما
+      // كان في أي طريقة يعرف فيها المستخدم إنها ما وصلت فعلاً. هلق منعلّم
+      // الرسالة كـ"فشل إرسال" بدل ما نخبّي الخطأ بصمت.
+      debugPrint("📡 Send Message API Warning (marking as failed): $e");
+      final list = _messagesCache[targetId];
+      if (list != null) {
+        final idx = list.indexWhere((m) => m.id == tempMsg.id);
+        if (idx != -1) {
+          list[idx].hasFailed = true;
+          notifyListeners();
+        }
+      }
     }
+  }
+
+  // ==========================================
+  // 4.1 إعادة إرسال رسالة فشلت (Retry Failed Message)
+  // ==========================================
+  Future<void> resendMessage(String contactId, String failedMessageId) async {
+    final list = _messagesCache[contactId];
+    if (list == null) return;
+
+    final idx = list.indexWhere((m) => m.id == failedMessageId);
+    if (idx == -1) return;
+
+    final failedMsg = list[idx];
+    list.removeAt(idx);
+    notifyListeners();
+
+    // نعيد استخدام نفس نص الرسالة والمرفق المحلي (إن وجد) عبر sendMessage
+    // العادية، اللي رح تنشئ نسخة جديدة وتحاول ترسلها من جديد
+    await sendMessage(contactId, failedMsg.message, filePath: failedMsg.attachment);
   }
 
   // ==========================================
@@ -360,6 +428,16 @@ class ChatService extends ChangeNotifier {
   void initPusher(String userId) async {
     if (!kEnableRealtimePusher) return;
     try {
+      // 🔄 لو كان في اتصال سابق (لحساب سجّل خروج منه أو ما تصفّى صح) نقطعه
+      // أول شي، وإلا رح نضل مشتركين بقناة الحساب القديم للأبد لحد ما
+      // يعاد تشغيل التطبيق بالكامل — بالضبط السبب يلي كان يخلي حساب
+      // جديد ما يستقبل شي لحظياً بعد تبديل الحساب من نفس التطبيق.
+      if (_pusher != null) {
+        try {
+          await _pusher!.disconnect();
+        } catch (_) {}
+        _pusher = null;
+      }
       _pusher = PusherChannelsFlutter.getInstance();
       await _pusher!.init(
         apiKey: PUSHER_APP_KEY,

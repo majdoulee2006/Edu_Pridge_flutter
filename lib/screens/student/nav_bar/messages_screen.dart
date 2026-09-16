@@ -106,6 +106,12 @@ class _MessagesViewState extends State<MessagesView> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
+        // 🐛 بدون هاد، فتح الكيبورد (متل حقل البحث تحت) كان يخلي الـ Stack
+        // يلي فيه CustomBottomNav ينكمش بمقدار ارتفاع الكيبورد، فيطلع
+        // الشريط عائم فوق الكيبورد بدل ما يختفي وراه. هلق الجسم ثابت
+        // بمكانه دايماً، والشريط بيختفي فعلياً وراء الكيبورد (بدعم من
+        // إصلاح CustomBottomNav نفسو).
+        resizeToAvoidBottomInset: false,
         backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC),
         appBar: AppBar(
           backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC),

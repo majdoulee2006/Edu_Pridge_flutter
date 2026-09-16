@@ -88,6 +88,9 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     }).toList();
 
     return Scaffold(
+      // نفس إصلاح شاشة رسائل الطالب: يمنع الشريط السفلي من الطلوع فوق
+      // الكيبورد وقت البحث
+      resizeToAvoidBottomInset: false,
       backgroundColor: bgColor,
       body: Directionality(
         textDirection: TextDirection.rtl,

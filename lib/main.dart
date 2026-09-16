@@ -6,7 +6,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_service.dart';
-import 'screens/splash_screen.dart';
 import 'screens/onboarding/onboarding_one.dart';
 import 'screens/student/nav_bar/student_home_screen.dart';
 import 'screens/teacher/teacher_home.dart';
@@ -173,7 +172,12 @@ class EduBridgeApp extends StatelessWidget {
                           child: child!,
                         );
                       },
-                      home: const SplashScreen(),
+                      // 🚫 شاشة السبلاش المتحركة (لوغو + جسيمات + تأخير 1.9
+                      // ثانية) انشالت بناءً على طلب صريح؛ _AppRouter تحت
+                      // بنفس الملف بيعمل نفس قرار التوجيه (فحص التوكن
+                      // وتحديد الشاشة المناسبة) فوراً بدون أي تأخير أو واجهة
+                      // مقصودة، مجرد مؤشر تحميل بسيط ريثما يتقرر الوجهة.
+                      home: const _AppRouter(),
                     );
                   },
                 );

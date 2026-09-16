@@ -17,6 +17,7 @@ class ChatBubbleWidget extends StatefulWidget {
   final String status; // 'sent', 'delivered', 'read'
   final bool isRead;
   final bool isDelivered;
+  final bool isFailed;
   final VoidCallback? onLongPress;
 
   const ChatBubbleWidget({
@@ -29,6 +30,7 @@ class ChatBubbleWidget extends StatefulWidget {
     this.status = 'sent',
     this.isRead = false,
     this.isDelivered = false,
+    this.isFailed = false,
     this.onLongPress,
   });
 
@@ -311,6 +313,14 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
   Widget _buildTickIcon() {
     if (!widget.isSender) return const SizedBox.shrink();
 
+    if (widget.isFailed) {
+      return const Icon(
+        Icons.error_outline,
+        size: 16,
+        color: Colors.red, // فشل الإرسال — اضغط مطولاً لإعادة المحاولة
+      );
+    }
+
     if (widget.isRead || widget.status == 'read') {
       return const Icon(
         Icons.done_all,
@@ -586,6 +596,7 @@ class _ChatBubbleWidgetState extends State<ChatBubbleWidget> {
             color: widget.isSender
                 ? const Color(0xFFFFCC00)
                 : (isDark ? Colors.white.withAlpha(15) : Colors.grey.shade200),
+            border: widget.isFailed ? Border.all(color: Colors.red.shade300, width: 1.2) : null,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(18),
               topRight: const Radius.circular(18),

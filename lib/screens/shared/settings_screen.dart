@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/screens/auth/login_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/chat_service.dart';
 import 'package:edu_pridge_flutter/services/notification_polling.dart';
 
 // ─── AppSettings ───────────────────────────────────────────────────────────
@@ -236,8 +238,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         const SizedBox(height: 40),
                         _appInfoSection(textColor, subColor),
-                        const SizedBox(height: 30),
-                        _logoutButton(context, isAr),
+                        // 🔓 تسجيل الخروج انتقل لآخر قائمة الخدمات (بعد "سياسة
+                        // الاستخدام والخصوصية") لكل الأدوار يلي عندها هيك قائمة.
+                        // بس المعلّم ما عندو قائمة مشابهة ووصولو الوحيد لتسجيل
+                        // الخروج هو من هون، فتركناه ظاهر لهالحالة تحديداً بس.
+                        if (widget.userRole == 'مدرس') ...[
+                          const SizedBox(height: 30),
+                          _logoutButton(context, isAr),
+                        ],
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -412,6 +420,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // مسح بيانات الجلسة
                     NotificationPolling.stop();
                     await NotificationPolling.clearLastShownId();
+
+                    // 🧹 تصفير كامل لخدمة الشات (كاش الرسائل، جهات الاتصال،
+                    // هوية المستخدم، واشتراك Pusher) قبل ما نمسح التوكن،
+                    // وإلا الحساب التالي يلي رح يسجل دخول عالتطبيق نفسه
+                    // بيورث بيانات هالحساب (رسائل مكررة، هوية مرسل غلط،
+                    // ووقت متأخر بالاستقبال اللحظي).
+                    if (context.mounted) {
+                      await context.read<ChatService>().resetForLogout();
+                    }
 
                     final prefs = await SharedPreferences.getInstance();
                     final token = prefs.getString('token') ?? '';

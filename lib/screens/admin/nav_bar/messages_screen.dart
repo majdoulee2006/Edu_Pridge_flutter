@@ -56,6 +56,9 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
     final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     return Scaffold(
+      // نفس إصلاح شاشة رسائل الطالب: يمنع الشريط السفلي من الطلوع فوق
+      // الكيبورد وقت البحث
+      resizeToAvoidBottomInset: false,
       backgroundColor: bgColor,
       body: Directionality(
         textDirection: TextDirection.rtl,
