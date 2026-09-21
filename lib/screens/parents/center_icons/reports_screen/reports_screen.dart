@@ -13,8 +13,9 @@ import '../../nav_bar/parents_profile_screen.dart';
 class ReportsScreen extends StatefulWidget {
   final String? studentName;
   final int? studentId;
+  final int? highlightId;
 
-  const ReportsScreen({super.key, this.studentName, this.studentId});
+  const ReportsScreen({super.key, this.studentName, this.studentId, this.highlightId});
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -70,6 +71,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
           _history = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
           _isLoadingHistory = false;
         });
+
+        if (widget.highlightId != null && _history.isNotEmpty) {
+          final target = _history.firstWhere(
+            (r) => r['id'] == widget.highlightId,
+            orElse: () => _history.first,
+          );
+          if (target.isNotEmpty && target['status'] != 'pending_teacher') {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _showReportDetail(target);
+            });
+          }
+        }
       } else {
         setState(() => _isLoadingHistory = false);
       }

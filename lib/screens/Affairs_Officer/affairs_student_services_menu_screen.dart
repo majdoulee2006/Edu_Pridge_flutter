@@ -5,7 +5,7 @@ import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_student_services_screen.dart';
-import 'package:edu_pridge_flutter/screens/student/center_icons/grades/student_academic_card_screen.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_academic_pathway_screen.dart';
 
 class AffairsStudentServicesMenuScreen extends StatelessWidget {
   const AffairsStudentServicesMenuScreen({super.key});
@@ -62,12 +62,12 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                       const SizedBox(height: 12),
 
                       _buildServiceCard(
-                        icon: Icons.history_edu_rounded,
+                        icon: Icons.route_rounded,
                         iconColor: const Color(0xFFFFCC00),
-                        title: isAr ? "استعلام كشف العلامات" : "Academic Card Search",
+                        title: isAr ? "المسار الأكاديمي الطلابي" : "Student Academic Pathway",
                         subtitle: isAr
-                            ? "البحث عن بطاقات الطلاب حسب القسم والدورة وتصديرها PDF و Excel"
-                            : "Search student academic cards by department/batch & export PDF/Excel",
+                            ? "محطة العمل الشاملة: فرز نتائج الدفعات، تقييم التثقيلات، إصدار قرارات الترفيع والتخرج، والتقارير المعتمدة"
+                            : "Academic pathway workstation, course weights, batch classification & reports",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
@@ -75,7 +75,7 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const StudentAcademicCardScreen(),
+                            builder: (_) => const AffairsAcademicPathwayScreen(),
                           ),
                         ),
                       ),

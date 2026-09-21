@@ -12,7 +12,7 @@ import '../shared/settings_screen.dart';
 import '../shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';
-import 'center_icons/scedual_screen/scedual_screen.dart';
+import 'report_requests_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -134,7 +134,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           heroTag: 'report_requests_fab',
           backgroundColor: const Color(0xFFFFCC33),
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherScheduleScreen()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportRequestsScreen()));
           },
           child: const Icon(Icons.assessment_outlined, color: Colors.black, size: 28),
         ),

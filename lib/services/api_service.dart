@@ -25,6 +25,16 @@ class ApiService {
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1) أولاً
+      final usb = await _tryConnect('127.0.0.1', timeoutMs: 1000);
+      if (usb != null) {
+        _serverIp = '127.0.0.1';
+        await prefs.setString('server_ip', '127.0.0.1');
+        debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8001");
+        return;
+      }
+
       final savedIp = prefs.getString('server_ip');
       if (savedIp != null && savedIp.isNotEmpty && !savedIp.contains('82.137.250.43')) {
         if (savedIp.startsWith('http://') || savedIp.startsWith('https://')) {
@@ -32,15 +42,6 @@ class ApiService {
           debugPrint("📡 ApiService initialized with saved server URL: $_serverIp");
           return;
         }
-      }
-
-      // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1)
-      final usb = await _tryConnect('127.0.0.1', timeoutMs: 1000);
-      if (usb != null) {
-        _serverIp = '127.0.0.1';
-        await prefs.setString('server_ip', '127.0.0.1');
-        debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8001");
-        return;
       }
 
       // 2. فحص آي بي الكمبيوتر المباشر الحالي على الشبكة (192.168.55.205)
@@ -610,6 +611,57 @@ class ApiService {
       return (response.statusCode == 200 && response.data['success'] == true);
     } catch (e) {
       debugPrint("issueParentSummon Error: $e");
+      return false;
+    }
+  }
+
+  // ─── تقارير الطلاب المطلوبة من المعلم ───
+  Future<List<dynamic>?> getTeacherReportRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/teacher/report-requests",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+    } catch (e) {
+      debugPrint("getTeacherReportRequests Error: $e");
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> getTeacherStudentAcademicStats(int id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.get(
+        "$baseUrl/teacher/report-requests/$id/stats",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+    } catch (e) {
+      debugPrint("getTeacherStudentAcademicStats Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> submitTeacherReportEvaluation(int id, String notes) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.post(
+        "$baseUrl/teacher/report-requests/$id/submit",
+        data: {'notes': notes},
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return (response.statusCode == 200 && response.data['success'] == true);
+    } catch (e) {
+      debugPrint("submitTeacherReportEvaluation Error: $e");
       return false;
     }
   }

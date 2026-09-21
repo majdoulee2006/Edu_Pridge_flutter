@@ -238,14 +238,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         const SizedBox(height: 40),
                         _appInfoSection(textColor, subColor),
-                        // 🔓 تسجيل الخروج انتقل لآخر قائمة الخدمات (بعد "سياسة
-                        // الاستخدام والخصوصية") لكل الأدوار يلي عندها هيك قائمة.
-                        // بس المعلّم ما عندو قائمة مشابهة ووصولو الوحيد لتسجيل
-                        // الخروج هو من هون، فتركناه ظاهر لهالحالة تحديداً بس.
-                        if (widget.userRole == 'مدرس') ...[
-                          const SizedBox(height: 30),
-                          _logoutButton(context, isAr),
-                        ],
+                        const SizedBox(height: 30),
+                        _logoutButton(context, isAr),
                         const SizedBox(height: 20),
                       ],
                     ),
