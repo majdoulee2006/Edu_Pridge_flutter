@@ -9,6 +9,7 @@ import 'package:edu_pridge_flutter/screens/parents/nav_bar/parents_profile_scree
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/parents/parent_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/parent_services.dart';
 import '../../../widgets/parents_center_icon.dart';
@@ -438,7 +439,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const SettingsScreen(),
+                builder: (_) => ParentServicesMenuScreen(parentName: _parentName),
               ),
             ),
             child: Container(

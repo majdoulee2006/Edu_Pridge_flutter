@@ -14,6 +14,7 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../widgets/parents_center_icon.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 
 class ParentsProfileScreen extends StatefulWidget {
   const ParentsProfileScreen({super.key});
@@ -226,8 +227,13 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
                   const SizedBox(height: 25),
                   _buildSectionTitle("الأمان والإعدادات", textColor),
                   _buildClickableSettingCard(
-                    "تغيير كلمة المرور", Icons.lock_reset_rounded, Colors.redAccent, cardColor, textColor,
+                    "تغيير كلمة المرور", Icons.lock_reset_rounded, Colors.blueAccent, cardColor, textColor,
                         () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditPasswordScreen())),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildClickableSettingCard(
+                    "تسجيل الخروج", Icons.logout_rounded, Colors.red, cardColor, Colors.red,
+                        () => showLogoutConfirmation(context, true),
                   ),
 
                   const SizedBox(height: 150),

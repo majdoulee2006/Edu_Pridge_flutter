@@ -9,6 +9,7 @@ import 'package:edu_pridge_flutter/screens/teacher/center_icons/assignments_scre
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/scedual_screen/scedual_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/report_requests_screen.dart';
 
 import '../../widgets/teacher_speed_dial.dart';
 import 'teacher_home.dart';
@@ -184,7 +185,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'report_request':
       case 'new_report':
       case 'report':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherScheduleScreen()));
+        final reqId = notif['related_id']?.toString();
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => ReportRequestsScreen(initialRequestId: reqId),
+        ));
         break;
       case 'leave_request':
       case 'attendance':

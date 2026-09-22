@@ -710,6 +710,136 @@ class AffairsServices {
       return false;
     }
   }
+
+  // ==========================================
+  // 13. المسار الأكاديمي الطلابي والفرز والقرارات (Academic Pathway & Course Weights)
+  // ==========================================
+  Future<Map<String, dynamic>?> getAcademicPathwayData() async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/course-weights/data",
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ getAcademicPathwayData Error: $e");
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> updateStudentAcademicDecision({
+    required int studentId,
+    required String decision,
+    String? notes,
+  }) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/affairs/course-weights/student-decision",
+        data: {
+          'student_id': studentId,
+          'decision': decision,
+          'notes': notes ?? '',
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+    } catch (e) {
+      debugPrint("❌ updateStudentAcademicDecision Error: $e");
+    }
+    return null;
+  }
+
+  Future<Uint8List?> fetchCohortPdfBytes({
+    dynamic departmentId,
+    dynamic programId,
+    dynamic year,
+    dynamic semesterId,
+    dynamic standing,
+  }) async {
+    try {
+      final token = await _getToken();
+      final query = <String, dynamic>{};
+      if (departmentId != null && departmentId != 'all') query['department_id'] = departmentId;
+      if (programId != null && programId != 'all') query['program_id'] = programId;
+      if (year != null && year != 'both') query['year'] = year;
+      if (semesterId != null && semesterId != 'both') query['semester_id'] = semesterId;
+      if (standing != null && standing != 'all') query['standing'] = standing;
+      query['format'] = 'pdf';
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/course-weights/export-cohort-pdf",
+        queryParameters: query,
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          responseType: ResponseType.bytes,
+        ),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Uint8List.fromList(response.data);
+      }
+    } catch (e) {
+      debugPrint("❌ fetchCohortPdfBytes Error: $e");
+    }
+    return null;
+  }
+
+  Future<Uint8List?> fetchStudentTranscriptPdfBytes(int studentId) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/course-weights/export-student-pdf",
+        queryParameters: {
+          'student_id': studentId,
+          'format': 'pdf',
+        },
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          responseType: ResponseType.bytes,
+        ),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Uint8List.fromList(response.data);
+      }
+    } catch (e) {
+      debugPrint("❌ fetchStudentTranscriptPdfBytes Error: $e");
+    }
+    return null;
+  }
+
+  String getCohortExportUrl({
+    dynamic departmentId,
+    dynamic programId,
+    dynamic year,
+    dynamic semesterId,
+    dynamic standing,
+  }) {
+    final base = ApiService.serverIp.startsWith('http') 
+        ? ApiService.serverIp 
+        : 'http://${ApiService.serverIp}:8001';
+    final query = <String, String>{};
+    if (departmentId != null && departmentId != 'all') query['department_id'] = departmentId.toString();
+    if (programId != null && programId != 'all') query['program_id'] = programId.toString();
+    if (year != null && year != 'both') query['year'] = year.toString();
+    if (semesterId != null && semesterId != 'both') query['semester_id'] = semesterId.toString();
+    if (standing != null && standing != 'all') query['standing'] = standing.toString();
+    query['format'] = 'pdf';
+    
+    final uri = Uri.parse('$base/affairs/course-weights/export-cohort').replace(queryParameters: query);
+    return uri.toString();
+  }
+
+  String getStudentTranscriptExportUrl(int studentId) {
+    final base = ApiService.serverIp.startsWith('http') 
+        ? ApiService.serverIp 
+        : 'http://${ApiService.serverIp}:8001';
+    return '$base/affairs/course-weights/export-student?student_id=$studentId';
+  }
 }
 
 

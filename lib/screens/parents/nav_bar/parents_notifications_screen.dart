@@ -242,7 +242,8 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         });
         break;
       case 'report':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
+        final relId = int.tryParse(n['related_id']?.toString() ?? '');
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ReportsScreen(highlightId: relId)));
         break;
       case 'attendance':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()));
