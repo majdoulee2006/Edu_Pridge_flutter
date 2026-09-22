@@ -216,7 +216,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     int? selYearLevel;
     bool oralAllStudents = true;
     int? selStudentId;
-    String selStudentName = '';
     List<Map<String,dynamic>> _programStudents = [];
     bool _loadingStudents = false;
 
@@ -361,7 +360,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         selectedCourseYear = course['year'] as int?;
                         selectedCourseProgramName = course['program_name'] as String? ?? course['level'] as String? ?? '';
                         selStudentId = null;
-                        selStudentName = '';
                         _programStudents = [];
                       });
                     },
@@ -395,7 +393,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setSheet(() { oralAllStudents = true; selStudentId = null; selStudentName = ''; }),
+                            onTap: () => setSheet(() { oralAllStudents = true; selStudentId = null; }),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -459,8 +457,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                     child: Text('${s['full_name']} - ${s['university_id'] ?? ''}'),
                                   )).toList(),
                                   onChanged: (v) {
-                                    final st = _programStudents.firstWhere((s) => s['student_id'] == v, orElse: () => {});
-                                    setSheet(() { selStudentId = v; selStudentName = st['full_name'] as String? ?? ''; });
+                                    setSheet(() { selStudentId = v; });
                                   },
                                 ),
                     ],

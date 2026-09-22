@@ -10,8 +10,6 @@ import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/student_service_requests_list_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
-import 'package:edu_pridge_flutter/screens/student/center_icons/grades/grades_screen.dart';
-import 'package:edu_pridge_flutter/screens/student/center_icons/courses/courses_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/grades/student_academic_card_screen.dart';
 
 // ─── StudentServicesMenuScreen ──────────────────────────────────────────────

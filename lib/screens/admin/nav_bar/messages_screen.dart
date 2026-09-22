@@ -15,7 +15,6 @@ import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 
 // Chat Micro-Widgets & Service
 import '../../../services/chat_service.dart';
-import '../../../widgets/chat/contact_tile_widget.dart';
 
 class AdminMessagesScreen extends StatelessWidget {
   const AdminMessagesScreen({super.key});

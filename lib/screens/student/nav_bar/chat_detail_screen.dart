@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
-import 'package:edu_pridge_flutter/models/chat_message_model.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -65,18 +64,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     } catch (e) {
       debugPrint("❌ خطأ في إرسال الرسالة: $e");
     }
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
   }
 
   void _showAttachmentOptions(BuildContext context) {

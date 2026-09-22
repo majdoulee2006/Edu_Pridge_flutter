@@ -164,23 +164,6 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     });
   }
 
-  Future<void> _pickVoiceNote() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['mp3', 'wav', 'm4a', 'ogg', 'aac'],
-      withData: true,
-    );
-    if (result != null) {
-      final file = result.files.single;
-      widget.onSend(
-        "[Voice Note]",
-        filePath: file.path,
-        fileBytes: file.bytes,
-        fileName: file.name,
-      );
-    }
-  }
-
   String _formatRecordingTime(int seconds) {
     final mins = (seconds ~/ 60).toString().padLeft(2, '0');
     final secs = (seconds % 60).toString().padLeft(2, '0');

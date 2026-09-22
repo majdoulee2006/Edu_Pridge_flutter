@@ -89,7 +89,6 @@ class BossNotificationScreen extends StatefulWidget {
 class _BossNotificationScreenState extends State<BossNotificationScreen> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
-  bool _isMarkingAll = false;
   List<BossNotification> notifications = [];
   String _currentFilter = 'all';
   int _currentPage = 1;
@@ -236,31 +235,6 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
       }
     } catch (e) {
       debugPrint('⛔ Mark Read Error: $e');
-    }
-  }
-
-  Future<void> _markAllRead() async {
-    if (_isMarkingAll) return;
-    setState(() => _isMarkingAll = true);
-    try {
-      final token = await _getToken();
-      await Dio().put(
-        "${ApiService().baseUrl}/department-head/notifications/read-all",
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-      if (mounted) {
-        setState(() {
-          notifications = notifications.map((n) => BossNotification(
-            id: n.id, title: n.title, description: n.description, time: n.time,
-            icon: n.icon, iconColor: n.iconColor, isUnread: false,
-            type: n.type, relatedId: n.relatedId, leaveStatus: n.leaveStatus,
-          )).toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('⛔ Mark All Read Error: $e');
-    } finally {
-      if (mounted) setState(() => _isMarkingAll = false);
     }
   }
 

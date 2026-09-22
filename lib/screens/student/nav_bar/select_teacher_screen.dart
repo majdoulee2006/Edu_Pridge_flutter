@@ -1,4 +1,3 @@
-import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';

@@ -53,8 +53,6 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
   // Controllers for New Course Form
   final _courseTitleCtrl = TextEditingController();
   final _courseDescCtrl = TextEditingController();
-  String _courseYear = "1";
-  int _courseSemester = 1;
 
   @override
   void initState() {
