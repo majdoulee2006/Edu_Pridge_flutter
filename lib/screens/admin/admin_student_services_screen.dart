@@ -7,12 +7,18 @@ class AdminStudentServicesScreen extends StatefulWidget {
   final String serviceType; // 'mercy', 'document', 'makeup'
   final String titleAr;
   final String titleEn;
+  // 🛠️ لما تُفتح من واجهة موظف الشؤون لازم تستخدم endpoint الشؤون
+  // (/affairs/student-services) بمرحلة pending_affairs، مش endpoint الإدارة
+  // (/admin/student-services) يلي مقصور على role:admin وبمرحلة pending_admin
+  // بس — كان هاد سبب ظهور قائمة فاضية دايماً لموظف الشؤون رغم وجود طلبات فعلية.
+  final bool isAffairs;
 
   const AdminStudentServicesScreen({
     super.key,
     required this.serviceType,
     required this.titleAr,
     required this.titleEn,
+    this.isAffairs = false,
   });
 
   @override
@@ -48,10 +54,15 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
 
   Future<void> _fetchPending() async {
     setState(() => _isLoadingPending = true);
-    final res = await _adminServices.getStudentServicesRequests(
-      type: widget.serviceType,
-      status: 'pending',
-    );
+    final res = widget.isAffairs
+        ? await _adminServices.getAffairsStudentServicesRequests(
+            type: widget.serviceType,
+            status: 'pending',
+          )
+        : await _adminServices.getStudentServicesRequests(
+            type: widget.serviceType,
+            status: 'pending',
+          );
     if (mounted) {
       setState(() {
         _pendingRequests = res ?? [];
@@ -62,10 +73,15 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
 
   Future<void> _fetchCompleted() async {
     setState(() => _isLoadingCompleted = true);
-    final res = await _adminServices.getStudentServicesRequests(
-      type: widget.serviceType,
-      status: 'completed',
-    );
+    final res = widget.isAffairs
+        ? await _adminServices.getAffairsStudentServicesRequests(
+            type: widget.serviceType,
+            status: 'completed',
+          )
+        : await _adminServices.getStudentServicesRequests(
+            type: widget.serviceType,
+            status: 'completed',
+          );
     if (mounted) {
       setState(() {
         _completedRequests = res ?? [];
@@ -285,7 +301,7 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
                                 icon: isSubmitting
                                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                                     : const Icon(Icons.check_circle_outline, color: Colors.white),
-                                label: const Text("اعتماد نهائي (موافقة)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                label: Text(widget.isAffairs ? "موافقة وتحويل لرئيس القسم" : "اعتماد نهائي (موافقة)", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                 onPressed: isSubmitting
                                     ? null
                                     : () async {
@@ -296,11 +312,17 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
                                           return;
                                         }
                                         setModalState(() => isSubmitting = true);
-                                        final success = await _adminServices.processStudentServiceRequest(
-                                          id: req['id'],
-                                          decision: 'approved',
-                                          notes: notesController.text.trim(),
-                                        );
+                                        final success = widget.isAffairs
+                                            ? await _adminServices.processAffairsStudentServiceRequest(
+                                                id: req['id'],
+                                                decision: 'approved',
+                                                notes: notesController.text.trim(),
+                                              )
+                                            : await _adminServices.processStudentServiceRequest(
+                                                id: req['id'],
+                                                decision: 'approved',
+                                                notes: notesController.text.trim(),
+                                              );
                                         setModalState(() => isSubmitting = false);
                                         if (success && mounted) {
                                           Navigator.pop(context);
@@ -334,11 +356,17 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
                                           return;
                                         }
                                         setModalState(() => isSubmitting = true);
-                                        final success = await _adminServices.processStudentServiceRequest(
-                                          id: req['id'],
-                                          decision: 'rejected',
-                                          notes: notesController.text.trim(),
-                                        );
+                                        final success = widget.isAffairs
+                                            ? await _adminServices.processAffairsStudentServiceRequest(
+                                                id: req['id'],
+                                                decision: 'rejected',
+                                                notes: notesController.text.trim(),
+                                              )
+                                            : await _adminServices.processStudentServiceRequest(
+                                                id: req['id'],
+                                                decision: 'rejected',
+                                                notes: notesController.text.trim(),
+                                              );
                                         setModalState(() => isSubmitting = false);
                                         if (success && mounted) {
                                           Navigator.pop(context);

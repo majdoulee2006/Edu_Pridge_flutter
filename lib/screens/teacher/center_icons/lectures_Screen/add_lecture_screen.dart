@@ -134,7 +134,7 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'mp4', 'mov', 'avi', 'mkv'],
+      allowedExtensions: ['pdf', 'mp4', 'mov', 'avi', 'mkv', 'doc', 'docx', 'ppt', 'pptx'],
       withData: true,
     );
     if (result != null && result.files.isNotEmpty) {
@@ -210,6 +210,10 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
     'mov' => 'video/quicktime',
     'avi' => 'video/x-msvideo',
     'mkv' => 'video/x-matroska',
+    'doc'  => 'application/msword',
+    'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'ppt'  => 'application/vnd.ms-powerpoint',
+    'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     _     => 'application/octet-stream',
   };
 
@@ -434,7 +438,7 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                _pickedFile != null ? _pickedFile!.name : 'اضغط لإرفاق ملف (PDF، فيديو)',
+                                _pickedFile != null ? _pickedFile!.name : 'اضغط لإرفاق ملف (PDF، Word، PowerPoint، فيديو)',
                                 textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(

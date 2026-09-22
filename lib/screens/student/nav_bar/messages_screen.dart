@@ -297,7 +297,7 @@ class _MessagesViewState extends State<MessagesView> {
         leading: Stack(
           children: [
             Builder(builder: (_) {
-              final rawAvatar = chat.avatarUrl ?? '';
+              final rawAvatar = chat.avatarUrl;
               final fixedAvatar = ApiService.fixMediaUrl(rawAvatar);
               return CircleAvatar(
                 radius: 28,

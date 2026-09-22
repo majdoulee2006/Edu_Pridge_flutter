@@ -218,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
         },
       );
 
-      if (response != null && response.statusCode == 200 && response.data != null) {
+      if (response.statusCode == 200 && response.data != null) {
         final prefs = await SharedPreferences.getInstance();
         final responseData = response.data;
 

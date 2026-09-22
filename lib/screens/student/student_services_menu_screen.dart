@@ -430,7 +430,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
     final data = await StudentServices().getCourses();
     if (data != null && mounted) {
       setState(() {
-        _courses = (data as List).map((e) => e['title'].toString()).toList();
+        _courses = data.map((e) => e['title'].toString()).toList();
         _isLoadingCourses = false;
       });
     } else if (mounted) {
@@ -757,7 +757,6 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
     "استخراج شهادة بدل ضائع",
     "استخراج وثيقة كشف علامات",
     "توصيف المنهاج",
-    "عدد ساعات التدريس",
   ];
 
   @override

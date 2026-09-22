@@ -628,7 +628,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                       label: const Text('إنشاء التقييم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       onPressed: () async {
                         if (selectedType == 'oral') {
-                          if (selectedCourseId == null && (selProgramId == null || selYearLevel == null)) {
+                          if (selectedCourseId == null) {
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر المادة أو (الدورة والسنة)')));
                             return;
                           }

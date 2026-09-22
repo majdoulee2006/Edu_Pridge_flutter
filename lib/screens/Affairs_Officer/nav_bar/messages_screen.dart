@@ -16,7 +16,6 @@ import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
 // Chat Micro-Widgets & Service
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import '../../../services/chat_service.dart';
-import '../../../widgets/chat/contact_tile_widget.dart';
 
 class AffairsOfficerMessagesScreen extends StatelessWidget {
   const AffairsOfficerMessagesScreen({super.key});
@@ -131,7 +130,6 @@ class _AffairsOfficerMessagesViewState extends State<AffairsOfficerMessagesView>
         ? contact['last_message']
         : 'انقر لبدء المحادثة...';
     final String time = contact['time'] ?? 'الآن';
-    final String? avatarUrl = contact['image'];
     final bool isOnline = contact['is_online'] ?? false;
     final bool isRead = contact['is_read'] == true;
 

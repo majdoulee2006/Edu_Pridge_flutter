@@ -11,7 +11,6 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 
 import 'pending_tab.dart';
-import 'add_id_tab.dart';
 import 'photo_requests_tab.dart';
 import 'create_account_screen.dart';
 

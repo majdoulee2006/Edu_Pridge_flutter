@@ -247,6 +247,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           _buildDivider(textColor),
                           _buildStaticRow(
+                            label: "الدورة",
+                            value: (userData?['program'] != null && userData!['program'] != 'غير محدد')
+                                ? userData!['program'].toString()
+                                : 'غير محدد',
+                            icon: Icons.groups_rounded,
+                            color: Colors.deepPurple,
+                            textColor: textColor,
+                          ),
+                          _buildDivider(textColor),
+                          _buildStaticRow(
                             label: "السنة الدراسية",
                             value: (userData?['academic_year'] != null && userData!['academic_year'] != 'غير محدد')
                                 ? userData!['academic_year'].toString()
