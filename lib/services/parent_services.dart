@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/session_guard.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ParentService {
-  final Dio _dio = Dio();
+  final Dio _dio = Dio()..interceptors.add(SingleSessionInterceptor());
 
   // الرابط اللي اتفقنا عليه للـ Web/Edge
   final String baseUrl = ApiService().baseUrl;

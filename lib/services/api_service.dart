@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:edu_pridge_flutter/services/session_guard.dart';
 
 class ApiService {
 
@@ -243,7 +244,7 @@ class ApiService {
     return "$base/$path";
   }
 
-  final Dio _dio = Dio();
+  final Dio _dio = Dio()..interceptors.add(SingleSessionInterceptor());
 
   // ==========================================
   // 1. دالة تسجيل الدخول

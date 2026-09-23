@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/session_guard.dart';
 
 class AdminServices {
   final Dio _dio = Dio(
@@ -11,7 +12,7 @@ class AdminServices {
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Accept': 'application/json'},
     ),
-  );
+  )..interceptors.add(SingleSessionInterceptor());
 
   Future<String> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
