@@ -98,6 +98,7 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                               serviceType: 'mercy',
                               titleAr: 'طلبات الاسترحام',
                               titleEn: 'Mercy Petitions',
+                              isAffairs: true,
                             ),
                           ),
                         ),
@@ -122,6 +123,7 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                               serviceType: 'document',
                               titleAr: 'طلبات الوثائق الطلابية',
                               titleEn: 'Student Documents Requests',
+                              isAffairs: true,
                             ),
                           ),
                         ),
@@ -145,6 +147,7 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                               serviceType: 'makeup',
                               titleAr: 'امتحانات الإكمال',
                               titleEn: 'Makeup Exam Requests',
+                              isAffairs: true,
                             ),
                           ),
                         ),
@@ -168,6 +171,7 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                               serviceType: 'device_reset',
                               titleAr: 'طلبات فك قفل الجهاز',
                               titleEn: 'Device Reset Requests',
+                              isAffairs: true,
                             ),
                           ),
                         ),
@@ -187,8 +191,8 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                         iconColor: const Color(0xFFFFCC00),
                         title: isAr ? "الإعدادات" : "Settings",
                         subtitle: isAr
-                            ? "تغيير المظهر، حجم الخط، الإشعارات، واللغة"
-                            : "Change theme, font size, notifications, and language",
+                            ? "تغيير المظهر، حجم الخط، والإشعارات"
+                            : "Change theme, font size, and notifications",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,

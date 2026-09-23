@@ -384,8 +384,6 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
     }
 
     final Color categoryColor = Colors.blue; // يمكن ربطها بنوع النشاط مستقبلا
-    final bool isDone = false; // يمكن تحديده بناءً على التاريخ
-    final bool isUrgent = false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -485,40 +483,6 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isUrgent)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            'مطلوب الحضور !',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.orange,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'Noto Sans Arabic',
-                            ),
-                          ),
-                        ),
-                      if (isDone)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            'منتهي',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: subColor,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'Noto Sans Arabic',
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                   const SizedBox(height: 10),

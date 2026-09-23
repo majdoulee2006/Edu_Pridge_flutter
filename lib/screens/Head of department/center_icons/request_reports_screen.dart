@@ -161,7 +161,6 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     return InkWell(
       onTap: onTap,
@@ -216,7 +215,6 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx2, setSB) {
           final textColor = Theme.of(ctx2).textTheme.bodyLarge?.color ?? Colors.black;
-          final cardColor = Theme.of(ctx2).cardColor;
           final isDark = Theme.of(ctx2).brightness == Brightness.dark;
           final fieldColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF5F7F9);
 

@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
-import 'create_new_schedule.dart';
-import 'edit_of_table.dart';
-
 class TableViewScreen extends StatefulWidget {
   const TableViewScreen({super.key});
 

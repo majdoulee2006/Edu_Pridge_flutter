@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:edu_pridge_flutter/services/parent_services.dart';
-import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});

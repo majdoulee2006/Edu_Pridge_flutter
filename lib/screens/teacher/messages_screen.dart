@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // مسارات الشاشات والويدجتس الخاصة بك
-import 'teacher_home.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import '../shared/settings_screen.dart';

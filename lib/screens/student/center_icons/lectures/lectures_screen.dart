@@ -124,6 +124,8 @@ class _LecturesScreenState extends State<LecturesScreen> {
       type = 'video';
     } else if (rawType == 'link') {
       type = 'link';
+    } else if (rawType == 'document' || url.contains('.doc') || url.contains('.docx') || url.contains('.ppt') || url.contains('.pptx')) {
+      type = 'document';
     }
 
     String subtitle = date;
@@ -166,6 +168,17 @@ class _LecturesScreenState extends State<LecturesScreen> {
         'actionIcon': Icons.open_in_new_rounded,
         'color': const Color(0xFF4CAF50),
         'bgColor': const Color(0xFFE8F5E9),
+      },
+      'document' => {
+        'id': lessonId,
+        'title': title,
+        'subtitle': subtitle,
+        'type': 'document',
+        'url': lesson['url'],
+        'icon': Icons.description_outlined,
+        'actionIcon': Icons.download_outlined,
+        'color': const Color(0xFF2196F3),
+        'bgColor': const Color(0xFFE3F2FD),
       },
       _ => {
         'id': lessonId,
@@ -688,7 +701,7 @@ class _SubjectCardState extends State<_SubjectCard> {
 
     final filteredFiles = widget.files.where((file) {
       if (selectedFilter == 0) return true;
-      if (selectedFilter == 1) return file['type'] == 'pdf';
+      if (selectedFilter == 1) return file['type'] == 'pdf' || file['type'] == 'document';
       if (selectedFilter == 2) return file['type'] == 'video';
       return true;
     }).toList();

@@ -13,6 +13,38 @@ import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dar
 import '../center_icons/leave_requests_screen.dart';
 import '../center_icons/request_reports_screen.dart';
 import '../../parents/center_icons/appointments_screen/appointments_screen.dart';
+import '../requests/boss_student_service_requests_screen.dart';
+
+// 🛠️ إشعارات "طلب خدمة محول من الشؤون" (بعد ما تحوّل الشؤون طلب استرحام/وثائق/
+// إكمال لرئيس القسم) بتوصل بنوع type = "student_service_<mercy|document|makeup>"
+// (النوع الحقيقي للطلب مُضمّن بقيمة type نفسها). هاي الدالة بتحوّل هاد النوع
+// لعنوان الشاشة المطلوبة وتفتحها مباشرة.
+Widget? _bossStudentServiceScreenForType(String notificationType) {
+  if (!notificationType.startsWith('student_service_')) return null;
+  final requestType = notificationType.substring('student_service_'.length);
+  switch (requestType) {
+    case 'mercy':
+      return const BossStudentServiceRequestsScreen(
+        requestType: 'mercy',
+        titleAr: 'طلبات الاسترحام',
+        titleEn: 'Mercy Petitions',
+      );
+    case 'document':
+      return const BossStudentServiceRequestsScreen(
+        requestType: 'document',
+        titleAr: 'طلبات استخراج الوثائق',
+        titleEn: 'Document Requests',
+      );
+    case 'makeup':
+      return const BossStudentServiceRequestsScreen(
+        requestType: 'makeup',
+        titleAr: 'طلبات امتحانات الإكمال',
+        titleEn: 'Makeup Exam Requests',
+      );
+    default:
+      return null;
+  }
+}
 
 class BossNotification {
   final int id;
@@ -57,7 +89,6 @@ class BossNotificationScreen extends StatefulWidget {
 class _BossNotificationScreenState extends State<BossNotificationScreen> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
-  bool _isMarkingAll = false;
   List<BossNotification> notifications = [];
   String _currentFilter = 'all';
   int _currentPage = 1;
@@ -204,31 +235,6 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
       }
     } catch (e) {
       debugPrint('⛔ Mark Read Error: $e');
-    }
-  }
-
-  Future<void> _markAllRead() async {
-    if (_isMarkingAll) return;
-    setState(() => _isMarkingAll = true);
-    try {
-      final token = await _getToken();
-      await Dio().put(
-        "${ApiService().baseUrl}/department-head/notifications/read-all",
-        options: Options(headers: {"Authorization": "Bearer $token"}),
-      );
-      if (mounted) {
-        setState(() {
-          notifications = notifications.map((n) => BossNotification(
-            id: n.id, title: n.title, description: n.description, time: n.time,
-            icon: n.icon, iconColor: n.iconColor, isUnread: false,
-            type: n.type, relatedId: n.relatedId, leaveStatus: n.leaveStatus,
-          )).toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('⛔ Mark All Read Error: $e');
-    } finally {
-      if (mounted) setState(() => _isMarkingAll = false);
     }
   }
 
@@ -549,6 +555,11 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                                             )).then((refreshed) {
                                               if (refreshed == true) _fetchNotifications(refresh: true);
                                             });
+                                          } else {
+                                            final serviceScreen = _bossStudentServiceScreenForType(n.type);
+                                            if (serviceScreen != null) {
+                                              Navigator.push(context, MaterialPageRoute(builder: (_) => serviceScreen));
+                                            }
                                           }
                                         },
                                         child: _buildNotificationCard(e, cardColor, isDark, index),
@@ -649,33 +660,6 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 25, 20, 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          if (_unreadCount > 0)
-            _isMarkingAll
-                ? const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Color(0xFFCCAA00)))
-                : GestureDetector(
-                    onTap: _markAllRead,
-                    child: Text("تحديد الكل كمقروء",
-                        style: TextStyle(
-                            color: Colors.yellow[700],
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600)),
-                  ),
-        ],
-      ),
-    );
-  }
-
   String _labelForType(String type) {
     switch (type) {
       case 'leave_request': return 'طلب إجازة';
@@ -727,6 +711,11 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
           )).then((refreshed) {
             if (refreshed == true) _fetchNotifications();
           });
+        } else {
+          final serviceScreen = _bossStudentServiceScreenForType(n.type);
+          if (serviceScreen != null) {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => serviceScreen));
+          }
         }
       },
       child: Container(

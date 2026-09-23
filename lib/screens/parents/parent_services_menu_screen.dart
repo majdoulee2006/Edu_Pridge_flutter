@@ -96,8 +96,8 @@ class ParentServicesMenuScreen extends StatelessWidget {
                         iconColor: const Color(0xFFFFCC00),
                         title: isAr ? "الإعدادات العامة" : "General Settings",
                         subtitle: isAr
-                            ? "تعديل اللغة، المظهر الداكن، والإشعارات"
-                            : "Change language, dark theme, and notifications",
+                            ? "المظهر الداكن والإشعارات"
+                            : "Dark theme and notifications",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,

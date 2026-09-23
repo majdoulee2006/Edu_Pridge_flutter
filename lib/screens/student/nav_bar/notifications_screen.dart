@@ -209,24 +209,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return;
     }
 
-    bool isExamGrade = notify.type == 'grade' ||
-        notify.type == 'marks' ||
-        notify.type == 'exam' ||
-        notify.type == 'exam_grade' ||
-        title.contains('علامة') ||
-        title.contains('درجة') ||
-        title.contains('فحص') ||
-        title.contains('امتحان') ||
-        msg.contains('علامة') ||
-        msg.contains('درجة') ||
-        msg.contains('فحص') ||
-        msg.contains('امتحان');
-
-    if (isExamGrade) {
-      Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen(initialTab: 1)));
-      return;
-    }
-
+    // 🛠️ نوع الإشعار (notify.type) هو مصدر الحقيقة الموثوق دايماً — لازم يتفحّص
+    // أولاً. كان في فحص نصّي (isExamGrade) بيدوّر عن كلمة "علامة"/"درجة" بالنص
+    // وبيشتغل قبل الـ switch، فكان يخطف أي إشعار type=assignment لمجرد إنه
+    // نص "تم تصحيح واجبك وحصلت على علامة: X/Y" فيه كلمة "علامة"، ويوديه
+    // على جدول الامتحانات بدل صفحة الواجبات. هلق التخمين النصي صار حصراً
+    // fallback لما النوع نفسه مش معروف/فاضي.
     switch (notify.type) {
       case 'announcement':
       case 'administrative':
@@ -242,39 +230,53 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             if (notify.linkUrl != null) 'link_url': notify.linkUrl,
           }),
         ));
-        break;
+        return;
       case 'assignment':
         Navigator.push(ctx, MaterialPageRoute(
           builder: (_) => AssignmentsScreen(highlightId: notify.relatedId),
         ));
-        break;
+        return;
       case 'lecture':
         Navigator.push(ctx, MaterialPageRoute(
           builder: (_) => LecturesScreen(highlightLessonId: notify.relatedId),
         ));
-        break;
+        return;
       case 'attendance':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
-        break;
+        return;
       case 'grade':
       case 'marks':
       case 'exam':
+      case 'exam_grade':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen(initialTab: 1)));
-        break;
-      default:
-        // عرض تفاصيل الإشعار العام
-        Navigator.push(ctx, MaterialPageRoute(
-          builder: (_) => AnnouncementDetailScreen(announcement: {
-            'title':       notify.title,
-            'content':     notify.message,
-            'body':        notify.message,
-            'time_ago':    notify.timeAgo,
-            'created_at':  notify.timeAgo,
-            'author_name': 'الإدارة',
-          }),
-        ));
-        break;
+        return;
     }
+
+    bool isExamGrade = title.contains('علامة') ||
+        title.contains('درجة') ||
+        title.contains('فحص') ||
+        title.contains('امتحان') ||
+        msg.contains('علامة') ||
+        msg.contains('درجة') ||
+        msg.contains('فحص') ||
+        msg.contains('امتحان');
+
+    if (isExamGrade) {
+      Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen(initialTab: 1)));
+      return;
+    }
+
+    // عرض تفاصيل الإشعار العام
+    Navigator.push(ctx, MaterialPageRoute(
+      builder: (_) => AnnouncementDetailScreen(announcement: {
+        'title':       notify.title,
+        'content':     notify.message,
+        'body':        notify.message,
+        'time_ago':    notify.timeAgo,
+        'created_at':  notify.timeAgo,
+        'author_name': 'الإدارة',
+      }),
+    ));
   }
 
   void _showLeaveDetailDialog(BuildContext ctx, AppNotification notify) {
@@ -314,38 +316,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildDetailRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required bool isDark,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: const Color(0xFFFFCC00)),
-        const SizedBox(width: 8),
-        Text(
-          '$label: ',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-        ),
-      ],
     );
   }
 

@@ -774,5 +774,52 @@ class AdminServices {
       return false;
     }
   }
+
+  // 🛠️ نسخة الشؤون من طلبات خدمات الطلاب — /admin/student-services مقصورة
+  // فعلياً على role:admin وبتفلتر بمرحلة الإدارة النهائية (pending_admin) بس،
+  // فموظف الشؤون كان يوصلو 403 ويشوف قائمة فاضية دايماً. هلق عندها endpoint
+  // مخصص إلها بمرحلة الشؤون (pending_affairs) تحت /affairs/student-services.
+  Future<List<dynamic>?> getAffairsStudentServicesRequests({String? type, String? status}) async {
+    try {
+      final token = await _getToken();
+      final Map<String, dynamic> params = {};
+      if (type != null && type.isNotEmpty) params['type'] = type;
+      if (status != null && status.isNotEmpty) params['status'] = status;
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/affairs/student-services",
+        queryParameters: params,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint("❌ Affairs Get Student Services Error: $e");
+    }
+    return null;
+  }
+
+  Future<bool> processAffairsStudentServiceRequest({
+    required int id,
+    required String decision,
+    required String notes,
+  }) async {
+    try {
+      final token = await _getToken();
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/affairs/student-services/$id/process",
+        data: {
+          'decision': decision,
+          'notes': notes,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      debugPrint("❌ Affairs Process Student Service Error: $e");
+      return false;
+    }
+  }
 }
 

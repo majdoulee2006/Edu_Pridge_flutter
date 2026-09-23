@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Shared
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
-import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_profile.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';

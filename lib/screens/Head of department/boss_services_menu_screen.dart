@@ -4,8 +4,6 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
-import 'package:edu_pridge_flutter/services/api_service.dart';
-import 'package:edu_pridge_flutter/screens/student/student_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/requests/boss_student_service_requests_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/leave_requests_screen.dart';
 
@@ -157,8 +155,8 @@ class BossServicesMenuScreen extends StatelessWidget {
                         iconColor: AppColors.accent,
                         title: isAr ? "الإعدادات" : "Settings",
                         subtitle: isAr
-                            ? "تغيير المظهر، حجم الخط، الإشعارات، واللغة"
-                            : "Change theme, font size, notifications, and language",
+                            ? "تغيير المظهر، حجم الخط، والإشعارات"
+                            : "Change theme, font size, and notifications",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,

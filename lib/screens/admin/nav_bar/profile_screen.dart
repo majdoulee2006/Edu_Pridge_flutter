@@ -4,7 +4,6 @@ import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 import '../../../core/constants/app_colors.dart';
 
 // استيراد شاشات التعديل (نفسها المستخدمة في ملف الطالب)
-import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_screen.dart';
 

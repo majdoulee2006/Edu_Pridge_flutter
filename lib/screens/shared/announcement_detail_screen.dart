@@ -2,8 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/widgets/facebook_image_grid.dart';
 import 'package:flutter/material.dart';
-import 'package:gal/gal.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AnnouncementDetailScreen extends StatefulWidget {
@@ -16,8 +14,6 @@ class AnnouncementDetailScreen extends StatefulWidget {
 }
 
 class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
-  bool _isSavingImage = false;
-
   @override
   void initState() {
     super.initState();
@@ -48,44 +44,6 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
     } catch (e) {
       debugPrint('⛔ Mark announcement read error: $e');
     }
-  }
-
-  Future<void> _saveImage(String imageUrl) async {
-    if (_isSavingImage) return;
-    setState(() => _isSavingImage = true);
-    try {
-      final dir      = await getTemporaryDirectory();
-      final fileName = 'announcement_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final filePath = '${dir.path}/$fileName';
-
-      await Dio().download(imageUrl, filePath);
-
-      final hasAccess = await Gal.hasAccess();
-      if (!hasAccess) await Gal.requestAccess();
-
-      await Gal.putImage(filePath);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حفظ الصورة في المعرض ✓'), backgroundColor: Colors.green),
-        );
-      }
-    } catch (e) {
-      debugPrint('Save image error: $e');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذّر حفظ الصورة: $e'), backgroundColor: Colors.red),
-      );
-    } finally {
-      if (mounted) setState(() => _isSavingImage = false);
-    }
-  }
-
-  void _openFullScreen(String imageUrl) {
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => _FullScreenImageViewer(
-        imageUrl: imageUrl,
-        onSave: () => _saveImage(imageUrl),
-      ),
-    ));
   }
 
   @override
@@ -276,42 +234,3 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
   }
 }
 
-// ─── Full Screen Image Viewer ──────────────────────────────────────────────
-
-class _FullScreenImageViewer extends StatelessWidget {
-  final String imageUrl;
-  final VoidCallback onSave;
-  const _FullScreenImageViewer({required this.imageUrl, required this.onSave});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download_rounded, color: Colors.white),
-            tooltip: 'حفظ / مشاركة',
-            onPressed: onSave,
-          ),
-        ],
-      ),
-      body: Center(
-        child: InteractiveViewer(
-          minScale: 0.5,
-          maxScale: 4.0,
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.contain,
-            errorBuilder: (_, e, s) => const Icon(Icons.broken_image, color: Colors.white54, size: 80),
-          ),
-        ),
-      ),
-    );
-  }
-}

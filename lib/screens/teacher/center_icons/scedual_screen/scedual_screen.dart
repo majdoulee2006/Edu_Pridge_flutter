@@ -217,7 +217,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     int? selYearLevel;
     bool oralAllStudents = true;
     int? selStudentId;
-    String selStudentName = '';
     List<Map<String,dynamic>> _programStudents = [];
     bool _loadingStudents = false;
 
@@ -362,7 +361,6 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         selectedCourseYear = course['year'] as int?;
                         selectedCourseProgramName = course['program_name'] as String? ?? course['level'] as String? ?? '';
                         selStudentId = null;
-                        selStudentName = '';
                         _programStudents = [];
                       });
                     },
@@ -396,7 +394,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setSheet(() { oralAllStudents = true; selStudentId = null; selStudentName = ''; }),
+                            onTap: () => setSheet(() { oralAllStudents = true; selStudentId = null; }),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -460,8 +458,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                     child: Text('${s['full_name']} - ${s['university_id'] ?? ''}'),
                                   )).toList(),
                                   onChanged: (v) {
-                                    final st = _programStudents.firstWhere((s) => s['student_id'] == v, orElse: () => {});
-                                    setSheet(() { selStudentId = v; selStudentName = st['full_name'] as String? ?? ''; });
+                                    setSheet(() { selStudentId = v; });
                                   },
                                 ),
                     ],
@@ -629,7 +626,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                       label: const Text('إنشاء التقييم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       onPressed: () async {
                         if (selectedType == 'oral') {
-                          if (selectedCourseId == null && (selProgramId == null || selYearLevel == null)) {
+                          if (selectedCourseId == null) {
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر المادة أو (الدورة والسنة)')));
                             return;
                           }

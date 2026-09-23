@@ -46,6 +46,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   bool _isLoadingSchedules = true;
   bool _isLoadingExams = true;
+  bool _isExporting = false;
 
   List<dynamic> _schedulesData = [];
   List<dynamic> _examsData = [];
@@ -54,20 +55,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void initState() {
     super.initState();
     _selectedTab = widget.initialTab;
-    _initCurrentDay();
     _fetchSchedules();
     _fetchExams();
-  }
-
-  void _initCurrentDay() {
-    final now = DateTime.now();
-    if (now.weekday == DateTime.sunday) { // 7
-      _selectedDateIndex = 0;
-    } else if (now.weekday <= DateTime.thursday) { // 1..4 (Mon..Thu)
-      _selectedDateIndex = now.weekday;
-    } else {
-      _selectedDateIndex = 0; // عطلة نهاية الأسبوع -> يبدأ بالأحد
-    }
   }
 
   // ----------------------------------------------------------------
@@ -130,6 +119,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _exportFile(String type) async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       SnackBar(
@@ -179,10 +170,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   Future<void> _exportSchedule() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
@@ -240,10 +235,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   Future<void> _exportScheduleAsImage() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
@@ -310,10 +309,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       debugPrint('Export schedule as image error: $e');
       // محاولة بديلة في حال تعذر تنزيل الـ PDF
       await _exportWidgetAsImage(_classScheduleBoundaryKey, 'weekly_schedule');
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   Future<void> _exportExamsAsImage() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
@@ -379,6 +382,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     } catch (e) {
       debugPrint('Export exam schedule as image error: $e');
       await _exportWidgetAsImage(_examScheduleBoundaryKey, 'exam_schedule');
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -610,6 +615,28 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       orElse: () => {'day': selectedDayName, 'lectures': []},
     );
     List<dynamic> lectures = dayData['lectures'] ?? [];
+    if (lectures.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.calendar_today_outlined, size: 50, color: Colors.grey.withValues(alpha: 0.4)),
+              const SizedBox(height: 12),
+              Text(
+                'لا توجد محاضرات في هذا اليوم',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontFamily: 'Cairo',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     List<Widget> currentSchedule = lectures.asMap().entries.map((entry) {
       int index = entry.key;
@@ -675,21 +702,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               children: [
                 Row(
                   children: [
-                    Builder(
-                      builder: (context) {
-                        final now = DateTime.now();
-                        final isToday = (now.weekday == DateTime.sunday && _selectedDateIndex == 0) ||
-                                        (now.weekday <= DateTime.thursday && _selectedDateIndex == now.weekday);
-                        final title = isToday ? 'برنامج اليوم ($selectedDayName)' : 'برنامج $selectedDayName';
-                        return Text(
-                          title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        );
-                      },
+                    Text(
+                      'برنامج $selectedDayName',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     GestureDetector(
@@ -787,27 +806,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         Expanded(
           child: lectures.isEmpty
               ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.calendar_today_outlined,
-                          size: 55,
-                          color: Colors.grey.withAlpha(80),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'لا توجد حصص ليوم $selectedDayName',
-                          style: TextStyle(
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: Text(
+                    'لا توجد حصص ليوم $selectedDayName',
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 )
               : ListView(
@@ -835,6 +836,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     final List<dynamic> displayExams = _examsData;
+    final List<dynamic> finalExams = displayExams.where((e) => e['type_label'] != 'مذاكرة').toList();
+    final List<dynamic> quizzes = displayExams.where((e) => e['type_label'] == 'مذاكرة').toList();
 
     return RepaintBoundary(
       key: _examScheduleBoundaryKey,
@@ -846,7 +849,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'الامتحانات النهائية',
+                'الامتحانات والمذاكرات',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -954,19 +957,51 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ],
             ),
           )
-        else
-          ...displayExams.map((exam) {
-            return _buildExamCard(
-              time: exam['time'],
-              title: exam['subject'],
-              duration: exam['duration'] ?? 'غير محدد',
-              location: exam['room'] ?? 'القاعة الامتحانية',
-              month: exam['month'],
-              dayNumber: exam['day_num'].toString(),
-              dayName: exam['day_name'],
-              typeLabel: exam['type_label'] ?? 'نهائي',
-            );
-          }),
+        else ...[
+          if (finalExams.isNotEmpty) ...[
+            _buildExamSectionHeader('الامتحانات النهائية', Icons.assignment_late_rounded, Colors.red),
+            const SizedBox(height: 10),
+            ...finalExams.map((exam) {
+              return _buildExamCard(
+                time: exam['time'],
+                title: exam['subject'],
+                duration: exam['duration'] ?? 'غير محدد',
+                location: exam['room'] ?? 'القاعة الامتحانية',
+                month: exam['month'],
+                dayNumber: exam['day_num'].toString(),
+                dayName: exam['day_name'],
+                typeLabel: exam['type_label'] ?? 'نهائي',
+                score: exam['score'],
+                maxScore: exam['max_score'],
+                onTap: exam['event_id'] != null
+                    ? () => _showGradeSheet(exam['event_id'] as int, exam['subject'] ?? '')
+                    : null,
+              );
+            }),
+          ],
+          if (quizzes.isNotEmpty) ...[
+            SizedBox(height: finalExams.isNotEmpty ? 24 : 0),
+            _buildExamSectionHeader('المذاكرات', Icons.edit_note_rounded, Colors.blue),
+            const SizedBox(height: 10),
+            ...quizzes.map((exam) {
+              return _buildExamCard(
+                time: exam['time'],
+                title: exam['subject'],
+                duration: exam['duration'] ?? 'غير محدد',
+                location: exam['room'] ?? 'القاعة الامتحانية',
+                month: exam['month'],
+                dayNumber: exam['day_num'].toString(),
+                dayName: exam['day_name'],
+                typeLabel: exam['type_label'] ?? 'نهائي',
+                score: exam['score'],
+                maxScore: exam['max_score'],
+                onTap: exam['event_id'] != null
+                    ? () => _showGradeSheet(exam['event_id'] as int, exam['subject'] ?? '')
+                    : null,
+              );
+            }),
+          ],
+        ],
         const SizedBox(height: 15),
         Container(
           padding: const EdgeInsets.all(15),
@@ -1870,6 +1905,111 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  Future<void> _showGradeSheet(int eventId, String subject) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Map<String, dynamic>? info;
+    try {
+      final resp = await Dio().get(
+        '${ApiService().baseUrl}/student/grade-event/$eventId',
+        options: Options(headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'}),
+      );
+      if (resp.statusCode == 200) info = resp.data as Map<String, dynamic>;
+    } catch (_) {}
+
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) {
+        final graded  = info?['graded'] == true;
+        final score   = info?['score'];
+        final maxSc   = info?['max_score'];
+        final notes   = info?['notes'];
+        final type    = info?['type_label'] ?? '';
+        final title   = info?['title'] ?? subject;
+        final course  = info?['course'] ?? subject;
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              Text(course, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
+              const SizedBox(height: 4),
+              Text('$type — $title', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              const SizedBox(height: 20),
+              if (info == null)
+                const Center(child: Text('تعذّر تحميل البيانات', style: TextStyle(color: Colors.grey)))
+              else if (!graded)
+                Row(children: [
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.orange.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+                    child: Row(children: [
+                      const Icon(Icons.hourglass_empty, color: Colors.orange, size: 16),
+                      const SizedBox(width: 6),
+                      Text('لم يتم التصحيح بعد', style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold)),
+                    ])),
+                ])
+              else
+                Row(children: [
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(color: const Color(0xFFFFCC00).withAlpha(30), borderRadius: BorderRadius.circular(12)),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                      Text('علامتك', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                      const SizedBox(height: 4),
+                      Text('$score / $maxSc', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Color(0xFFCC9900))),
+                    ])),
+                  if (notes != null && notes.toString().isNotEmpty) ...[
+                    const SizedBox(width: 12),
+                    Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: isDark ? Colors.white.withAlpha(10) : Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
+                      child: Text(notes.toString(), style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.black87)))),
+                  ],
+                ]),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildExamSectionHeader(String title, IconData icon, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withAlpha(isDark ? 40 : 20),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Divider(
+            color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade300,
+            thickness: 1,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildExamCard({
     required String time,
     required String title,
@@ -1879,75 +2019,92 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     required String dayNumber,
     required String dayName,
     String typeLabel = 'نهائي',
+    dynamic score,
+    dynamic maxScore,
+    VoidCallback? onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final Color tagClr = typeLabel == 'مذاكرة' ? Colors.blue : Colors.red;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-      decoration: BoxDecoration(
-        color: isDark ? Theme.of(context).cardColor : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black.withAlpha(50) : Colors.black.withAlpha(8),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isDark ? tagClr.withAlpha(40) : tagClr.withAlpha(20),
-                      borderRadius: BorderRadius.circular(5),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+        decoration: BoxDecoration(
+          color: isDark ? Theme.of(context).cardColor : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: onTap != null
+              ? Border.all(color: tagClr.withAlpha(60), width: 1)
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withAlpha(50) : Colors.black.withAlpha(8),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDark ? tagClr.withAlpha(40) : tagClr.withAlpha(20),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(typeLabel, style: TextStyle(color: tagClr, fontSize: 9, fontWeight: FontWeight.bold)),
                     ),
-                    child: Text(typeLabel, style: TextStyle(color: tagClr, fontSize: 9, fontWeight: FontWeight.bold)),
+                    if (score != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: const Color(0xFFFFCC00).withAlpha(40), borderRadius: BorderRadius.circular(5)),
+                        child: Text('$score / $maxScore', style: const TextStyle(color: Color(0xFFAA8800), fontSize: 9, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ]),
+                  const SizedBox(height: 1),
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black87)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, size: 12, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(duration, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.location_on_outlined, size: 12, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(location, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                    ],
                   ),
-                ]),
-                const SizedBox(height: 1),
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black87)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time, size: 12, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(duration, style: const TextStyle(color: Colors.grey, fontSize: 10)),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.location_on_outlined, size: 12, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(location, style: const TextStyle(color: Colors.grey, fontSize: 10)),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withAlpha(15) : const Color(0xFFF9F9F9),
-              borderRadius: BorderRadius.circular(15),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withAlpha(15) : const Color(0xFFF9F9F9),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Column(
+                children: [
+                  Text(month, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+                  const SizedBox(height: 2),
+                  Text(dayNumber, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
+                  Text(dayName, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                Text(month, style: const TextStyle(color: Colors.grey, fontSize: 9)),
-                const SizedBox(height: 2),
-                Text(dayNumber, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text(dayName, style: const TextStyle(color: Colors.grey, fontSize: 9)),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

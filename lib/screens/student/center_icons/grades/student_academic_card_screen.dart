@@ -532,7 +532,6 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
               final total = c['total_score'] ?? 0;
               final maxScore = c['max_score'] ?? 100;
               final weight = c['weight'] ?? 1;
-              final isPassed = (c['status'] == 'ناجح') || (total >= 50);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),

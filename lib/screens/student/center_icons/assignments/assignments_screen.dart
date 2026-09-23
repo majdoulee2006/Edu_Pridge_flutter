@@ -437,7 +437,6 @@ class _AssignmentCard extends StatefulWidget {
   final VoidCallback? onSubmitSuccess;
   final double? grade;
   final String? feedback;
-  final String? studentNotes;
   final String? teacherFilePath;
   final String? teacherFileName;
   final String? submissionFilePath;
@@ -479,7 +478,6 @@ class _AssignmentCard extends StatefulWidget {
     this.onSubmitSuccess,
     this.grade,
     this.feedback,
-    this.studentNotes,
   });
 
   @override

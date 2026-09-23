@@ -118,8 +118,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
     final modalDepartments = ["بدون قسم محدد (دورة مستقلة)", ...formDepartments];
     String modalDept = "بدون قسم محدد (دورة مستقلة)";
-    String modalYear = formYears.first;
-    String modalSemester = formSemesters.first;
     bool isSaving = false;
 
     showModalBottomSheet(

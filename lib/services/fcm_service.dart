@@ -12,8 +12,6 @@ import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assi
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 
-import 'package:edu_pridge_flutter/screens/Head of department/center_icons/appointments/hod_appointments_screen.dart';
-import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/appointments/affairs_appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
@@ -39,7 +37,6 @@ class FcmService {
     if (ctx == null) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final userRole = prefs.getString('user_role') ?? '';
     final token = prefs.getString('token') ?? '';
 
     // إرسال طلب للباك إند لتمييز الإشعار كمقروء عند فتحه من الخارج

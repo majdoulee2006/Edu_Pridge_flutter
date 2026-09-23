@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
@@ -57,19 +56,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         return Directionality(
           textDirection: TextDirection.rtl,
           child: AlertDialog(
-            title: const Text("تأكيد الحذف", style: TextStyle(fontWeight: FontWeight.bold)),
-            content: Text("هل أنت تأكد من حذف الإعلان '${news['title'] ?? ''}'؟"),
+            title: const Text(
+              "تأكيد الحذف",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: Text(
+              "هل أنت تأكد من حذف الإعلان '${news['title'] ?? ''}'؟",
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text("إلغاء"),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                ),
                 onPressed: () async {
                   Navigator.pop(context);
                   if (annId != null) {
-                    final success = await AdminServices().deleteAnnouncement(annId);
+                    final success = await AdminServices().deleteAnnouncement(
+                      annId,
+                    );
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text("تم حذف الإعلان بنجاح")),
@@ -82,7 +90,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     }
                   }
                 },
-                child: const Text("حذف الإعلان", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "حذف الإعلان",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -104,7 +118,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? theme.scaffoldBackgroundColor : const Color(0xFFF8F9FA);
+    final bgColor = isDark
+        ? theme.scaffoldBackgroundColor
+        : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final primaryYellow = const Color(0xFFFFCC00);
 
@@ -123,30 +139,59 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
                   Expanded(
                     child: isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFFFCC00),
+                            ),
+                          )
                         : RefreshIndicator(
                             color: primaryYellow,
                             onRefresh: _loadDashboardData,
                             child: ListView(
                               physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                10,
+                                20,
+                                120,
+                              ),
                               children: [
                                 // 1. قسم الإحصائيات والأجمليات (Dashboard Totals)
-                                _buildSectionTitle("لوحة التحكم والإحصائيات", Icons.analytics_outlined, isDark),
+                                _buildSectionTitle(
+                                  "لوحة التحكم والإحصائيات",
+                                  Icons.analytics_outlined,
+                                  isDark,
+                                ),
                                 const SizedBox(height: 12),
-                                _buildStatsGrid(isDark, cardColor, primaryYellow),
+                                _buildStatsGrid(
+                                  isDark,
+                                  cardColor,
+                                  primaryYellow,
+                                ),
 
                                 const SizedBox(height: 25),
 
                                 // 2. بطاقة الفصل الدراسي النشط
-                                _buildActiveSemesterCard(isDark, cardColor, primaryYellow),
+                                _buildActiveSemesterCard(
+                                  isDark,
+                                  cardColor,
+                                  primaryYellow,
+                                ),
 
                                 const SizedBox(height: 25),
 
                                 // 3. قسم أخبار المعهد والفعاليات
-                                _buildSectionTitle("أخبار المعهد والفعاليات", Icons.campaign_outlined, isDark),
+                                _buildSectionTitle(
+                                  "أخبار المعهد والفعاليات",
+                                  Icons.campaign_outlined,
+                                  isDark,
+                                ),
                                 const SizedBox(height: 12),
-                                _buildNewsAndEventsSection(isDark, cardColor, primaryYellow),
+                                _buildNewsAndEventsSection(
+                                  isDark,
+                                  cardColor,
+                                  primaryYellow,
+                                ),
 
                                 const SizedBox(height: 25),
                               ],
@@ -163,11 +208,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               centerButton: const AdminSpeedDial(),
               onHomeTap: () => _loadDashboardData(),
               onProfileTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const AdminProfileScreen())),
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminProfileScreen(),
+                ),
+              ),
               onNotificationsTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const AdminNotificationsScreen())),
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminNotificationsScreen(),
+                ),
+              ),
               onMessagesTap: () => Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (context) => const AdminMessagesScreen())),
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminMessagesScreen(),
+                ),
+              ),
             ),
           ],
         ),
@@ -226,10 +283,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.menu_rounded, color: Color(0xFFFFCC00), size: 28),
+            icon: const Icon(
+              Icons.menu_rounded,
+              color: Color(0xFFFFCC00),
+              size: 28,
+            ),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AdminServicesMenuScreen()),
+              MaterialPageRoute(
+                builder: (context) => const AdminServicesMenuScreen(),
+              ),
             ),
           ),
         ],
@@ -275,21 +338,58 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       mainAxisSpacing: 14,
       childAspectRatio: 1.5,
       children: [
-        _buildStatCard("الطلاب المسجلين", studentsCount.toString(), Icons.school_outlined, Colors.blue, cardColor, isDark),
-        _buildStatCard("الكادر التدريسي", teachersCount.toString(), Icons.people_outline, Colors.orange, cardColor, isDark),
-        _buildStatCard("المواد الدراسية", coursesCount.toString(), Icons.book_outlined, Colors.green, cardColor, isDark),
-        _buildStatCard("الأقسام الأكاديمية", deptsCount.toString(), Icons.account_balance_outlined, Colors.purple, cardColor, isDark),
+        _buildStatCard(
+          "الطلاب المسجلين",
+          studentsCount.toString(),
+          Icons.school_outlined,
+          Colors.blue,
+          cardColor,
+          isDark,
+        ),
+        _buildStatCard(
+          "الكادر التدريسي",
+          teachersCount.toString(),
+          Icons.people_outline,
+          Colors.orange,
+          cardColor,
+          isDark,
+        ),
+        _buildStatCard(
+          "المواد الدراسية",
+          coursesCount.toString(),
+          Icons.book_outlined,
+          Colors.green,
+          cardColor,
+          isDark,
+        ),
+        _buildStatCard(
+          "الأقسام الأكاديمية",
+          deptsCount.toString(),
+          Icons.account_balance_outlined,
+          Colors.purple,
+          cardColor,
+          isDark,
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color iconColor, Color cardColor, bool isDark) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color iconColor,
+    Color cardColor,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
@@ -333,9 +433,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  Widget _buildActiveSemesterCard(bool isDark, Color cardColor, Color primaryYellow) {
+  Widget _buildActiveSemesterCard(
+    bool isDark,
+    Color cardColor,
+    Color primaryYellow,
+  ) {
     final activeSemester = dashboardData?['active_semester'];
-    final String semesterName = activeSemester?['name'] ?? 'لا يوجد فصل دراسي نشط حالياً';
+    final String semesterName =
+        activeSemester?['name'] ?? 'لا يوجد فصل دراسي نشط حالياً';
     final String startDate = activeSemester?['start_date'] ?? '';
     final String endDate = activeSemester?['end_date'] ?? '';
 
@@ -344,7 +449,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: primaryYellow.withValues(alpha: 0.4), width: 1.5),
+        border: Border.all(
+          color: primaryYellow.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: primaryYellow.withValues(alpha: isDark ? 0.08 : 0.05),
@@ -361,7 +469,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               color: primaryYellow.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(Icons.calendar_month_rounded, color: primaryYellow, size: 30),
+            child: Icon(
+              Icons.calendar_month_rounded,
+              color: primaryYellow,
+              size: 30,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -374,20 +486,29 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       "الفصل الدراسي الحالي",
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
                       ),
                     ),
                     const Spacer(),
                     if (activeSemester != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
                           "نشط",
-                          style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                   ],
@@ -416,18 +537,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  Widget _buildNewsAndEventsSection(bool isDark, Color cardColor, Color primaryYellow) {
+  Widget _buildNewsAndEventsSection(
+    bool isDark,
+    Color cardColor,
+    Color primaryYellow,
+  ) {
     if (latestNews.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(25),
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+          border: Border.all(
+            color: isDark ? Colors.white10 : Colors.grey.shade200,
+          ),
         ),
         child: Column(
           children: [
-            Icon(Icons.newspaper_outlined, size: 48, color: Colors.grey.shade400),
+            Icon(
+              Icons.newspaper_outlined,
+              size: 48,
+              color: Colors.grey.shade400,
+            ),
             const SizedBox(height: 12),
             Text(
               "لا توجد أخبار أو فعاليات منشورة حالياً",
@@ -459,16 +590,32 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  Widget _buildFeaturedNewsCard(Map<String, dynamic> news, bool isDark, Color cardColor, Color primaryYellow) {
+  Widget _buildFeaturedNewsCard(
+    Map<String, dynamic> news,
+    bool isDark,
+    Color cardColor,
+    Color primaryYellow,
+  ) {
     final String title = news['title'] ?? 'إعلان جديد';
     final String content = news['content'] ?? '';
     final String category = news['category'] ?? news['type'] ?? 'إعلان عام';
-    final String rawAuthor = news['author_name'] ?? news['publisher_name'] ?? news['created_by'] ?? 'إدارة المعهد';
-    final String author    = rawAuthor.startsWith('نشر') ? rawAuthor : 'نشر بواسطة: $rawAuthor';
+    final String rawAuthor =
+        news['author_name'] ??
+        news['publisher_name'] ??
+        news['created_by'] ??
+        'إدارة المعهد';
+    final String author = rawAuthor.startsWith('نشر')
+        ? rawAuthor
+        : 'نشر بواسطة: $rawAuthor';
     final String time = news['created_at'] ?? '';
-    
+
     // 🌟 دعم واستخراج كافة مسميات الصور القديمة والحديثة 🌟
-    final String rawImg = news['image_url'] ?? news['image_path'] ?? news['image'] ?? news['attachment'] ?? '';
+    final String rawImg =
+        news['image_url'] ??
+        news['image_path'] ??
+        news['image'] ??
+        news['attachment'] ??
+        '';
     final String? imageUrl = ApiService.fixMediaUrl(rawImg);
 
     return Container(
@@ -476,7 +623,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
@@ -490,7 +639,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         children: [
           if (imageUrl != null && imageUrl.isNotEmpty)
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(25),
+              ),
               child: Image.network(
                 imageUrl,
                 height: 180,
@@ -512,13 +663,20 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       children: [
                         Text(
                           time,
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
                         ),
                         // ازرار التعديل والحذف تظهر فقط على منشورات المدير نفسه
                         if (news['is_mine'] == true) ...[
                           const SizedBox(width: 8),
                           IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 20),
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              color: Colors.blueAccent,
+                              size: 20,
+                            ),
                             onPressed: () => _openEditAnnouncement(news),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -526,7 +684,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                           ),
                           const SizedBox(width: 10),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                              size: 20,
+                            ),
                             onPressed: () => _confirmDeleteAnnouncement(news),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -543,7 +705,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => AnnouncementDetailScreen(announcement: news),
+                        builder: (context) =>
+                            AnnouncementDetailScreen(announcement: news),
                       ),
                     );
                   },
@@ -567,7 +730,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.4,
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade700,
                           ),
                         ),
                       ],
@@ -577,11 +742,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    const Icon(Icons.person_pin_outlined, size: 16, color: Colors.grey),
+                    const Icon(
+                      Icons.person_pin_outlined,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       author,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -593,13 +766,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  Widget _buildStandardNewsCard(Map<String, dynamic> news, bool isDark, Color cardColor, Color primaryYellow) {
+  Widget _buildStandardNewsCard(
+    Map<String, dynamic> news,
+    bool isDark,
+    Color cardColor,
+    Color primaryYellow,
+  ) {
     final String title = news['title'] ?? 'خبر إداري';
     final String content = news['content'] ?? '';
     final String time = news['created_at'] ?? '';
-    
+
     // 🌟 دعم واستخراج كافة مسميات الصور القديمة والحديثة 🌟
-    final String rawImg = news['image_url'] ?? news['image_path'] ?? news['image'] ?? news['attachment'] ?? '';
+    final String rawImg =
+        news['image_url'] ??
+        news['image_path'] ??
+        news['image'] ??
+        news['attachment'] ??
+        '';
     final String? imageUrl = ApiService.fixMediaUrl(rawImg);
 
     return Container(
@@ -608,7 +791,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.shade200,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,7 +821,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   color: primaryYellow.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(Icons.notifications_active_outlined, color: primaryYellow, size: 22),
+                child: Icon(
+                  Icons.notifications_active_outlined,
+                  color: primaryYellow,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -645,7 +834,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => AnnouncementDetailScreen(announcement: news),
+                        builder: (context) =>
+                            AnnouncementDetailScreen(announcement: news),
                       ),
                     );
                   },
@@ -666,7 +856,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                           content,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12),
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ],
@@ -678,7 +873,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 18),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: Colors.blueAccent,
+                        size: 18,
+                      ),
                       onPressed: () => _openEditAnnouncement(news),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -686,7 +885,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                        size: 18,
+                      ),
                       onPressed: () => _confirmDeleteAnnouncement(news),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -718,7 +921,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
       ),
     );
   }
@@ -728,7 +935,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       opacity: 0.03,
       child: Container(
         decoration: const BoxDecoration(
-          image: DecorationImage(image: AssetImage("assets/images/grid.png"), repeat: ImageRepeat.repeat),
+          image: DecorationImage(
+            image: AssetImage("assets/images/grid.png"),
+            repeat: ImageRepeat.repeat,
+          ),
         ),
       ),
     );
