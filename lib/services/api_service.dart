@@ -6,11 +6,11 @@ import 'package:flutter/foundation.dart';
 class ApiService {
 
   // ==========================================
-  // 🌟 رابط السيرفر الأساسي المرفوع على الإنترنت
+  // 🌟 رابط السيرفر المحلي (جهاز اللابتوب)
   // ==========================================
-  static const String defaultServerUrl = 'http://82.137.250.43:8080/edu_bridge/public';
-  static String _serverIp = defaultServerUrl;
-  static const String _port = '8001';
+  static const String defaultServerUrl = 'http://127.0.0.1:8000';
+  static String _serverIp = '127.0.0.1';
+  static String _port = '8000';
   static bool _isDiscovering = false;
 
   static String get serverIp => _serverIp;
@@ -21,44 +21,44 @@ class ApiService {
     await prefs.setString('server_ip', ip);
   }
 
-  // تهيئة الإعدادات وتحميل السيرفر المعتمد
+  // تهيئة الإعدادات وتحميل السيرفر المعتمد (السيرفر المحلي حصراً)
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1) أولاً
-      final usb = await _tryConnect('127.0.0.1', timeoutMs: 1000);
+      // مسح أي رابط قديم للسيرفر الخارجي للتأكد من العمل على سيرفر اللابتوب المحلي دائماً
+      final savedIp = prefs.getString('server_ip');
+      if (savedIp != null && savedIp.contains('82.137.250.43')) {
+        await prefs.remove('server_ip');
+      }
+
+      // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1) أولاً (USB سلكي)
+      final usb = await _tryConnect('127.0.0.1', timeoutMs: 1500);
       if (usb != null) {
         _serverIp = '127.0.0.1';
         await prefs.setString('server_ip', '127.0.0.1');
-        debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8001");
+        debugPrint("🎯 ApiService: متصل بالسيرفر المحلي عبر USB (127.0.0.1:$_port)");
         return;
       }
 
-      final savedIp = prefs.getString('server_ip');
-      if (savedIp != null && savedIp.isNotEmpty && !savedIp.contains('82.137.250.43')) {
-        if (savedIp.startsWith('http://') || savedIp.startsWith('https://')) {
-          _serverIp = savedIp;
-          debugPrint("📡 ApiService initialized with saved server URL: $_serverIp");
+      // 2. فحص آي بي الكمبيوتر المباشر على الشبكة الحالية (WiFi)
+      for (final ip in ['10.102.114.209', '192.168.55.205']) {
+        final currentNetworkIp = await _tryConnect(ip, timeoutMs: 1000);
+        if (currentNetworkIp != null) {
+          _serverIp = currentNetworkIp;
+          await prefs.setString('server_ip', currentNetworkIp);
+          debugPrint("🎯 ApiService: متصل بالسيرفر المحلي عبر WiFi ($currentNetworkIp:$_port)");
           return;
         }
       }
 
-      // 2. فحص آي بي الكمبيوتر المباشر الحالي على الشبكة (192.168.55.205)
-      final currentNetworkIp = await _tryConnect('192.168.55.205', timeoutMs: 1000);
-      if (currentNetworkIp != null) {
-        _serverIp = '192.168.55.205';
-        await prefs.setString('server_ip', '192.168.55.205');
-        debugPrint("🎯 ApiService initialized instantly via 192.168.55.205:8001");
-        return;
-      }
-
-      _serverIp = defaultServerUrl;
-      await prefs.setString('server_ip', defaultServerUrl);
-      debugPrint("📡 ApiService initialized with local server URL: $_serverIp");
+      // افتراضياً: السيرفر المحلي عبر USB
+      _serverIp = '127.0.0.1';
+      await prefs.setString('server_ip', '127.0.0.1');
+      debugPrint("🎯 ApiService: الاعتماد على السيرفر المحلي (127.0.0.1:$_port)");
     } catch (e) {
       debugPrint("🚨 Error initializing ApiService: $e");
-      _serverIp = defaultServerUrl;
+      _serverIp = '127.0.0.1';
     }
   }
 
@@ -154,14 +154,16 @@ class ApiService {
     return null;
   }
 
-  static Future<String?> _tryConnect(String ip, {int timeoutMs = 400}) async {
-    try {
-      final socket = await Socket.connect(ip, int.parse(_port), timeout: Duration(milliseconds: timeoutMs));
-      socket.destroy();
-      return ip;
-    } catch (_) {
-      return null;
+  static Future<String?> _tryConnect(String ip, {int timeoutMs = 800}) async {
+    for (final port in [8000, 8001]) {
+      try {
+        final socket = await Socket.connect(ip, port, timeout: Duration(milliseconds: timeoutMs));
+        socket.destroy();
+        _port = port.toString();
+        return ip;
+      } catch (_) {}
     }
+    return null;
   }
 
   String get baseUrl {
