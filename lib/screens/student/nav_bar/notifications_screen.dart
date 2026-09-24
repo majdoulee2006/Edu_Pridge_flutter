@@ -14,6 +14,9 @@ import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dar
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/widgets/official_exit_card_dialog.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -159,6 +162,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     switch (notify.type) {
+      case 'message':
+      case 'chat':
+        final senderId = notify.senderId ?? notify.relatedId;
+        final senderName = notify.title.replaceFirst('رسالة جديدة من ', '');
+        final notifId = notify.id;
+        if (notifId > 0) ApiService().deleteNotification(notifId);
+        if (senderId != null) ApiService().deleteChatNotifications(senderId);
+        if (mounted) {
+          setState(() {
+            notifications.removeWhere((n) => n.id == notify.id);
+          });
+          NotificationPolling.triggerFetch();
+        }
+        if (senderId != null) {
+          Navigator.push(ctx, MaterialPageRoute(
+            builder: (_) => ChatRoomScreen(contact: {
+              'id': senderId,
+              'name': senderName.isNotEmpty ? senderName : 'المستخدم',
+            }),
+          ));
+        }
+        break;
       case 'announcement':
       case 'administrative':
         Navigator.push(ctx, MaterialPageRoute(

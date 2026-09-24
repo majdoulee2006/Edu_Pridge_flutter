@@ -13,6 +13,8 @@ import 'package:edu_pridge_flutter/screens/parents/center_icons/reports_screen/r
 import 'package:edu_pridge_flutter/screens/parents/center_icons/performance_screen/performance_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 class ParentsNotificationsScreen extends StatefulWidget {
@@ -213,6 +215,28 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     }
 
     switch (type) {
+      case 'message':
+      case 'chat':
+        final senderId = n['sender_id'] ?? n['related_id'];
+        final senderName = n['sender_name'] ?? n['sender'] ?? (title.replaceFirst('رسالة جديدة من ', ''));
+        final notifId = (n['id'] as num?)?.toInt() ?? 0;
+        if (notifId > 0) ApiService().deleteNotification(notifId);
+        if (senderId != null) ApiService().deleteChatNotifications(senderId);
+        if (mounted) {
+          setState(() {
+            _notifications.removeWhere((item) => item['id'] == n['id']);
+          });
+          NotificationPolling.triggerFetch();
+        }
+        if (senderId != null) {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => ChatRoomScreen(contact: {
+              'id': senderId,
+              'name': senderName.isNotEmpty ? senderName : 'المستخدم',
+            }),
+          ));
+        }
+        break;
       case 'announcement':
       case 'administrative':
         Navigator.push(context, MaterialPageRoute(
@@ -261,6 +285,9 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
 
   Map<String, dynamic> _getStyleByType(String? type) {
     switch (type?.toLowerCase()) {
+      case 'message':
+      case 'chat':
+        return {'color': Colors.blueAccent, 'icon': Icons.chat_bubble_outline, 'label': 'رسالة'};
       case 'announcement':
       case 'administrative':
         return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': 'إعلان'};

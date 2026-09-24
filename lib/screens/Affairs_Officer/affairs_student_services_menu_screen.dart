@@ -200,12 +200,12 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                       ),
 
                       _buildServiceCard(
-                        icon: Icons.info_rounded,
-                        iconColor: Colors.orange,
-                        title: isAr ? "حول التطبيق" : "About App",
+                        icon: Icons.auto_awesome_rounded,
+                        iconColor: Colors.amber,
+                        title: isAr ? "حول المنصة وفريق التطوير" : "About Platform & Dev Team",
                         subtitle: isAr
-                            ? "معلومات عن نظام إدارة شؤون المعهد والنسخة الحالية"
-                            : "Information about institute management system & version",
+                            ? "فريق التطوير، الرؤية، وسياسة الخصوصية والتواصل"
+                            : "Development team, vision, privacy & contact",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
@@ -216,22 +216,6 @@ class AffairsStudentServicesMenuScreen extends StatelessWidget {
                         ),
                       ),
 
-                      _buildServiceCard(
-                        icon: Icons.privacy_tip_rounded,
-                        iconColor: Colors.purple,
-                        title: isAr ? "سياسة الاستخدام والخصوصية" : "Privacy Policy & Terms",
-                        subtitle: isAr
-                            ? "الشروط والسياسات الخاصة باستخدام تطبيق Edu-Bridge"
-                            : "Terms of use and privacy policy of Edu-Bridge",
-                        cardColor: cardColor,
-                        textColor: textColor,
-                        subColor: subColor,
-                        isAr: isAr,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-                        ),
-                      ),
 
                       _buildServiceCard(
                         icon: Icons.logout_rounded,

@@ -11,6 +11,7 @@ class AppNotification {
   final String? imageUrl;
   final String? linkUrl;
   final int? relatedId;
+  final int? senderId;
 
   AppNotification({
     required this.id,
@@ -23,6 +24,7 @@ class AppNotification {
     this.imageUrl,
     this.linkUrl,
     this.relatedId,
+    this.senderId,
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
@@ -36,12 +38,19 @@ class AppNotification {
       formattedDate: json['formatted_date'] as String?,
       imageUrl: json['image_url'] as String?,
       linkUrl: json['link_url'] as String?,
-      relatedId: json['related_id'] is int ? json['related_id'] as int : null,
+      relatedId: json['related_id'] is int
+          ? json['related_id'] as int
+          : int.tryParse(json['related_id']?.toString() ?? ''),
+      senderId: json['sender_id'] is int
+          ? json['sender_id'] as int
+          : int.tryParse(json['sender_id']?.toString() ?? ''),
     );
   }
 
   IconData getIcon() {
     switch (type) {
+      case 'message':
+      case 'chat':        return Icons.chat_bubble_outline;
       case 'grade':
       case 'marks':
       case 'exam_grade':
@@ -57,6 +66,7 @@ class AppNotification {
       case 'parent_summon': return Icons.notification_important_outlined;
       case 'warning':      return Icons.warning_amber_rounded;
     }
+    if (title.contains('رسالة'))                           return Icons.chat_bubble_outline;
     if (title.contains('وظيفة') || title.contains('واجب')) return Icons.assignment_outlined;
     if (title.contains('جدول') || title.contains('امتحان'))  return Icons.calendar_month_outlined;
     if (title.contains('علامة') || title.contains('درجة'))  return Icons.workspace_premium_outlined;
@@ -67,6 +77,8 @@ class AppNotification {
 
   Color getIconColor() {
     switch (type) {
+      case 'message':
+      case 'chat':           return Colors.lightBlueAccent;
       case 'grade':
       case 'marks':
       case 'exam_grade':

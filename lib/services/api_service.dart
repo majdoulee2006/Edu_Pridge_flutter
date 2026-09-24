@@ -16,15 +16,34 @@ class ApiService {
   static String get serverIp => _serverIp;
 
   static Future<void> setServerIp(String ip) async {
-    _serverIp = ip;
+    String formatted = ip.trim();
+    if (formatted.isNotEmpty && !formatted.startsWith('http://') && !formatted.startsWith('https://')) {
+      formatted = 'http://$formatted';
+    }
+    _serverIp = formatted;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('server_ip', ip);
+    await prefs.setString('server_ip', formatted);
+    debugPrint("📡 Server IP explicitly set to: $_serverIp");
   }
 
   // تهيئة الإعدادات وتحميل السيرفر المعتمد
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      final savedIp = prefs.getString('server_ip');
+      if (savedIp != null && savedIp.isNotEmpty && savedIp != defaultServerUrl && !savedIp.contains('82.137.250.43')) {
+        _serverIp = savedIp;
+        debugPrint("📡 ApiService using saved server: $_serverIp");
+        return;
+      }
+
+      if (kIsWeb) {
+        _serverIp = 'http://127.0.0.1:8001';
+        await prefs.setString('server_ip', _serverIp);
+        debugPrint("🎯 ApiService initialized for Web on $_serverIp");
+        return;
+      }
 
       // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1) أولاً
       final usb = await _tryConnect('127.0.0.1', timeoutMs: 1000);
@@ -33,15 +52,6 @@ class ApiService {
         await prefs.setString('server_ip', '127.0.0.1');
         debugPrint("🎯 ApiService initialized instantly via 127.0.0.1:8001");
         return;
-      }
-
-      final savedIp = prefs.getString('server_ip');
-      if (savedIp != null && savedIp.isNotEmpty && !savedIp.contains('82.137.250.43')) {
-        if (savedIp.startsWith('http://') || savedIp.startsWith('https://')) {
-          _serverIp = savedIp;
-          debugPrint("📡 ApiService initialized with saved server URL: $_serverIp");
-          return;
-        }
       }
 
       // 2. فحص آي بي الكمبيوتر المباشر الحالي على الشبكة (192.168.55.205)
@@ -662,6 +672,38 @@ class ApiService {
       return (response.statusCode == 200 && response.data['success'] == true);
     } catch (e) {
       debugPrint("submitTeacherReportEvaluation Error: $e");
+      return false;
+    }
+  }
+
+  // حذف إشعار محدد
+  Future<bool> deleteNotification(int id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.delete(
+        "$baseUrl/notifications/$id",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint("deleteNotification Error: $e");
+      return false;
+    }
+  }
+
+  // حذف جميع إشعارات المحادثة مع شخص محدد
+  Future<bool> deleteChatNotifications(dynamic senderId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      Response response = await _dio.delete(
+        "$baseUrl/notifications/chat/$senderId",
+        options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint("deleteChatNotifications Error: $e");
       return false;
     }
   }

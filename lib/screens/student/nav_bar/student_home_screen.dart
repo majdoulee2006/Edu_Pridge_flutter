@@ -20,6 +20,7 @@ import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedul
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -78,6 +79,23 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     }
 
     switch (type) {
+      case 'message':
+      case 'chat':
+        final senderId = n['sender_id'] ?? n['related_id'];
+        final senderName = n['sender_name'] ?? n['sender'] ?? (title.replaceFirst('رسالة جديدة من ', ''));
+        final notifId = (n['id'] as num?)?.toInt() ?? 0;
+        if (notifId > 0) ApiService().deleteNotification(notifId);
+        if (senderId != null) ApiService().deleteChatNotifications(senderId);
+        NotificationPolling.triggerFetch();
+        if (senderId != null) {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => ChatRoomScreen(contact: {
+              'id': senderId,
+              'name': senderName.isNotEmpty ? senderName : 'المستخدم',
+            }),
+          ));
+        }
+        break;
       case 'assignment':
       case 'academic':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const AssignmentsScreen()));

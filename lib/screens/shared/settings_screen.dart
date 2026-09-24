@@ -236,8 +236,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 
 
-                        const SizedBox(height: 40),
-                        _appInfoSection(textColor, subColor),
+                        const SizedBox(height: 25),
+
+                        const SizedBox(height: 35),
+                        _appInfoSection(context, textColor, subColor, isAr),
                         const SizedBox(height: 30),
                         _logoutButton(context, isAr),
                         const SizedBox(height: 20),
@@ -351,26 +353,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+
   // ── App Info ──────────────────────────────────────────────────────────────
-  Widget _appInfoSection(Color textColor, Color subColor) {
+  Widget _appInfoSection(BuildContext context, Color textColor, Color subColor, bool isAr) {
     return Center(
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(15)),
-            child: const Icon(Icons.school, size: 40, color: Colors.black),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFCC00), Color(0xFFF59E0B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFFCC00).withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.school_rounded, size: 36, color: Color(0xFF121212)),
           ),
-          const SizedBox(height: 15),
-          Text("Edu-Bridge", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
-          const SizedBox(height: 1),
-          Text("التطبيق الرسمي لإدارة شؤون الطلاب\nوالمحاضرات والواجبات.",
-              textAlign: TextAlign.center, style: TextStyle(color: subColor, fontSize: 13, height: 1.5)),
-          const SizedBox(height: 15),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-            decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-            child: Text("Version 1.0.2", style: TextStyle(color: subColor, fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Text(
+            "Edu-Bridge",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: textColor,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isAr
+                ? "المنظومة الأكاديمية والطلابية الذكية المتكاملة"
+                : "Smart Integrated Academic & Student Platform",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: subColor,
+              fontSize: 13,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

@@ -8,6 +8,8 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
 
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
@@ -183,6 +185,31 @@ class _AffairsOfficerNotificationsScreenState
     _markAsRead(id, index);
 
     final type = n['type']?.toString() ?? '';
+    if (type == 'message' || type == 'chat') {
+      final senderId = n['sender_id'] ?? n['related_id'];
+      final senderName = n['sender_name'] ?? n['sender'] ?? (n['title']?.toString().replaceFirst('رسالة جديدة من ', '') ?? 'المستخدم');
+      if (id > 0) ApiService().deleteNotification(id);
+      if (senderId != null) ApiService().deleteChatNotifications(senderId);
+      if (mounted) {
+        setState(() {
+          _notifications.removeWhere((item) => item['id'] == n['id']);
+        });
+        NotificationPolling.triggerFetch();
+      }
+      if (senderId != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatRoomScreen(contact: {
+              'id': senderId,
+              'name': senderName,
+            }),
+          ),
+        );
+      }
+      return;
+    }
+
     if (type == 'announcement' || type == 'administrative') {
       Navigator.push(
         context,

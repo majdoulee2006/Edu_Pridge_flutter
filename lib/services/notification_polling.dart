@@ -7,13 +7,21 @@ import 'api_service.dart';
 
 class NotificationPolling {
   static Timer? _timer;
+  static String? _lastApiPath;
   static final ValueNotifier<int> unreadCount = ValueNotifier(0);
   static final ValueNotifier<Map<String, dynamic>?> latestNew = ValueNotifier(null);
 
   static void start(String apiPath) {
+    _lastApiPath = apiPath;
     _timer?.cancel();
     _fetch(apiPath);
     _timer = Timer.periodic(const Duration(seconds: 30), (_) => _fetch(apiPath));
+  }
+
+  static void triggerFetch() {
+    if (_lastApiPath != null) {
+      _fetch(_lastApiPath!);
+    }
   }
 
   static void stop() {
