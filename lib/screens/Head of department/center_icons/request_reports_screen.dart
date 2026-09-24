@@ -10,7 +10,6 @@ import 'package:excel/excel.dart' as ex;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
@@ -894,8 +893,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                     children: [
                       if (r['sent_to_parent'] != true && r['sent_to_parent'] != 1)
                         _actionBtn(Icons.send_rounded, 'إرسال للأهل', Colors.blue, () => _sendToParents(r['id'])),
-                      _actionBtn(Icons.visibility_outlined, 'قراءة', Colors.teal, () => _viewReportDetails(r)),
-                      _actionBtn(Icons.download_outlined, 'تنزيل', Colors.indigo, () => _downloadReport(r)),
+                      _actionBtn(Icons.visibility_outlined, 'معاينة ورأي', Colors.teal, () => _viewReportDetails(r)),
                       _actionBtn(Icons.delete_outline, 'حذف', Colors.red, () => _deleteReport(r['id'])),
                     ],
                   ),
@@ -1427,104 +1425,368 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
     } catch (_) {}
   }
 
+  Future<bool> _saveHodNotes(dynamic id, String notes) async {
+    try {
+      final token = await _token();
+      final res = await Dio().post(
+        "${ApiService().baseUrl}/department-head/report-requests/$id/hod-notes",
+        data: {'hod_notes': notes},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      return res.data['success'] == true;
+    } catch (e) {
+      debugPrint('⛔ saveHodNotes error: $e');
+      return false;
+    }
+  }
+
   void _viewReportDetails(Map<String, dynamic> r) {
     final isDark    = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+
+    final hodController = TextEditingController(text: r['hod_notes'] as String? ?? '');
+    bool isSavingHod = false;
+
     showDialog(
       context: context,
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(r['report_type'] == 'academic' ? 'التقرير الأكاديمي' : 'التقرير السلوكي',
-              style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('الطالب: ${r['student_name'] ?? ''}', style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-                if ((r['teacher_name'] as String?) != null)
-                  Text('المدرب: ${r['teacher_name']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                const Divider(height: 20),
-                Builder(
-                  builder: (context) {
-                    String noteText = r['notes'] ?? 'لا يوجد محتوى.';
-                    int? rating;
-                    if (noteText.startsWith('[التقييم:')) {
-                      final match = RegExp(r'\[التقييم: (\d) من 5\]').firstMatch(noteText);
-                      if (match != null) {
-                        rating = int.tryParse(match.group(1)!);
-                        noteText = noteText.replaceFirst(match.group(0)! + '\n', '');
-                        noteText = noteText.replaceFirst(match.group(0)!, '').trim();
-                      }
-                    }
-                    
-                    IconData getSmileyIcon(int val) {
-                      switch (val) {
-                        case 1: return Icons.sentiment_very_dissatisfied;
-                        case 2: return Icons.sentiment_dissatisfied;
-                        case 3: return Icons.sentiment_neutral;
-                        case 4: return Icons.sentiment_satisfied;
-                        case 5: return Icons.sentiment_very_satisfied;
-                        default: return Icons.sentiment_neutral;
-                      }
-                    }
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          String noteText = r['notes'] ?? 'لا يوجد محتوى.';
+          int? rating;
+          if (noteText.startsWith('[التقييم:')) {
+            final match = RegExp(r'\[التقييم: (\d) من 5\]').firstMatch(noteText);
+            if (match != null) {
+              rating = int.tryParse(match.group(1)!);
+              noteText = noteText.replaceFirst('${match.group(0)!}\n', '');
+              noteText = noteText.replaceFirst(match.group(0)!, '').trim();
+            }
+          }
 
-                    return Column(
+          IconData getSmileyIcon(int val) {
+            switch (val) {
+              case 1: return Icons.sentiment_very_dissatisfied;
+              case 2: return Icons.sentiment_dissatisfied;
+              case 3: return Icons.sentiment_neutral;
+              case 4: return Icons.sentiment_satisfied;
+              case 5: return Icons.sentiment_very_satisfied;
+              default: return Icons.sentiment_neutral;
+            }
+          }
+
+          final studentName = r['student_name'] as String? ?? '';
+          final studentCode = r['student_code'] as String? ?? '—';
+          final studentDept = r['student_department'] as String? ?? 'معهد دمشق المتوسط';
+          final teacherName = r['teacher_name'] as String? ?? '—';
+          final courseName  = r['course_name'] as String? ?? (r['course_title'] as String? ?? '—');
+          final isAcademic  = r['report_type'] == 'academic';
+
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+              titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (isAcademic ? Colors.blue : Colors.purple).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isAcademic ? Icons.school_outlined : Icons.person_pin_circle_outlined,
+                      color: isAcademic ? Colors.blue : Colors.purple,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (rating != null) ...[
-                          Row(
+                        Text(
+                          isAcademic ? 'تقرير الأداء الأكاديمي' : 'تقرير المتابعة السلوكية',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+                        ),
+                        Text('معاينة تفاعلية مع إمكانية إضافة رأي الإدارة', style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // بطاقة الطالب والمعلم الثابتة
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                                const SizedBox(width: 6),
+                                Expanded(child: Text('الطالب: $studentName', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor))),
+                                Text('الكود: $studentCode', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.apartment_outlined, size: 16, color: Colors.grey),
+                                const SizedBox(width: 6),
+                                Expanded(child: Text('القسم: $studentDept', style: const TextStyle(fontSize: 11.5, color: Colors.grey))),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.badge_outlined, size: 16, color: Colors.grey),
+                                const SizedBox(width: 6),
+                                Expanded(child: Text('المدرب: $teacherName', style: TextStyle(fontSize: 12, color: textColor))),
+                                if (courseName != '—')
+                                  Text('المادة: $courseName', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // قسم تقييم وملاحظات المعلم
+                      Text('تقييم وملاحظات المدرب:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blue.shade700)),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: isDark ? 0.1 : 0.05),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (rating != null) ...[
+                              Row(
+                                children: [
+                                  Icon(getSmileyIcon(rating), color: Colors.amber, size: 26),
+                                  const SizedBox(width: 6),
+                                  Text('التقييم: $rating من 5', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: textColor)),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            Text(
+                              noteText.isEmpty ? 'لا يوجد تفاصيل.' : noteText,
+                              style: TextStyle(fontSize: 12.5, height: 1.5, color: textColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // قسم رأي وتوجيهات رئيس القسم
+                      Row(
+                        children: [
+                          Icon(Icons.rate_review_outlined, size: 18, color: Colors.amber.shade800),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'رأي وتوجيهات رئيس القسم:',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.amber.shade800),
+                            ),
+                          ),
+                          if ((r['hod_notes'] as String? ?? '').trim().isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.lock_outline, size: 12, color: Colors.green),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'معتمد ومحفوظ (غير قابل للتعديل)',
+                                    style: TextStyle(color: Colors.green, fontSize: 10.5, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      if ((r['hod_notes'] as String? ?? '').trim().isNotEmpty) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: isDark ? 0.1 : 0.05),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            (r['hod_notes'] as String).trim(),
+                            style: TextStyle(fontSize: 12.5, height: 1.5, color: textColor),
+                          ),
+                        ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          margin: const EdgeInsets.only(bottom: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+                          ),
+                          child: const Row(
                             children: [
-                              const Text('تقييم المعلم:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              const SizedBox(width: 10),
-                              Icon(getSmileyIcon(rating), color: Colors.amber, size: 32),
-                              const SizedBox(width: 5),
-                              Text('($rating/5)', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                              SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'تنبيه: بعد حفظ الرأي سيتم اعتماده نهائياً ولن تتمكن من تعديله لاحقاً.',
+                                  style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.w600),
+                                ),
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 15),
-                        ],
-                        Text(noteText.isEmpty ? 'لا يوجد محتوى.' : noteText, style: TextStyle(fontSize: 13, height: 1.5, color: textColor)),
+                        ),
+                        TextField(
+                          controller: hodController,
+                          maxLines: 3,
+                          style: TextStyle(fontSize: 12.5, color: textColor),
+                          decoration: InputDecoration(
+                            hintText: 'اكتب رأيك أو توجيهاتك الإدارية هنا... ستظهر بالتقرير ولولي الأمر',
+                            hintStyle: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+                            filled: true,
+                            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF9FAFB),
+                            contentPadding: const EdgeInsets.all(12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.amber.withValues(alpha: 0.4))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.amber.shade700, width: 1.5)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                            onPressed: isSavingHod ? null : () async {
+                              final text = hodController.text.trim();
+                              if (text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('يرجى كتابة الرأي أولاً قبل الحفظ'), backgroundColor: Colors.orange),
+                                );
+                                return;
+                              }
+
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (c) => AlertDialog(
+                                  backgroundColor: cardColor,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  title: const Row(
+                                    children: [
+                                      Icon(Icons.lock_outline, color: Colors.amber),
+                                      SizedBox(width: 8),
+                                      Text('تأكيد اعتماد الرأي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    ],
+                                  ),
+                                  content: const Text(
+                                    'هل أنت متأكد من حفظ واعتماد هذا الرأي؟ لن تتمكن أنت أو أي مستخدم آخر من تعديله بعد الحفظ.',
+                                    style: TextStyle(fontSize: 13, height: 1.4),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(c, false),
+                                      child: const Text('إلغاء'),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.amber.shade700,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () => Navigator.pop(c, true),
+                                      child: const Text('نعم، حفظ واعتماد'),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirmed != true) return;
+
+                              setDialogState(() => isSavingHod = true);
+                              final success = await _saveHodNotes(r['id'], text);
+                              if (mounted) {
+                                setDialogState(() => isSavingHod = false);
+                                if (success) {
+                                  setState(() {
+                                    r['hod_notes'] = text;
+                                  });
+                                  setDialogState(() {});
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('✅ تم حفظ واعتماد رأي رئيس القسم بنجاح'), backgroundColor: Colors.green),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('❌ تعذر حفظ رأي رئيس القسم'), backgroundColor: Colors.red),
+                                  );
+                                }
+                              }
+                            },
+                            icon: isSavingHod
+                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const Icon(Icons.check_circle_outline, size: 16),
+                            label: const Text('حفظ واعتماد الرأي نهائياً', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
+                        ),
                       ],
-                    );
-                  }
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      side: BorderSide(color: Colors.grey.shade400),
+                    ),
+                    child: Text('إغلاق', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('إغلاق', style: TextStyle(color: _yellow, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
-  }
-
-  Future<void> _downloadReport(Map<String, dynamic> r) async {
-    try {
-      final studentName = r['student_name'] ?? 'student';
-      final fileName    = "${studentName}_report_${r['id']}.txt";
-      final dir         = await getTemporaryDirectory();
-      final file        = File("${dir.path}/$fileName");
-
-      final sb = StringBuffer()
-        ..writeln('== تقرير أداء الطالب: $studentName ==')
-        ..writeln('النوع: ${r['report_type'] == 'academic' ? 'أكاديمي' : 'سلوكي'}')
-        ..writeln('المدرب: ${r['teacher_name'] ?? ''}')
-        ..writeln('التاريخ: ${(r['created_at'] ?? '').toString().split('T')[0]}')
-        ..writeln('------')
-        ..writeln(r['notes'] ?? 'لا يوجد تفاصيل.');
-
-      await file.writeAsString(sb.toString());
-      await OpenFilex.open(file.path);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('حدث خطأ أثناء التنزيل')));
-    }
   }
 }

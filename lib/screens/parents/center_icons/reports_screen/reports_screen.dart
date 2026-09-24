@@ -371,6 +371,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final cardColor  = Theme.of(context).cardColor;
     final textColor  = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final color      = isAcademic ? Colors.blueAccent : Colors.purpleAccent;
+    final hasSeparateHodNotes = report['hod_notes'] != null && report['hod_notes'].toString().trim().isNotEmpty;
 
     showModalBottomSheet(
       context: context,
@@ -406,16 +407,55 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ]),
                 const SizedBox(height: 16),
               ],
-              Text("الملاحظات:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withValues(alpha: 0.15))),
-                child: Text(report['recommendations'] ?? 'لا توجد ملاحظات',
-                    style: TextStyle(fontSize: 14, height: 1.6, color: textColor)),
-              ),
+              if (hasSeparateHodNotes) ...[
+                Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 18, color: color),
+                    const SizedBox(width: 6),
+                    Text("تقييم وملاحظات المدرب:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: color.withValues(alpha: 0.15))),
+                  child: Text(report['teacher_notes'] ?? 'لا توجد ملاحظات',
+                      style: TextStyle(fontSize: 14, height: 1.6, color: textColor)),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(Icons.school_outlined, size: 18, color: Colors.amber),
+                    const SizedBox(width: 6),
+                    Text("رأي وتوجيهات رئيس القسم:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(report['hod_notes'] ?? '',
+                      style: TextStyle(fontSize: 14, height: 1.6, color: textColor, fontWeight: FontWeight.w600)),
+                ),
+              ] else ...[
+                Text("الملاحظات:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: color.withValues(alpha: 0.15))),
+                  child: Text(report['recommendations'] ?? 'لا توجد ملاحظات',
+                      style: TextStyle(fontSize: 14, height: 1.6, color: textColor)),
+                ),
+              ],
               const SizedBox(height: 24),
             ],
           ),

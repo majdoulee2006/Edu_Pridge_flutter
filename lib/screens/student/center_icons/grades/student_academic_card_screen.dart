@@ -1,11 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_pdf_viewer_screen.dart';
 
 class StudentAcademicCardScreen extends StatefulWidget {
   final String? universityId;
@@ -65,45 +61,32 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
   Future<void> _exportPdf() async {
     setState(() => _isExporting = true);
     try {
-      final res = await StudentServices().exportAcademicCardPdf();
-
+      final pdfBytes = await StudentServices().fetchTranscriptPdfBytes();
       if (!mounted) return;
-      if (res == null || res['file_url'] == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل تصدير ملف PDF'), backgroundColor: Colors.red),
+      if (pdfBytes != null && pdfBytes.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AffairsPdfViewerScreen(
+              title: 'كشف درجات الطالب المعتمد',
+              pdfBytes: pdfBytes,
+              fileName: 'transcript_preview.pdf',
+              allowPrinting: false,
+              allowSharing: false,
+              preventScreenshot: true,
+              bannerNotice: '⚠️ تنبيه إداري ورسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط داخل التطبيق. يمنع تصوير الشاشة أو محاولة الطباعة أو المشاركة، وللحصول على النسخة الورقية الرسمية المختومة والموقعة يرجى مراجعة شؤون الطلاب بالمعهد.',
+            ),
+          ),
         );
-        return;
-      }
-
-      // نحمّل الملف مباشرة على الجهاز ونفتحه بعارض PDF المحلي، بدون المرور بمتصفح خارجي (كروم)
-      final fixedUrl = ApiService.fixMediaUrl(res['file_url'] as String) ?? res['file_url'] as String;
-
-      Directory? dir;
-      try {
-        dir = await getDownloadsDirectory();
-      } catch (_) {}
-      dir ??= await getApplicationDocumentsDirectory();
-
-      final savePath = '${dir.path}/academic_card_${DateTime.now().millisecondsSinceEpoch}.pdf';
-
-      await Dio().download(
-        fixedUrl,
-        savePath,
-        options: Options(receiveTimeout: const Duration(seconds: 30)),
-      );
-
-      if (!mounted) return;
-
-      final result = await OpenFilex.open(savePath);
-      if (result.type != ResultType.done) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم حفظ الملف: $savePath'), backgroundColor: AppColors.accent),
+          const SnackBar(content: Text('تعذر تحميل كشف العلامات المعتمد حالياً. يرجى التحقق من اتصال الخادم.'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر تنزيل الملف: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('تعذر فتح المستند: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -134,8 +117,8 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
           IconButton(
             icon: _isExporting
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent))
-                : const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
-            tooltip: "تصدير PDF",
+                : const Icon(Icons.visibility_rounded, color: Color(0xFFFFCC00)),
+            tooltip: "معاينة السجل المعتمد",
             onPressed: _isExporting ? null : _exportPdf,
           ),
           IconButton(
@@ -168,7 +151,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
 
                       const SizedBox(height: 16),
 
-                      // زر تصدير PDF
+                      // زر معاينة كشف العلامات المعتمد (رقمي آمن داخل التطبيق)
                       SizedBox(
                         width: double.infinity,
                         height: 48,
@@ -182,9 +165,9 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                           ),
                           icon: _isExporting
                               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                              : const Icon(Icons.picture_as_pdf_rounded, color: Colors.black, size: 22),
+                              : const Icon(Icons.visibility_rounded, color: Colors.black, size: 22),
                           label: Text(
-                            _isExporting ? "جاري تصدير الملف..." : "تصدير بطاقة الطالب والأداء الأكاديمي (PDF)",
+                            _isExporting ? "جاري تحضير المعاينة..." : "معاينة كشف الدرجات والسجل المعتمد",
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Tajawal'),
                           ),
                         ),
