@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
@@ -48,6 +46,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   bool _isLoadingSchedules = true;
   bool _isLoadingExams = true;
+  bool _isExporting = false;
 
   List<dynamic> _schedulesData = [];
   List<dynamic> _examsData = [];
@@ -120,6 +119,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _exportFile(String type) async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       SnackBar(
@@ -169,10 +170,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   Future<void> _exportSchedule() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
@@ -230,10 +235,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   Future<void> _exportScheduleAsImage() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
@@ -300,10 +309,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       debugPrint('Export schedule as image error: $e');
       // محاولة بديلة في حال تعذر تنزيل الـ PDF
       await _exportWidgetAsImage(_classScheduleBoundaryKey, 'weekly_schedule');
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   Future<void> _exportExamsAsImage() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
@@ -369,6 +382,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     } catch (e) {
       debugPrint('Export exam schedule as image error: $e');
       await _exportWidgetAsImage(_examScheduleBoundaryKey, 'exam_schedule');
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -821,6 +836,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     final List<dynamic> displayExams = _examsData;
+    final List<dynamic> finalExams = displayExams.where((e) => e['type_label'] != 'مذاكرة').toList();
+    final List<dynamic> quizzes = displayExams.where((e) => e['type_label'] == 'مذاكرة').toList();
 
     return RepaintBoundary(
       key: _examScheduleBoundaryKey,
@@ -832,7 +849,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'الامتحانات النهائية',
+                'الامتحانات والمذاكرات',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -940,24 +957,51 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ],
             ),
           )
-        else
-          ...displayExams.map((exam) {
-            return _buildExamCard(
-              time: exam['time'],
-              title: exam['subject'],
-              duration: exam['duration'] ?? 'غير محدد',
-              location: exam['room'] ?? 'القاعة الامتحانية',
-              month: exam['month'],
-              dayNumber: exam['day_num'].toString(),
-              dayName: exam['day_name'],
-              typeLabel: exam['type_label'] ?? 'نهائي',
-              score: exam['score'],
-              maxScore: exam['max_score'],
-              onTap: exam['event_id'] != null
-                  ? () => _showGradeSheet(exam['event_id'] as int, exam['subject'] ?? '')
-                  : null,
-            );
-          }),
+        else ...[
+          if (finalExams.isNotEmpty) ...[
+            _buildExamSectionHeader('الامتحانات النهائية', Icons.assignment_late_rounded, Colors.red),
+            const SizedBox(height: 10),
+            ...finalExams.map((exam) {
+              return _buildExamCard(
+                time: exam['time'],
+                title: exam['subject'],
+                duration: exam['duration'] ?? 'غير محدد',
+                location: exam['room'] ?? 'القاعة الامتحانية',
+                month: exam['month'],
+                dayNumber: exam['day_num'].toString(),
+                dayName: exam['day_name'],
+                typeLabel: exam['type_label'] ?? 'نهائي',
+                score: exam['score'],
+                maxScore: exam['max_score'],
+                onTap: exam['event_id'] != null
+                    ? () => _showGradeSheet(exam['event_id'] as int, exam['subject'] ?? '')
+                    : null,
+              );
+            }),
+          ],
+          if (quizzes.isNotEmpty) ...[
+            SizedBox(height: finalExams.isNotEmpty ? 24 : 0),
+            _buildExamSectionHeader('المذاكرات', Icons.edit_note_rounded, Colors.blue),
+            const SizedBox(height: 10),
+            ...quizzes.map((exam) {
+              return _buildExamCard(
+                time: exam['time'],
+                title: exam['subject'],
+                duration: exam['duration'] ?? 'غير محدد',
+                location: exam['room'] ?? 'القاعة الامتحانية',
+                month: exam['month'],
+                dayNumber: exam['day_num'].toString(),
+                dayName: exam['day_name'],
+                typeLabel: exam['type_label'] ?? 'نهائي',
+                score: exam['score'],
+                maxScore: exam['max_score'],
+                onTap: exam['event_id'] != null
+                    ? () => _showGradeSheet(exam['event_id'] as int, exam['subject'] ?? '')
+                    : null,
+              );
+            }),
+          ],
+        ],
         const SizedBox(height: 15),
         Container(
           padding: const EdgeInsets.all(15),
@@ -1931,6 +1975,38 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildExamSectionHeader(String title, IconData icon, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withAlpha(isDark ? 40 : 20),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Divider(
+            color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade300,
+            thickness: 1,
+          ),
+        ),
+      ],
     );
   }
 

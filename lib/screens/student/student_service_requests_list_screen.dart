@@ -77,7 +77,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
     final textColor = isDark ? Colors.white : AppColors.textDark;
 
     return Directionality(
-      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
@@ -85,7 +85,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
           elevation: 0,
           centerTitle: true,
           title: Text(
-            isAr ? widget.titleAr : widget.titleEn,
+            widget.titleAr,
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           leading: IconButton(
@@ -103,7 +103,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
                         Icon(Icons.inbox_rounded, size: 80, color: Colors.grey.shade400),
                         const SizedBox(height: 16),
                         Text(
-                          isAr ? "لا توجد طلبات سابقة" : "No previous requests",
+                          "لا توجد طلبات سابقة",
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                         ),
                       ],
@@ -172,7 +172,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          isAr ? "رد الإدارة:" : "Admin Reply:",
+                                          "رد الإدارة:",
                                           style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 12),
                                         ),
                                         const SizedBox(height: 4),
@@ -207,7 +207,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
           },
           icon: const Icon(Icons.add, color: Colors.white),
           label: Text(
-            isAr ? "طلب جديد" : "New Request",
+            "طلب جديد",
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),

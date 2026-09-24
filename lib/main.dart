@@ -44,12 +44,12 @@ void main() async {
         measurementId: "G-7NNSYEDPYB",
       ),
     ).then((_) {
-      FcmService.initWeb().catchError((e) => debugPrint("Firebase Web init error: $e"));
-    }).catchError((e) => debugPrint("Firebase Web init error: $e"));
+      FcmService.initWeb().catchError((e) { debugPrint("Firebase Web init error: $e"); });
+    }).catchError((e) { debugPrint("Firebase Web init error: $e"); });
   } else {
     Firebase.initializeApp().then((_) {
-      FcmService.init().catchError((e) => debugPrint("Firebase Native init error: $e"));
-    }).catchError((e) => debugPrint("Firebase Native init error: $e"));
+      FcmService.init().catchError((e) { debugPrint("Firebase Native init error: $e"); });
+    }).catchError((e) { debugPrint("Firebase Native init error: $e"); });
   }
 }
 

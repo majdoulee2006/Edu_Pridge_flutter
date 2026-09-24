@@ -16,6 +16,8 @@ import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_scr
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/services/notification_polling.dart';
 import '../../../widgets/parents_center_icon.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_pdf_viewer_screen.dart';
+import 'package:edu_pridge_flutter/services/student_services.dart';
 
 class ParentsNotificationsScreen extends StatefulWidget {
   const ParentsNotificationsScreen({super.key});
@@ -190,13 +192,88 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     }
   }
 
+  Future<void> _openTranscriptPreview([int? studentId]) async {
+    int? resolvedStudentId = studentId;
+    if (resolvedStudentId == null || resolvedStudentId == 0) {
+      final prefs = await SharedPreferences.getInstance();
+      resolvedStudentId = prefs.getInt('selected_student_id');
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                SizedBox(height: 16),
+                Text('جاري تحميل كشف درجات الطالب المعتمد...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final pdfBytes = await StudentServices().fetchTranscriptPdfBytes(studentId: resolvedStudentId);
+    if (mounted) Navigator.pop(context);
+
+    if (pdfBytes != null && pdfBytes.isNotEmpty) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AffairsPdfViewerScreen(
+            title: 'كشف درجات الطالب المعتمد',
+            pdfBytes: pdfBytes,
+            fileName: 'transcript_preview.pdf',
+            bannerNotice: '⚠️ تنبيه إداري ورسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط لولي الأمر داخل التطبيق. في حال الرغبة بالحصول على النسخة الورقية الرسمية المختومة والموقعة، يتعين مراجعة موظف شؤون الطلاب بالمعهد شخصياً.',
+          ),
+        ),
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تحميل كشف درجات الطالب حالياً. يرجى التحقق من اتصال الخادم.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _onNotificationTap(Map<String, dynamic> n) {
     final type = n['type']?.toString() ?? '';
     final title = n['title']?.toString() ?? '';
     final msg = n['message']?.toString() ?? n['body']?.toString() ?? '';
+
+    final bool isTranscript = type == 'transcript_shared' ||
+        type == 'transcript' ||
+        title.contains('كشف علامات') || title.contains('كشف درجات') ||
+        title.contains('كشف العلامات') || title.contains('كشف الدرجات') ||
+        msg.contains('كشف علامات') || msg.contains('كشف درجات') ||
+        msg.contains('كشف العلامات') || msg.contains('كشف الدرجات') ||
+        (title.contains('وثيقة') && (title.contains('علامات') || msg.contains('علامات')));
+
+    if (isTranscript) {
+      final sId = int.tryParse(n['related_id']?.toString() ?? '');
+      _openTranscriptPreview(sId);
+      return;
+    }
+
     final isLeave = type == 'leave_request' ||
-        title.contains('إجاز') || title.contains('أذون') || title.contains('إذن') || title.contains('القرار النهائي') ||
-        msg.contains('إجاز') || msg.contains('أذون') || msg.contains('إذن');
+        (type != 'student_service' &&
+         type != 'transcript_shared' &&
+         type != 'transcript' &&
+         (title.contains('إجاز') || title.contains('أذون') || title.contains('إذن') || title.contains('مغادرة') || title.contains('خروج') ||
+          msg.contains('إجاز') || msg.contains('أذون') || msg.contains('إذن') || msg.contains('مغادرة') || msg.contains('خروج')));
 
     if (isLeave) {
       final ctx = context;
@@ -291,6 +368,10 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       case 'announcement':
       case 'administrative':
         return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': 'إعلان'};
+      case 'transcript_shared':
+        return {'color': Colors.blue, 'icon': Icons.school_rounded, 'label': 'كشف درجات معتمد'};
+      case 'cohort_results_shared':
+        return {'color': Colors.indigo, 'icon': Icons.groups_rounded, 'label': 'محضر وقرار الدفعة'};
       case 'report':
         return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': 'تقرير أداء'};
       case 'attendance':
@@ -488,6 +569,13 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     final isResolved      = isLeave && (leaveStatus == 'approved' || leaveStatus == 'rejected');
     final bool isUnread   = !_isRead(n['is_read']);
 
+    final type = n['type']?.toString() ?? '';
+    final title = n['title']?.toString() ?? '';
+    final msg = n['message']?.toString() ?? n['body']?.toString() ?? '';
+    final bool isTranscript = type == 'transcript_shared' ||
+        title.contains('كشف علامات') || title.contains('كشف درجات') ||
+        msg.contains('كشف علامات') || msg.contains('كشف درجات');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
@@ -545,6 +633,61 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
                       ),
                     ],
                   ),
+
+                  if (isTranscript) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            final int nId = (n['id'] as num?)?.toInt() ?? 0;
+                            _markAsRead(nId, index);
+                            final sId = int.tryParse(n['related_id']?.toString() ?? '');
+                            _openTranscriptPreview(sId);
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFCC00),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFFCC00).withAlpha(90),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.visibility_rounded, size: 16, color: Colors.black),
+                                SizedBox(width: 5),
+                                Text(
+                                  'مشاهدة فقط 👁️',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'معاينة كشف درجات الطالب',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.amber.shade300 : Colors.amber.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
 
                   // Leave request actions
                   if (isLeave) ...[

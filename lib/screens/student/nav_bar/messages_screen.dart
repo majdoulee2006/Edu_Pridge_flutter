@@ -6,14 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/nav_bar/select_teacher_screen.dart';
-import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/widgets/student_speed_dial.dart';
 import 'package:edu_pridge_flutter/models/chat_model.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
 
-import 'student_home_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 
@@ -297,7 +295,7 @@ class _MessagesViewState extends State<MessagesView> {
         leading: Stack(
           children: [
             Builder(builder: (_) {
-              final rawAvatar = chat.avatarUrl ?? '';
+              final rawAvatar = chat.avatarUrl;
               final fixedAvatar = ApiService.fixMediaUrl(rawAvatar);
               return CircleAvatar(
                 radius: 28,

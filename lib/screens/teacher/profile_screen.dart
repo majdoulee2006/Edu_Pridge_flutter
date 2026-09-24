@@ -8,7 +8,6 @@ import 'notifications_screen.dart';
 import 'messages_screen.dart';
 import '../shared/settings_screen.dart';
 import '../shared/editing_screens/edit_phone_screen.dart';
-import '../shared/editing_screens/edit_email_screen.dart';
 import '../shared/editing_screens/edit_password_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';

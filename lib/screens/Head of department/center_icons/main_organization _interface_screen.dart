@@ -8,7 +8,6 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_p
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_massega.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/accounts/accounts_management_screen.dart';
-import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/organization/exam_schedule_screen/create_exam_schedule_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/organization/study_schedule_screen/table_view.dart';
 import 'package:edu_pridge_flutter/widgets/boss_center_icon.dart';
 
@@ -307,38 +306,6 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           child: _buildWeeklySchedule(cardColor, textColor, isDark),
         ),
       ],
-    );
-  }
-
-  Widget _cycleToggle(int cycle, String label, Color yellow, Color cardColor, {bool isExam = false}) {
-    final active = isExam ? _examSelectedCycle == cycle : _selectedCycle == cycle;
-    return GestureDetector(
-      onTap: () => setState(() {
-        if (isExam) {
-          _examSelectedCycle = cycle;
-        } else {
-          _selectedCycle = cycle;
-        }
-      }),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: active ? yellow : cardColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: active ? yellow : Colors.grey.withValues(alpha: 0.2)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-            color: active ? Colors.black : Colors.grey,
-          ),
-        ),
-      ),
     );
   }
 

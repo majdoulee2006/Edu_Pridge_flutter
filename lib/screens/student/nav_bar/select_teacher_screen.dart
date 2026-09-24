@@ -1,4 +1,3 @@
-import 'package:edu_pridge_flutter/screens/student/nav_bar/chat_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';
@@ -213,7 +212,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
             CircleAvatar(
               radius: 28,
               backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-              backgroundImage: (teacher.imageUrl != null && teacher.imageUrl.toString().isNotEmpty) ? NetworkImage(teacher.imageUrl) : null,
+              backgroundImage: teacher.imageUrl.isNotEmpty ? NetworkImage(teacher.imageUrl) : null,
             ),
             if (teacher.isOnline)
               Positioned(

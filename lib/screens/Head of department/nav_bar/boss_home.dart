@@ -455,20 +455,6 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     );
   }
 
-  Widget _buildCircleIconButton({required IconData icon, required Color cardColor, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-            color: cardColor,
-            shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
-        child: Icon(icon, color: const Color(0xFFF1C40F), size: 26),
-      ),
-    );
-  }
-
   String _formatTargetAudience(Map<String, dynamic> data) {
     final target = data['target_audience']?.toString() ?? 'all';
     final dept = data['department_name']?.toString() ?? data['department']?.toString();

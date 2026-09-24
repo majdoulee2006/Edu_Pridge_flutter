@@ -218,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
         },
       );
 
-      if (response != null && response.statusCode == 200 && response.data != null) {
+      if (response.statusCode == 200 && response.data != null) {
         final prefs = await SharedPreferences.getInstance();
         final responseData = response.data;
 
@@ -320,57 +320,106 @@ class _LoginScreenState extends State<LoginScreen> {
     final ipCtrl = TextEditingController(text: ApiService.serverIp);
     showDialog(
       context: context,
-      builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.dns_rounded, color: Color(0xFFFFCC00)),
-              SizedBox(width: 10),
-              Text("إعدادات السيرفر", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "العنوان الحالي للسيرفر:",
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.dns_rounded, color: Color(0xFFFFCC00)),
+                SizedBox(width: 10),
+                Text("إعدادات السيرفر", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "العنوان الحالي للسيرفر:",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: ipCtrl,
+                    style: const TextStyle(fontSize: 13),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: "127.0.0.1 أو رابط السيرفر",
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "اختيار سريع للسيرفر:",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ActionChip(
+                        avatar: const Icon(Icons.usb, size: 16, color: Colors.black),
+                        backgroundColor: const Color(0xFFFFCC00),
+                        label: const Text("USB محلي (127.0.0.1:8000)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
+                        onPressed: () {
+                          setDialogState(() {
+                            ipCtrl.text = "127.0.0.1";
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(Icons.wifi, size: 16),
+                        label: const Text("WiFi شبكة (10.102.114.209:8000)", style: TextStyle(fontSize: 11)),
+                        onPressed: () {
+                          setDialogState(() {
+                            ipCtrl.text = "10.102.114.209";
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(Icons.cloud_outlined, size: 16),
+                        label: const Text("السيرفر الخارجي (أونلاين)", style: TextStyle(fontSize: 11)),
+                        onPressed: () {
+                          setDialogState(() {
+                            ipCtrl.text = "http://82.137.250.43:8080/edu_bridge/public";
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: ipCtrl,
-                style: const TextStyle(fontSize: 13),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: "http://82.137.250.43:8080/edu_bridge/public",
-                  isDense: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("إلغاء"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFCC00),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
+                onPressed: () async {
+                  final newUrl = ipCtrl.text.trim();
+                  if (newUrl.isNotEmpty) {
+                    await ApiService.setServerIp(newUrl);
+                    if (mounted) {
+                      _showSnackBar("تم حفظ رابط السيرفر: $newUrl", isError: false);
+                      Navigator.pop(ctx);
+                      setState(() {});
+                    }
+                  }
+                },
+                child: const Text("حفظ وتأكيد", style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("إلغاء"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newUrl = ipCtrl.text.trim();
-                if (newUrl.isNotEmpty) {
-                  await ApiService.setServerIp(newUrl);
-                  if (mounted) {
-                    _showSnackBar("تم حفظ رابط السيرفر: $newUrl", isError: false);
-                    Navigator.pop(ctx);
-                    setState(() {});
-                  }
-                }
-              },
-              child: const Text("حفظ وتأكيد"),
-            ),
-          ],
         ),
       ),
     );

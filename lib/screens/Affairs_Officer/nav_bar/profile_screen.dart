@@ -5,7 +5,6 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 // استيراد شاشات التعديل
-import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_email_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_phone_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/editing_screens/edit_password_screen.dart';
 

@@ -22,7 +22,6 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
 
   // Metadata for summon creation
   List<dynamic> _studentsList = [];
-  bool _isLoadingMetadata = false;
 
   @override
   void initState() {
@@ -62,14 +61,12 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
   }
 
   Future<void> _loadMetadata() async {
-    setState(() => _isLoadingMetadata = true);
     final data = await _affairsServices.getAppointmentsMetadata();
     if (mounted) {
       setState(() {
         if (data != null && data['students'] != null) {
           _studentsList = data['students'] as List<dynamic>;
         }
-        _isLoadingMetadata = false;
       });
     }
   }

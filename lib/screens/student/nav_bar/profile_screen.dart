@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
@@ -243,6 +242,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 : 'قسم تكنولوجيا المعلومات والبرمجيات',
                             icon: Icons.account_balance_rounded,
                             color: Colors.purple,
+                            textColor: textColor,
+                          ),
+                          _buildDivider(textColor),
+                          _buildStaticRow(
+                            label: "الدورة",
+                            value: (userData?['program'] != null && userData!['program'] != 'غير محدد')
+                                ? userData!['program'].toString()
+                                : 'غير محدد',
+                            icon: Icons.groups_rounded,
+                            color: Colors.deepPurple,
                             textColor: textColor,
                           ),
                           _buildDivider(textColor),
