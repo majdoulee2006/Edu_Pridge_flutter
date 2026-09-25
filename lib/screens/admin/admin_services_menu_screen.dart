@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_student_services_screen.dart';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
@@ -322,7 +321,7 @@ class AdminServicesMenuScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFCC00).withOpacity(0.2),
+                      color: const Color(0xFFFFCC00).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.domain_add_rounded, color: Color(0xFFFFCC00)),
@@ -347,7 +346,7 @@ class AdminServicesMenuScreen extends StatelessWidget {
                         style: TextStyle(color: textColor),
                         decoration: InputDecoration(
                           labelText: isAr ? "اسم القسم *" : "Department Name *",
-                          labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
+                          labelStyle: TextStyle(color: textColor.withValues(alpha: 0.7)),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           prefixIcon: const Icon(Icons.business_rounded),
                         ),
@@ -365,7 +364,7 @@ class AdminServicesMenuScreen extends StatelessWidget {
                         style: TextStyle(color: textColor),
                         decoration: InputDecoration(
                           labelText: isAr ? "الوصف (اختياري)" : "Description (Optional)",
-                          labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
+                          labelStyle: TextStyle(color: textColor.withValues(alpha: 0.7)),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           prefixIcon: const Icon(Icons.description_rounded),
                         ),
@@ -379,7 +378,7 @@ class AdminServicesMenuScreen extends StatelessWidget {
                   onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
                   child: Text(
                     isAr ? "إلغاء" : "Cancel",
-                    style: TextStyle(color: textColor.withOpacity(0.7)),
+                    style: TextStyle(color: textColor.withValues(alpha: 0.7)),
                   ),
                 ),
                 ElevatedButton(
