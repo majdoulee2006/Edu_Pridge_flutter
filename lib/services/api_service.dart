@@ -21,6 +21,10 @@ class ApiService {
     if (formatted.isNotEmpty && !formatted.startsWith('http://') && !formatted.startsWith('https://')) {
       formatted = 'http://$formatted';
     }
+    final u = Uri.tryParse(formatted);
+    if (u != null && !u.hasPort && u.scheme == 'http') {
+      formatted = 'http://${u.host}:8000';
+    }
     _serverIp = formatted;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('server_ip', formatted);
@@ -44,7 +48,13 @@ class ApiService {
       if (savedIp != null && savedIp.contains('82.137.250.43')) {
         await prefs.remove('server_ip');
       } else if (savedIp != null && savedIp.isNotEmpty && savedIp != defaultServerUrl) {
-        _serverIp = savedIp;
+        String fixed = savedIp;
+        final u = Uri.tryParse(savedIp);
+        if (u != null && !u.hasPort && u.scheme == 'http') {
+          fixed = 'http://${u.host}:8000';
+          await prefs.setString('server_ip', fixed);
+        }
+        _serverIp = fixed;
         debugPrint("📡 ApiService using saved server: $_serverIp");
         return;
       }
@@ -186,6 +196,10 @@ class ApiService {
   String get baseUrl {
     String cleanIp = _serverIp.trim();
     if (cleanIp.startsWith('http://') || cleanIp.startsWith('https://')) {
+      final u = Uri.tryParse(cleanIp);
+      if (u != null && !u.hasPort && u.scheme == 'http') {
+        cleanIp = 'http://${u.host}:8000${u.path}';
+      }
       if (cleanIp.endsWith('/api')) return cleanIp;
       return cleanIp.endsWith('/') ? "${cleanIp}api" : "$cleanIp/api";
     }

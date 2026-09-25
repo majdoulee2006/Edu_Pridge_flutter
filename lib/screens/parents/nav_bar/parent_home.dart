@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -152,8 +153,14 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
         "${ApiService().baseUrl}/parent/announcements",
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
-      if (res.statusCode == 200 && res.data['success'] == true) {
-        final list = res.data['data'] as List<dynamic>? ?? [];
+      dynamic data = res.data;
+      if (data is String) {
+        try {
+          data = jsonDecode(data);
+        } catch (_) {}
+      }
+      if (res.statusCode == 200 && data is Map && data['success'] == true) {
+        final list = data['data'] as List<dynamic>? ?? [];
         if (mounted) {
           setState(() {
             _announcements = list.map((e) => e as Map<String, dynamic>).toList();

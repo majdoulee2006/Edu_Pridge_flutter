@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/parent_services.dart';
-import 'package:edu_pridge_flutter/services/student_services.dart';
-import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_pdf_viewer_screen.dart';
 
 class ParentChildrenAcademicCardScreen extends StatefulWidget {
   final int? initialStudentId;
@@ -18,7 +16,6 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
 
   bool _isLoadingChildren = true;
   bool _isLoadingCard = false;
-  bool _isExporting = false;
 
   List<dynamic> _children = [];
   Map<String, dynamic>? _selectedChild;
@@ -80,47 +77,7 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
     }
   }
 
-  Future<void> _exportPdf() async {
-    if (_selectedChild == null) return;
-    final studentId = int.tryParse(_selectedChild!['student_id']?.toString() ?? '');
-    if (studentId == null) return;
 
-    setState(() => _isExporting = true);
-    try {
-      final pdfBytes = await StudentServices().fetchTranscriptPdfBytes(studentId: studentId);
-      if (!mounted) return;
-      if (pdfBytes != null && pdfBytes.isNotEmpty) {
-        final childName = _selectedChild!['name'] ?? 'الطالب';
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AffairsPdfViewerScreen(
-              title: 'كشف درجات الابن: $childName',
-              pdfBytes: pdfBytes,
-              fileName: 'transcript_$studentId.pdf',
-              allowPrinting: false,
-              allowSharing: false,
-              preventScreenshot: true,
-              bannerNotice: '⚠️ تنبيه رسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط لولي الأمر داخل التطبيق. يمنع تصوير الشاشة أو محاولة الطباعة أو المشاركة، وللحصول على النسخة الورقية الرسمية المختومة والموقعة يرجى مراجعة شؤون الطلاب بالمعهد.',
-            ),
-          ),
-        );
-      } else {
-        _showSnackBar('تعذر تحميل كشف العلامات المعتمد حالياً. يرجى التحقق من اتصال الخادم.');
-      }
-    } catch (e) {
-      _showSnackBar('تعذر فتح المستند: $e');
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
-
-  void _showSnackBar(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: const Color(0xFFFFCC00)),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -324,29 +281,7 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
           ],
         ),
 
-        const SizedBox(height: 16),
 
-        // زر معاينة كشف درجات وسجل الابن المعتمد (رقمي آمن داخل التطبيق)
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: _isExporting ? null : _exportPdf,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFCC00),
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 2,
-            ),
-            icon: _isExporting
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                : const Icon(Icons.visibility_rounded, color: Colors.black, size: 22),
-            label: Text(
-              _isExporting ? "جاري تحضير المعاينة..." : "معاينة كشف درجات وسجل الابن المعتمد",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-        ),
 
         const SizedBox(height: 20),
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
-import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_pdf_viewer_screen.dart';
 
 class StudentAcademicCardScreen extends StatefulWidget {
   final String? universityId;
@@ -17,7 +16,6 @@ class StudentAcademicCardScreen extends StatefulWidget {
 
 class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
   bool _isLoading = true;
-  bool _isExporting = false;
   Map<String, dynamic>? _cardData;
   String? _errorMessage;
 
@@ -58,41 +56,6 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
     }
   }
 
-  Future<void> _exportPdf() async {
-    setState(() => _isExporting = true);
-    try {
-      final pdfBytes = await StudentServices().fetchTranscriptPdfBytes();
-      if (!mounted) return;
-      if (pdfBytes != null && pdfBytes.isNotEmpty) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AffairsPdfViewerScreen(
-              title: 'كشف درجات الطالب المعتمد',
-              pdfBytes: pdfBytes,
-              fileName: 'transcript_preview.pdf',
-              allowPrinting: false,
-              allowSharing: false,
-              preventScreenshot: true,
-              bannerNotice: '⚠️ تنبيه إداري ورسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط داخل التطبيق. يمنع تصوير الشاشة أو محاولة الطباعة أو المشاركة، وللحصول على النسخة الورقية الرسمية المختومة والموقعة يرجى مراجعة شؤون الطلاب بالمعهد.',
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر تحميل كشف العلامات المعتمد حالياً. يرجى التحقق من اتصال الخادم.'), backgroundColor: Colors.red),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر فتح المستند: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,13 +77,6 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
         backgroundColor: cardBg,
         foregroundColor: textColor,
         actions: [
-          IconButton(
-            icon: _isExporting
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent))
-                : const Icon(Icons.visibility_rounded, color: Color(0xFFFFCC00)),
-            tooltip: "معاينة السجل المعتمد",
-            onPressed: _isExporting ? null : _exportPdf,
-          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: "تحديث",
@@ -149,29 +105,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                       // 1. Header Student Card (بطاقة التعريف الأكاديمية)
                       _buildStudentCardHeader(cardBg, textColor, subColor, isDark),
 
-                      const SizedBox(height: 16),
 
-                      // زر معاينة كشف العلامات المعتمد (رقمي آمن داخل التطبيق)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton.icon(
-                          onPressed: _isExporting ? null : _exportPdf,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFCC00),
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            elevation: 2,
-                          ),
-                          icon: _isExporting
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                              : const Icon(Icons.visibility_rounded, color: Colors.black, size: 22),
-                          label: Text(
-                            _isExporting ? "جاري تحضير المعاينة..." : "معاينة كشف الدرجات والسجل المعتمد",
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Tajawal'),
-                          ),
-                        ),
-                      ),
 
                       const SizedBox(height: 20),
 

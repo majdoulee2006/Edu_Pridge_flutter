@@ -32,6 +32,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
 
   String studentName = "لم يتم تحديد ابن";
   String studentDept = "غير متوفر"; 
+  String studentProgram = "غير متوفر"; 
   String studentYear = "غير متوفر";
   String studentSemester = "غير متوفر";
 
@@ -136,6 +137,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
             setState(() {
               studentName = res.data['full_name'] ?? studentName;
               studentDept = res.data['department'] ?? "غير محدد";
+              studentProgram = res.data['program_name'] ?? res.data['branch'] ?? res.data['major'] ?? "غير محدد";
               studentYear = res.data['level'] ?? res.data['academic_year'] ?? "غير محدد";
               studentSemester = res.data['semester'] ?? res.data['active_semester'] ?? "غير محدد";
             });
@@ -217,6 +219,8 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
                   _buildSectionTitle("البيانات الأكاديمية لـ $studentName", textColor),
                   _buildInfoCard(cardColor, [
                     _buildStaticRow("القسم", studentDept, Icons.account_balance_rounded, Colors.purple, textColor),
+                    Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
+                    _buildStaticRow("الفرع / التخصص", studentProgram, Icons.school_rounded, Colors.teal, textColor),
                     Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
                     _buildStaticRow("السنة الدراسية", studentYear, Icons.auto_awesome_mosaic_rounded, Colors.orange, textColor),
                     Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
