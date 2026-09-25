@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/chat_service.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_polling.dart';
 import '../../widgets/chat/chat_bubble_widget.dart';
 import '../../widgets/chat/chat_input_widget.dart';
 
@@ -27,6 +28,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       final rawId = widget.contact['id']?.toString() ?? '';
       if (rawId.isNotEmpty) {
         context.read<ChatService>().startSmartPolling(rawId);
+        // حذف إشعارات هذا المرسل فور الدخول وتحديث شارات الإشعارات
+        ApiService().deleteChatNotifications(rawId);
+        NotificationPolling.triggerFetch();
       }
     });
   }
@@ -34,6 +38,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   void dispose() {
     context.read<ChatService>().stopSmartPolling();
+    NotificationPolling.triggerFetch();
     _inputController.dispose();
     _searchController.dispose();
     super.dispose();

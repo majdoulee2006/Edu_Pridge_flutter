@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/requests/boss_student_service_requests_screen.dart';
-import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/leave_requests_screen.dart';
 
 // ─── BossServicesMenuScreen ──────────────────────────────────────────────
 class BossServicesMenuScreen extends StatelessWidget {
@@ -57,24 +55,6 @@ class BossServicesMenuScreen extends StatelessWidget {
                     physics: const BouncingScrollPhysics(),
                     children: [
                       // القسم الأول: الخدمات الإدارية والطلبات
-                      _buildServiceCard(
-                        icon: Icons.event_note_rounded,
-                        iconColor: const Color(0xFFFFCC00),
-                        title: isAr ? "طلبات الإجازات والأذونات" : "Leave Requests",
-                        subtitle: isAr
-                            ? "مراجعة والرد على طلبات الإجازات اليومية والساعية للطلاب والمعلمين"
-                            : "Review and respond to daily and hourly leave requests",
-                        cardColor: cardColor,
-                        textColor: textColor,
-                        subColor: subColor,
-                        isAr: isAr,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const LeaveRequestsScreen(fromSource: "home")),
-                          );
-                        },
-                      ),
 
                       _buildServiceCard(
                         icon: Icons.gavel_rounded,
@@ -168,12 +148,12 @@ class BossServicesMenuScreen extends StatelessWidget {
                       ),
 
                       _buildServiceCard(
-                        icon: Icons.info_rounded,
-                        iconColor: Colors.orange,
-                        title: isAr ? "حول التطبيق" : "About App",
+                        icon: Icons.auto_awesome_rounded,
+                        iconColor: Colors.amber,
+                        title: isAr ? "حول المنصة وفريق التطوير" : "About Platform & Dev Team",
                         subtitle: isAr
-                            ? "معلومات عن نظام إدارة شؤون الطلاب والنسخة الحالية"
-                            : "Information about student management system & version",
+                            ? "فريق التطوير، الرؤية، وسياسة الخصوصية والتواصل"
+                            : "Development team, vision, privacy & contact",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
@@ -184,22 +164,6 @@ class BossServicesMenuScreen extends StatelessWidget {
                         ),
                       ),
 
-                      _buildServiceCard(
-                        icon: Icons.privacy_tip_rounded,
-                        iconColor: Colors.purple,
-                        title: isAr ? "سياسة الاستخدام والخصوصية" : "Privacy Policy & Terms",
-                        subtitle: isAr
-                            ? "الشروط والسياسات الخاصة باستخدام تطبيق Edu-Bridge"
-                            : "Terms of use and privacy policy of Edu-Bridge",
-                        cardColor: cardColor,
-                        textColor: textColor,
-                        subColor: subColor,
-                        isAr: isAr,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-                        ),
-                      ),
 
                       _buildServiceCard(
                         icon: Icons.logout_rounded,

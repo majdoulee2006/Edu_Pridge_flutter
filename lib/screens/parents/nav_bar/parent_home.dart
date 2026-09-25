@@ -12,6 +12,7 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/parents/parent_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/parent_services.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 
@@ -40,11 +41,31 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     if (!AppSettings.isNotificationsEnabled.value) return;
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
+      final isMsg = n['type'] == 'message' || n['type'] == 'chat';
       showInAppBanner(
         context,
         n['title']?.toString() ?? 'إشعار جديد',
         n['message']?.toString() ?? n['body']?.toString() ?? '',
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentsNotificationsScreen())),
+        onTap: () {
+          if (isMsg) {
+            final senderId = n['sender_id'] ?? n['related_id'];
+            final senderName = n['sender_name'] ?? n['sender'] ?? (n['title']?.toString().replaceFirst('رسالة جديدة من ', '') ?? 'المستخدم');
+            final notifId = (n['id'] as num?)?.toInt() ?? 0;
+            if (notifId > 0) ApiService().deleteNotification(notifId);
+            if (senderId != null) ApiService().deleteChatNotifications(senderId);
+            NotificationPolling.triggerFetch();
+            if (senderId != null) {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => ChatRoomScreen(contact: {
+                  'id': senderId,
+                  'name': senderName,
+                }),
+              ));
+              return;
+            }
+          }
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentsNotificationsScreen()));
+        },
       );
     }
   }

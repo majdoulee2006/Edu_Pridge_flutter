@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
-import 'package:edu_pridge_flutter/screens/parents/center_icons/academic_card/parent_children_academic_card_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/profile_screen.dart';
 
-class ParentServicesMenuScreen extends StatelessWidget {
-  final String parentName;
+class TeacherServicesMenuScreen extends StatelessWidget {
+  final String teacherName;
 
-  const ParentServicesMenuScreen({super.key, this.parentName = 'ولي أمر'});
+  const TeacherServicesMenuScreen({super.key, this.teacherName = 'معلم'});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +36,7 @@ class ParentServicesMenuScreen extends StatelessWidget {
                     elevation: 0,
                     centerTitle: true,
                     title: Text(
-                      isAr ? "قائمة الخدمات والإعدادات" : "Services & Settings Menu",
+                      isAr ? "خيارات الحساب والإعدادات" : "Account & Settings",
                       style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.bold,
@@ -56,48 +55,21 @@ class ParentServicesMenuScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      // Section 1: Academic Services for Children
+                      // Section Header
                       _buildSectionTitle(
-                        isAr ? "خدمات الأبناء الأكاديمية" : "Children Academic Services",
+                        isAr ? "القائمة العامة والخيارات" : "General Menu & Options",
                         subColor,
                       ),
                       const SizedBox(height: 12),
 
-                      _buildServiceCard(
-                        icon: Icons.history_edu_rounded,
-                        iconColor: const Color(0xFFFFCC00),
-                        title: isAr ? "كشف علامات الأبناء" : "Children Academic Card",
-                        subtitle: isAr
-                            ? "متابعة كشوفات الدرجات والمعدل الأكاديمي للأبناء وتصديرها PDF و Excel"
-                            : "View children course grades, GPA, and export PDF/Excel",
-                        cardColor: cardColor,
-                        textColor: textColor,
-                        subColor: subColor,
-                        isAr: isAr,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ParentChildrenAcademicCardScreen(),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Section 2: General Settings & Info
-                      _buildSectionTitle(
-                        isAr ? "إعدادات عامة ومعلومات" : "General Settings & Info",
-                        subColor,
-                      ),
-                      const SizedBox(height: 12),
-
+                      // 1. الإعدادات
                       _buildServiceCard(
                         icon: Icons.settings_outlined,
                         iconColor: const Color(0xFFFFCC00),
                         title: isAr ? "الإعدادات العامة" : "General Settings",
                         subtitle: isAr
-                            ? "المظهر الداكن والإشعارات"
-                            : "Dark theme and notifications",
+                            ? "المظهر الداكن، حجم الخط، الإشعارات والأصوات"
+                            : "Dark mode, font size, notifications & sound",
                         cardColor: cardColor,
                         textColor: textColor,
                         subColor: subColor,
@@ -106,13 +78,21 @@ class ParentServicesMenuScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => SettingsScreen(
-                              userName: parentName,
-                              userRole: "ولي أمر",
+                              userName: teacherName.isNotEmpty ? teacherName : 'معلم',
+                              userRole: "مدرس",
+                              onProfileTap: () {
+                                Navigator.pop(context);
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                                );
+                              },
                             ),
                           ),
                         ),
                       ),
 
+                      // 2. حول المنصة وفريق التطوير
                       _buildServiceCard(
                         icon: Icons.auto_awesome_rounded,
                         iconColor: const Color(0xFFFFCC00),
@@ -132,7 +112,7 @@ class ParentServicesMenuScreen extends StatelessWidget {
                         ),
                       ),
 
-
+                      // 3. تسجيل الخروج
                       _buildServiceCard(
                         icon: Icons.logout_rounded,
                         iconColor: Colors.red,
@@ -154,7 +134,6 @@ class ParentServicesMenuScreen extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildSectionTitle(String title, Color textColor) {
     return Text(

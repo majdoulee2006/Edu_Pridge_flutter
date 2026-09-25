@@ -569,6 +569,29 @@ class StudentServices {
     return null;
   }
 
+  Future<Uint8List?> fetchTranscriptPdfBytes({int? studentId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      Response response = await _dio.get(
+        "${ApiService().baseUrl}/transcript/export-pdf",
+        queryParameters: studentId != null ? {'student_id': studentId} : null,
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          responseType: ResponseType.bytes,
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return Uint8List.fromList(response.data);
+      }
+    } catch (e) {
+      debugPrint("❌ fetchTranscriptPdfBytes Error: $e");
+    }
+    return null;
+  }
+
   // ==========================================
   // 17. جلب الإنذارات الأكاديمية
   // ==========================================

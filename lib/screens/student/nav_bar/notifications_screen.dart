@@ -14,7 +14,11 @@ import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dar
 import 'student_home_screen.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
+import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/notification_polling.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/widgets/official_exit_card_dialog.dart';
+import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_pdf_viewer_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -128,12 +132,80 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _fetchNotifications(refresh: true);
   }
 
+  Future<void> _openTranscriptPreview([int? studentId]) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                SizedBox(height: 16),
+                Text('جاري تحميل كشف العلامات المعتمد...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final pdfBytes = await StudentServices().fetchTranscriptPdfBytes(studentId: studentId);
+    if (mounted) Navigator.pop(context);
+
+    if (pdfBytes != null && pdfBytes.isNotEmpty) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AffairsPdfViewerScreen(
+            title: 'كشف درجات الطالب المعتمد',
+            pdfBytes: pdfBytes,
+            fileName: 'transcript_preview.pdf',
+            bannerNotice: '⚠️ تنبيه إداري ورسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط داخل التطبيق. في حال الرغبة بالحصول على النسخة الورقية الرسمية المختومة والموقعة، يتعين على الطالب مراجعة موظف شؤون الطلاب بالمعهد شخصياً.',
+          ),
+        ),
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تحميل كشف العلامات حالياً. يرجى التحقق من اتصال الخادم.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _navigateForNotification(BuildContext ctx, AppNotification notify) {
     final title = notify.title;
     final msg = notify.message;
+
+    bool isTranscript = notify.type == 'transcript_shared' ||
+        notify.type == 'transcript' ||
+        title.contains('كشف علامات') || title.contains('كشف درجات') ||
+        title.contains('كشف العلامات') || title.contains('كشف الدرجات') ||
+        msg.contains('كشف علامات') || msg.contains('كشف درجات') ||
+        msg.contains('كشف العلامات') || msg.contains('كشف الدرجات') ||
+        (title.contains('وثيقة') && (title.contains('علامات') || msg.contains('علامات')));
+
+    if (isTranscript) {
+      _openTranscriptPreview(notify.relatedId);
+      return;
+    }
+
     bool isLeave = notify.type == 'leave_request' ||
-        title.contains('إجاز') || title.contains('أذون') || title.contains('إذن') || title.contains('القرار النهائي') ||
-        msg.contains('إجاز') || msg.contains('أذون') || msg.contains('إذن');
+        (notify.type != 'student_service' &&
+         notify.type != 'transcript_shared' &&
+         notify.type != 'transcript' &&
+         (title.contains('إجاز') || title.contains('أذون') || title.contains('إذن') || title.contains('مغادرة') || title.contains('خروج') ||
+          msg.contains('إجاز') || msg.contains('أذون') || msg.contains('إذن') || msg.contains('مغادرة') || msg.contains('خروج')));
 
     if (isLeave) {
       _showLeaveDetailDialog(ctx, notify);
@@ -147,6 +219,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     // على جدول الامتحانات بدل صفحة الواجبات. هلق التخمين النصي صار حصراً
     // fallback لما النوع نفسه مش معروف/فاضي.
     switch (notify.type) {
+      case 'message':
+      case 'chat':
+        final senderId = notify.senderId ?? notify.relatedId;
+        final senderName = notify.title.replaceFirst('رسالة جديدة من ', '');
+        final notifId = notify.id;
+        if (notifId > 0) ApiService().deleteNotification(notifId);
+        if (senderId != null) ApiService().deleteChatNotifications(senderId);
+        if (mounted) {
+          setState(() {
+            notifications.removeWhere((n) => n.id == notify.id);
+          });
+          NotificationPolling.triggerFetch();
+        }
+        if (senderId != null) {
+          Navigator.push(ctx, MaterialPageRoute(
+            builder: (_) => ChatRoomScreen(contact: {
+              'id': senderId,
+              'name': senderName.isNotEmpty ? senderName : 'المستخدم',
+            }),
+          ));
+        }
+        break;
       case 'announcement':
       case 'administrative':
         Navigator.push(ctx, MaterialPageRoute(
@@ -347,6 +441,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           onRefresh: () => _fetchNotifications(refresh: true),
                           onTapNotification: _markAsRead,
                           onNavigate: _navigateForNotification,
+                          onOpenTranscript: _openTranscriptPreview,
                           scrollController: _scrollController,
                           isLoadingMore: isLoadingMore,
                         ),
@@ -437,6 +532,7 @@ class _NotificationsListView extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final Function(AppNotification) onTapNotification;
   final void Function(BuildContext, AppNotification)? onNavigate;
+  final void Function(int?)? onOpenTranscript;
   final ScrollController scrollController;
   final bool isLoadingMore;
 
@@ -447,6 +543,7 @@ class _NotificationsListView extends StatelessWidget {
     required this.scrollController,
     this.isLoadingMore = false,
     this.onNavigate,
+    this.onOpenTranscript,
   });
 
   @override
@@ -490,6 +587,17 @@ class _NotificationsListView extends StatelessWidget {
 
   Widget _buildNotificationCard(BuildContext context, AppNotification notify) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isTranscript = notify.type == 'transcript_shared' ||
+        notify.type == 'transcript' ||
+        notify.title.contains('كشف علامات') ||
+        notify.title.contains('كشف درجات') ||
+        notify.title.contains('كشف العلامات') ||
+        notify.title.contains('كشف الدرجات') ||
+        notify.message.contains('كشف علامات') ||
+        notify.message.contains('كشف درجات') ||
+        notify.message.contains('كشف العلامات') ||
+        notify.message.contains('كشف الدرجات') ||
+        (notify.title.contains('وثيقة') && (notify.title.contains('علامات') || notify.message.contains('علامات')));
 
     return InkWell(
       onTap: () {
@@ -582,6 +690,58 @@ class _NotificationsListView extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (isTranscript) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            onTapNotification(notify);
+                            onOpenTranscript?.call(notify.relatedId);
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFCC00),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFFCC00).withAlpha(90),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.visibility_rounded, size: 16, color: Colors.black),
+                                SizedBox(width: 5),
+                                Text(
+                                  'مشاهدة فقط 👁️',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'معاينة رقمية رسمية',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.amber.shade300 : Colors.amber.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -12,6 +12,8 @@ import 'package:edu_pridge_flutter/screens/teacher/center_icons/scedual_screen/s
 import 'package:edu_pridge_flutter/screens/teacher/report_requests_screen.dart';
 
 import '../../widgets/teacher_speed_dial.dart';
+import '../shared/chat_room_screen.dart';
+import '../../services/notification_polling.dart';
 import 'teacher_home.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
@@ -165,6 +167,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _navigateForNotif(Map<String, dynamic> notif) {
     final type = notif['type'] as String?;
     switch (type) {
+      case 'message':
+      case 'chat':
+        final senderId = notif['sender_id'] ?? notif['related_id'];
+        final senderName = notif['sender_name'] ?? notif['sender'] ?? (notif['title']?.toString().replaceFirst('رسالة جديدة من ', '') ?? 'المستخدم');
+        final notifId = (notif['id'] as num?)?.toInt() ?? 0;
+        
+        // حذف الإشعار فور الدخول حتى لا يتراكم
+        if (notifId > 0) {
+          ApiService().deleteNotification(notifId);
+        }
+        if (senderId != null) {
+          ApiService().deleteChatNotifications(senderId);
+        }
+        if (mounted) {
+          setState(() {
+            _notifications.removeWhere((n) => n['id'] == notif['id']);
+          });
+          NotificationPolling.triggerFetch();
+        }
+        if (senderId != null) {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => ChatRoomScreen(contact: {
+              'id': senderId,
+              'name': senderName,
+            }),
+          ));
+        }
+        break;
       case 'announcement':
       case 'new_announcement':
       case 'administrative':
@@ -218,6 +248,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   // أيقونة ولون كل نوع إشعار
   _NotifStyle _styleForType(String? type) {
     switch (type) {
+      case 'message':
+      case 'chat':
+        return _NotifStyle(Icons.chat_bubble_outline, Colors.blueAccent, const Color(0xFF002244), 'رسالة');
       case 'academic':
       case 'assignment':
         return _NotifStyle(Icons.assignment_outlined, const Color(0xFFFFCC00), const Color(0xFF3D3A00), 'واجب');

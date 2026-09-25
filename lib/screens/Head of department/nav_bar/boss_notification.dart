@@ -13,6 +13,7 @@ import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dar
 import '../center_icons/leave_requests_screen.dart';
 import '../center_icons/request_reports_screen.dart';
 import '../../parents/center_icons/appointments_screen/appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import '../requests/boss_student_service_requests_screen.dart';
 
 // 🛠️ إشعارات "طلب خدمة محول من الشؤون" (بعد ما تحوّل الشؤون طلب استرحام/وثائق/
@@ -57,6 +58,7 @@ class BossNotification {
   final bool isUnread;
   final String type;
   final int? relatedId;
+  final int? senderId;
   final String? leaveStatus; // pending_hod | pending_parent | approved | rejected
 
   BossNotification({
@@ -70,6 +72,7 @@ class BossNotification {
     this.isUnread = false,
     this.type = 'general',
     this.relatedId,
+    this.senderId,
     this.leaveStatus,
   });
 
@@ -135,23 +138,28 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
       description: n['body'] as String? ?? n['message'] as String? ?? '',
       time:        n['time_ago'] as String? ?? n['created_at'] as String? ?? '',
       formattedDate: n['formatted_date'] as String?,
-      icon: type == 'leave_request'
-          ? Icons.event_busy_outlined
-          : type == 'meeting_request'
-              ? Icons.calendar_month_outlined
-              : type == 'summon'
-                  ? Icons.person_add_alt_1_outlined
-                  : Icons.notifications_outlined,
-      iconColor: type == 'leave_request'
-          ? const Color(0xFFCCAA00)
-          : type == 'meeting_request'
-              ? Colors.teal
-              : type == 'summon'
-                  ? Colors.deepOrange
-                  : Colors.orange,
+      icon: (type == 'message' || type == 'chat')
+          ? Icons.chat_bubble_outline
+          : type == 'leave_request'
+              ? Icons.event_busy_outlined
+              : type == 'meeting_request'
+                  ? Icons.calendar_month_outlined
+                  : type == 'summon'
+                      ? Icons.person_add_alt_1_outlined
+                      : Icons.notifications_outlined,
+      iconColor: (type == 'message' || type == 'chat')
+          ? Colors.blueAccent
+          : type == 'leave_request'
+              ? const Color(0xFFCCAA00)
+              : type == 'meeting_request'
+                  ? Colors.teal
+                  : type == 'summon'
+                      ? Colors.deepOrange
+                      : Colors.orange,
       isUnread:    n['is_read'] == false,
       type:        type,
       relatedId:   n['related_id'] != null ? (n['related_id'] as num).toInt() : null,
+      senderId:    n['sender_id'] != null ? (n['sender_id'] as num).toInt() : (n['related_id'] != null ? (n['related_id'] as num).toInt() : null),
       leaveStatus: n['leave_status'] as String?,
     );
   }
@@ -688,6 +696,27 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     return GestureDetector(
       onTap: () {
         _markAsRead(n.id, index);
+        if (n.type == 'message' || n.type == 'chat') {
+          final senderId = n.senderId ?? n.relatedId;
+          final senderName = n.title.replaceFirst('رسالة جديدة من ', '');
+          if (n.id > 0) ApiService().deleteNotification(n.id);
+          if (senderId != null) ApiService().deleteChatNotifications(senderId);
+          if (mounted) {
+            setState(() {
+              notifications.removeWhere((item) => item.id == n.id);
+            });
+            NotificationPolling.triggerFetch();
+          }
+          if (senderId != null) {
+            Navigator.push(context, MaterialPageRoute(
+              builder: (_) => ChatRoomScreen(contact: {
+                'id': senderId,
+                'name': senderName.isNotEmpty ? senderName : 'المستخدم',
+              }),
+            ));
+          }
+          return;
+        }
         if (n.type == 'grade_report_ready' || n.type == 'report' || n.type == 'new_report') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportRequestScreen()));
         } else if (n.type == 'meeting_request' || n.type == 'summon') {

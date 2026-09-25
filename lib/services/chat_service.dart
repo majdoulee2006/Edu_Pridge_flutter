@@ -7,6 +7,7 @@ import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message_model.dart';
 import 'api_service.dart';
+import 'notification_polling.dart';
 
 const String PUSHER_APP_KEY = '06c5a41f8d5f2e4e5497';
 const String PUSHER_CLUSTER = 'eu';
@@ -158,12 +159,13 @@ class ChatService extends ChangeNotifier {
         _messagesCache[_activeContactId!] = fetched;
       }
 
-      // Mark conversation as read on server
+      // Mark conversation as read on server (and delete notifications on server)
       try {
         await _dio.put(
           '/messages/$_activeContactId/mark-read',
           options: Options(headers: {'Authorization': 'Bearer $token'}),
         );
+        NotificationPolling.triggerFetch();
       } catch (_) {}
 
     } catch (e) {

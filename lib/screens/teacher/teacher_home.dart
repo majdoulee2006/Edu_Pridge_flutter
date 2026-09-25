@@ -10,9 +10,11 @@ import 'messages_screen.dart';
 import 'notifications_screen.dart';
 import '../shared/settings_screen.dart';
 import '../shared/announcement_detail_screen.dart';
+import '../shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';
 import 'report_requests_screen.dart';
+import 'teacher_services_menu_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -45,11 +47,31 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     if (!AppSettings.isNotificationsEnabled.value) return;
     final n = NotificationPolling.latestNew.value;
     if (n != null && mounted) {
+      final isMsg = n['type'] == 'message' || n['type'] == 'chat';
       showInAppBanner(
         context,
         n['title']?.toString() ?? 'إشعار جديد',
         n['message']?.toString() ?? n['body']?.toString() ?? '',
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+        onTap: () {
+          if (isMsg) {
+            final senderId = n['sender_id'] ?? n['related_id'];
+            final senderName = n['sender_name'] ?? n['sender'] ?? (n['title']?.toString().replaceFirst('رسالة جديدة من ', '') ?? 'المستخدم');
+            final notifId = (n['id'] as num?)?.toInt() ?? 0;
+            if (notifId > 0) ApiService().deleteNotification(notifId);
+            if (senderId != null) ApiService().deleteChatNotifications(senderId);
+            NotificationPolling.triggerFetch();
+            if (senderId != null) {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => ChatRoomScreen(contact: {
+                  'id': senderId,
+                  'name': senderName,
+                }),
+              ));
+              return;
+            }
+          }
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+        },
       );
     }
   }
@@ -178,17 +200,17 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                                 ],
                               ),
                               IconButton(
-                                icon: const Icon(Icons.settings_outlined, color: Color(0xFFF1C40F), size: 28),
+                                icon: const Icon(Icons.menu_rounded, color: Color(0xFFF1C40F), size: 28),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
-                                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(
-                  userName: _teacherName.isNotEmpty ? _teacherName : '',
-                  userRole: 'مدرس',
-                  onProfileTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
-                  },
-                ))),
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => TeacherServicesMenuScreen(
+                                      teacherName: _teacherName,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
