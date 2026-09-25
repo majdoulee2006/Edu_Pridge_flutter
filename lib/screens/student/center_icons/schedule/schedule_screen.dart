@@ -175,70 +175,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
-  Future<void> _exportSchedule() async {
-    if (_isExporting) return;
-    setState(() => _isExporting = true);
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('جاري تجهيز وتنزيل ملف الجدول الدراسي...'),
-        backgroundColor: Colors.green,
-      ),
-    );
 
-    try {
-      final url = await StudentServices().getScheduleExportUrl();
-      if (url != null && url.isNotEmpty) {
-        final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
-        
-        Directory? dir;
-        try { dir = await getDownloadsDirectory(); } catch (_) {}
-        dir ??= await getApplicationDocumentsDirectory();
-        
-        String fileName = 'student_schedule.pdf';
-        try {
-          final uri = Uri.parse(fixedUrl);
-          if (uri.pathSegments.isNotEmpty && uri.pathSegments.last.endsWith('.pdf')) {
-            fileName = Uri.decodeComponent(uri.pathSegments.last);
-          }
-        } catch (_) {}
-        
-        final savePath = '${dir.path}/$fileName';
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('token') ?? '';
-
-        await Dio().download(
-          fixedUrl,
-          savePath,
-          options: Options(
-            headers: {'Authorization': 'Bearer $token'},
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 30),
-          ),
-        );
-
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('تم تحميل ملف الجدول بنجاح في التنزيلات'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        await OpenFilex.open(savePath);
-      } else {
-        throw 'الرابط غير متوفر';
-      }
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('حدث خطأ أثناء التنزيل: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
 
   Future<void> _exportScheduleAsImage() async {
     if (_isExporting) return;
@@ -278,9 +215,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final pdfBytes = Uint8List.fromList(response.data!);
 
       Uint8List? pngBytes;
-      await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
-        pngBytes = await page.toPng();
-        break;
+      if (fixedUrl.toLowerCase().contains('.png')) {
+        pngBytes = pdfBytes;
+      } else {
+        await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
+          pngBytes = await page.toPng();
+          break;
+        }
       }
 
       if (pngBytes == null) {
@@ -712,44 +653,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     ),
                     const SizedBox(width: 10),
                     GestureDetector(
-                      onTap: _exportSchedule,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E1E1E),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(25),
-                              blurRadius: 5,
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.picture_as_pdf,
-                              color: Colors.redAccent,
-                              size: 14,
-                            ),
-                            SizedBox(width: 5),
-                            Text(
-                              'PDF',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    GestureDetector(
                       onTap: () => _exportScheduleAsImage(),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1E1E1E),
                           borderRadius: BorderRadius.circular(12),
@@ -765,11 +671,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             Icon(
                               Icons.image,
                               color: Colors.blueAccent,
-                              size: 14,
+                              size: 15,
                             ),
-                            SizedBox(width: 5),
+                            SizedBox(width: 6),
                             Text(
-                              'صورة',
+                              'صورة الجدول (PNG)',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
