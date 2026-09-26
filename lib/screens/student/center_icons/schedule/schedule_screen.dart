@@ -6,7 +6,6 @@ import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:gal/gal.dart';
 import 'package:printing/printing.dart';
 
@@ -118,62 +117,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
-  Future<void> _exportFile(String type) async {
-    if (_isExporting) return;
-    setState(() => _isExporting = true);
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('جاري تجهيز وتنزيل ملف الـ ${type.toUpperCase()}...'),
-        backgroundColor: Colors.green,
-      ),
-    );
 
-    try {
-      final url = await StudentServices().getExportUrl(type);
-      if (url != null && url.isNotEmpty) {
-        final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
-        
-        Directory? dir;
-        try { dir = await getDownloadsDirectory(); } catch (_) {}
-        dir ??= await getApplicationDocumentsDirectory();
-        
-        final savePath = '${dir.path}/student_exams.pdf';
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('token') ?? '';
-
-        await Dio().download(
-          fixedUrl,
-          savePath,
-          options: Options(
-            headers: {'Authorization': 'Bearer $token'},
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 30),
-          ),
-        );
-
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('تم تحميل ملف جدول الامتحانات بنجاح في التنزيلات'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        await OpenFilex.open(savePath);
-      } else {
-        throw 'الرابط غير متوفر';
-      }
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('حدث خطأ أثناء التنزيل: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
 
 
 
@@ -293,9 +237,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final pdfBytes = Uint8List.fromList(response.data!);
 
       Uint8List? pngBytes;
-      await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
-        pngBytes = await page.toPng();
-        break;
+      if (fixedUrl.toLowerCase().contains('.png')) {
+        pngBytes = pdfBytes;
+      } else {
+        await for (final page in Printing.raster(pdfBytes, pages: [0], dpi: 300)) {
+          pngBytes = await page.toPng();
+          break;
+        }
       }
 
       if (pngBytes == null) {
@@ -765,44 +713,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               Row(
                 children: [
                   GestureDetector(
-                    onTap: () => _exportFile('pdf'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E1E),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(25),
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.picture_as_pdf,
-                            color: Colors.redAccent,
-                            size: 16,
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'PDF',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
                     onTap: () => _exportExamsAsImage(),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -828,7 +738,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           ),
                           SizedBox(width: 5),
                           Text(
-                            'صورة',
+                            'صورة الجدول (PNG)',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
