@@ -21,6 +21,7 @@ import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -409,6 +410,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   child: const Icon(Icons.qr_code_scanner, color: Colors.black, size: 28),
                 ),
               ),
+            ),
+
+            // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
+            AiFloatingButton(
+              userRole: 'student',
+              userName: displayName,
+              bottom: 100,
+              right: 20,
             ),
 
             CustomBottomNav(

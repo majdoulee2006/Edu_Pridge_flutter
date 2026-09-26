@@ -15,6 +15,7 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';
 import 'report_requests_screen.dart';
 import 'teacher_services_menu_screen.dart';
+import '../shared/ai_floating_button.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -260,6 +261,13 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               ],
             ),
 
+            // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
+            AiFloatingButton(
+              userRole: 'teacher',
+              userName: _teacherName,
+              bottom: 100,
+              right: 20,
+            ),
 
             // ─── الشريط السفلي ───
             CustomBottomNav(

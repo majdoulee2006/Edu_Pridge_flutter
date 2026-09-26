@@ -17,6 +17,7 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_m
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/create_announcement_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/boss_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 import '../../../widgets/boss_center_icon.dart';
 
 class DeptHeadHomeScreen extends StatefulWidget {
@@ -192,6 +193,14 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                   child: const Icon(Icons.add, color: Colors.black, size: 28),
                 ),
               ),
+            ),
+
+            // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
+            AiFloatingButton(
+              userRole: 'boss',
+              userName: _bossName,
+              bottom: 100,
+              right: 20,
             ),
 
             CustomBottomNav(
