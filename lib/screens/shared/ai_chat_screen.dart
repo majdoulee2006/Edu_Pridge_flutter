@@ -115,12 +115,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
     _scrollToBottom();
 
-    // تجهيز السجل للمساعد من الرسائل السابقة فقط (دون تكرار الرسالة الحالية)
+    // تجهيز السجل للمساعد من الرسائل السابقة فقط (آخر رسالتين فقط لضمان عدم استرجاع مواضيع قديمة)
     final priorMessages = _messages.length > 1
         ? _messages.sublist(0, _messages.length - 1)
         : <_ChatMessage>[];
-    final history = priorMessages
-        .take(8)
+    final recentMessages = priorMessages.length > 2
+        ? priorMessages.sublist(priorMessages.length - 2)
+        : priorMessages;
+    final history = recentMessages
         .map((m) => {
               'role': m.isUser ? 'user' : 'model',
               'text': m.text,
