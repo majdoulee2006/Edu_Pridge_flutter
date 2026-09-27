@@ -545,16 +545,33 @@ class _SubjectCardState extends State<_SubjectCard> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
-      // إعداد قائمة آي بيهات احتياطية للتحميل في حال تغير عنوان السيرفر
-      List<String> urlsToTry = [fixedUrl];
-      if (fixedUrl.contains('127.0.0.1')) {
-        urlsToTry.add(fixedUrl.replaceFirst('127.0.0.1', '172.20.10.3'));
-        urlsToTry.add(fixedUrl.replaceFirst('127.0.0.1', '192.168.21.53'));
-      } else if (fixedUrl.contains('172.20.10.3')) {
-        urlsToTry.add(fixedUrl.replaceFirst('172.20.10.3', '127.0.0.1'));
-      } else if (!fixedUrl.contains('127.0.0.1') && !fixedUrl.contains('172.20.10.3')) {
-        urlsToTry.add(fixedUrl.replaceFirst(RegExp(r'https?://[^/]+'), 'http://172.20.10.3:8000'));
-        urlsToTry.add(fixedUrl.replaceFirst(RegExp(r'https?://[^/]+'), 'http://127.0.0.1:8000'));
+      // إعداد قائمة روابط ذكية تبدأ بالسيرفر النشط المعتمد
+      final List<String> urlsToTry = [];
+
+      // 1. استخدام المسار المنظف مع السيرفر النشط حالياً في التطبيق
+      final uri = Uri.tryParse(fixedUrl) ?? Uri.tryParse(url);
+      final rawPath = uri != null ? (uri.hasQuery ? "${uri.path}?${uri.query}" : uri.path) : url;
+      final cleanPath = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
+
+      final activeBase = ApiService.baseHttpUrl;
+      final activeUrl = "$activeBase/$cleanPath";
+      urlsToTry.add(activeUrl);
+
+      // 2. الرابط المعالج من ApiService إذا كان مختلفاً
+      if (!urlsToTry.contains(fixedUrl)) {
+        urlsToTry.add(fixedUrl);
+      }
+
+      // 3. آي بي شبكة WiFi الحالية للكمبيوتر
+      final hostWifiUrl = "http://10.102.114.209:8000/$cleanPath";
+      if (!urlsToTry.contains(hostWifiUrl)) {
+        urlsToTry.add(hostWifiUrl);
+      }
+
+      // 4. السيرفر المحلي عبر USB ADB Reverse
+      final adbUrl = "http://127.0.0.1:8000/$cleanPath";
+      if (!urlsToTry.contains(adbUrl)) {
+        urlsToTry.add(adbUrl);
       }
 
       bool success = false;
