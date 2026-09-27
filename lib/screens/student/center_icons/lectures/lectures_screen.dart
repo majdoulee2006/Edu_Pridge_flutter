@@ -563,9 +563,11 @@ class _SubjectCardState extends State<_SubjectCard> {
       }
 
       // 3. آي بي شبكة WiFi الحالية للكمبيوتر
-      final hostWifiUrl = "http://10.102.114.209:8000/$cleanPath";
-      if (!urlsToTry.contains(hostWifiUrl)) {
-        urlsToTry.add(hostWifiUrl);
+      for (final ip in ['192.168.21.6', '10.102.114.209']) {
+        final hostWifiUrl = "http://$ip:8000/$cleanPath";
+        if (!urlsToTry.contains(hostWifiUrl)) {
+          urlsToTry.add(hostWifiUrl);
+        }
       }
 
       // 4. السيرفر المحلي عبر USB ADB Reverse
