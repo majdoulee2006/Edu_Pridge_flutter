@@ -36,6 +36,7 @@ class AiService {
         'message': cleanMsg,
         'role': userRole,
         'history': history,
+        'server_url': ApiService.baseHttpUrl,
       });
 
       if (response.statusCode == 200 && response.data != null) {
@@ -69,10 +70,7 @@ class AiService {
 
     // 1.5 روابط وتسجيل الدخول على منصة الويب المخصصة لكل دور
     if (q.contains('تسجيل دخول') || q.contains('تسجيل الدخول') || q.contains('رابط الدخول') || q.contains('رابط الويب') || q.contains('رابط تسجيل') || q.contains('بوابة الويب') || q.contains('بوابة الدخول') || q.contains('فوت عالويب') || q.contains('ادخل عالويب') || q.contains('موقع المعهد') || q.contains('رابط المنصة')) {
-      String base = ApiService.baseHttpUrl;
-      if (base.contains('127.0.0.1') || base.contains('localhost')) {
-        base = 'http://10.102.114.209:8000';
-      }
+      final base = ApiService.baseHttpUrl;
       final roleClean = role.toLowerCase();
       if (roleClean == 'teacher') {
         return "🌐 **بوابة تسجيل الدخول الخاصة بالأستاذ / المدرس على الويب:**\n\n"
