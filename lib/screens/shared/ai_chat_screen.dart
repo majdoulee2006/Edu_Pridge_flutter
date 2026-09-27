@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/ai_service.dart';
 
@@ -867,6 +868,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
     bool isDark,
   ) {
     final isUser = msg.isUser;
+    final detectedUrl = _extractUrl(msg.text);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
@@ -886,60 +889,201 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
           ],
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isUser
-                    ? primaryYellow
-                    : (isDark ? const Color(0xFF262930) : Colors.white),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isUser ? 18 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 18),
+            child: GestureDetector(
+              onLongPress: () => _copyMessage(msg.text),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isUser
+                      ? primaryYellow
+                      : (isDark ? const Color(0xFF262930) : Colors.white),
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(18),
+                    topRight: const Radius.circular(18),
+                    bottomLeft: Radius.circular(isUser ? 18 : 4),
+                    bottomRight: Radius.circular(isUser ? 4 : 18),
+                  ),
+                  border: isUser
+                      ? null
+                      : Border.all(
+                          color: isDark ? Colors.white12 : Colors.grey.shade200,
+                          width: 1,
+                        ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                border: isUser
-                    ? null
-                    : Border.all(
-                        color: isDark ? Colors.white12 : Colors.grey.shade200,
-                        width: 1,
-                      ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SelectableText(
-                    msg.text,
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      height: 1.45,
-                      color: isUser ? Colors.black : textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Text(
-                      "${msg.time.hour.toString().padLeft(2, '0')}:${msg.time.minute.toString().padLeft(2, '0')}",
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SelectableText(
+                      msg.text,
                       style: TextStyle(
-                        fontSize: 10,
-                        color: isUser ? Colors.black54 : Colors.grey,
+                        fontSize: 14.5,
+                        height: 1.45,
+                        color: isUser ? Colors.black : textColor,
                       ),
                     ),
-                  ),
-                ],
+                    if (detectedUrl != null)
+                      _buildLinkChip(detectedUrl, isDark, primaryYellow),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () => _copyMessage(msg.text),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.copy_rounded,
+                                  size: 13,
+                                  color: isUser ? Colors.black54 : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "نسخ",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: isUser ? Colors.black54 : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Text(
+                          "${msg.time.hour.toString().padLeft(2, '0')}:${msg.time.minute.toString().padLeft(2, '0')}",
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isUser ? Colors.black54 : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
           if (isUser) const SizedBox(width: 8),
         ],
+      ),
+    );
+  }
+
+  void _copyMessage(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 20),
+            SizedBox(width: 8),
+            Text("تم نسخ الرسالة إلى الحافظة 📋"),
+          ],
+        ),
+        backgroundColor: const Color(0xFF22252A),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  String? _extractUrl(String text) {
+    final match = RegExp(r'https?://[^\s`*()<>]+').firstMatch(text);
+    return match?.group(0);
+  }
+
+  Widget _buildLinkChip(String url, bool isDark, Color primaryYellow) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B1E24) : const Color(0xFFF3F5F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: primaryYellow.withOpacity(0.6), width: 1.2),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Clipboard.setData(ClipboardData(text: url));
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.link_rounded, color: Colors.greenAccent, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text("تم نسخ الرابط: $url", maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+                backgroundColor: const Color(0xFF1B1E24),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.link_rounded, size: 16, color: Color(0xFFB8860B)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    url,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2979FF),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textDirection: TextDirection.ltr,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: primaryYellow,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.copy_rounded, size: 12, color: Colors.black),
+                      SizedBox(width: 4),
+                      Text(
+                        "نسخ الرابط",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
