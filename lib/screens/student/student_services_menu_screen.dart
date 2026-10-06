@@ -1597,7 +1597,7 @@ class _FacePhotoChangeFormScreenState extends State<FacePhotoChangeFormScreen> {
 
     setState(() => _isUploading = true);
     try {
-      final success = await StudentServices().updateProfileImage(_imageBytes!, _imageName ?? 'face_photo.jpg');
+      final success = await StudentServices().submitPhotoChangeRequest(_imageBytes!, _imageName ?? 'face_photo.jpg');
       if (!mounted) return;
       setState(() => _isUploading = false);
 

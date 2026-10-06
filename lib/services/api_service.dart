@@ -43,11 +43,8 @@ class ApiService {
         return;
       }
 
-      // مسح أي رابط قديم للسيرفر الخارجي للتأكد من العمل على سيرفر اللابتوب المحلي دائماً
       final savedIp = prefs.getString('server_ip');
-      if (savedIp != null && savedIp.contains('82.137.250.43')) {
-        await prefs.remove('server_ip');
-      } else if (savedIp != null && savedIp.isNotEmpty && savedIp != defaultServerUrl) {
+      if (savedIp != null && savedIp.isNotEmpty && savedIp != defaultServerUrl) {
         String fixed = savedIp;
         final u = Uri.tryParse(savedIp);
         if (u != null && !u.hasPort && u.scheme == 'http') {

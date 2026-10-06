@@ -1,3 +1,7 @@
+import 'package:edu_pridge_flutter/services/arc_face_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -23,7 +27,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   DateTime? selectedBirthDate;
   Uint8List? _profileImageBytes;
 
-  static const Color primaryYellow = Color(0xFFF6E300);
+    List<double>? _extractedFaceEmbedding;
+static const Color primaryYellow = Color(0xFFF6E300);
 
   final Map<String, List<String>> _departmentData = {
     'نظم معلومات': ['معلوماتية', 'اتصالات'],
@@ -53,16 +58,116 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   // فتح المعرض/الكاميرا لالتقاط صورة البروفايل (متوافق مع الويب والموبايل)
   Future<void> _pickProfilePhoto() async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'التقاط صورة الوجه (سيلفي الحضور)',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'يرجى التقاط سيلفي واضح ومواجه للكاميرا لاعتماد بصمة الحضور',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontFamily: 'Cairo'),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: primaryYellow.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.camera_alt, color: Colors.black),
+                ),
+                title: const Text('التقاط سيلفي بالكاميرا', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                subtitle: const Text('موصى به لاعتماد بصمة الوجه بدقة', style: TextStyle(fontFamily: 'Cairo', fontSize: 11)),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              const Divider(),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle),
+                  child: const Icon(Icons.photo_library, color: Colors.black87),
+                ),
+                title: const Text('اختيار صورة من المعرض', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final picker = ImagePicker();
     final XFile? photo = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 600,
-      maxHeight: 600,
+      source: source,
+      preferredCameraDevice: CameraDevice.front,
+      imageQuality: 90,
+      maxWidth: 800,
+      maxHeight: 800,
     );
+
     if (photo != null && mounted) {
       final bytes = await photo.readAsBytes();
       setState(() => _profileImageBytes = bytes);
+
+      // استخراج بصمة الوجه وحفظها محلياً في الجوال
+      try {
+        final inputImage = InputImage.fromFilePath(photo.path);
+        final faceDetector = FaceDetector(
+          options: FaceDetectorOptions(
+            performanceMode: FaceDetectorMode.accurate,
+            enableLandmarks: true,
+          ),
+        );
+
+        final faces = await faceDetector.processImage(inputImage);
+        await faceDetector.close();
+
+        if (faces.isNotEmpty) {
+          final embedding = await ArcFaceService.extractArcFaceEmbedding(faces.first, photo.path);
+          if (embedding.isNotEmpty) {
+            _extractedFaceEmbedding = embedding;
+
+            // حفظ البصمة محلياً على الجوال فوراً
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('local_face_embedding', jsonEncode(embedding));
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم رصد ملامح وجهك وحفظ بصمة الحضور محلياً بنجاح ✅', textDirection: TextDirection.rtl),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('تنبيه: لم يتم كشف وجه واضح. يرجى التأكد من وضوح السيلفي لاعتماد الحضور.', textDirection: TextDirection.rtl),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Face embedding extraction error: $e');
+      }
     }
   }
 
@@ -137,6 +242,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               _profileImageBytes!,
               filename: 'avatar.jpg',
             ),
+          if (_extractedFaceEmbedding != null && _extractedFaceEmbedding!.isNotEmpty)
+            "face_embedding": jsonEncode(_extractedFaceEmbedding),
         });
 
         final response = await Dio().post(

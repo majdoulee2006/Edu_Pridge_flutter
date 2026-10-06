@@ -111,14 +111,33 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       final String? photoUrl = profileData['reference_photo_url'];
 
       if (!hasFace) {
+        // 1. فحص هل البصمة مخزنة محلياً في ذاكرة الجوال
+        final localEmbeddingStr = prefs.getString('local_face_embedding');
+        if (localEmbeddingStr != null && localEmbeddingStr.isNotEmpty) {
+          try {
+            final List<dynamic> raw = jsonDecode(localEmbeddingStr);
+            final List<double> localEmbedding = raw.map((e) => (e as num).toDouble()).toList();
+            if (localEmbedding.isNotEmpty) {
+              setState(() => _hint = "جاري مزامنة بصمة وجهك المحفوظة محلياً...");
+              await Dio().post(
+                "${ApiService().baseUrl}/student/profile/initialize-face",
+                data: {"face_embedding": localEmbedding},
+                options: Options(headers: {"Authorization": "Bearer $token", "Accept": "application/json"}),
+              );
+              await _initCamera();
+              return;
+            }
+          } catch (e) {
+            debugPrint("Local embedding sync error: $e");
+          }
+        }
+
         if (photoUrl == null || photoUrl.isEmpty) {
-          _showErrorDialog("صورة الشؤون غير متوفرة. يرجى مراجعة إدارة شؤون الطلاب لتسجيل صورتك الرسمية.");
+          _showErrorDialog("صورة الوجه المرجعية غير متوفرة في حسابك. يرجى التقاط صورتك الشخصية أولاً.");
           return;
         }
 
-        setState(() => _hint = "جاري تهيئة بصمة وجهك من صورة الشؤون المرجعية...");
-
-        // 2. تحميل صورة الشؤون مؤقتاً
+        setState(() => _hint = "جاري تهيئة بصمة وجهك من صورتك المرجعية...");// 2. تحميل صورة الشؤون مؤقتاً
         final tempDir = await getTemporaryDirectory();
         final tempPath = "${tempDir.path}/ref_photo.jpg";
         await Dio().download(photoUrl, tempPath);

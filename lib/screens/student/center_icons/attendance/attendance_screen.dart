@@ -91,7 +91,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() => _isSubmittingLeave = true);
     try {
       final type = _leaveType == 0 ? 'full_day' : 'hourly';
-      final ok = await StudentServices().submitLeaveRequest(type, date, reason);
+      final time = _timeController.text.trim();
+      final ok = await StudentServices().submitLeaveRequest(type, date, reason, time: time);
       if (ok && mounted) {
         _showSuccessDialog('تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً');
         _initDefaultDateTime();
@@ -373,63 +374,96 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   ),
                   const SizedBox(height: 14),
                   // التاريخ / الوقت
-                  TextField(
-                    controller: sheetLeaveType == 0 ? dateCtrl : timeCtrl,
-                    readOnly: true,
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                    onTap: () async {
-                      if (sheetLeaveType == 0) {
-                        final picked = await showDatePicker(
-                          context: ctx,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2030),
-                        );
-                        if (picked != null) {
-                          setSheet(() => dateCtrl.text =
-                              "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}");
-                        }
-                      } else {
-                        final now = TimeOfDay.now();
-                        final picked = await showTimePicker(
-                            context: ctx, initialTime: now);
-                        if (picked != null) {
-                          if (picked.hour > 15 || (picked.hour == 15 && picked.minute > 0)) {
-                            if (ctx.mounted) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(content: Text('عذراً، يجب أن يكون وقت الإذن قبل انتهاء الدوام الرسمي (الساعة 3:00 عصراً)')),
-                              );
-                            }
-                          } else {
-                            final today = DateTime.now();
-                            final selectedDate = dateCtrl.text.trim();
-                            final isToday = selectedDate ==
-                                "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
-                            if (isToday &&
-                                (picked.hour < now.hour ||
-                                    (picked.hour == now.hour && picked.minute <= now.minute))) {
-                              if (ctx.mounted) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(content: Text('لا يمكن طلب إجازة لوقت مضى — اختر وقتاً لاحقاً')),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("التاريخ", style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black54)),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: dateCtrl,
+                              readOnly: true,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: ctx,
+                                  initialDate: DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime(2030),
                                 );
-                              }
-                            } else {
-                              setSheet(() => timeCtrl.text = picked.format(ctx));
-                            }
-                          }
-                        }
-                      }
-                    },
-                    decoration: InputDecoration(
-                      hintText: sheetLeaveType == 0 ? 'اختر التاريخ...' : 'اختر الوقت...',
-                      hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
-                      suffixIcon: Icon(sheetLeaveType == 0
-                          ? Icons.calendar_today_outlined
-                          : Icons.access_time_outlined, size: 20, color: isDark ? Colors.white70 : Colors.black54),
-                      filled: true,
-                      fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                    ),
+                                if (picked != null) {
+                                  setSheet(() => dateCtrl.text =
+                                      "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}");
+                                }
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'اختر التاريخ...',
+                                hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+                                suffixIcon: Icon(Icons.calendar_today_outlined, size: 20, color: isDark ? Colors.white70 : Colors.black54),
+                                filled: true,
+                                fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("الوقت", style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black54)),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: timeCtrl,
+                              readOnly: true,
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                              onTap: () async {
+                                final now = TimeOfDay.now();
+                                final picked = await showTimePicker(
+                                    context: ctx, initialTime: now);
+                                if (picked != null) {
+                                  if (picked.hour > 15 || (picked.hour == 15 && picked.minute > 0)) {
+                                    if (ctx.mounted) {
+                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(content: Text('عذراً، يجب أن يكون وقت الإذن قبل انتهاء الدوام الرسمي (الساعة 3:00 عصراً)')),
+                                      );
+                                    }
+                                  } else {
+                                    final today = DateTime.now();
+                                    final selectedDate = dateCtrl.text.trim();
+                                    final isToday = selectedDate ==
+                                        "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+                                    if (isToday &&
+                                        (picked.hour < now.hour ||
+                                            (picked.hour == now.hour && picked.minute <= now.minute))) {
+                                      if (ctx.mounted) {
+                                        ScaffoldMessenger.of(ctx).showSnackBar(
+                                          const SnackBar(content: Text('لا يمكن طلب إجازة لوقت مضى — اختر وقتاً لاحقاً')),
+                                        );
+                                      }
+                                    } else {
+                                      setSheet(() => timeCtrl.text = picked.format(ctx));
+                                    }
+                                  }
+                                }
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'اختر الوقت...',
+                                hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+                                suffixIcon: Icon(Icons.access_time_outlined, size: 20, color: isDark ? Colors.white70 : Colors.black54),
+                                filled: true,
+                                fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   // السبب
@@ -466,7 +500,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         setSheet(() => sending = true);
                         try {
                           final type = sheetLeaveType == 0 ? 'full_day' : 'hourly';
-                          final ok = await StudentServices().submitLeaveRequest(type, date, reason);
+                          final time = timeCtrl.text.trim();
+                          final ok = await StudentServices().submitLeaveRequest(type, date, reason, time: time);
                           if (ctx.mounted) Navigator.pop(ctx);
                           if (ok && mounted) {
                             _showSuccessDialog('تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً');

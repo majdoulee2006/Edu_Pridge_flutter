@@ -429,12 +429,12 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
             ),
 
             // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
-            AiFloatingButton(
-              userRole: 'parent',
-              userName: _parentName,
-              bottom: 100,
-              right: 20,
-            ),
+            // AiFloatingButton(
+            //   userRole: 'parent',
+            //   userName: _parentName,
+            //   bottom: 100,
+            //   right: 20,
+            // ),
 
             CustomBottomNav(
               currentIndex: 0,

@@ -44,3 +44,15 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 *.apk
+
+# Video files and folders
+*video*
+promo_video/
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.flv
+*.wmv
+

@@ -1,3 +1,4 @@
+import 'package:image/image.dart' as img;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -98,6 +99,54 @@ class StudentServices {
   // ==========================================
   // 3. تحديث صورة الملف الشخصي
   // ==========================================
+  
+  // ==========================================
+  // 3.1 طلب تغيير صورة بصمة الوجه (يرسل إلى شؤون الطلاب للمطابقة والاعتماد)
+  // ==========================================
+  
+  List<int> _compressImage(List<int> rawBytes) {
+    try {
+      final decoded = img.decodeImage(Uint8List.fromList(rawBytes));
+      if (decoded == null) return rawBytes;
+      img.Image resized = decoded;
+      if (decoded.width > 800 || decoded.height > 800) {
+        resized = img.copyResize(decoded, width: 800);
+      }
+      return img.encodeJpg(resized, quality: 80);
+    } catch (_) {
+      return rawBytes;
+    }
+  }
+
+  Future<bool> submitPhotoChangeRequest(List<int> imageBytes, String fileName) async {
+    final compressedBytes = _compressImage(imageBytes);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      FormData formData = FormData.fromMap({
+        'photo': MultipartFile.fromBytes(compressedBytes, filename: fileName),
+      });
+
+      Response response = await _dio.post(
+        "${ApiService().baseUrl}/student/photo-change-request",
+        data: formData,
+        options: Options(headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        }),
+      );
+
+      if (response.statusCode == 200 && (response.data['success'] == true || response.data['message'] != null)) {
+        return true;
+      }
+    } catch (e) {
+      debugPrint("❌ Photo Change Request Error: $e");
+      rethrow;
+    }
+    return false;
+  }
+
   Future<bool> updateProfileImage(List<int> imageBytes, String fileName) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -434,7 +483,7 @@ class StudentServices {
   // ==========================================
   // 14. طلب إجازة
   // ==========================================
-  Future<bool> submitLeaveRequest(String type, String date, String reason, {String? filePath, String? fileName}) async {
+  Future<bool> submitLeaveRequest(String type, String date, String reason, {String? time, String? filePath, String? fileName}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -444,11 +493,15 @@ class StudentServices {
         postData = FormData.fromMap({
           'type': type,
           'date': date,
+          if (time != null && time.isNotEmpty) 'time': time,
           'reason': reason,
           'document': await MultipartFile.fromFile(filePath, filename: fileName ?? 'leave_doc.pdf'),
         });
       } else {
         postData = {'type': type, 'date': date, 'reason': reason};
+        if (time != null && time.isNotEmpty) {
+          postData['time'] = time;
+        }
       }
 
       Response response = await _dio.post(

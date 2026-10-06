@@ -262,12 +262,12 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             ),
 
             // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
-            AiFloatingButton(
-              userRole: 'teacher',
-              userName: _teacherName,
-              bottom: 100,
-              right: 20,
-            ),
+            // AiFloatingButton(
+            //   userRole: 'teacher',
+            //   userName: _teacherName,
+            //   bottom: 100,
+            //   right: 20,
+            // ),
 
             // ─── الشريط السفلي ───
             CustomBottomNav(

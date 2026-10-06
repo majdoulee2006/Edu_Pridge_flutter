@@ -281,12 +281,12 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
             ),
 
             // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
-            AiFloatingButton(
-              userRole: 'affairs',
-              userName: _officerName,
-              bottom: 100,
-              right: 20,
-            ),
+            // AiFloatingButton(
+            //   userRole: 'affairs',
+            //   userName: _officerName,
+            //   bottom: 100,
+            //   right: 20,
+            // ),
 
             // شريط التنقل السفلي
             CustomBottomNav(
