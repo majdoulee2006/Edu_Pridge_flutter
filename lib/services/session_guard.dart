@@ -18,10 +18,17 @@ class SingleSessionInterceptor extends Interceptor {
         data is Map &&
         data['error_code'] == 'LOGGED_IN_ELSEWHERE';
 
-    if (loggedInElsewhere && !_isHandling) {
+    // توكن منتهي الصلاحية أو ملغى: 401 على طلب كان يحمل Authorization (ما عدا مسار الدخول نفسه)
+    final tokenRejected = err.response?.statusCode == 401 &&
+        err.requestOptions.headers['Authorization'] != null &&
+        !err.requestOptions.path.contains('/login');
+
+    if ((loggedInElsewhere || tokenRejected) && !_isHandling) {
       _isHandling = true;
-      final message = (data['message'] as String?) ??
-          'تم تسجيل الدخول لحسابك من جهاز آخر، الرجاء تسجيل الدخول مجدداً.';
+      final message = (loggedInElsewhere && data is Map ? data['message'] as String? : null) ??
+          (loggedInElsewhere
+              ? 'تم تسجيل الدخول لحسابك من جهاز آخر، الرجاء تسجيل الدخول مجدداً.'
+              : 'انتهت صلاحية الجلسة، الرجاء تسجيل الدخول مجدداً.');
       _forceLogout(message);
     }
 

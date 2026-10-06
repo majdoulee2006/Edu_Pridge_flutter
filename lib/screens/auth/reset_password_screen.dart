@@ -32,8 +32,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _showMessage('يرجى إدخال كلمة المرور', isError: true);
       return;
     }
-    if (password.length < 6) {
-      _showMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل', isError: true);
+    if (password.length < 8) {
+      _showMessage('كلمة المرور يجب أن تكون 8 أحرف على الأقل', isError: true);
       return;
     }
     if (password != confirm) {

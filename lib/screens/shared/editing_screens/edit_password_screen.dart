@@ -39,7 +39,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
   // ── قوة كلمة المرور ──
   _PasswordStrength _getStrength(String p) {
     if (p.isEmpty) return _PasswordStrength.none;
-    if (p.length < 6) return _PasswordStrength.weak;
+    if (p.length < 8) return _PasswordStrength.weak;
     final hasUpper = p.contains(RegExp(r'[A-Z]'));
     final hasDigit = p.contains(RegExp(r'\d'));
     final hasSpecial = p.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'));
@@ -62,8 +62,8 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
       _showSnack("يرجى إدخال كلمة المرور الجديدة", isError: true);
       return;
     }
-    if (newPass.length < 6) {
-      _showSnack("كلمة المرور يجب أن تكون 6 أحرف على الأقل", isError: true);
+    if (newPass.length < 8) {
+      _showSnack("كلمة المرور يجب أن تكون 8 أحرف على الأقل", isError: true);
       return;
     }
     if (newPass != confirm) {
