@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_service.dart';
+import 'services/app_update_service.dart';
 import 'screens/onboarding/onboarding_one.dart';
 import 'screens/student/nav_bar/student_home_screen.dart';
 import 'screens/teacher/teacher_home.dart';
@@ -94,6 +95,12 @@ class _AppRouterState extends State<_AppRouter> {
       };
     }
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => dest));
+
+    // فحص التحديثات بعد ما تستقر الشاشة (ينتظر تهيئة ApiService بالخلفية)
+    Future.delayed(const Duration(seconds: 3), () {
+      final ctx = appNavigatorKey.currentContext;
+      if (ctx != null && ctx.mounted) AppUpdateService.checkOnStartup(ctx);
+    });
   }
 
   @override
