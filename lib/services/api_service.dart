@@ -39,7 +39,7 @@ class ApiService {
       final prefs = await SharedPreferences.getInstance();
 
       if (kIsWeb) {
-        _serverIp = 'http://127.0.0.1:8001';
+        _serverIp = 'http://127.0.0.1:8000';
         await prefs.setString('server_ip', _serverIp);
         debugPrint("🎯 ApiService initialized for Web on $_serverIp");
         return;
@@ -187,7 +187,7 @@ class ApiService {
   }
 
   static Future<String?> _tryConnect(String ip, {int timeoutMs = 800}) async {
-    for (final port in [8000, 8001]) {
+    for (final port in [8000]) {
       try {
         final socket = await Socket.connect(ip, port, timeout: Duration(milliseconds: timeoutMs));
         socket.destroy();
