@@ -70,14 +70,14 @@ class AppSettings {
     try {
       final token = prefs.getString('token');
       if (token != null && token.isNotEmpty) {
-        Dio().post(
-          '${ApiService.baseUrl}/user/locale',
+        await Dio().post(
+          '${ApiService().baseUrl}/user/locale',
           data: {'locale': v},
           options: Options(headers: {
             'Authorization': 'Bearer $token',
             'Accept': 'application/json',
           }),
-        ).catchError((_) => null);
+        );
       }
     } catch (_) {}
   }

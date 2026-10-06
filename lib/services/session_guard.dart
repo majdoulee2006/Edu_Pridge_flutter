@@ -33,7 +33,7 @@ class SingleSessionInterceptor extends Interceptor {
 
     if ((loggedInElsewhere || tokenRejected) && !_isHandling) {
       _isHandling = true;
-      final message = (loggedInElsewhere && data is Map ? data['message'] as String? : null) ??
+      final message = (loggedInElsewhere ? data['message'] as String? : null) ??
           (loggedInElsewhere
               ? 'تم تسجيل الدخول لحسابك من جهاز آخر، الرجاء تسجيل الدخول مجدداً.'
               : 'انتهت صلاحية الجلسة، الرجاء تسجيل الدخول مجدداً.');
