@@ -10,7 +10,9 @@ class ApiService {
   // 🌟 رابط السيرفر المحلي (جهاز اللابتوب)
   // ==========================================
   static const String defaultServerUrl = 'http://127.0.0.1:8000';
-  static String _serverIp = '127.0.0.1';
+  // 🌐 سيرفر المعهد: الافتراضي للمستخدمين (يمكن تغييره من شاشة تسجيل الدخول)
+  static const String instituteServerUrl = 'http://82.137.250.43:8080/edu_bridge/public';
+  static String _serverIp = instituteServerUrl;
   static String _port = '8000';
   static bool _isDiscovering = false;
 
@@ -44,7 +46,13 @@ class ApiService {
       }
 
       final savedIp = prefs.getString('server_ip');
-      if (savedIp != null && savedIp.isNotEmpty && savedIp != defaultServerUrl) {
+      if (savedIp == null || savedIp.isEmpty) {
+        // أول تشغيل: الاتصال بسيرفر المعهد افتراضياً
+        _serverIp = instituteServerUrl;
+        debugPrint("🌐 ApiService: الاعتماد على سيرفر المعهد ($_serverIp)");
+        return;
+      }
+      if (savedIp != defaultServerUrl) {
         String fixed = savedIp;
         final u = Uri.tryParse(savedIp);
         if (u != null && !u.hasPort && u.scheme == 'http') {
