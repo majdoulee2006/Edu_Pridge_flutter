@@ -196,12 +196,12 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
             ),
 
             // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
-            // AiFloatingButton(
-            //   userRole: 'boss',
-            //   userName: _bossName,
-            //   bottom: 100,
-            //   right: 20,
-            // ),
+            AiFloatingButton(
+              userRole: 'boss',
+              userName: _bossName,
+              bottom: 100,
+              right: 20,
+            ),
 
             CustomBottomNav(
               currentIndex: 0,

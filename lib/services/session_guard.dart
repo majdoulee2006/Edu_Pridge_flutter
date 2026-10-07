@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/main.dart' show appNavigatorKey;
 import 'package:edu_pridge_flutter/screens/auth/login_screen.dart';
+import 'package:edu_pridge_flutter/services/ai_service.dart';
 
 /// يعالج حالة "تسجيل الدخول من جهاز آخر": الباك إند بيرجع 401 مع
 /// error_code = LOGGED_IN_ELSEWHERE لأي طلب مصادق عليه بتوكن صار
@@ -37,6 +38,7 @@ class SingleSessionInterceptor extends Interceptor {
 
   static Future<void> _forceLogout(String message) async {
     final prefs = await SharedPreferences.getInstance();
+    await AiService.clearLocalChats();
     await prefs.remove('token');
     await prefs.remove('role');
     await prefs.remove('user_role');

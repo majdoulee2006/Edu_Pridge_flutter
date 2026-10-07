@@ -7,6 +7,7 @@ import 'package:edu_pridge_flutter/screens/auth/login_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
 import 'package:edu_pridge_flutter/services/notification_polling.dart';
+import 'package:edu_pridge_flutter/services/ai_service.dart';
 
 // ─── AppSettings ───────────────────────────────────────────────────────────
 class AppSettings {
@@ -471,6 +472,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }
                     }
 
+                    await AiService.clearLocalChats();
                     await prefs.remove('token');
                     await prefs.remove('role');
                     await prefs.remove('user_role');
