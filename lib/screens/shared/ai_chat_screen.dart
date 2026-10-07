@@ -339,7 +339,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
     final history = recentMessages
         .map((m) => {
               'role': m.isUser ? 'user' : 'model',
-              'text': m.text,
+              // الردود الطويلة تُقصّ: السجل للسياق فقط
+              'text': m.text.length > 600 ? m.text.substring(0, 600) : m.text,
             })
         .toList();
 
