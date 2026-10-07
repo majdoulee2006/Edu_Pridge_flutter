@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_services_menu_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
@@ -202,6 +203,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
 
+            // زرّان عائمان على اليسار متقاربان: إضافة منشور (أسفل) والمساعد الذكي (فوقه)
+            Positioned(
+              bottom: 100,
+              left: 20,
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: _buildCircularAddButton(),
+              ),
+            ),
+            AiFloatingButton(
+              userRole: 'admin',
+              userName: offlineName,
+              bottom: 164,
+              left: 20,
+            ),
+
             // الشريط السفلي الأصلي المعتمد
             CustomBottomNav(
               currentIndex: 0,
@@ -229,28 +247,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           ],
         ),
 
-        // زر إضافة منشور جديد
-        floatingActionButton: _buildCircularAddButton(),
-        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       ),
     );
   }
 
   Widget _buildCircularAddButton() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 95, left: 5),
-      child: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddPostScreen()),
-          ).then((_) => _loadDashboardData());
-        },
-        backgroundColor: const Color(0xFFFFCC00),
-        elevation: 8,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.black, size: 32),
-      ),
+    return FloatingActionButton(
+      heroTag: 'admin_add_post_fab',
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddPostScreen()),
+        ).then((_) => _loadDashboardData());
+      },
+      backgroundColor: const Color(0xFFFFCC00),
+      elevation: 8,
+      shape: const CircleBorder(),
+      child: const Icon(Icons.add, color: Colors.black, size: 32),
     );
   }
 
@@ -441,8 +454,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     final activeSemester = dashboardData?['active_semester'];
     final String semesterName =
         activeSemester?['name'] ?? 'لا يوجد فصل دراسي نشط حالياً';
-    final String startDate = activeSemester?['start_date'] ?? '';
-    final String endDate = activeSemester?['end_date'] ?? '';
+    // التواريخ تأتي بصيغة ISO (2026-09-09T00:00:00.000000Z): نعرض اليوم فقط
+    String dayOnly(dynamic v) => (v ?? '').toString().split('T').first;
+    final String startDate = dayOnly(activeSemester?['start_date']);
+    final String endDate = dayOnly(activeSemester?['end_date']);
 
     return Container(
       padding: const EdgeInsets.all(18),
