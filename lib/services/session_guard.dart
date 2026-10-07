@@ -8,9 +8,17 @@ import 'package:edu_pridge_flutter/services/ai_service.dart';
 /// يعالج حالة "تسجيل الدخول من جهاز آخر": الباك إند بيرجع 401 مع
 /// error_code = LOGGED_IN_ELSEWHERE لأي طلب مصادق عليه بتوكن صار
 /// غير صالح لأنه صار تسجيل دخول جديد لنفس الحساب من مكان تاني.
-/// هون بنمسح الجلسة المحلية ونرجّع المستخدم لشاشة الدخول مع رسالة واضحة.
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+
+/// يعالج حالة "تسجيل الدخول من جهاز آخر" وتمرير لغة التطبيق لجميع الطلبات
 class SingleSessionInterceptor extends Interceptor {
   static bool _isHandling = false;
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    options.headers['Accept-Language'] = AppSettings.language.value;
+    handler.next(options);
+  }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
@@ -26,7 +34,7 @@ class SingleSessionInterceptor extends Interceptor {
 
     if ((loggedInElsewhere || tokenRejected) && !_isHandling) {
       _isHandling = true;
-      final message = (loggedInElsewhere && data is Map ? data['message'] as String? : null) ??
+      final message = (loggedInElsewhere ? data['message'] as String? : null) ??
           (loggedInElsewhere
               ? 'تم تسجيل الدخول لحسابك من جهاز آخر، الرجاء تسجيل الدخول مجدداً.'
               : 'انتهت صلاحية الجلسة، الرجاء تسجيل الدخول مجدداً.');

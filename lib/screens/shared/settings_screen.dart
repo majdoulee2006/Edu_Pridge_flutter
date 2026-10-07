@@ -64,7 +64,23 @@ class AppSettings {
 
   static Future<void> setLanguage(String v) async {
     language.value = v;
-    (await SharedPreferences.getInstance()).setString('language', v);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', v);
+
+    // Sync user preferred language with backend
+    try {
+      final token = prefs.getString('token');
+      if (token != null && token.isNotEmpty) {
+        await Dio().post(
+          '${ApiService().baseUrl}/user/locale',
+          data: {'locale': v},
+          options: Options(headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          }),
+        );
+      }
+    } catch (_) {}
   }
 
   static Future<void> setSoundsEnabled(bool v) async {
@@ -189,7 +205,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _buildProfileCard(context, cardColor, textColor, subColor, isAr),
                         const SizedBox(height: 25),
 
-                        _sectionTitle(isAr ? "المظهر" : "Appearance", subColor),
+                        _sectionTitle(isAr ? "المظهر واللغة" : "Appearance & Language", subColor),
+                        _languageSelector(cardColor, textColor, isAr),
                         _fontSizeSlider(cardColor, textColor, isAr),
                         _switchTile(
                           icon: Icons.dark_mode_outlined,
@@ -325,6 +342,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Language Selector ───────────────────────────────────────────────────
+  Widget _languageSelector(Color cardColor, Color textColor, bool isAr) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.language_rounded, color: textColor),
+              const SizedBox(width: 10),
+              Text(isAr ? "لغة التطبيق" : "App Language", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    AppSettings.setLanguage('ar');
+                    AppSettings.triggerHaptic();
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: isAr ? const Color(0xFFFFCC00) : (cardColor == Colors.white ? const Color(0xFFF1F5F9) : const Color(0xFF2A2A2A)),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: isAr ? const Color(0xFFFFCC00) : Colors.transparent, width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("🇸🇦", style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 6),
+                        Text(
+                          "العربية",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isAr ? Colors.black : textColor,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    AppSettings.setLanguage('en');
+                    AppSettings.triggerHaptic();
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: !isAr ? const Color(0xFFFFCC00) : (cardColor == Colors.white ? const Color(0xFFF1F5F9) : const Color(0xFF2A2A2A)),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: !isAr ? const Color(0xFFFFCC00) : Colors.transparent, width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("🇺🇸", style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 6),
+                        Text(
+                          "English",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: !isAr ? Colors.black : textColor,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
