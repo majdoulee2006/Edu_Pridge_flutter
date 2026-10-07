@@ -203,7 +203,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
 
-            // زرّان عائمان على اليسار متقاربان: إضافة منشور (أسفل) والمساعد الذكي (فوقه)
+            // إضافة منشور على اليسار، والمساعد الذكي على اليمين
             Positioned(
               bottom: 100,
               left: 20,
@@ -216,8 +216,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             AiFloatingButton(
               userRole: 'admin',
               userName: offlineName,
-              bottom: 164,
-              left: 20,
+              bottom: 100,
+              right: 20,
             ),
 
             // الشريط السفلي الأصلي المعتمد
