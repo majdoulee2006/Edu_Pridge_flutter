@@ -382,8 +382,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("🇸🇦", style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
+                        if (isAr) ...[
+                          const Icon(Icons.check_circle_rounded, size: 16, color: Colors.black),
+                          const SizedBox(width: 6),
+                        ],
                         Text(
                           "العربية",
                           style: TextStyle(
@@ -415,8 +417,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("🇺🇸", style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
+                        if (!isAr) ...[
+                          const Icon(Icons.check_circle_rounded, size: 16, color: Colors.black),
+                          const SizedBox(width: 6),
+                        ],
                         Text(
                           "English",
                           style: TextStyle(
