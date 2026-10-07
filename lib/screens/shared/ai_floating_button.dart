@@ -7,12 +7,16 @@ class AiFloatingButton extends StatefulWidget {
   final double bottom;
   final double right;
 
+  /// إن حُدد يوضع الزر على اليسار بدل اليمين (يتجاهل [right])
+  final double? left;
+
   const AiFloatingButton({
     super.key,
     this.userRole = 'student',
     this.userName,
     this.bottom = 100,
     this.right = 20,
+    this.left,
   });
 
   @override
@@ -49,7 +53,8 @@ class _AiFloatingButtonState extends State<AiFloatingButton>
 
     return Positioned(
       bottom: widget.bottom,
-      right: widget.right,
+      right: widget.left == null ? widget.right : null,
+      left: widget.left,
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) => Transform.scale(

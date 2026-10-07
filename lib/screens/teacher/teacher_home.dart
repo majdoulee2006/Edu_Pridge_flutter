@@ -150,18 +150,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     final isAr = AppSettings.language.value == 'ar';
     return Scaffold(
       backgroundColor: bgColor,
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 60), // لرفعه فوق الشريط السفلي
-        child: FloatingActionButton(
-          heroTag: 'report_requests_fab',
-          backgroundColor: const Color(0xFFFFCC33),
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportRequestsScreen()));
-          },
-          child: const Icon(Icons.assessment_outlined, color: Colors.black, size: 28),
-        ),
-      ),
       body: Directionality(
         textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: Stack(
@@ -261,12 +249,28 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               ],
             ),
 
-            // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
+            // زرّان عائمان على اليسار متقاربان: طلبات التقارير (أسفل) والمساعد الذكي (فوقه)
+            Positioned(
+              bottom: 100,
+              left: 20,
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: FloatingActionButton(
+                  heroTag: 'report_requests_fab',
+                  backgroundColor: const Color(0xFFFFCC33),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportRequestsScreen()));
+                  },
+                  child: const Icon(Icons.assessment_outlined, color: Colors.black, size: 28),
+                ),
+              ),
+            ),
             AiFloatingButton(
               userRole: 'teacher',
               userName: _teacherName,
-              bottom: 100,
-              right: 20,
+              bottom: 164, // 100 + 56 (حجم الزر) + 8 فاصل صغير
+              left: 20,
             ),
 
             // ─── الشريط السفلي ───
