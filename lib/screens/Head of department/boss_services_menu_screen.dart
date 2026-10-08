@@ -4,6 +4,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/requests/boss_student_service_requests_screen.dart';
+import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/attendance_insights/attendance_insights_screen.dart';
 
 // ─── BossServicesMenuScreen ──────────────────────────────────────────────
 class BossServicesMenuScreen extends StatelessWidget {
@@ -55,6 +56,24 @@ class BossServicesMenuScreen extends StatelessWidget {
                     physics: const BouncingScrollPhysics(),
                     children: [
                       // القسم الأول: الخدمات الإدارية والطلبات
+
+                      _buildServiceCard(
+                        icon: Icons.insights_rounded,
+                        iconColor: const Color(0xFFCCAA00),
+                        title: isAr ? "تحليل الحضور" : "Attendance Insights",
+                        subtitle: isAr
+                            ? "خريطة حرارية للحضور وأضعف المقررات وطلاب تغيّر حضورهم"
+                            : "Attendance heatmap, weakest courses and sudden changes",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AttendanceInsightsScreen()),
+                        ),
+                      ),
+
 
                       _buildServiceCard(
                         icon: Icons.gavel_rounded,
