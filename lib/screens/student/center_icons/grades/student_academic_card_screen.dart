@@ -170,10 +170,10 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.accent.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppColors.accent.withOpacity(0.08),
+            color: AppColors.accent.withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -188,7 +188,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
             child: Icon(
               Icons.school_rounded,
               size: 140,
-              color: AppColors.accent.withOpacity(0.04),
+              color: AppColors.accent.withValues(alpha: 0.04),
             ),
           ),
           Padding(
@@ -209,7 +209,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppColors.accent.withOpacity(0.12),
+                                  color: AppColors.accent.withValues(alpha: 0.12),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(Icons.school_rounded, color: AppColors.accent, size: 22),
@@ -239,9 +239,9 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                       ),
                       child: const Row(
                         children: [
@@ -269,13 +269,13 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [AppColors.accent, AppColors.accent.withOpacity(0.7)],
+                          colors: [AppColors.accent, AppColors.accent.withValues(alpha: 0.7)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.accent.withOpacity(0.3),
+                            color: AppColors.accent.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 3),
                           ),
@@ -331,7 +331,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                   decoration: BoxDecoration(
                     color: isDark ? Colors.black26 : const Color(0xFFF9FAFC),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.withOpacity(0.12)),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
                   ),
                   child: Column(
                     children: [
@@ -458,7 +458,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -485,14 +485,14 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                         Builder(
                           builder: (context) {
                             final statusStr = (c['status'] ?? (total >= 50 ? 'ناجح' : 'راسب')).toString();
-                            Color bgStatusColor = Colors.orange.withOpacity(0.12);
+                            Color bgStatusColor = Colors.orange.withValues(alpha: 0.12);
                             Color textStatusColor = Colors.orange.shade800;
 
                             if (statusStr == 'ناجح') {
-                              bgStatusColor = Colors.green.withOpacity(0.12);
+                              bgStatusColor = Colors.green.withValues(alpha: 0.12);
                               textStatusColor = Colors.green.shade700;
                             } else if (statusStr == 'راسب') {
-                              bgStatusColor = Colors.red.withOpacity(0.12);
+                              bgStatusColor = Colors.red.withValues(alpha: 0.12);
                               textStatusColor = Colors.red.shade700;
                             }
 
@@ -533,7 +533,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.accent.withOpacity(0.08),
+                        color: AppColors.accent.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -567,7 +567,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.15),
+                            color: Colors.amber.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -639,7 +639,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -669,12 +669,12 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [gpaColor.withOpacity(0.12), gpaColor.withOpacity(0.05)],
+                colors: [gpaColor.withValues(alpha: 0.12), gpaColor.withValues(alpha: 0.05)],
                 begin: Alignment.centerRight,
                 end: Alignment.centerLeft,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: gpaColor.withOpacity(0.3)),
+              border: Border.all(color: gpaColor.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -750,7 +750,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                 child: LinearProgressIndicator(
                   value: attendanceRate / 100.0,
                   minHeight: 10,
-                  backgroundColor: Colors.red.withOpacity(0.2),
+                  backgroundColor: Colors.red.withValues(alpha: 0.2),
                   color: Colors.green,
                 ),
               ),

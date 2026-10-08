@@ -175,7 +175,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFFCC00).withOpacity(0.4),
+                            color: const Color(0xFFFFCC00).withValues(alpha: 0.4),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -397,7 +397,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                 const SizedBox(width: 10),
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: statusColor.withOpacity(0.1),
+                  backgroundColor: statusColor.withValues(alpha: 0.1),
                   child: Text(
                     initial,
                     style: TextStyle(
@@ -484,9 +484,9 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withOpacity(0.3)),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     'الحالة: $statusLabel',

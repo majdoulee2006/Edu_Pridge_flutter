@@ -116,14 +116,14 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                   // Details
                   Text(
                     isAr ? "نص الطلب:" : "Details:",
-                    style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 14),
+                    style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: textColor.withOpacity(0.05),
+                      color: textColor.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -143,7 +143,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blueGrey.withOpacity(0.1),
+                      color: Colors.blueGrey.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -170,7 +170,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                         hintText: isAr ? 'أضف ملاحظتك هنا...' : 'Add your notes here...',
                         hintStyle: TextStyle(color: Colors.grey.shade400),
                         filled: true,
-                        fillColor: textColor.withOpacity(0.05),
+                        fillColor: textColor.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -218,7 +218,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: req['hod_decision'] == 'approved' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                        color: req['hod_decision'] == 'approved' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Column(
@@ -258,7 +258,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 14)),
+        Text(label, style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: 14)),
         const SizedBox(width: 8),
         Expanded(child: Text(value, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14))),
       ],
@@ -396,7 +396,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

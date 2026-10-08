@@ -557,7 +557,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: statusColor),
                       ),
@@ -579,7 +579,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: (req['target_person'] == 'admin' ? Colors.blue : Colors.teal).withOpacity(0.12),
+                        color: (req['target_person'] == 'admin' ? Colors.blue : Colors.teal).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -723,7 +723,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: statusColor),
                       ),

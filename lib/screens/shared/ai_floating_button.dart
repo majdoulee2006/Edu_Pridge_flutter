@@ -94,13 +94,13 @@ class _AiFloatingButtonState extends State<AiFloatingButton>
               borderRadius: BorderRadius.circular(18), // مربع بزوايا دائرية مثل الصورة المرفقة
               boxShadow: [
                 BoxShadow(
-                  color: primaryYellow.withOpacity(0.4),
+                  color: primaryYellow.withValues(alpha: 0.4),
                   blurRadius: 14,
                   spreadRadius: 1,
                   offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),

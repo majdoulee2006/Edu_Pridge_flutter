@@ -116,7 +116,7 @@ class _GradesScreenState extends State<GradesScreen> {
           const SizedBox(height: 16),
           Text(
             "لا توجد علامات مرصودة حتى الآن",
-            style: TextStyle(fontSize: 16, color: textColor.withOpacity(0.7), fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, color: textColor.withValues(alpha: 0.7), fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -150,7 +150,7 @@ class _GradesScreenState extends State<GradesScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -186,7 +186,7 @@ class _GradesScreenState extends State<GradesScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isPassed ? Colors.green.withOpacity(0.12) : Colors.red.withOpacity(0.12),
+                        color: isPassed ? Colors.green.withValues(alpha: 0.12) : Colors.red.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -214,7 +214,7 @@ class _GradesScreenState extends State<GradesScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.08),
+                    color: primaryColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(

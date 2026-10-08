@@ -157,7 +157,7 @@ class CreateAccountScreen extends StatelessWidget {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(

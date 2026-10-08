@@ -61,7 +61,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           final cardColor = isDark ? const Color(0xFF1C1C20) : Colors.white;
           final textColor = isDark ? Colors.white : const Color(0xFF18181B);
           final subColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
-          final borderColor = isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06);
+          final borderColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06);
 
           return Directionality(
             textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
@@ -115,7 +115,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFFFCC00).withOpacity(0.35),
+                                    color: const Color(0xFFFFCC00).withValues(alpha: 0.35),
                                     blurRadius: 16,
                                     offset: const Offset(0, 4),
                                   ),
@@ -176,7 +176,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                                     decoration: BoxDecoration(
                                       color: isSelected
                                           ? const Color(0xFFFFCC00)
-                                          : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
+                                          : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
                                       borderRadius: BorderRadius.circular(14),
                                       border: Border.all(
                                         color: isSelected
@@ -186,7 +186,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                                       boxShadow: isSelected
                                           ? [
                                               BoxShadow(
-                                                color: const Color(0xFFFFCC00).withOpacity(0.3),
+                                                color: const Color(0xFFFFCC00).withValues(alpha: 0.3),
                                                 blurRadius: 10,
                                                 offset: const Offset(0, 3),
                                               ),
@@ -271,7 +271,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: borderColor),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 3)),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 3)),
             ],
           ),
           child: Row(
@@ -280,7 +280,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withOpacity(0.15),
+                  color: const Color(0xFFFFCC00).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.format_quote_rounded, color: Color(0xFFEAB308), size: 22),
@@ -306,7 +306,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         // Features Grid / Items
         _buildFeatureItem(
           icon: Icons.layers_rounded,
-          iconBg: const Color(0xFFEAB308).withOpacity(0.15),
+          iconBg: const Color(0xFFEAB308).withValues(alpha: 0.15),
           iconColor: const Color(0xFFEAB308),
           title: "إدارة أكاديمية شاملة",
           desc: "تنظيم المقررات، النتائج الامتحانية، الخطط الدراسية، وتقارير المتابعة الدقيقة لكل طالب.",
@@ -318,7 +318,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         const SizedBox(height: 12),
         _buildFeatureItem(
           icon: Icons.qr_code_scanner_rounded,
-          iconBg: const Color(0xFF10B981).withOpacity(0.15),
+          iconBg: const Color(0xFF10B981).withValues(alpha: 0.15),
           iconColor: const Color(0xFF10B981),
           title: "حضور ذكي بالـ QR وبصمة الوجه",
           desc: "تسجيل حضور إلكتروني فوري ومؤمّن يمنع التلاعب مع دعم كامل للعمل والمزامنة دون إنترنت.",
@@ -330,7 +330,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         const SizedBox(height: 12),
         _buildFeatureItem(
           icon: Icons.chat_bubble_outline_rounded,
-          iconBg: const Color(0xFF3B82F6).withOpacity(0.15),
+          iconBg: const Color(0xFF3B82F6).withValues(alpha: 0.15),
           iconColor: const Color(0xFF3B82F6),
           title: "تواصل ومحادثات فورية",
           desc: "غرف محادثة مباشرة ومشفرة بين الطلاب والمدرسين والإدارة لتبادل الملفات والاستفسارات.",
@@ -342,7 +342,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         const SizedBox(height: 12),
         _buildFeatureItem(
           icon: Icons.phone_iphone_rounded,
-          iconBg: const Color(0xFFA855F7).withOpacity(0.15),
+          iconBg: const Color(0xFFA855F7).withValues(alpha: 0.15),
           iconColor: const Color(0xFFA855F7),
           title: "تجربة موحدة (ويب وموبايل)",
           desc: "تطبيق فلاتر فائق السرعة ولوحة تحكم ويب متجاوبة بالكامل لجميع أطراف العملية التعليمية.",
@@ -462,9 +462,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withOpacity(0.12),
+                  color: const Color(0xFFFFCC00).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFFFCC00).withOpacity(0.3)),
+                  border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -513,7 +513,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                 border: Border.all(color: borderColor),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -533,7 +533,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: member.gradient.first.withOpacity(0.35),
+                          color: member.gradient.first.withValues(alpha: 0.35),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -587,9 +587,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withOpacity(isDark ? 0.12 : 0.08),
+            color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.12 : 0.08),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,7 +597,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.2),
+                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 28),
@@ -684,7 +684,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: borderColor),
           ),
@@ -780,9 +780,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withOpacity(0.12),
+                  color: const Color(0xFFFFCC00).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFFFCC00).withOpacity(0.3)),
+                  border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -824,7 +824,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         // Email Card
         _buildContactCard(
           icon: Icons.email_rounded,
-          iconBg: const Color(0xFFEF4444).withOpacity(0.15),
+          iconBg: const Color(0xFFEF4444).withValues(alpha: 0.15),
           iconColor: const Color(0xFFEF4444),
           type: "البريد الإلكتروني الرسمي",
           value: "edubridge2006@gmail.com",
@@ -844,7 +844,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         // WhatsApp / Phone Card
         _buildContactCard(
           icon: Icons.chat_rounded,
-          iconBg: const Color(0xFF22C55E).withOpacity(0.15),
+          iconBg: const Color(0xFF22C55E).withValues(alpha: 0.15),
           iconColor: const Color(0xFF22C55E),
           type: "الدعم الفني المباشر (واتساب / هاتف)",
           value: "0959031594",
@@ -1045,10 +1045,10 @@ class _TechTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04),
+        color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
         ),
       ),
       child: Row(

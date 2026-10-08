@@ -84,7 +84,7 @@ static const Color primaryYellow = Color(0xFFF6E300);
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: primaryYellow.withOpacity(0.2), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: primaryYellow.withValues(alpha: 0.2), shape: BoxShape.circle),
                   child: const Icon(Icons.camera_alt, color: Colors.black),
                 ),
                 title: const Text('التقاط سيلفي بالكاميرا', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),

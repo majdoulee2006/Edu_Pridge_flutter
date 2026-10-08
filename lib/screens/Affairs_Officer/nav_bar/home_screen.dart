@@ -330,7 +330,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -342,7 +342,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 26),
@@ -408,7 +408,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -419,7 +419,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -506,7 +506,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
               color: cardColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -554,9 +554,9 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: badgeBg.withOpacity(0.15),
+                          color: badgeBg.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: badgeBg.withOpacity(0.3)),
+                          border: Border.all(color: badgeBg.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           badgeText,
@@ -604,7 +604,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Divider(color: Colors.grey.withOpacity(0.1)),
+                      Divider(color: Colors.grey.withValues(alpha: 0.1)),
                       const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

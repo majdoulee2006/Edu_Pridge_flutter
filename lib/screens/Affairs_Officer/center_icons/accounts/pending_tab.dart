@@ -190,7 +190,7 @@ class _PendingTabState extends State<PendingTab>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                  color: const Color(0xFF2196F3).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -223,7 +223,7 @@ class _PendingTabState extends State<PendingTab>
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFFCC00).withOpacity(0.4),
+                  color: const Color(0xFFFFCC00).withValues(alpha: 0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -621,7 +621,7 @@ class _PendingTabState extends State<PendingTab>
               children: [
                 CircleAvatar(
                   radius: 25,
-                  backgroundColor: Colors.orange.withOpacity(0.1),
+                  backgroundColor: Colors.orange.withValues(alpha: 0.1),
                   backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
                   child: avatarUrl == null
                       ? Text(
@@ -687,7 +687,7 @@ class _PendingTabState extends State<PendingTab>
                   child: OutlinedButton(
                     onPressed: () => _handleReject(userId),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: widget.subColor.withOpacity(0.3)),
+                      side: BorderSide(color: widget.subColor.withValues(alpha: 0.3)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

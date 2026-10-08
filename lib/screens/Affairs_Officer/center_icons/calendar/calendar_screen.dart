@@ -486,9 +486,9 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                                     ),
                                     calendarStyle: CalendarStyle(
                                       defaultTextStyle: TextStyle(color: textColor),
-                                      weekendTextStyle: TextStyle(color: textColor.withOpacity(0.6)),
+                                      weekendTextStyle: TextStyle(color: textColor.withValues(alpha: 0.6)),
                                       todayDecoration: BoxDecoration(
-                                        color: const Color(0xFFFFCC00).withOpacity(0.2),
+                                        color: const Color(0xFFFFCC00).withValues(alpha: 0.2),
                                         shape: BoxShape.circle,
                                       ),
                                       todayTextStyle: TextStyle(color: textColor, fontWeight: FontWeight.bold),
@@ -631,7 +631,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: eventColor.withOpacity(0.1),
+                  color: eventColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(

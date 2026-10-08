@@ -441,7 +441,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 15,
                       offset: const Offset(0, -4),
                     ),
@@ -456,7 +456,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.grey.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -469,7 +469,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: primaryYellow.withOpacity(0.2),
+                              color: primaryYellow.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(Icons.history_rounded, color: Color(0xFFB8860B), size: 22),
@@ -570,7 +570,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
                                         color: isActive
-                                            ? primaryYellow.withOpacity(isDark ? 0.15 : 0.08)
+                                            ? primaryYellow.withValues(alpha: isDark ? 0.15 : 0.08)
                                             : (isDark ? const Color(0xFF252830) : Colors.grey.shade50),
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
@@ -801,7 +801,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryYellow.withOpacity(0.35),
+                      color: primaryYellow.withValues(alpha: 0.35),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -854,9 +854,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: primaryYellow.withOpacity(0.18),
+                  color: primaryYellow.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: primaryYellow.withOpacity(0.6), width: 1.2),
+                  border: Border.all(color: primaryYellow.withValues(alpha: 0.6), width: 1.2),
                 ),
                 child: const Icon(Icons.history_rounded, color: Color(0xFFB8860B), size: 21),
               ),
@@ -911,7 +911,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                               ),
                               backgroundColor: cardColor,
                               side: BorderSide(
-                                color: primaryYellow.withOpacity(0.5),
+                                color: primaryYellow.withValues(alpha: 0.5),
                                 width: 1,
                               ),
                               elevation: 0,
@@ -984,7 +984,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -1086,7 +1086,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1B1E24) : const Color(0xFFF3F5F9),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: primaryYellow.withOpacity(0.6), width: 1.2),
+        border: Border.all(color: primaryYellow.withValues(alpha: 0.6), width: 1.2),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1262,11 +1262,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: _isTyping ? primaryYellow.withOpacity(0.5) : primaryYellow,
+                  color: _isTyping ? primaryYellow.withValues(alpha: 0.5) : primaryYellow,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: primaryYellow.withOpacity(0.35),
+                      color: primaryYellow.withValues(alpha: 0.35),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),

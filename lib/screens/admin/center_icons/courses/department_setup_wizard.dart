@@ -354,7 +354,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.15),
+                          color: const Color(0xFF10B981).withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 38),

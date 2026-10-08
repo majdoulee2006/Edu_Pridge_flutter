@@ -91,7 +91,7 @@ class _AddDepartmentDialogState extends State<AddDepartmentDialog> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Icon(Icons.domain_add, color: Colors.green, size: 26),

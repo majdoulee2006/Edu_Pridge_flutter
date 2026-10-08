@@ -136,7 +136,7 @@ class _BossLeaveRequestsScreenState extends State<BossLeaveRequestsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -149,7 +149,7 @@ class _BossLeaveRequestsScreenState extends State<BossLeaveRequestsScreen> {
             const SizedBox(height: 8),
             Text(
               (isAr ? 'السبب: ' : 'Reason: ') + (req['reason'] ?? ''),
-              style: TextStyle(color: textColor.withOpacity(0.8), fontSize: 14),
+              style: TextStyle(color: textColor.withValues(alpha: 0.8), fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(

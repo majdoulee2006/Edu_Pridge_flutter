@@ -319,7 +319,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: st['color'].withOpacity(0.12),
+                                            color: st['color'].withValues(alpha: 0.12),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Row(
@@ -339,7 +339,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                                     const SizedBox(height: 6),
                                     Text(
                                       "السبب: ${item['reason_title'] ?? ''}",
-                                      style: TextStyle(color: textColor.withOpacity(0.85), fontSize: 13, fontWeight: FontWeight.w600),
+                                      style: TextStyle(color: textColor.withValues(alpha: 0.85), fontSize: 13, fontWeight: FontWeight.w600),
                                     ),
                                     if (item['details'] != null && item['details'].toString().isNotEmpty) ...[
                                       const SizedBox(height: 4),

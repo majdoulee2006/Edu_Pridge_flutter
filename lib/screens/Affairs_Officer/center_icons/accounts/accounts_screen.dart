@@ -111,7 +111,7 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFFCC00).withOpacity(0.4),
+                            color: const Color(0xFFFFCC00).withValues(alpha: 0.4),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),

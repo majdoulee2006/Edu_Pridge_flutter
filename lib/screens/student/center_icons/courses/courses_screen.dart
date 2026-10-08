@@ -87,7 +87,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   ? Center(
                       child: Text(
                         "لا توجد مواد مسجلة حالياً",
-                        style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 16),
+                        style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: 16),
                       ),
                     )
                   : RefreshIndicator(
@@ -128,7 +128,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
-                                            color: primaryColor.withOpacity(0.1),
+                                            color: primaryColor.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(14),
                                           ),
                                           child: Icon(Icons.menu_book_rounded, color: primaryColor, size: 28),
@@ -161,7 +161,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                               "$level",
                                               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                                             ),
-                                            backgroundColor: primaryColor.withOpacity(0.08),
+                                            backgroundColor: primaryColor.withValues(alpha: 0.08),
                                           ),
                                       ],
                                     ),
@@ -169,7 +169,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                       const SizedBox(height: 12),
                                       Text(
                                         description,
-                                        style: TextStyle(fontSize: 13, color: textColor.withOpacity(0.8)),
+                                        style: TextStyle(fontSize: 13, color: textColor.withValues(alpha: 0.8)),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),

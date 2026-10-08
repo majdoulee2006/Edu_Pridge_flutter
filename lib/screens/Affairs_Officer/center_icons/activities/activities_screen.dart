@@ -223,7 +223,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                               boxShadow: isSelected
                                   ? [
                                 BoxShadow(
-                                  color: const Color(0xFFFFCC00).withOpacity(0.4),  // ← أصفر
+                                  color: const Color(0xFFFFCC00).withValues(alpha: 0.4),  // ← أصفر
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -408,7 +408,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
               width: 65,
               height: 70,
               decoration: BoxDecoration(
-                color: categoryColor.withOpacity(0.1),
+                color: categoryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -577,7 +577,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: IconButton(
@@ -592,7 +592,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: IconButton(

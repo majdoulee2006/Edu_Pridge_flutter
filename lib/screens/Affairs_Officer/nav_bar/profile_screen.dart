@@ -181,7 +181,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black.withOpacity(0.1),
+                                                color: Colors.black.withValues(alpha: 0.1),
                                                 blurRadius: 10,
                                               )
                                             ],
@@ -407,12 +407,12 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
           ],
-          border: Border.all(color: color.withOpacity(0.1), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.1), width: 1),
         ),
         child: Column(
           children: [
@@ -522,7 +522,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -586,7 +586,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
+                color: iconColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -659,7 +659,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

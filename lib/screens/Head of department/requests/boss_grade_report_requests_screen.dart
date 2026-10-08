@@ -128,7 +128,7 @@ class _BossGradeReportRequestsScreenState extends State<BossGradeReportRequestsS
             const SizedBox(height: 8),
             Text(
               (isAr ? 'المعلم: ' : 'Teacher: ') + (req['teacher_name'] ?? ''),
-              style: TextStyle(color: textColor.withOpacity(0.8), fontSize: 14),
+              style: TextStyle(color: textColor.withValues(alpha: 0.8), fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(

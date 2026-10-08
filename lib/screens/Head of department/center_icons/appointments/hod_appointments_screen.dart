@@ -211,7 +211,7 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
               border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -239,7 +239,7 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -262,7 +262,7 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.08),
+                      color: Colors.green.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -352,7 +352,7 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.15),
+                          color: Colors.orange.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(

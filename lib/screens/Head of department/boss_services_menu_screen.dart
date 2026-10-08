@@ -221,7 +221,7 @@ class BossServicesMenuScreen extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withOpacity(0.08)),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.08)),
         ),
         child: InkWell(
           onTap: onTap,
@@ -233,7 +233,7 @@ class BossServicesMenuScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: iconColor, size: 26),
@@ -266,7 +266,7 @@ class BossServicesMenuScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(
                   Icons.arrow_back,
-                  color: subColor.withOpacity(0.5),
+                  color: subColor.withValues(alpha: 0.5),
                   size: 16,
                 ),
               ],
