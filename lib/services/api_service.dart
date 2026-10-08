@@ -18,6 +18,9 @@ class ApiService {
 
   static String get serverIp => _serverIp;
 
+  /// المنفذ الذي اتصل به البحث التلقائي (8000 الأساسي، وإلا 8001)
+  static String get port => _port;
+
   static Future<void> setServerIp(String ip) async {
     String formatted = ip.trim();
     if (formatted.isNotEmpty && !formatted.startsWith('http://') && !formatted.startsWith('https://')) {
@@ -187,7 +190,8 @@ class ApiService {
   }
 
   static Future<String?> _tryConnect(String ip, {int timeoutMs = 800}) async {
-    for (final port in [8000]) {
+    // 8000 هو المنفذ الأساسي، و8001 احتياطي (لمن لا يستطيع استعمال 8000): يُجرَّب بهذا الترتيب
+    for (final port in [8000, 8001]) {
       try {
         final socket = await Socket.connect(ip, port, timeout: Duration(milliseconds: timeoutMs));
         socket.destroy();

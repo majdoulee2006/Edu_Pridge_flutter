@@ -822,7 +822,7 @@ class AffairsServices {
   }) {
     final base = ApiService.serverIp.startsWith('http') 
         ? ApiService.serverIp 
-        : 'http://${ApiService.serverIp}:8000';
+        : 'http://${ApiService.serverIp}:${ApiService.port}';
     final query = <String, String>{};
     if (departmentId != null && departmentId != 'all') query['department_id'] = departmentId.toString();
     if (programId != null && programId != 'all') query['program_id'] = programId.toString();
@@ -838,7 +838,7 @@ class AffairsServices {
   String getStudentTranscriptExportUrl(int studentId) {
     final base = ApiService.serverIp.startsWith('http') 
         ? ApiService.serverIp 
-        : 'http://${ApiService.serverIp}:8000';
+        : 'http://${ApiService.serverIp}:${ApiService.port}';
     return '$base/affairs/course-weights/export-student?student_id=$studentId';
   }
 }
