@@ -4,6 +4,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/teacher/profile_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
 
 class TeacherServicesMenuScreen extends StatelessWidget {
   final String teacherName;
@@ -61,6 +62,24 @@ class TeacherServicesMenuScreen extends StatelessWidget {
                         subColor,
                       ),
                       const SizedBox(height: 12),
+
+                      // اشتباهات الحضور (مراجعة الأنماط المشبوهة)
+                      _buildServiceCard(
+                        icon: Icons.manage_search_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "اشتباهات الحضور" : "Attendance Flags",
+                        subtitle: isAr
+                            ? "راجع حالات الحضور المشبوهة التي رصدها النظام بعد إغلاق الجلسات"
+                            : "Review suspicious attendance patterns detected after sessions close",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AttendanceFlagsScreen()),
+                        ),
+                      ),
 
                       // 1. الإعدادات
                       _buildServiceCard(
