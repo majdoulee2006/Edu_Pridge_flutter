@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 class CreateHeadScreen extends StatefulWidget {
   const CreateHeadScreen({super.key});
@@ -19,15 +20,81 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String _selectedGender = 'ذكر';
-  String? _selectedDepartment;
+  List<Map<String, dynamic>> _departments = [];
+  int? _selectedDepartmentId;
+  bool _loadingDepartments = true;
+  bool _saving = false;
 
-  final List<String> _departments = [
-    'قسم علوم الحاسب',
-    'قسم الهندسة',
-    'قسم الطب',
-    'قسم التمريض',
-    'قسم الصيدلة',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadDepartments();
+  }
+
+  Future<void> _loadDepartments() async {
+    final meta = await AffairsServices().getMetadata();
+    if (!mounted) return;
+    setState(() {
+      _departments = List<Map<String, dynamic>>.from(
+        (meta?['departments'] as List? ?? const []).map((d) => Map<String, dynamic>.from(d as Map)),
+      );
+      _loadingDepartments = false;
+    });
+  }
+
+  void _toast(String msg, {bool error = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: error ? Colors.red : Colors.green),
+    );
+  }
+
+  Future<void> _save({required int roleId, required String roleLabel, String? specialization}) async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text;
+    if (name.isEmpty || email.isEmpty || pass.isEmpty) {
+      _toast('عبّي الاسم والبريد وكلمة المرور');
+      return;
+    }
+    if (pass.length < 6) {
+      _toast('كلمة المرور لازم تكون 6 أحرف على الأقل');
+      return;
+    }
+    if (pass != _confirmPasswordController.text) {
+      _toast('كلمتا المرور غير متطابقتين');
+      return;
+    }
+    if (_selectedDepartmentId == null) {
+      _toast('اختر القسم');
+      return;
+    }
+    if (roleId == 2 && (specialization == null || specialization.isEmpty)) {
+      _toast('اكتب اختصاص المعلم');
+      return;
+    }
+
+    setState(() => _saving = true);
+    final res = await AffairsServices().createAccount({
+      'full_name': name,
+      'email': email,
+      'phone': _idController.text.trim(),
+      'role_id': roleId,
+      'department_id': _selectedDepartmentId,
+      'password': pass,
+      'gender': _selectedGender,
+      if (_birthDateController.text.isNotEmpty) 'birth_date': _birthDateController.text,
+      if (roleId == 2) 'specialization': specialization,
+    });
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    if (res['success'] == true) {
+      _toast('تم إنشاء حساب $roleLabel بنجاح', error: false);
+      Navigator.pop(context);
+    } else {
+      _toast((res['message'] ?? 'فشل إنشاء الحساب').toString());
+    }
+  }
 
   @override
   void dispose() {
@@ -321,11 +388,11 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
+                    child: DropdownButton<int>(
                       isExpanded: true,
-                      value: _selectedDepartment,
+                      value: _selectedDepartmentId,
                       hint: Text(
-                        'القسم المسؤول عنه',
+                        _loadingDepartments ? 'جارٍ تحميل الأقسام...' : 'القسم المسؤول عنه',
                         style: TextStyle(
                           color: subColor,
                           fontFamily: 'Noto Sans Arabic',
@@ -337,15 +404,15 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                         color: textColor,
                         fontFamily: 'Noto Sans Arabic',
                       ),
-                      items: _departments.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
+                      items: _departments.map((d) {
+                        return DropdownMenuItem<int>(
+                          value: int.tryParse('${d['department_id'] ?? d['id']}'),
+                          child: Text('${d['name']}'),
                         );
                       }).toList(),
-                      onChanged: (String? newValue) {
+                      onChanged: (int? newValue) {
                         setState(() {
-                          _selectedDepartment = newValue;
+                          _selectedDepartmentId = newValue;
                         });
                       },
                     ),
@@ -407,12 +474,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: حفظ بيانات رئيس القسم
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('حفظ بيانات رئيس القسم - قريباً')),
-                      );
-                    },
+                    onPressed: _saving ? null : () => _save(roleId: 5, roleLabel: 'رئيس القسم'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFFCC00),
                       shape: RoundedRectangleBorder(
@@ -420,7 +482,9 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text(
+                    child: _saving
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                        : const Text(
                       'اعتماد رئيس القسم',
                       style: TextStyle(
                         fontSize: 16,
