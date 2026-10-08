@@ -14,6 +14,7 @@ import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/weekly_digest_screen/weekly_digest_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
 @pragma('vm:entry-point')
@@ -60,6 +61,9 @@ class FcmService {
     if (navigator == null) return;
 
     switch (type) {
+      case 'attendance_flags':
+        navigator.push(MaterialPageRoute(builder: (_) => const AttendanceFlagsScreen()));
+        break;
       case 'weekly_digest':
         navigator.push(MaterialPageRoute(
           builder: (_) => WeeklyDigestScreen(openDigestId: intId),
