@@ -18,6 +18,7 @@ import 'package:edu_pridge_flutter/services/notification_polling.dart';
 import '../../../widgets/parents_center_icon.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_pdf_viewer_screen.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/weekly_digest_screen/weekly_digest_screen.dart';
 
 class ParentsNotificationsScreen extends StatefulWidget {
   const ParentsNotificationsScreen({super.key});
@@ -256,6 +257,16 @@ if (!mounted) return;
     final type = n['type']?.toString() ?? '';
     final title = n['title']?.toString() ?? '';
     final msg = n['message']?.toString() ?? n['body']?.toString() ?? '';
+
+    // الملخص الأسبوعي: يُفحص أولًا لأن نصه يذكر كلمات (علامات، غياب) تطابق فحوصات الأنواع الأخرى
+    if (type == 'weekly_digest') {
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => WeeklyDigestScreen(
+          openDigestId: int.tryParse(n['related_id']?.toString() ?? ''),
+        ),
+      ));
+      return;
+    }
 
     final bool isTranscript = type == 'transcript_shared' ||
         type == 'transcript' ||
