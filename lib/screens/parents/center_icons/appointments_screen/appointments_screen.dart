@@ -119,7 +119,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       const Text("الابن المعني:", style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<int>(
-                        value: selectedChildId,
+                        initialValue: selectedChildId,
                         dropdownColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(

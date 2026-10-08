@@ -309,7 +309,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       children: [
         _buildFieldLabel("اختر القسم"),
         DropdownButtonFormField<int>(
-          value: selectedDepartmentId,
+          initialValue: selectedDepartmentId,
           decoration: _inputDecoration("اختر القسم المستهدف", isDark),
           dropdownColor: cardColor,
           items: departments
@@ -333,8 +333,11 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
               selected: isSelected,
               onSelected: (selected) {
                 setState(() {
-                  if (selected) selectedCategories.add(role);
-                  else selectedCategories.remove(role);
+                  if (selected) {
+                    selectedCategories.add(role);
+                  } else {
+                    selectedCategories.remove(role);
+                  }
                 });
               },
               backgroundColor: cardColor,
@@ -365,7 +368,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
 
         _buildFieldLabel("اختر القسم"),
         DropdownButtonFormField<int>(
-          value: selectedDeptForIndividuals,
+          initialValue: selectedDeptForIndividuals,
           decoration: _inputDecoration("كل الأقسام", isDark),
           dropdownColor: cardColor,
           items: departments
@@ -389,8 +392,11 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
               selected: isSelected,
               onSelected: (sel) {
                 setState(() {
-                  if (sel) selectedRoles.add(role);
-                  else selectedRoles.remove(role);
+                  if (sel) {
+                    selectedRoles.add(role);
+                  } else {
+                    selectedRoles.remove(role);
+                  }
                 });
               },
               backgroundColor: cardColor,
@@ -435,8 +441,11 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
                       checkColor: Colors.black,
                       onChanged: (val) {
                         setState(() {
-                          if (val == true) selectedUsers.add(userId);
-                          else selectedUsers.remove(userId);
+                          if (val == true) {
+                            selectedUsers.add(userId);
+                          } else {
+                            selectedUsers.remove(userId);
+                          }
                         });
                       },
                     );

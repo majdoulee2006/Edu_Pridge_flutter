@@ -524,7 +524,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                         ApiService.fixMediaUrl(data['image_url'] as String?) ?? '',
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox(),
+                        errorBuilder: (_, _, _) => const SizedBox(),
                       ),
                     ),
                   ),

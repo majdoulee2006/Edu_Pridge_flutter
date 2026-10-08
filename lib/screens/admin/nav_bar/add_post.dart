@@ -236,7 +236,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: selectedAudience,
+                      initialValue: selectedAudience,
                       decoration: InputDecoration(
                         fillColor: cardColor,
                         filled: true,
@@ -273,7 +273,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
                                 isLoadingDepts
                                     ? const CircularProgressIndicator()
                                     : DropdownButtonFormField<int>(
-                                        value: selectedDepartmentId,
+                                        initialValue: selectedDepartmentId,
                                         decoration: InputDecoration(
                                           fillColor: cardColor,
                                           filled: true,
@@ -307,7 +307,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 DropdownButtonFormField<int>(
-                                  value: selectedCourseId,
+                                  initialValue: selectedCourseId,
                                   decoration: InputDecoration(
                                     fillColor: cardColor,
                                     filled: true,
@@ -328,7 +328,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
                                         value: c['course_id'],
                                         child: Text(c['title'] ?? '', overflow: TextOverflow.ellipsis),
                                       );
-                                    }).toList(),
+                                    }),
                                   ],
                                   onChanged: (val) {
                                     setState(() {

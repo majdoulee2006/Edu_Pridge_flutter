@@ -669,8 +669,8 @@ class AffairsServices {
         "${ApiService().baseUrl}/affairs/appointments/meetings/$id/respond",
         data: {
           'status': status,
-          if (scheduledAt != null) 'scheduled_at': scheduledAt,
-          if (adminResponse != null) 'admin_response': adminResponse,
+          'scheduled_at': ?scheduledAt,
+          'admin_response': ?adminResponse,
         },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );

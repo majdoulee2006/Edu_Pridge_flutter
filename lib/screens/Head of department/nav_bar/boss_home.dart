@@ -310,9 +310,11 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
         _fetchDashboard();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('حدث خطأ أثناء الحذف'), backgroundColor: Colors.red),
       );
+      }
     }
   }
 

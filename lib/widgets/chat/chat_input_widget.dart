@@ -11,12 +11,12 @@ class ChatInputWidget extends StatefulWidget {
   final VoidCallback? onCancelEdit;
 
   const ChatInputWidget({
-    Key? key,
+    super.key,
     required this.onSend,
     this.controller,
     this.isEditing = false,
     this.onCancelEdit,
-  }) : super(key: key);
+  });
 
   @override
   _ChatInputWidgetState createState() => _ChatInputWidgetState();

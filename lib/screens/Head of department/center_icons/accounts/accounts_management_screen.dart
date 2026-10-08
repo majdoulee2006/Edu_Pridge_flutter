@@ -142,7 +142,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
                                 : ListView.separated(
                                     padding: const EdgeInsets.symmetric(horizontal: 20),
                                     itemCount: _accounts.length,
-                                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                                     itemBuilder: (context, index) {
                                       final acc = _accounts[index];
                                       final name = acc['full_name'] as String? ?? acc['name'] as String? ?? '---';

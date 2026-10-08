@@ -221,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         ValueListenableBuilder<bool>(
                           valueListenable: AppSettings.isNotificationsEnabled,
-                          builder: (_, notif, __) => _switchTile(
+                          builder: (_, notif, _) => _switchTile(
                             icon: Icons.notifications_none_outlined,
                             title: isAr ? "تفعيل الإشعارات" : "Notifications",
                             value: notif,
@@ -232,7 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         ValueListenableBuilder<bool>(
                           valueListenable: AppSettings.isSoundsEnabled,
-                          builder: (_, sounds, __) => _switchTile(
+                          builder: (_, sounds, _) => _switchTile(
                             icon: Icons.volume_up_outlined,
                             title: isAr ? "الأصوات" : "Sounds",
                             value: sounds,
@@ -243,7 +243,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         ValueListenableBuilder<bool>(
                           valueListenable: AppSettings.isVibrationEnabled,
-                          builder: (_, vib, __) => _switchTile(
+                          builder: (_, vib, _) => _switchTile(
                             icon: Icons.vibration_outlined,
                             title: isAr ? "الاهتزاز" : "Vibration",
                             value: vib,
@@ -314,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _fontSizeSlider(Color cardColor, Color textColor, bool isAr) {
     return ValueListenableBuilder<double>(
       valueListenable: AppSettings.fontSize,
-      builder: (_, scale, __) => Container(
+      builder: (_, scale, _) => Container(
         padding: const EdgeInsets.all(15),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),

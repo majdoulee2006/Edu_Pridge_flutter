@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/student_service_requests_list_screen.dart';
@@ -472,7 +471,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                   color: Color(0x1A008080),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle_rounded, color: const Color(0xFFFFCC00), size: 60),
+                child: const Icon(Icons.check_circle_rounded, color: Color(0xFFFFCC00), size: 60),
               ),
               const SizedBox(height: 20),
               Text(
@@ -560,7 +559,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.info_outline, color: const Color(0xFFFFCC00), size: 24),
+                            const Icon(Icons.info_outline, color: Color(0xFFFFCC00), size: 24),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -571,7 +570,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      color: const Color(0xFFFFCC00),
+                                      color: Color(0xFFFFCC00),
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -600,7 +599,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _selectedPetitionType,
+                        initialValue: _selectedPetitionType,
                         hint: Text(isAr ? "اختر نوع الطلب" : "Select petition type", style: TextStyle(color: subColor, fontSize: 14)),
                         dropdownColor: cardColor,
                         style: TextStyle(color: textColor),
@@ -629,7 +628,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _selectedCourse,
+                          initialValue: _selectedCourse,
                           hint: _isLoadingCourses 
                               ? Text(isAr ? "جاري تحميل المواد..." : "Loading courses...", style: TextStyle(color: subColor, fontSize: 14))
                               : Text(isAr ? "اختر المقرر الدراسي" : "Select course", style: TextStyle(color: subColor, fontSize: 14)),
@@ -785,7 +784,7 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                   color: const Color(0xFFFFCC00).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle_rounded, color: const Color(0xFFFFCC00), size: 60),
+                child: const Icon(Icons.check_circle_rounded, color: Color(0xFFFFCC00), size: 60),
               ),
               const SizedBox(height: 20),
               Text(
@@ -873,7 +872,7 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.payment_rounded, color: const Color(0xFFFFCC00), size: 24),
+                            const Icon(Icons.payment_rounded, color: Color(0xFFFFCC00), size: 24),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -884,7 +883,7 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      color: const Color(0xFFFFCC00),
+                                      color: Color(0xFFFFCC00),
                                     ),
                                   ),
                                   const SizedBox(height: 6),

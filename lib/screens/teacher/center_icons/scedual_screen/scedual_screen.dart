@@ -211,14 +211,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     final durationCtrl = TextEditingController(text: 'ساعتان');
 
     // ─── شفهي ───
-    List<Map<String,dynamic>> _programs = [];
+    List<Map<String,dynamic>> programs = [];
     int? selProgramId;
     String selProgramName = '';
     int? selYearLevel;
     bool oralAllStudents = true;
     int? selStudentId;
-    List<Map<String,dynamic>> _programStudents = [];
-    bool _loadingStudents = false;
+    List<Map<String,dynamic>> programStudents = [];
+    bool loadingStudents = false;
 
     const yearLabels = {1:'السنة الأولى',2:'السنة الثانية',3:'السنة الثالثة',4:'السنة الرابعة',5:'السنة الخامسة'};
 
@@ -295,7 +295,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                   durationCtrl.text = 'ساعة';
                                 }
                               });
-                              if (t['val'] == 'oral' && _programs.isEmpty) {
+                              if (t['val'] == 'oral' && programs.isEmpty) {
                                 try {
                                   final prefs = await SharedPreferences.getInstance();
                                   final token = prefs.getString('token') ?? '';
@@ -304,7 +304,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                     options: Options(headers: {"Authorization": "Bearer $token"}),
                                   );
                                   if (res.statusCode == 200) {
-                                    setSheet(() => _programs = List<Map<String,dynamic>>.from(res.data['data'] ?? []));
+                                    setSheet(() => programs = List<Map<String,dynamic>>.from(res.data['data'] ?? []));
                                   }
                                 } catch (e) {
                                   debugPrint('Programs fetch error: $e');
@@ -348,7 +348,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                   const SizedBox(height: 8),
                   DropdownButtonFormField<int>(
                     decoration: _inputDec('اختر المادة'),
-                    value: selectedCourseId,
+                    initialValue: selectedCourseId,
                     items: _myCourses.map((c) => DropdownMenuItem<int>(
                       value: c['id'] as int,
                       child: Text(c['title'] as String? ?? ''),
@@ -361,7 +361,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         selectedCourseYear = course['year'] as int?;
                         selectedCourseProgramName = course['program_name'] as String? ?? course['level'] as String? ?? '';
                         selStudentId = null;
-                        _programStudents = [];
+                        programStudents = [];
                       });
                     },
                     validator: (v) => v == null ? 'اختر المادة' : null,
@@ -415,7 +415,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر المادة أولاً')));
                                 return;
                               }
-                              setSheet(() { oralAllStudents = false; _loadingStudents = true; });
+                              setSheet(() { oralAllStudents = false; loadingStudents = true; });
                               final prefs = await SharedPreferences.getInstance();
                               final token = prefs.getString('token') ?? '';
                               final String fetchUrl = "${ApiService().baseUrl}/teacher/grades/program-students?course_id=$selectedCourseId";
@@ -425,8 +425,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                               );
                               if (res.statusCode == 200) {
                                 setSheet(() {
-                                  _programStudents = List<Map<String,dynamic>>.from(res.data['data'] ?? []);
-                                  _loadingStudents = false;
+                                  programStudents = List<Map<String,dynamic>>.from(res.data['data'] ?? []);
+                                  loadingStudents = false;
                                 });
                               }
                             },
@@ -446,14 +446,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                     ),
                     if (!oralAllStudents) ...[
                       const SizedBox(height: 10),
-                      _loadingStudents
+                      loadingStudents
                           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
-                          : _programStudents.isEmpty
+                          : programStudents.isEmpty
                               ? Text('لا يوجد طلاب', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))
                               : DropdownButtonFormField<int>(
                                   decoration: _inputDec('اختر الطالب'),
-                                  value: selStudentId,
-                                  items: _programStudents.map((s) => DropdownMenuItem<int>(
+                                  initialValue: selStudentId,
+                                  items: programStudents.map((s) => DropdownMenuItem<int>(
                                     value: s['student_id'] as int,
                                     child: Text('${s['full_name']} - ${s['university_id'] ?? ''}'),
                                   )).toList(),
@@ -701,9 +701,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
         'title':     title,
         'max_score': maxScore,
         'date':      date,
-        if (time != null) 'time': time,
-        if (duration != null) 'duration': duration,
-        if (notes != null) 'notes': notes,
+        'time': ?time,
+        'duration': ?duration,
+        'notes': ?notes,
       };
 
       if (type == 'oral') {

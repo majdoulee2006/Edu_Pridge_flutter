@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -64,10 +63,12 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
 
       if (mounted) {
         setState(() {
-          if (results[0].statusCode == 200 && results[0].data['success'] == true)
+          if (results[0].statusCode == 200 && results[0].data['success'] == true) {
             _myRequests = List<Map<String, dynamic>>.from(results[0].data['data'] ?? []);
-          if (results[1].statusCode == 200 && results[1].data['success'] == true)
+          }
+          if (results[1].statusCode == 200 && results[1].data['success'] == true) {
             _gradeRequests = List<Map<String, dynamic>>.from(results[1].data['data'] ?? []);
+          }
         });
       }
     } catch (e) {
@@ -831,8 +832,12 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
 
   List<Map<String, dynamic>> _allReports() {
     final List<Map<String, dynamic>> all = [];
-    for (final r in _gradeRequests) all.add({...r, '_type': 'grade'});
-    for (final r in _myRequests)    all.add({...r, '_type': 'report'});
+    for (final r in _gradeRequests) {
+      all.add({...r, '_type': 'grade'});
+    }
+    for (final r in _myRequests) {
+      all.add({...r, '_type': 'report'});
+    }
     all.sort((a, b) {
       final da = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(2000);
       final db = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(2000);
@@ -1127,8 +1132,10 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                                   final bytes = await _buildPdf(entries, courseTitle);
                                   await _exportFile(bytes, 'علامات_$courseTitle.pdf');
                                 } catch (e) {
-                                  if (ctx2.mounted) ScaffoldMessenger.of(ctx2).showSnackBar(
+                                  if (ctx2.mounted) {
+                                    ScaffoldMessenger.of(ctx2).showSnackBar(
                                     SnackBar(content: Text('خطأ PDF: $e'), backgroundColor: Colors.red));
+                                  }
                                 }
                               }),
                               const SizedBox(width: 8),
@@ -1137,8 +1144,10 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                                   final bytes = await _buildExcel(entries, courseTitle);
                                   await _exportFile(bytes, 'علامات_$courseTitle.xlsx');
                                 } catch (e) {
-                                  if (ctx2.mounted) ScaffoldMessenger.of(ctx2).showSnackBar(
+                                  if (ctx2.mounted) {
+                                    ScaffoldMessenger.of(ctx2).showSnackBar(
                                     SnackBar(content: Text('خطأ Excel: $e'), backgroundColor: Colors.red));
+                                  }
                                 }
                               }),
                             ],

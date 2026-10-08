@@ -18,7 +18,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
   final _passwordController = TextEditingController();
 
   int _childrenCount = 1;
-  List<TextEditingController> _childIdControllers = [TextEditingController()];
+  final List<TextEditingController> _childIdControllers = [TextEditingController()];
 
   bool _isLoading = false;
 
@@ -29,7 +29,9 @@ class _AddParentScreenState extends State<AddParentScreen> {
     _relationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    for (final c in _childIdControllers) c.dispose();
+    for (final c in _childIdControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 

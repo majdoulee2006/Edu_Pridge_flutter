@@ -1042,7 +1042,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                       const Text('اختر الطالب المعني:', style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<int>(
-                        value: selectedStudentId,
+                        initialValue: selectedStudentId,
                         isExpanded: true,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

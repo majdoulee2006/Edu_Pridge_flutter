@@ -60,8 +60,12 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
 
   @override
   void dispose() {
-    for (final c in _controllers.values) c.dispose();
-    for (final c in _noteControllers.values) c.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    for (final c in _noteControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 

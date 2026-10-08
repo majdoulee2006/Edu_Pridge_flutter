@@ -123,7 +123,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                     _isLoadingStudents
                         ? const Center(child: CircularProgressIndicator())
                         : DropdownButtonFormField<dynamic>(
-                            value: _selectedStudent,
+                            initialValue: _selectedStudent,
                             decoration: InputDecoration(
                               labelText: "اختر الطالب (من دوراتي/مجموعاتي)",
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

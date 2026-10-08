@@ -7,7 +7,7 @@ import '../../../widgets/chat/chat_input_widget.dart';
 class StudentChatScreen extends StatelessWidget {
   final String chatId;
 
-  const StudentChatScreen({Key? key, required this.chatId}) : super(key: key);
+  const StudentChatScreen({super.key, required this.chatId});
 
   @override
   Widget build(BuildContext context) {

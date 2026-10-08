@@ -297,7 +297,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 isExpanded: true,
-                                value: _selectedAudience,
+                                initialValue: _selectedAudience,
                                 decoration: InputDecoration(
                                   fillColor: cardColor,
                                   filled: true,
@@ -362,7 +362,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 isExpanded: true,
-                                value: _selectedDepartment,
+                                initialValue: _selectedDepartment,
                                 decoration: InputDecoration(
                                   fillColor: cardColor,
                                   filled: true,
@@ -378,7 +378,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                       value: dept['department_id'].toString(),
                                       child: Text(dept['name'].toString(), overflow: TextOverflow.ellipsis),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                                 onChanged: (val) {
                                   setState(() {
@@ -402,7 +402,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 isExpanded: true,
-                                value: _selectedCourse,
+                                initialValue: _selectedCourse,
                                 decoration: InputDecoration(
                                   fillColor: cardColor,
                                   filled: true,
@@ -418,7 +418,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                       value: (c['course_id'] ?? c['id']).toString(),
                                       child: Text((c['title'] ?? c['name'] ?? '').toString(), overflow: TextOverflow.ellipsis),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                                 onChanged: (val) {
                                   setState(() => _selectedCourse = val);

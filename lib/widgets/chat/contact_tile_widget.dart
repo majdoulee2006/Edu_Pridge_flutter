@@ -8,13 +8,13 @@ class ContactTileWidget extends StatelessWidget {
   final VoidCallback onTap;
 
   const ContactTileWidget({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle,
     this.avatarUrl,
     this.unreadCount = 0,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

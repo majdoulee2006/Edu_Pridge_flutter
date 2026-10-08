@@ -149,9 +149,11 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         "${ApiService().baseUrl}/parent/notifications/read-all",
         options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
       );
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         for (final n in _notifications) { n['is_read'] = true; }
       });
+      }
     } catch (e) {
       debugPrint("⛔ Parent mark all read error: $e");
     } finally {

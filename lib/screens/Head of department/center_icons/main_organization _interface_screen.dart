@@ -34,7 +34,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
   int? _selectedProgramId;
   String? _selectedProgramName;
   int _selectedYear = 1;
-  int _selectedCycle = 0; // 0: الكل, 1: الدورة الأولى, 2: الدورة الثانية
+  final int _selectedCycle = 0; // 0: الكل, 1: الدورة الأولى, 2: الدورة الثانية
 
   static const _dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
   static const _dayNames = {
@@ -451,7 +451,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
 
   // ─── تبويب الجداول الامتحانية ────────────────────────────────────
   int _examSelectedYear = 1;
-  int _examSelectedCycle = 0; // 0: الكل, 1: الدورة الأولى, 2: الدورة الثانية
+  final int _examSelectedCycle = 0; // 0: الكل, 1: الدورة الأولى, 2: الدورة الثانية
   int? _examSelectedProgramId;
 
   List<Map<String, dynamic>> get _filteredExams {

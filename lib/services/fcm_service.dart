@@ -46,7 +46,7 @@ class FcmService {
           '${ApiService().baseUrl}/notifications/read-by-type',
           data: {
             'type': type,
-            if (intId != null) 'related_id': intId,
+            'related_id': ?intId,
           },
           options: Options(headers: {'Authorization': 'Bearer $token'}),
         );

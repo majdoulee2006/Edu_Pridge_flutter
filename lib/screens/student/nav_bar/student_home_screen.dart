@@ -170,7 +170,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             data: {
               "qr_token": qrToken,
               "scanned_at": scannedAt,
-              if (faceEmbedding != null) "face_embedding": faceEmbedding,
+              "face_embedding": ?faceEmbedding,
             },
             options: Options(headers: {
               "Authorization": "Bearer $token",
@@ -613,7 +613,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                   ApiService.fixMediaUrl(announcementData['image_url'] as String?) ?? '',
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, e) => Container(
+                                errorBuilder: (_, _, e) => Container(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: gradientColors,

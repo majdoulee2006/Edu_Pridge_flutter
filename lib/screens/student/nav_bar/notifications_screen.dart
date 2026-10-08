@@ -117,10 +117,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     } catch (e) {
       debugPrint("❌ خطأ في جلب المزيد من الإشعارات: $e");
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         isLoadingMore = false;
         currentPage--;
       });
+      }
     }
   }
 

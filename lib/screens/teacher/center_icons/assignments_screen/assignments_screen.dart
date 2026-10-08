@@ -261,7 +261,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       itemCount: _assignments.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final a = _assignments[index];
         final status = a['status'] as String? ?? '';
