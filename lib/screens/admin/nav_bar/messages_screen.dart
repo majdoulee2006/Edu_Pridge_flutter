@@ -21,7 +21,14 @@ class AdminMessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(onWillPop: () async { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen())); return false; }, child: const AdminMessagesView());
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
+      },
+      child: const AdminMessagesView(),
+    );
   }
 }
 

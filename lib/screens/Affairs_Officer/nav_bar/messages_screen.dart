@@ -11,7 +11,7 @@ import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications_screen.dart';
-import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
+import 'package:edu_pridge_flutter/widgets/affairs_officer_speed_dial.dart';
 
 // Chat Micro-Widgets & Service
 import 'package:edu_pridge_flutter/services/api_service.dart';
@@ -22,7 +22,14 @@ class AffairsOfficerMessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(onWillPop: () async { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AffairsOfficerHomeScreen())); return false; }, child: const AffairsOfficerMessagesView());
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AffairsOfficerHomeScreen()));
+      },
+      child: const AffairsOfficerMessagesView(),
+    );
   }
 }
 

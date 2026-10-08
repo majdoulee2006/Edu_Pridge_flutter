@@ -55,7 +55,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
          setState(() => isLoading = false);
       }
     } catch (e) {
-      print("خطأ في جلب الواجبات: $e");
+      debugPrint("خطأ في جلب الواجبات: $e");
       setState(() => isLoading = false);
     }
   }
@@ -118,7 +118,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
             // الشريط السفلي الموحد المستخدم في Edu_Bridge
             CustomBottomNav(
               currentIndex: 0, // تتبع للرئيسية أو اتركها بدون تظليل حسب التصميم
-              centerButton: const Parents_Center_Icon(),
+              centerButton: const ParentsCenterIcon(),
               onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
               onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
               onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),

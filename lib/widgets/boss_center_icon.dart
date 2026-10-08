@@ -4,18 +4,18 @@ import 'dart:math' as math;
 // 🚀 استيرادات شاشات رئيس القسم
 import '../screens/Head of department/center_icons/leave_requests_screen.dart';
 import '../screens/Head of department/center_icons/accounts/accounts_management_screen.dart';
-import '../screens/Head of department/center_icons/main_organization _interface_screen.dart';
+import '../screens/Head of department/center_icons/main_organization_interface_screen.dart';
 import '../screens/Head of department/center_icons/request_reports_screen.dart';
 import '../screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
-class Boss_Center_Icon extends StatefulWidget {
-  const Boss_Center_Icon({super.key});
+class BossCenterIcon extends StatefulWidget {
+  const BossCenterIcon({super.key});
 
   @override
-  State<Boss_Center_Icon> createState() => _Boss_Center_IconState();
+  State<BossCenterIcon> createState() => _BossCenterIconState();
 }
 
-class _Boss_Center_IconState extends State<Boss_Center_Icon>
+class _BossCenterIconState extends State<BossCenterIcon>
     with SingleTickerProviderStateMixin {
   bool _isOpen = false;
   late AnimationController _animationController;

@@ -21,7 +21,14 @@ class ParentsMessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(onWillPop: () async { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen())); return false; }, child: const ParentsMessagesView());
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()));
+      },
+      child: const ParentsMessagesView(),
+    );
   }
 }
 
@@ -140,7 +147,7 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
 
               CustomBottomNav(
                 currentIndex: 3,
-                centerButton: const Parents_Center_Icon(),
+                centerButton: const ParentsCenterIcon(),
                 onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
                 onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
                 onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),

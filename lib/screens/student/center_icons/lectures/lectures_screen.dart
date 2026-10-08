@@ -514,10 +514,15 @@ class _SubjectCardState extends State<_SubjectCard> {
       final lowerUrl = url.toLowerCase();
       if (lowerUrl.contains('.png')) {
         rawName += '.png';
-      } else if (lowerUrl.contains('.jpg') || lowerUrl.contains('.jpeg')) rawName += '.jpg';
-      else if (lowerUrl.contains('.webp')) rawName += '.webp';
-      else if (lowerUrl.contains('.mp4')) rawName += '.mp4';
-      else rawName += '.pdf';
+      } else if (lowerUrl.contains('.jpg') || lowerUrl.contains('.jpeg')) {
+        rawName += '.jpg';
+      } else if (lowerUrl.contains('.webp')) {
+        rawName += '.webp';
+      } else if (lowerUrl.contains('.mp4')) {
+        rawName += '.mp4';
+      } else {
+        rawName += '.pdf';
+      }
     }
 
     return '${dir.path}/$rawName';

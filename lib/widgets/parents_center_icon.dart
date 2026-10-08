@@ -8,14 +8,14 @@ import '../screens/parents/center_icons/parents_assignments_screen/parents_assig
 import '../screens/parents/center_icons/performance_screen/performance_screen.dart';
 import '../screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 
-class Parents_Center_Icon extends StatefulWidget {
-  const Parents_Center_Icon({super.key});
+class ParentsCenterIcon extends StatefulWidget {
+  const ParentsCenterIcon({super.key});
 
   @override
-  State<Parents_Center_Icon> createState() => _Parents_Center_IconState();
+  State<ParentsCenterIcon> createState() => _ParentsCenterIconState();
 }
 
-class _Parents_Center_IconState extends State<Parents_Center_Icon>
+class _ParentsCenterIconState extends State<ParentsCenterIcon>
     with SingleTickerProviderStateMixin {
   bool _isOpen = false;
   late AnimationController _animationController;

@@ -8,8 +8,8 @@ import '../models/chat_message_model.dart';
 import 'api_service.dart';
 import 'notification_polling.dart';
 
-const String PUSHER_APP_KEY = '06c5a41f8d5f2e4e5497';
-const String PUSHER_CLUSTER = 'eu';
+const String pusherAppKey = '06c5a41f8d5f2e4e5497';
+const String pusherCluster = 'eu';
 
 // 🔌 تم تفعيلها الآن بعد التأكد إن .env على السيرفر مضبوط فعلياً على
 // BROADCAST_CONNECTION=pusher مع مفاتيح Pusher حقيقية (كانت سابقاً معطّلة
@@ -441,8 +441,8 @@ class ChatService extends ChangeNotifier {
       }
       _pusher = PusherChannelsFlutter.getInstance();
       await _pusher!.init(
-        apiKey: PUSHER_APP_KEY,
-        cluster: PUSHER_CLUSTER,
+        apiKey: pusherAppKey,
+        cluster: pusherCluster,
         // نوثّق قنوات البث الخاصة (private-) بأنفسنا عبر توكن الدخول (Bearer)
         // بدل الاعتماد على جلسة متصفح، لأن التطبيق موبايل وليس ويب
         onAuthorizer: (channelName, socketId, options) async {

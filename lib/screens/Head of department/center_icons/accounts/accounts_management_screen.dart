@@ -190,7 +190,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
 
               CustomBottomNav(
                 currentIndex: 0,
-                centerButton: const Boss_Center_Icon(),
+                centerButton: const BossCenterIcon(),
                 onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
                 onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossProfileScreen())),
                 onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossNotificationScreen())),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
-import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
+import 'package:edu_pridge_flutter/widgets/affairs_officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';

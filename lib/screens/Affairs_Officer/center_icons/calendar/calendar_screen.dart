@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:ui' as ui;
 
-import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
+import 'package:edu_pridge_flutter/widgets/affairs_officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 

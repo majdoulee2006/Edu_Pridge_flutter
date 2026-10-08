@@ -206,7 +206,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
             CustomBottomNav(
               currentIndex: 0,
               hasUnread: _hasUnread,
-              centerButton: const Boss_Center_Icon(),
+              centerButton: const BossCenterIcon(),
               onHomeTap: () {},
               onProfileTap: () => Navigator.pushReplacement(context,
                   MaterialPageRoute(builder: (_) => const BossProfileScreen())),

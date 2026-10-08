@@ -61,7 +61,9 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     if (widget.activity["event_date"] != null) {
       try {
         _selectedDate = DateTime.parse(widget.activity["event_date"].toString());
-      } catch (e) {}
+      } catch (_) {
+        // قيمة غير صالحة من السيرفر: نترك الحقل فارغاً ليختاره المستخدم
+      }
     }
     if (widget.activity["event_time"] != null) {
       try {
@@ -70,7 +72,9 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         if (parts.length >= 2) {
           _selectedTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
         }
-      } catch (e) {}
+      } catch (_) {
+        // قيمة غير صالحة من السيرفر: نترك الحقل فارغاً ليختاره المستخدم
+      }
     }
   }
 

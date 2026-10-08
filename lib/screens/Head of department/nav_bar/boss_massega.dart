@@ -18,7 +18,14 @@ class BossMessageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(onWillPop: () async { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())); return false; }, child: const BossMessageView());
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen()));
+      },
+      child: const BossMessageView(),
+    );
   }
 }
 
@@ -155,7 +162,7 @@ class _BossMessageViewState extends State<BossMessageView> {
 
               CustomBottomNav(
                 currentIndex: 3,
-                centerButton: const Boss_Center_Icon(),
+                centerButton: const BossCenterIcon(),
                 onHomeTap: () => Navigator.pushReplacement(
                     context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
                 onProfileTap: () => Navigator.pushReplacement(

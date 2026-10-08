@@ -580,7 +580,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
               ),
               CustomBottomNav(
                 currentIndex: 2,
-                centerButton: const Boss_Center_Icon(),
+                centerButton: const BossCenterIcon(),
                 onHomeTap: () => Navigator.pushReplacement(context,
                     MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
                 onProfileTap: () => Navigator.pushReplacement(context,

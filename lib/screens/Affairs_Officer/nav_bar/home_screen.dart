@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
-import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
+import 'package:edu_pridge_flutter/widgets/affairs_officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/calendar/calendar_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activities/activities_screen.dart';

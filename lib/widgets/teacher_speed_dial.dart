@@ -4,7 +4,7 @@ import 'dart:math' as math;
 // 🌟 مسارات شاشات المعلم (نفسها اللي بكودك ما انحذف منها شي) 🌟
 import '../screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
 import '../screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
-import '../screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
+import '../screens/teacher/center_icons/lectures_Screen/lectures_screen.dart';
 import '../screens/teacher/center_icons/scedual_screen/scedual_screen.dart';
 import '../screens/teacher/center_icons/parent_summon/teacher_parent_summon_screen.dart';
 

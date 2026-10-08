@@ -205,7 +205,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
 
               CustomBottomNav(
                 currentIndex: widget.fromSource == "profile" ? 1 : 0,
-                centerButton: const Boss_Center_Icon(),
+                centerButton: const BossCenterIcon(),
                 onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
                 onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossProfileScreen())),
                 onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossNotificationScreen())),

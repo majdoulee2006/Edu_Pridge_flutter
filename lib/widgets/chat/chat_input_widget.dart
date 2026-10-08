@@ -19,7 +19,7 @@ class ChatInputWidget extends StatefulWidget {
   });
 
   @override
-  _ChatInputWidgetState createState() => _ChatInputWidgetState();
+  State<ChatInputWidget> createState() => _ChatInputWidgetState();
 }
 
 class _ChatInputWidgetState extends State<ChatInputWidget> {

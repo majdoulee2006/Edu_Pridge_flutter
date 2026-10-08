@@ -508,7 +508,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
             ),
             CustomBottomNav(
               currentIndex: 2,
-              centerButton: const Parents_Center_Icon(),
+              centerButton: const ParentsCenterIcon(),
               onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen())),
               onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsProfileScreen())),
               onNotificationsTap: () {},
