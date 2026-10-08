@@ -33,8 +33,7 @@ class FcmService {
         data['event_id']?.toString();
     final intId = int.tryParse(relatedIdStr ?? '');
 
-    final ctx = appNavigatorKey.currentContext;
-    if (ctx == null) return;
+    if (appNavigatorKey.currentContext == null) return;
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
@@ -55,30 +54,31 @@ class FcmService {
       }
     }
 
+    // بعد الـ await قد تتغير الشاشة: نقرأ الـ Navigator الحالي ولا نعيد استعمال BuildContext قديم
+    final navigator = appNavigatorKey.currentState;
+    if (navigator == null) return;
+
     switch (type) {
       case 'meeting_request':
       case 'summon':
-        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
+        navigator.push(MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
         break;
       case 'lecture':
-        Navigator.push(
-          ctx,
+        navigator.push(
           MaterialPageRoute(
             builder: (_) => LecturesScreen(highlightLessonId: intId),
           ),
         );
         break;
       case 'assignment':
-        Navigator.push(
-          ctx,
+        navigator.push(
           MaterialPageRoute(
             builder: (_) => AssignmentsScreen(highlightId: intId),
           ),
         );
         break;
       case 'attendance':
-        Navigator.push(
-          ctx,
+        navigator.push(
           MaterialPageRoute(builder: (_) => const AttendanceScreen()),
         );
         break;
@@ -88,8 +88,7 @@ class FcmService {
         // بدل ما يوديه على المحادثة مباشرة.
         final chatSenderId = data['sender_id']?.toString();
         if (chatSenderId != null && chatSenderId.isNotEmpty) {
-          Navigator.push(
-            ctx,
+          navigator.push(
             MaterialPageRoute(
               builder: (_) => ChatRoomScreen(
                 contact: {
@@ -126,7 +125,7 @@ class FcmService {
         final body  = message.notification?.body  ?? message.data['body']  ?? '';
         if (title.isNotEmpty || body.isNotEmpty) {
           final ctx = appNavigatorKey.currentContext;
-          if (ctx != null) {
+          if (ctx != null && ctx.mounted) {
             showInAppBanner(
               ctx,
               title,
@@ -194,7 +193,7 @@ class FcmService {
       final body = message.notification?.body ?? message.data['body'] ?? '';
       if (title.isNotEmpty || body.isNotEmpty) {
         final ctx = appNavigatorKey.currentContext;
-        if (ctx != null) {
+        if (ctx != null && ctx.mounted) {
           showInAppBanner(
             ctx,
             title,
