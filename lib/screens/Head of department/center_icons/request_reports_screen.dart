@@ -324,7 +324,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                         onPressed: (selStudent == null || selTeacher == null || submitting) ? null : () async {
                           setSB(() => submitting = true);
                           await _submitReport(selStudent!, selTeacher!, false, notes);
-                          if (mounted) Navigator.pop(ctx2);
+                          if (mounted && ctx2.mounted) Navigator.pop(ctx2);
                         },
                         child: submitting
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
@@ -451,7 +451,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                         onPressed: (selStudent == null || submitting) ? null : () async {
                           setSB(() => submitting = true);
                           await _submitReport(selStudent!, null, true, notes);
-                          if (mounted) Navigator.pop(ctx2);
+                          if (mounted && ctx2.mounted) Navigator.pop(ctx2);
                         },
                         child: submitting
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
@@ -636,7 +636,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                         onPressed: (selCourse == null || selTeacher == null || submitting) ? null : () async {
                           setSB(() => submitting = true);
                           await _submitGradeReport(selCourse!, selTeacher!, notes, ctx2);
-                          if (mounted) Navigator.pop(ctx2);
+                          if (mounted && ctx2.mounted) Navigator.pop(ctx2);
                         },
                         child: submitting
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
@@ -1073,6 +1073,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
     final base  = ApiService().baseUrl;
     List<dynamic> entries = [];
     bool loading = true;
+if (!mounted) return;
 
     await showModalBottomSheet(
       context: context,

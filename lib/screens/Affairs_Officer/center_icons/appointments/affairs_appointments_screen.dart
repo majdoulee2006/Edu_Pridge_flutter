@@ -529,6 +529,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                             lastDate: DateTime.now().add(const Duration(days: 90)),
                           );
                           if (pickedDate != null) {
+                            if (!mounted || !context.mounted) return;
                             final pickedTime = await showTimePicker(
                               context: sheetContext,
                               initialTime: TimeOfDay.fromDateTime(selectedDate),
@@ -578,7 +579,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                   scheduledAt: scheduledStr,
                                   adminResponse: notesController.text.trim(),
                                 );
-                                if (mounted) {
+                                if (mounted && context.mounted) {
                                   Navigator.pop(sheetContext);
                                   if (success) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -655,7 +656,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                             status: 'rejected',
                             adminResponse: reasonController.text.trim(),
                           );
-                          if (mounted) {
+                          if (mounted && context.mounted) {
                             Navigator.pop(dialogContext);
                             if (success) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -926,6 +927,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                         lastDate: DateTime.now().add(const Duration(days: 60)),
                       );
                       if (d != null) {
+                        if (!mounted || !context.mounted) return;
                         final t = await showTimePicker(
                           context: sheetCtx,
                           initialTime: TimeOfDay.fromDateTime(selectedDate),
@@ -965,7 +967,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                 formatted,
                                 notes: notesController.text.trim(),
                               );
-                              if (mounted) {
+                              if (mounted && sheetCtx.mounted) {
                                 Navigator.pop(sheetCtx);
                                 if (ok) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1160,7 +1162,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                     'time': timeFormatted,
                                   });
 
-                                  if (mounted) {
+                                  if (mounted && context.mounted) {
                                     Navigator.pop(sheetContext);
                                     if (success) {
                                       ScaffoldMessenger.of(context).showSnackBar(

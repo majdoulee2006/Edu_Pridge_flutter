@@ -35,9 +35,11 @@ class _BossLeaveRequestsScreenState extends State<BossLeaveRequestsScreen> {
   Future<void> _respond(int id, String status, String statusAr) async {
     bool success = await _apiService.respondHeadLeaveRequest(id, status);
     if (success) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم $statusAr بنجاح')));
       _fetchRequests();
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('حدث خطأ أثناء تنفيذ الطلب')));
     }
   }

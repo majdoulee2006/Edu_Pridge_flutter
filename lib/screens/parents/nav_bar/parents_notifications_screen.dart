@@ -200,6 +200,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       final prefs = await SharedPreferences.getInstance();
       resolvedStudentId = prefs.getInt('selected_student_id');
     }
+if (!mounted) return;
 
     showDialog(
       context: context,
@@ -283,6 +284,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         if (!mounted) return;
         final studentId   = prefs.getInt('selected_student_id');
         final studentName = prefs.getString('selected_student_name');
+        if (!ctx.mounted) return;
         Navigator.push(ctx, MaterialPageRoute(
           builder: (_) => PermissionsScreen(
             studentId:   studentId,
@@ -336,6 +338,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
           if (!mounted) return;
           final studentId   = prefs.getInt('selected_student_id');
           final studentName = prefs.getString('selected_student_name');
+          if (!ctx.mounted) return;
           Navigator.push(ctx, MaterialPageRoute(
             builder: (_) => PermissionsScreen(
               studentId:   studentId,

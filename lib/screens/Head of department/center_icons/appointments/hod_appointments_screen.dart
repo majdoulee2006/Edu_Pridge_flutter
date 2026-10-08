@@ -386,7 +386,7 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                         ),
                         onPressed: () async {
                           final ok = await ApiService().forwardSummonToAffairs(summonId);
-                          if (ok && mounted) {
+                          if (ok && mounted && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('تم التحويل المباشر للشؤون بنجاح')),
                             );

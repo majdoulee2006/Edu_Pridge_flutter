@@ -324,7 +324,7 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
                                                 notes: notesController.text.trim(),
                                               );
                                         setModalState(() => isSubmitting = false);
-                                        if (success && mounted) {
+                                        if (success && mounted && context.mounted) {
                                           Navigator.pop(context);
                                           ScaffoldMessenger.of(this.context).showSnackBar(
                                             const SnackBar(content: Text("✅ تم اعتماد الطلب بالموافقة بنجاح وإشعار الطالب")),
@@ -368,7 +368,7 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
                                                 notes: notesController.text.trim(),
                                               );
                                         setModalState(() => isSubmitting = false);
-                                        if (success && mounted) {
+                                        if (success && mounted && context.mounted) {
                                           Navigator.pop(context);
                                           ScaffoldMessenger.of(this.context).showSnackBar(
                                             const SnackBar(content: Text("✅ تم رفض الطلب بنجاح وإغلاقه")),

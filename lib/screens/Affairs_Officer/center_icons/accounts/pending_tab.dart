@@ -123,6 +123,7 @@ class _PendingTabState extends State<PendingTab>
     );
 
     if (confirm != true) return;
+if (!mounted) return;
 
     // Show loading
     showDialog(

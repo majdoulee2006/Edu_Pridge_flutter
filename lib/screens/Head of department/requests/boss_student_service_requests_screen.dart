@@ -48,10 +48,12 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
     setState(() => _isLoading = true);
     bool success = await _apiService.respondHeadStudentServiceRequest(id, status, notes: notes);
     if (success) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم $statusAr بنجاح')));
       _fetchRequests();
     } else {
       setState(() => _isLoading = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('حدث خطأ أثناء تنفيذ الطلب')));
     }
   }

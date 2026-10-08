@@ -80,11 +80,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       annId,
                     );
                     if (success) {
+                      if (!mounted || !context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text("تم حذف الإعلان بنجاح")),
                       );
                       _loadDashboardData();
                     } else {
+                      if (!mounted || !context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text("فشل حذف الإعلان")),
                       );

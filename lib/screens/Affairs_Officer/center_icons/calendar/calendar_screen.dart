@@ -181,7 +181,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                           'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
                         });
 
-                        if (mounted) {
+                        if (mounted && context.mounted) {
                           Navigator.pop(context); // Pop the Add Event dialog
                           if (result != null) {
                             _loadEvents();
@@ -300,7 +300,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                           'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
                         });
 
-                        if (mounted) {
+                        if (mounted && context.mounted) {
                           Navigator.pop(context); // Pop the Edit Event dialog
                           if (result != null) {
                             _loadEvents();
@@ -347,6 +347,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
     );
 
     if (confirm != true) return;
+if (!mounted) return;
 
     showDialog(
       context: context,

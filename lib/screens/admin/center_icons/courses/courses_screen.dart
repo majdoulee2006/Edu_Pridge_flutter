@@ -251,13 +251,16 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                 });
 
                                 if (success) {
+                                  if (!mounted || !context.mounted) return;
                                   Navigator.pop(context);
+                                  if (!mounted || !context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text("تم إضافة الدورة الجديدة بنجاح")),
                                   );
                                   _loadData();
                                 }
                               } catch (e) {
+                                if (!mounted || !context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text("حدث خطأ أثناء إضافة الدورة: $e")),
                                 );
@@ -296,9 +299,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
 
     final hodData = await AdminServices().getAssignHodData();
+    if (!mounted || !context.mounted) return;
     Navigator.pop(context); // close loader
 
     if (hodData == null) {
+      if (!mounted || !context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("تعذر جلب بيانات رؤساء الأقسام")),
       );
@@ -307,6 +312,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
     final deptList = (hodData['departments'] as List<dynamic>?) ?? [];
     final teachersList = (hodData['teachers'] as List<dynamic>?) ?? [];
+if (!mounted || !context.mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -772,6 +778,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                 }
 
                                 if (success) {
+                                  if (!mounted || !context.mounted) return;
                                   Navigator.pop(context); // close edit sheet
                                   Navigator.pop(context); // close assign hod sheet
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -780,6 +787,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                   _loadData();
                                 }
                               } catch (e) {
+                                if (!mounted || !context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text("حدث خطأ أثناء التعيين: $e")),
                                 );

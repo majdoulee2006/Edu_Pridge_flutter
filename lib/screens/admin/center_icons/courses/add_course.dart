@@ -92,6 +92,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       final success = await AdminServices().createCourse(data);
       if (success) {
         _showSnackBar("تمت إضافة الدورة بنجاح", isError: false);
+        if (!mounted) return;
         Navigator.pop(context);
       } else {
         _showSnackBar("فشل إضافة الدورة");

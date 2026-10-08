@@ -192,7 +192,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                                 );
                                 setModalState(() => _isSubmitting = false);
 
-                                if (ok && mounted) {
+                                if (ok && mounted && context.mounted) {
                                   Navigator.pop(context);
                                   _reasonController.clear();
                                   _detailsController.clear();

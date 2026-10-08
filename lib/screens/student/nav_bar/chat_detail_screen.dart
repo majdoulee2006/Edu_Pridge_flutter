@@ -139,6 +139,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           }
 
           if (fileBytes != null || filePath != null) {
+            if (!mounted) return;
             await context.read<ChatService>().sendMessage(
               widget.receiverId.toString(),
               "[Attachment]",
@@ -309,6 +310,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         final name = result.files.single.name;
         
         if (bytes != null || path != null) {
+          if (!mounted) return;
           await context.read<ChatService>().sendMessage(
             widget.receiverId.toString(),
             "[Voice Note]",

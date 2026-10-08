@@ -285,6 +285,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                           );
 
                           if (success) {
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("✅ تم إرسال طلب الموعد لرئيس القسم بنجاح"),
@@ -293,6 +294,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                             );
                             _loadAllData();
                           } else {
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("❌ فشل إرسال الطلب، يرجى المحاولة لاحقاً"),
@@ -331,6 +333,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     setState(() => _isLoading = true);
     final success = await _parentService.respondToSummon(summonId, status);
     if (success) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(status == 'acknowledged'
@@ -341,6 +344,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
       );
       _loadAllData();
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("❌ حدث خطأ أثناء إرسال ردك، حاول لاحقاً"),

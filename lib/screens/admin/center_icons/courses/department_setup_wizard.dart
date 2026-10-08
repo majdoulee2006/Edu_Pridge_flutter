@@ -164,11 +164,13 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       if (success) {
         _onHodStepDone();
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('فشل إنشاء حساب رئيس القسم'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
       );
@@ -195,11 +197,13 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       if (success) {
         _onHodStepDone();
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('فشل تخصيص رئيس القسم'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
       );
@@ -227,11 +231,13 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       if (success) {
         _onCoursesStepDone();
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('فشل إضافة الدورة الجديدة'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
       );
@@ -258,11 +264,13 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       if (success) {
         _onCoursesStepDone();
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('فشل تخصيص الدورات للقسم'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
       );

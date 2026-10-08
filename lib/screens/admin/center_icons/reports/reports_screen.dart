@@ -82,11 +82,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final filename = "${title.replaceAll(' ', '_')}.$format";
     final path = await AdminServices().downloadReport(reportId, format, filename);
     if (path != null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("تم تحميل التقرير بنجاح على جهازك ✓")),
       );
       OpenFilex.open(path);
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("حدث خطأ أثناء تحميل التقرير")),
       );

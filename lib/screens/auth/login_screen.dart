@@ -166,14 +166,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                 "new_device_id": deviceId,
                               },
                             );
-                            if (mounted) Navigator.pop(context);
+                            if (mounted && context.mounted) Navigator.pop(context);
                             if (response.data != null && response.data['success'] == true) {
                               _showSnackBar(response.data['message'] ?? "تم إرسال الطلب بنجاح", isError: false);
                             } else {
                               _showSnackBar(response.data['message'] ?? "حدث خطأ أثناء إرسال الطلب", isError: true);
                             }
                           } catch (e) {
-                            if (mounted) Navigator.pop(context);
+                            if (mounted && context.mounted) Navigator.pop(context);
                             String errorMsg = "حدث خطأ أثناء تقديم الطلب";
                             if (e is DioException && e.response?.data != null && e.response?.data['message'] != null) {
                               errorMsg = e.response?.data['message'];
@@ -409,7 +409,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   final newUrl = ipCtrl.text.trim();
                   if (newUrl.isNotEmpty) {
                     await ApiService.setServerIp(newUrl);
-                    if (mounted) {
+                    if (mounted && ctx.mounted) {
                       _showSnackBar("تم حفظ رابط السيرفر: $newUrl", isError: false);
                       Navigator.pop(ctx);
                       setState(() {});

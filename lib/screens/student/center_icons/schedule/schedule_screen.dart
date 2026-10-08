@@ -1724,6 +1724,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Future<void> _showGradeSheet(int eventId, String subject) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
+    if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Map<String, dynamic>? info;

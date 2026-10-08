@@ -308,7 +308,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                   }
                                 } catch (e) {
                                   debugPrint('Programs fetch error: $e');
-                                  if (context.mounted) {
+                                  if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(content: Text('فشل تحميل الدورات: $e'), backgroundColor: Colors.red),
                                     );

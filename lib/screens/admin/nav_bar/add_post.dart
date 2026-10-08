@@ -156,6 +156,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
       if (success) {
         _showSnackBar(widget.announcement != null ? "تم تعديل الإعلان بنجاح" : "تم نشر الإعلان بنجاح", isError: false);
+        if (!mounted) return;
         Navigator.pop(context);
       } else {
         _showSnackBar("فشل حفظ الإعلان، يرجى المحاولة لاحقاً");

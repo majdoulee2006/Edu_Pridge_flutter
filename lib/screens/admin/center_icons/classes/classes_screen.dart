@@ -146,12 +146,14 @@ class _ClassesScreenState extends State<ClassesScreen> {
 
       final dio = Dio();
       await dio.download(fullUrl, savePath);
+if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("تم التحميل بنجاح")),
       );
       OpenFilex.open(savePath);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("فشل تحميل الملف: $e")),
       );
@@ -417,13 +419,16 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                 });
 
                                 if (success) {
+                                  if (!mounted || !context.mounted) return;
                                   Navigator.pop(context);
+                                  if (!mounted || !context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text("تم إضافة المادة الجديدة بنجاح")),
                                   );
                                   _loadData();
                                 }
                               } catch (e) {
+                                if (!mounted || !context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text("حدث خطأ أثناء إضافة المادة: $e")),
                                 );
