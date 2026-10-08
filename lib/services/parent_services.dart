@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/session_guard.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ParentService {
@@ -278,4 +281,127 @@ class ParentService {
     }
     return null;
   }
-}
+
+  // 🔟 الملخص الأسبوعي: قائمة الملخصات (مع عدد غير المقروء)
+  Future<Map<String, dynamic>?> getDigests({int? studentId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return null;
+
+      final response = await _dio.get(
+        "$baseUrl/parent/digests",
+        queryParameters: {'student_id': ?studentId},
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching digests: $e");
+    }
+    return null;
+  }
+
+  // تعليم ملخص كمقروء
+  Future<bool> markDigestRead(int digestId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return false;
+
+      final response = await _dio.put(
+        "$baseUrl/parent/digests/$digestId/read",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      debugPrint("❌ Error marking digest read: $e");
+    }
+    return false;
+  }
+
+  // هل الملخص الأسبوعي مفعّل لهذا الحساب؟ (null عند الفشل)
+  Future<bool?> getDigestEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return null;
+
+      final response = await _dio.get(
+        "$baseUrl/parent/digest-settings",
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data']['digest_enabled'] == true;
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching digest settings: $e");
+    }
+    return null;
+  }
+
+  // تفعيل/إيقاف الملخص الأسبوعي
+  Future<bool> setDigestEnabled(bool enabled) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return false;
+
+      final response = await _dio.put(
+        "$baseUrl/parent/digest-settings",
+        data: {'digest_enabled': enabled},
+        options: Options(headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        }),
+      );
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      debugPrint("❌ Error updating digest settings: $e");
+    }
+    return false;
+  }
+
+  // تنزيل الملخص الأسبوعي كملف PDF وحفظه على الجهاز (يرجع مسار الملف أو null عند الفشل)
+  Future<String?> downloadDigestPdf(int digestId, {String? fileName}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return null;
+
+      final response = await _dio.get<List<int>>(
+        "$baseUrl/parent/digests/$digestId/pdf",
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            "Accept": "application/pdf",
+            "Authorization": "Bearer $token",
+          },
+          receiveTimeout: const Duration(seconds: 40),
+        ),
+      );
+
+      final bytes = response.data;
+      if (response.statusCode != 200 || bytes == null || bytes.isEmpty) return null;
+
+      final dir = await getApplicationDocumentsDirectory();
+      final path = '${dir.path}/${fileName ?? 'weekly_digest_$digestId.pdf'}';
+      await File(path).writeAsBytes(bytes, flush: true);
+      return path;
+    } catch (e) {
+      debugPrint("❌ Error downloading digest PDF: $e");
+    }
+    return null;
+  }
+}
