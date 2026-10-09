@@ -5,6 +5,7 @@ import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/teacher/profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/study_teacher_screens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
 
@@ -86,6 +87,24 @@ class TeacherServicesMenuScreen extends StatelessWidget {
                                   MaterialPageRoute(builder: (_) => const AtRiskStudentsScreen(basePath: 'teacher')),
                                 ),
                               ),
+                      ),
+
+                      // رفيق المذاكرة: مسودات يولّدها الذكاء الاصطناعي ويعتمدها المعلم
+                      _buildServiceCard(
+                        icon: Icons.auto_stories_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "رفيق المذاكرة" : "Study Companion",
+                        subtitle: isAr
+                            ? "حوّل محاضرتك إلى ملخص وبطاقات وأسئلة، راجعها واعتمدها للطلاب"
+                            : "Turn a lecture into a summary, flashcards and questions you review and approve",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TeacherStudyListScreen()),
+                        ),
                       ),
 
                       // اشتباهات الحضور (مراجعة الأنماط المشبوهة)

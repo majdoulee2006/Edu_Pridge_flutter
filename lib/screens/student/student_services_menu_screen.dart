@@ -8,6 +8,7 @@ import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/student_service_requests_list_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/study_screens.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/grades/student_academic_card_screen.dart';
 
@@ -76,6 +77,23 @@ class StudentServicesMenuScreen extends StatelessWidget {
                         subColor: subColor,
                         isAr: isAr,
                         onTap: () => _showUniversityIdPopup(context, isAr),
+                      ),
+
+                      _buildServiceCard(
+                        icon: Icons.auto_stories_rounded,
+                        iconColor: const Color(0xFF4CAF50),
+                        title: isAr ? "رفيق المذاكرة" : "Study Companion",
+                        subtitle: isAr
+                            ? "ملخصات وبطاقات وأسئلة تدريب أعدّها معلموك، للتدريب فقط ولا تُحتسب بالعلامات"
+                            : "Summaries, flashcards and practice questions from your teachers (not graded)",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const StudyListScreen()),
+                        ),
                       ),
 
                       const SizedBox(height: 15),
