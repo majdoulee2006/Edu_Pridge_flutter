@@ -15,6 +15,7 @@ import '../center_icons/request_reports_screen.dart';
 import '../../parents/center_icons/appointments_screen/appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import '../requests/boss_student_service_requests_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
 
 // 🛠️ إشعارات "طلب خدمة محول من الشؤون" (بعد ما تحوّل الشؤون طلب استرحام/وثائق/
 // إكمال لرئيس القسم) بتوصل بنوع type = "student_service_<mercy|document|makeup>"
@@ -696,6 +697,10 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     return GestureDetector(
       onTap: () {
         _markAsRead(n.id, index);
+        if (n.type == 'risk_alert') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const AtRiskStudentsScreen(basePath: 'department-head')));
+          return;
+        }
         if (n.type == 'message' || n.type == 'chat') {
           final senderId = n.senderId ?? n.relatedId;
           final senderName = n.title.replaceFirst('رسالة جديدة من ', '');

@@ -16,6 +16,7 @@ import '../shared/chat_room_screen.dart';
 import '../../services/notification_polling.dart';
 import 'teacher_home.dart';
 import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
 import 'profile_screen.dart';
 import 'messages_screen.dart';
 
@@ -220,6 +221,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => ReportRequestsScreen(initialRequestId: reqId),
         ));
+        break;
+      case 'risk_alert':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AtRiskStudentsScreen(basePath: 'teacher')));
         break;
       case 'attendance_flags':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceFlagsScreen()));

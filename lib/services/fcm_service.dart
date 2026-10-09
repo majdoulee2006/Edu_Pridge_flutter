@@ -15,6 +15,7 @@ import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/weekly_digest_screen/weekly_digest_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
 @pragma('vm:entry-point')
@@ -61,6 +62,11 @@ class FcmService {
     if (navigator == null) return;
 
     switch (type) {
+      case 'risk_alert':
+        navigator.push(MaterialPageRoute(
+          builder: (_) => AtRiskStudentsScreen(basePath: (prefs.getString('role') ?? '') == 'teacher' ? 'teacher' : 'department-head'),
+        ));
+        break;
       case 'attendance_flags':
         navigator.push(MaterialPageRoute(builder: (_) => const AttendanceFlagsScreen()));
         break;
