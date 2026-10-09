@@ -1,4 +1,5 @@
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
+import 'package:edu_pridge_flutter/screens/Head of department/schedule_settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/study_screens.dart' show StudyScaffold;
 import 'package:edu_pridge_flutter/services/schedule_studio_services.dart';
 import 'package:edu_pridge_flutter/services/study_services.dart' show StudyResult;
@@ -60,6 +61,16 @@ class _ScheduleStudioScreenState extends State<ScheduleStudioScreen> {
   Widget build(BuildContext context) {
     return StudyScaffold(
       title: 'مولّد الجدول',
+      actions: [
+        IconButton(
+          tooltip: 'القاعات وتوفّر المعلمين',
+          icon: const Icon(Icons.tune_rounded),
+          onPressed: () async {
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleSettingsScreen()));
+            _load();
+          },
+        ),
+      ],
       body: (card, text, sub) {
         if (_loading) return const Center(child: CircularProgressIndicator());
         if (_error != null) return Center(child: Text(_error!, style: TextStyle(color: text)));
@@ -70,7 +81,7 @@ class _ScheduleStudioScreenState extends State<ScheduleStudioScreen> {
         return RefreshIndicator(
           onRefresh: _load,
           child: ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16), children: [
-            Text('يقترح النظام مسودة تحترم القيود، وأنت تراجعها وتعدّلها وتعتمدها. لا يتغيّر الجدول الحالي إلا عند اعتمادك. القاعات وتوفّر المعلمين من لوحة الويب.',
+            Text('يقترح النظام مسودة تحترم القيود، وأنت تراجعها وتعدّلها وتعتمدها. لا يتغيّر الجدول الحالي إلا عند اعتمادك. القاعات وتوفّر المعلمين من زر الإعدادات أعلى الشاشة.',
                 style: TextStyle(color: sub, fontSize: 12, height: 1.6)),
             const SizedBox(height: 14),
             Card(

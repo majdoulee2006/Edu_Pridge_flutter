@@ -50,4 +50,12 @@ class ScheduleStudioService {
   Future<StudyResult<Map<String, dynamic>>> approve(int id, {bool acknowledge = false}) => _call('POST', '/$id/approve', body: {'acknowledge': acknowledge});
   Future<StudyResult<Map<String, dynamic>>> discard(int id) => _call('POST', '/$id/discard');
   Future<StudyResult<Map<String, dynamic>>> revert(int id) => _call('POST', '/$id/revert');
+
+  // ---- القاعات وتوفّر المعلمين
+  Future<StudyResult<Map<String, dynamic>>> settings() => _call('GET', '/settings');
+  Future<StudyResult<Map<String, dynamic>>> addRoom(String name, int capacity) => _call('POST', '/rooms', body: {'name': name, 'capacity': capacity});
+  Future<StudyResult<Map<String, dynamic>>> deleteRoom(int id) => _call('DELETE', '/rooms/$id');
+  Future<StudyResult<Map<String, dynamic>>> addAvailability(int teacherUserId, String day, int period, String kind) =>
+      _call('POST', '/availability', body: {'teacher_user_id': teacherUserId, 'day': day, 'period': period, 'kind': kind});
+  Future<StudyResult<Map<String, dynamic>>> deleteAvailability(int id) => _call('DELETE', '/availability/$id');
 }
