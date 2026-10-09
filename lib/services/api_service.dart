@@ -313,6 +313,7 @@ class ApiService {
         if (response.data['user'] != null) {
           await prefs.setString('role', response.data['user']['role']);
           await prefs.setString('user_id', response.data['user']['user_id']?.toString() ?? '');
+          await prefs.setBool('is_advisor', response.data['user']['is_advisor'] == true);
         }
         return response.data;
       }
