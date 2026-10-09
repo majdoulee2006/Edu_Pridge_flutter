@@ -7,6 +7,7 @@ import 'package:edu_pridge_flutter/models/notification_model.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/attendance_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedule_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/study_screens.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/lectures/lectures_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
@@ -270,6 +271,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return;
       case 'attendance':
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
+        return;
+      case 'schedule_approved':
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen()));
+        return;
+      case 'study_material':
+        final materialId = notify.relatedId;
+        if (materialId != null && materialId > 0) {
+          Navigator.push(ctx, MaterialPageRoute(builder: (_) => StudyMaterialScreen(id: materialId)));
+        } else {
+          Navigator.push(ctx, MaterialPageRoute(builder: (_) => const StudyListScreen()));
+        }
         return;
       case 'grade':
       case 'marks':

@@ -16,6 +16,9 @@ import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_scr
 import 'package:edu_pridge_flutter/screens/parents/center_icons/weekly_digest_screen/weekly_digest_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
+import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedule_screen.dart' as student_schedule;
+import 'package:edu_pridge_flutter/screens/student/study_screens.dart';
+import 'package:edu_pridge_flutter/screens/teacher/center_icons/scedual_screen/scedual_screen.dart' show TeacherScheduleScreen;
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
 @pragma('vm:entry-point')
@@ -69,6 +72,15 @@ class FcmService {
         break;
       case 'attendance_flags':
         navigator.push(MaterialPageRoute(builder: (_) => const AttendanceFlagsScreen()));
+        break;
+      case 'schedule_approved':
+        // الجدول المعتمد: المعلم يفتح جدوله والطالب جدول حصصه
+        navigator.push(MaterialPageRoute(
+          builder: (_) => (prefs.getString('role') ?? '') == 'teacher' ? const TeacherScheduleScreen() : const student_schedule.ScheduleScreen(),
+        ));
+        break;
+      case 'study_material':
+        if (intId != null) navigator.push(MaterialPageRoute(builder: (_) => StudyMaterialScreen(id: intId)));
         break;
       case 'weekly_digest':
         navigator.push(MaterialPageRoute(

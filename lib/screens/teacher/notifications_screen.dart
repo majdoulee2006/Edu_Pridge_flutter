@@ -228,6 +228,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'attendance_flags':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceFlagsScreen()));
         break;
+      case 'schedule_approved':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherScheduleScreen()));
+        break;
       case 'leave_request':
       case 'attendance':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()));
