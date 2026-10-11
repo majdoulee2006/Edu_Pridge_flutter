@@ -16,6 +16,7 @@ import 'screens/Affairs_Officer/nav_bar/home_screen.dart';
 import 'screens/admin/nav_bar/home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
+import 'services/app_update_service.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
