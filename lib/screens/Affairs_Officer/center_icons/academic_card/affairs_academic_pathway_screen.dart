@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'affairs_pdf_viewer_screen.dart';
 
 class AffairsAcademicPathwayScreen extends StatefulWidget {
@@ -39,14 +40,42 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
   Map<String, dynamic>? _selectedCourse;
   String _courseSubFilter = 'all'; // 'all', 'pass', 'fail'
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  String _semTitle(String title, bool isAr) {
+    if (isAr) return title;
+    switch (title) {
+      case 'الفصل الأول': return 'First Semester';
+      case 'الفصل الثاني': return 'Second Semester';
+      case 'الفصل الثالث': return 'Third Semester';
+      case 'الفصل الرابع': return 'Fourth Semester';
+      default: return title;
+    }
+  }
+
+  String _yearLabel(String label, bool isAr) {
+    if (isAr) return label;
+    switch (label) {
+      case 'السنة الأولى': return 'First Year';
+      case 'السنة الثانية': return 'Second Year';
+      default: return label;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _fetchMasterData();
+    AppSettings.language.addListener(_onLangChange);
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _searchController.dispose();
     super.dispose();
   }
@@ -70,8 +99,8 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر تحميل بيانات المسار الأكاديمي. يرجى التحقق من الاتصال.'),
+          SnackBar(
+            content: Text(isAr ? 'تعذر تحميل بيانات المسار الأكاديمي. يرجى التحقق من الاتصال.' : 'Failed to load academic pathway data. Please check connection.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -419,7 +448,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
 
   // ─────────────────────────── معاينة وتصدير التقارير داخل التطبيق ───────────────────────────
   Future<void> _openCohortReport() async {
-    _showLoadingDialog('جاري تجهيز محضر نتائج الدفعة الرسمي (PDF)...');
+    _showLoadingDialog(isAr ? 'جاري تجهيز محضر نتائج الدفعة الرسمي (PDF)...' : 'Preparing official cohort results report (PDF)...');
 
     final pdfBytes = await _affairsServices.fetchCohortPdfBytes(
       departmentId: _selectedDepartmentId,
@@ -437,7 +466,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         context,
         MaterialPageRoute(
           builder: (_) => AffairsPdfViewerScreen(
-            title: 'محضر نتائج الدفعة الرسمي',
+            title: isAr ? 'محضر نتائج الدفعة الرسمي' : 'Official Cohort Results Report',
             pdfBytes: pdfBytes,
             fileName: 'cohort_results_${_selectedProgramId}_$_selectedYear.pdf',
           ),
@@ -446,7 +475,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر تحميل محضر الدفعة. يرجى التحقق من اتصال الخادم.'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(isAr ? 'تعذر تحميل محضر الدفعة. يرجى التحقق من اتصال الخادم.' : 'Failed to load cohort minutes. Please check server connection.'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -455,10 +487,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
   Future<void> _openStudentTranscript() async {
     if (_selectedStudent == null) return;
     final studentId = _selectedStudent!['student_id'] as int;
-    final studentName = _selectedStudent!['full_name'] ?? 'طالب';
+    final studentName = _selectedStudent!['full_name'] ?? (isAr ? 'طالب' : 'Student');
     final studentCode = _selectedStudent!['student_code'] ?? '$studentId';
 
-    _showLoadingDialog('جاري تجهيز كشف علامات الطالب ($studentName)...');
+    _showLoadingDialog(isAr ? 'جاري تجهيز كشف علامات الطالب ($studentName)...' : 'Preparing transcript for ($studentName)...');
 
     final pdfBytes = await _affairsServices.fetchStudentTranscriptPdfBytes(studentId);
 
@@ -470,7 +502,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         context,
         MaterialPageRoute(
           builder: (_) => AffairsPdfViewerScreen(
-            title: 'كشف علامات الطالب: $studentName',
+            title: isAr ? 'كشف علامات الطالب: $studentName' : 'Student Transcript: $studentName',
             pdfBytes: pdfBytes,
             fileName: 'transcript_${studentCode}_$studentId.pdf',
           ),
@@ -479,7 +511,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر تحميل كشف العلامات. يرجى التحقق من اتصال الخادم.'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(isAr ? 'تعذر تحميل كشف العلامات. يرجى التحقق من اتصال الخادم.' : 'Failed to load transcript. Please check server connection.'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -535,11 +570,11 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         builder: (context, setDlgState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.gavel_rounded, color: Color(0xFFFFCC00)),
-              SizedBox(width: 8),
-              Text('اعتماد القرار الأكاديمي', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Icon(Icons.gavel_rounded, color: Color(0xFFFFCC00)),
+              const SizedBox(width: 8),
+              Text(isAr ? 'اعتماد القرار الأكاديمي' : 'Approve Academic Decision', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
           content: SingleChildScrollView(
@@ -547,10 +582,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('الطالب: ${student['full_name'] ?? '-'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text('رقم القيد: ${student['student_code'] ?? '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('${isAr ? 'الطالب' : 'Student'}: ${student['full_name'] ?? '-'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('${isAr ? 'رقم القيد' : 'Student Code'}: ${student['student_code'] ?? '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 const Divider(height: 24),
-                const Text('اختر القرار الإداري:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                Text(isAr ? 'اختر القرار الإداري:' : 'Select Administrative Decision:', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: selectedDecision,
@@ -559,26 +594,27 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'promote_semester_2', child: Text('ترفيع إلى الفصل الثاني')),
-                    DropdownMenuItem(value: 'promote_year_2', child: Text('ترفيع إلى السنة الثانية')),
-                    DropdownMenuItem(value: 'promote_semester_4', child: Text('ترفيع إلى الفصل الرابع (تخرج)')),
-                    DropdownMenuItem(value: 'graduate', child: Text('اعتماد التخرج النهائي 🎓')),
-                    DropdownMenuItem(value: 'supplementary', child: Text('منقول بمواد / دورة تكميلية')),
-                    DropdownMenuItem(value: 'repeat_year', child: Text('رسوب وإعادة السنة')),
+                  items: [
+                    DropdownMenuItem(value: 'promote_semester_2', child: Text(isAr ? 'ترفيع إلى الفصل الثاني' : 'Promote to Semester 2')),
+                    DropdownMenuItem(value: 'promote_year_2', child: Text(isAr ? 'ترفيع إلى السنة الثانية' : 'Promote to Year 2')),
+                    DropdownMenuItem(value: 'promote_semester_4', child: Text(isAr ? 'ترفيع إلى الفصل الرابع (تخرج)' : 'Promote to Semester 4 (Graduation)')),
+                    DropdownMenuItem(value: 'graduate', child: Text(isAr ? 'اعتماد التخرج النهائي 🎓' : 'Approve Final Graduation 🎓')),
+                    DropdownMenuItem(value: 'supplementary', child: Text(isAr ? 'منقول بمواد / دورة تكميلية' : 'Transferred with Courses / Supplementary')),
+                    DropdownMenuItem(value: 'repeat_year', child: Text(isAr ? 'رسوب وإعادة السنة' : 'Failed & Repeat Year')),
                   ],
                   onChanged: (val) {
                     if (val != null) setDlgState(() => selectedDecision = val);
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text('ملاحظات إدارية (اختياري):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                Text(isAr ? 'ملاحظات إدارية (اختياري):' : 'Administrative Notes (Optional):', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: notesController,
                   maxLines: 2,
+                  textAlign: isAr ? TextAlign.right : TextAlign.left,
                   decoration: InputDecoration(
-                    hintText: 'أدخل أي ملاحظة تود توثيقها مع القرار...',
+                    hintText: isAr ? 'أدخل أي ملاحظة تود توثيقها مع القرار...' : 'Enter any notes to document with decision...',
                     hintStyle: const TextStyle(fontSize: 12),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -589,7 +625,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+              child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -599,7 +635,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
               ),
               onPressed: () async {
                 Navigator.pop(ctx);
-                _showLoadingDialog('جاري حفظ القرار وتحديث سجل الطالب...');
+                _showLoadingDialog(isAr ? 'جاري حفظ القرار وتحديث سجل الطالب...' : 'Saving decision and updating student record...');
                 final res = await _affairsServices.updateStudentAcademicDecision(
                   studentId: sId,
                   decision: selectedDecision,
@@ -610,19 +646,19 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                 if (res != null && res['success'] == true) {
                   if (mounted && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(res['message'] ?? 'تم حفظ القرار بنجاح'), backgroundColor: Colors.green),
+                      SnackBar(content: Text(res['message'] ?? (isAr ? 'تم حفظ القرار بنجاح' : 'Decision saved successfully')), backgroundColor: Colors.green),
                     );
                   }
                   _fetchMasterData();
                 } else {
                   if (mounted && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('فشل حفظ القرار الأكاديمي'), backgroundColor: Colors.red),
+                      SnackBar(content: Text(isAr ? 'فشل حفظ القرار الأكاديمي' : 'Failed to save academic decision'), backgroundColor: Colors.red),
                     );
                   }
                 }
               },
-              child: const Text('تأكيد وحفظ القرار', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(isAr ? 'تأكيد وحفظ القرار' : 'Confirm & Save Decision', style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -639,18 +675,22 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
     final borderColor = isDark ? Colors.white12 : Colors.black12;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
-          title: const Text('المسار الأكاديمي الطلابي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+          leading: IconButton(
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(isAr ? 'المسار الأكاديمي الطلابي' : 'Student Academic Pathway', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
           centerTitle: true,
           backgroundColor: cardColor,
           elevation: 1,
           actions: [
             // محضر الدفعة PDF
             Padding(
-              padding: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: TextButton.icon(
                 style: TextButton.styleFrom(
                   backgroundColor: const Color(0xFFFFCC00).withValues(alpha: 0.15),
@@ -658,9 +698,9 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                 ),
                 onPressed: _openCohortReport,
                 icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.orange, size: 18),
-                label: const Text(
-                  'محضر الدفعة (PDF)',
-                  style: TextStyle(color: Color(0xFFFFCC00), fontSize: 11, fontWeight: FontWeight.bold),
+                label: Text(
+                  isAr ? 'محضر الدفعة (PDF)' : 'Cohort Report (PDF)',
+                  style: const TextStyle(color: Color(0xFFFFCC00), fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -747,7 +787,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'منظور الطلاب (Workstation)',
+                      isAr ? 'منظور الطلاب (Workstation)' : 'Students View (Workstation)',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -780,7 +820,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'منظور المواد (Courses)',
+                      isAr ? 'منظور المواد (Courses)' : 'Courses View',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -809,13 +849,13 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.tune_rounded, color: Color(0xFFFFCC00), size: 18),
-              SizedBox(width: 8),
+              const Icon(Icons.tune_rounded, color: Color(0xFFFFCC00), size: 18),
+              const SizedBox(width: 8),
               Text(
-                'محددات الفرز الأكاديمي المعتمد',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                isAr ? 'محددات الفرز الأكاديمي المعتمد' : 'Approved Academic Filtering Controls',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -826,10 +866,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
             children: [
               Expanded(
                 child: _buildDropdown(
-                  label: 'القسم الأكاديمي',
+                  label: isAr ? 'القسم الأكاديمي' : 'Academic Department',
                   value: _selectedDepartmentId,
                   items: [
-                    const DropdownMenuItem(value: 'all', child: Text('جميع الأقسام')),
+                    DropdownMenuItem(value: 'all', child: Text(isAr ? 'جميع الأقسام' : 'All Departments')),
                     ..._departments.map((d) => DropdownMenuItem(
                           value: d['department_id'].toString(),
                           child: Text(d['name'] ?? '', overflow: TextOverflow.ellipsis),
@@ -847,10 +887,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
               const SizedBox(width: 8),
               Expanded(
                 child: _buildDropdown(
-                  label: 'التخصص / البرنامج',
+                  label: isAr ? 'التخصص / البرنامج' : 'Major / Program',
                   value: _selectedProgramId,
                   items: [
-                    const DropdownMenuItem(value: 'all', child: Text('جميع التخصصات')),
+                    DropdownMenuItem(value: 'all', child: Text(isAr ? 'جميع التخصصات' : 'All Majors')),
                     ..._programs
                         .where((p) => _selectedDepartmentId == 'all' || p['department_id']?.toString() == _selectedDepartmentId)
                         .map((p) => DropdownMenuItem(
@@ -873,12 +913,12 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
             children: [
               Expanded(
                 child: _buildDropdown(
-                  label: 'السنة الدراسية',
+                  label: isAr ? 'السنة الدراسية' : 'Academic Year',
                   value: _selectedYear,
-                  items: const [
-                    DropdownMenuItem(value: 'both', child: Text('كلاهما')),
-                    DropdownMenuItem(value: '1', child: Text('الأولى')),
-                    DropdownMenuItem(value: '2', child: Text('الثانية')),
+                  items: [
+                    DropdownMenuItem(value: 'both', child: Text(isAr ? 'كلاهما' : 'Both')),
+                    DropdownMenuItem(value: '1', child: Text(isAr ? 'الأولى' : 'First')),
+                    DropdownMenuItem(value: '2', child: Text(isAr ? 'الثانية' : 'Second')),
                   ],
                   onChanged: (val) {
                     setState(() => _selectedYear = val!);
@@ -889,12 +929,12 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
               const SizedBox(width: 6),
               Expanded(
                 child: _buildDropdown(
-                  label: 'الفصل الدراسي',
+                  label: isAr ? 'الفصل الدراسي' : 'Semester',
                   value: _selectedSemester,
-                  items: const [
-                    DropdownMenuItem(value: 'both', child: Text('كلاهما')),
-                    DropdownMenuItem(value: '1', child: Text('الأول')),
-                    DropdownMenuItem(value: '2', child: Text('الثاني')),
+                  items: [
+                    DropdownMenuItem(value: 'both', child: Text(isAr ? 'كلاهما' : 'Both')),
+                    DropdownMenuItem(value: '1', child: Text(isAr ? 'الأول' : 'First')),
+                    DropdownMenuItem(value: '2', child: Text(isAr ? 'الثاني' : 'Second')),
                   ],
                   onChanged: (val) {
                     setState(() => _selectedSemester = val!);
@@ -905,13 +945,13 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
               const SizedBox(width: 6),
               Expanded(
                 child: _buildDropdown(
-                  label: 'الحالة المفروزة',
+                  label: isAr ? 'الحالة المفروزة' : 'Filtered Status',
                   value: _selectedStanding,
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('الكل')),
-                    DropdownMenuItem(value: 'passed', child: Text('ناجحون ✅')),
-                    DropdownMenuItem(value: 'failed', child: Text('راسبون ❌')),
-                    DropdownMenuItem(value: 'supplementary', child: Text('تكميلي 📝')),
+                  items: [
+                    DropdownMenuItem(value: 'all', child: Text(isAr ? 'الكل' : 'All')),
+                    DropdownMenuItem(value: 'passed', child: Text(isAr ? 'ناجحون ✅' : 'Passed ✅')),
+                    DropdownMenuItem(value: 'failed', child: Text(isAr ? 'راسبون ❌' : 'Failed ❌')),
+                    DropdownMenuItem(value: 'supplementary', child: Text(isAr ? 'تكميلي 📝' : 'Supplementary 📝')),
                   ],
                   onChanged: (val) {
                     setState(() => _selectedStanding = val!);
@@ -965,9 +1005,9 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
       children: [
         Expanded(
           child: _buildKpiCard(
-            title: 'إجمالي الطلاب',
+            title: isAr ? 'إجمالي الطلاب' : 'Total Students',
             value: '$count',
-            sub: 'مفروزون',
+            sub: isAr ? 'مفروزون' : 'Filtered',
             color: Colors.blue,
             tag: 'COUNT',
             cardColor: cardColor,
@@ -977,9 +1017,9 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         const SizedBox(width: 6),
         Expanded(
           child: _buildKpiCard(
-            title: 'نسبة النجاح',
+            title: isAr ? 'نسبة النجاح' : 'Pass Rate',
             value: '$passRate%',
-            sub: 'مستوفين',
+            sub: isAr ? 'مستوفين' : 'Qualified',
             color: Colors.green,
             tag: 'RATE',
             cardColor: cardColor,
@@ -989,9 +1029,9 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         const SizedBox(width: 6),
         Expanded(
           child: _buildKpiCard(
-            title: 'أعلى معدل',
+            title: isAr ? 'أعلى معدل' : 'Top GPA',
             value: '$maxGpa%',
-            sub: 'شرف',
+            sub: isAr ? 'شرف' : 'Honors',
             color: Colors.amber,
             tag: 'MAX',
             cardColor: cardColor,
@@ -1001,9 +1041,9 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         const SizedBox(width: 6),
         Expanded(
           child: _buildKpiCard(
-            title: 'أدنى معدل',
+            title: isAr ? 'أدنى معدل' : 'Lowest GPA',
             value: '$minGpa%',
-            sub: 'الحد الأدنى',
+            sub: isAr ? 'الحد الأدنى' : 'Minimum',
             color: Colors.redAccent,
             tag: 'MIN',
             cardColor: cardColor,
@@ -1080,7 +1120,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         controller: _searchController,
         onChanged: (_) => _applyFilters(),
         decoration: InputDecoration(
-          hintText: 'ابحث عن طالب بالاسم الكامل أو رقم القيد الجامعي...',
+          hintText: isAr ? 'ابحث عن طالب بالاسم الكامل أو رقم القيد الجامعي...' : 'Search student by name or university ID...',
           hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
           prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFFFCC00), size: 20),
           suffixIcon: _searchController.text.isNotEmpty
@@ -1110,7 +1150,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
           border: Border.all(color: borderColor),
         ),
         alignment: Alignment.center,
-        child: const Text('لا يوجد طلاب مطابقون لمعايير الفلترة الحالية', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        child: Text(
+          isAr ? 'لا يوجد طلاب مطابقون لمعايير الفلترة الحالية' : 'No students matching current filter criteria',
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
       );
     }
 
@@ -1121,12 +1164,12 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'الطلاب المفرزون (${_filteredStudents.length} طالباً)',
+              isAr ? 'الطلاب المفرزون (${_filteredStudents.length} طالباً)' : 'Filtered Students (${_filteredStudents.length})',
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
             if (_selectedStudent != null)
               Text(
-                'المختار: ${_selectedStudent!['full_name']}',
+                isAr ? 'المختار: ${_selectedStudent!['full_name']}' : 'Selected: ${_selectedStudent!['full_name']}',
                 style: const TextStyle(fontSize: 11, color: Color(0xFFFFCC00), fontWeight: FontWeight.bold),
               ),
           ],
@@ -1193,7 +1236,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'قيد: ${st['student_code'] ?? '-'}',
+                            isAr ? 'قيد: ${st['student_code'] ?? '-'}' : 'ID: ${st['student_code'] ?? '-'}',
                             style: const TextStyle(fontSize: 9, color: Colors.grey),
                           ),
                           Text(
@@ -1266,11 +1309,15 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'رقم القيد: ${s['student_code'] ?? '-'} • التخصص: ${s['program_name'] ?? '-'}',
+                          isAr
+                              ? 'رقم القيد: ${s['student_code'] ?? '-'} • التخصص: ${s['program_name'] ?? '-'}'
+                              : 'ID: ${s['student_code'] ?? '-'} • Major: ${s['program_name'] ?? '-'}',
                           style: const TextStyle(fontSize: 11, color: Colors.grey),
                         ),
                         Text(
-                          'المستوى: ${s['level'] ?? '-'} • المرشد: ${s['advisor_name'] ?? '-'}',
+                          isAr
+                              ? 'المستوى: ${s['level'] ?? '-'} • المرشد: ${s['advisor_name'] ?? '-'}'
+                              : 'Level: ${s['level'] ?? '-'} • Advisor: ${s['advisor_name'] ?? '-'}',
                           style: const TextStyle(fontSize: 10, color: Colors.grey),
                         ),
                       ],
@@ -1295,7 +1342,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                       ),
                       onPressed: _openStudentTranscript,
                       icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
-                      label: const Text('كشف العلامات (PDF)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      label: Text(
+                        isAr ? 'كشف العلامات (PDF)' : 'Transcript (PDF)',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1311,7 +1361,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                       ),
                       onPressed: () => _showDecisionDialog(s),
                       icon: const Icon(Icons.gavel_rounded, size: 16),
-                      label: const Text('اعتماد القرار', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      label: Text(
+                        isAr ? 'اعتماد القرار' : 'Approve Decision',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
@@ -1325,13 +1378,13 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.layers_rounded, color: Color(0xFFFFCC00), size: 18),
-                SizedBox(width: 6),
+                const Icon(Icons.layers_rounded, color: Color(0xFFFFCC00), size: 18),
+                const SizedBox(width: 6),
                 Text(
-                  'سجل المقررات مفصولة بالفصول الدراسية',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                  isAr ? 'سجل المقررات مفصولة بالفصول الدراسية' : 'Course Record by Semester',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
                 ),
               ],
             ),
@@ -1342,7 +1395,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '${semGroups.length} فصول معروضة',
+                isAr ? '${semGroups.length} فصول معروضة' : '${semGroups.length} Semesters Shown',
                 style: const TextStyle(fontSize: 10, color: Color(0xFFFFCC00), fontWeight: FontWeight.bold),
               ),
             ),
@@ -1360,7 +1413,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
               border: Border.all(color: borderColor),
             ),
             alignment: Alignment.center,
-            child: const Text('لا توجد مقررات مطابقة لمعايير الفلترة المحددة لهذا الطالب', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            child: Text(
+              isAr ? 'لا توجد مقررات مطابقة لمعايير الفلترة المحددة لهذا الطالب' : 'No courses matching filter criteria for this student',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           )
         else
           ...semGroups.map((group) => _buildSemesterCard(group, cardColor, borderColor)),
@@ -1392,16 +1448,16 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
     final gpa = group['gpa'] as double?;
 
     Color badgeColor = Colors.grey;
-    String badgeText = 'مغلق';
+    String badgeText = isAr ? 'مغلق' : 'Closed';
     if (isClosed) {
       badgeColor = Colors.orange;
-      badgeText = 'مغلق المقرر';
+      badgeText = isAr ? 'مغلق المقرر' : 'Course Closed';
     } else if (isCurrent) {
       badgeColor = Colors.green;
-      badgeText = 'الفصل الساري حالياً';
+      badgeText = isAr ? 'الفصل الساري حالياً' : 'Current Active Semester';
     } else if (isPast) {
       badgeColor = Colors.blue;
-      badgeText = 'مجتاز (السنة السابقة)';
+      badgeText = isAr ? 'مجتاز (السنة السابقة)' : 'Passed (Previous Year)';
     }
 
     return Container(
@@ -1455,7 +1511,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                         ],
                       ),
                       Text(
-                        '${semDef['yearLabel']} • الساعات: $hours • المقررات: ${courses.length}',
+                        '${semDef['yearLabel']} • ${isAr ? 'الساعات' : 'Hours'}: $hours • ${isAr ? 'المقررات' : 'Courses'}: ${courses.length}',
                         style: const TextStyle(fontSize: 10, color: Colors.grey),
                       ),
                     ],
@@ -1470,7 +1526,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                       border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.3)),
                     ),
                     child: Text(
-                      'معدل الفصل: ${gpa.toStringAsFixed(2)}%',
+                      '${isAr ? 'معدل الفصل' : 'Semester GPA'}: ${gpa.toStringAsFixed(2)}%',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w900,
@@ -1480,7 +1536,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                     ),
                   )
                 else if (isPast)
-                  const Text('مجتاز بنجاح', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                  Text(
+                    isAr ? 'مجتاز بنجاح' : 'Passed Successfully',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                  ),
               ],
             ),
           ),
@@ -1497,14 +1556,14 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
               dataRowMaxHeight: 40,
               headingTextStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
               dataTextStyle: const TextStyle(fontSize: 11),
-              columns: const [
-                DataColumn(label: Text('المقرر')),
-                DataColumn(label: Text('وزن')),
-                DataColumn(label: Text('مذاكرة')),
-                DataColumn(label: Text('شفهي')),
-                DataColumn(label: Text('امتحان')),
-                DataColumn(label: Text('المجموع')),
-                DataColumn(label: Text('الحالة')),
+              columns: [
+                DataColumn(label: Text(isAr ? 'المقرر' : 'Course')),
+                DataColumn(label: Text(isAr ? 'وزن' : 'Weight')),
+                DataColumn(label: Text(isAr ? 'مذاكرة' : 'Quiz')),
+                DataColumn(label: Text(isAr ? 'شفهي' : 'Oral')),
+                DataColumn(label: Text(isAr ? 'امتحان' : 'Exam')),
+                DataColumn(label: Text(isAr ? 'المجموع' : 'Total')),
+                DataColumn(label: Text(isAr ? 'الحالة' : 'Status')),
               ],
               rows: courses.map((c) {
                 final isPass = c['isPass'] == true;
@@ -1513,12 +1572,12 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
 
                 Widget statusWidget;
                 if (isClosedCourse) {
-                  statusWidget = const Text('مغلق', style: TextStyle(fontSize: 10, color: Colors.orange));
+                  statusWidget = Text(isAr ? 'مغلق' : 'Closed', style: const TextStyle(fontSize: 10, color: Colors.orange));
                 } else if (isPastCourse) {
-                  statusWidget = const Text('مجتاز', style: TextStyle(fontSize: 10, color: Colors.blueAccent));
+                  statusWidget = Text(isAr ? 'مجتاز' : 'Passed', style: const TextStyle(fontSize: 10, color: Colors.blueAccent));
                 } else {
                   statusWidget = Text(
-                    isPass ? 'ناجح' : 'راسب',
+                    isPass ? (isAr ? 'ناجح' : 'Pass') : (isAr ? 'راسب' : 'Fail'),
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -1572,11 +1631,14 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.calculate_rounded, color: Color(0xFFFFCC00), size: 20),
-                  SizedBox(width: 8),
-                  Text('المعدل التراكمي العام المعتمد', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
+                  const Icon(Icons.calculate_rounded, color: Color(0xFFFFCC00), size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    isAr ? 'المعدل التراكمي العام المعتمد' : 'Official Cumulative GPA',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                  ),
                 ],
               ),
               Text(
@@ -1594,10 +1656,14 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMiniMetric('الفصول المجتازة', '$passedSemesters'),
-              _buildMiniMetric('إجمالي الساعات', '${cumHours.toInt()}'),
-              _buildMiniMetric('إجمالي المقررات', '$totalCourses'),
-              _buildMiniMetric('الحالة الأكاديمية', isAllPassed ? 'مستوفٍ لشروط النجاح' : 'راسب بمواد', isGreen: isAllPassed),
+              _buildMiniMetric(isAr ? 'الفصول المجتازة' : 'Passed Sems', '$passedSemesters'),
+              _buildMiniMetric(isAr ? 'إجمالي الساعات' : 'Total Hours', '${cumHours.toInt()}'),
+              _buildMiniMetric(isAr ? 'إجمالي المقررات' : 'Total Courses', '$totalCourses'),
+              _buildMiniMetric(
+                isAr ? 'الحالة الأكاديمية' : 'Academic Status',
+                isAllPassed ? (isAr ? 'مستوفٍ لشروط النجاح' : 'Passed All') : (isAr ? 'راسب بمواد' : 'Has Failures'),
+                isGreen: isAllPassed,
+              ),
             ],
           ),
           if (failedTitles.isNotEmpty) ...[
@@ -1615,7 +1681,9 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'المقررات غير المجتازة: ${failedTitles.join(' • ')}',
+                      isAr
+                          ? 'المقررات غير المجتازة: ${failedTitles.join(' • ')}'
+                          : 'Failed Courses: ${failedTitles.join(' • ')}',
                       style: const TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -1655,12 +1723,18 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
         border: Border.all(color: borderColor),
       ),
       alignment: Alignment.center,
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.folder_open_rounded, size: 36, color: Colors.grey),
-          SizedBox(height: 8),
-          Text('لا يوجد طالب محدد حالياً', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-          Text('اختر طالباً من القائمة بالأعلى لعرض سجله وتفاصيل مقرراته', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          const Icon(Icons.folder_open_rounded, size: 36, color: Colors.grey),
+          const SizedBox(height: 8),
+          Text(
+            isAr ? 'لا يوجد طالب محدد حالياً' : 'No student currently selected',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            isAr ? 'اختر طالباً من القائمة بالأعلى لعرض سجله وتفاصيل مقرراته' : 'Select a student from the list above to view record and courses',
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
+          ),
         ],
       ),
     );
@@ -1668,17 +1742,17 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
 
   Widget _buildStandingBadge(String standing, bool hasFailed) {
     Color color = Colors.green;
-    String text = 'ناجح ✅';
+    String text = isAr ? 'ناجح ✅' : 'Passed ✅';
 
     if (standing == 'graduated') {
       color = Colors.blue;
-      text = 'خريج معتمد 🎓';
+      text = isAr ? 'خريج معتمد 🎓' : 'Graduated 🎓';
     } else if (standing == 'supplementary' || (standing != 'failed' && hasFailed)) {
       color = Colors.amber;
-      text = 'دورة تكميلية 📝';
+      text = isAr ? 'دورة تكميلية 📝' : 'Supplementary 📝';
     } else if (standing == 'failed' || hasFailed) {
       color = Colors.red;
-      text = 'راسب ⚠️';
+      text = isAr ? 'راسب ⚠️' : 'Failed ⚠️';
     }
 
     return Container(
@@ -1706,7 +1780,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
           border: Border.all(color: borderColor),
         ),
         alignment: Alignment.center,
-        child: const Text('لا توجد مواد مطابقة لمعايير الفلترة الحالية', style: TextStyle(color: Colors.grey, fontSize: 13)),
+        child: Text(
+          isAr ? 'لا توجد مواد مطابقة لمعايير الفلترة الحالية' : 'No courses matching current filters',
+          style: const TextStyle(color: Colors.grey, fontSize: 13),
+        ),
       );
     }
 
@@ -1742,7 +1819,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(crs['title'] ?? '-', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isSel ? const Color(0xFFFFCC00) : null)),
-                      Text('سنة ${crs['year']} • فصل ${crs['semester_id']} • وزن: ${crs['weight']}', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                      Text(
+                        '${isAr ? 'سنة' : 'Year'} ${crs['year']} • ${isAr ? 'فصل' : 'Sem'} ${crs['semester_id']} • ${isAr ? 'وزن' : 'Weight'}: ${crs['weight']}',
+                        style: const TextStyle(fontSize: 9, color: Colors.grey),
+                      ),
                     ],
                   ),
                 ),
@@ -1770,7 +1850,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(c['title'] ?? '-', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-                      Text('وزن الساعات: ${c['weight']} • سنة ${c['year']} • فصل ${c['semester_id']}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        '${isAr ? 'وزن الساعات' : 'Credit Hours'}: ${c['weight']} • ${isAr ? 'سنة' : 'Year'} ${c['year']} • ${isAr ? 'فصل' : 'Sem'} ${c['semester_id']}',
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
                     ],
                   ),
                   Container(
@@ -1779,7 +1862,10 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                       color: const Color(0xFFFFCC00).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text('${enrolled.length} طلاب مسجلون', style: const TextStyle(fontSize: 11, color: Color(0xFFFFCC00), fontWeight: FontWeight.bold)),
+                    child: Text(
+                      '${enrolled.length} ${isAr ? 'طلاب مسجلون' : 'Enrolled Students'}',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFFFFCC00), fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -1788,31 +1874,39 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
               // فلتر نجاح/رسوب بالمادة
               Row(
                 children: [
-                  _buildSubFilterChip('all', 'الكل (${enrolled.length})'),
+                  _buildSubFilterChip('all', isAr ? 'الكل (${enrolled.length})' : 'All (${enrolled.length})'),
                   const SizedBox(width: 8),
-                  _buildSubFilterChip('pass', 'الناجحون'),
+                  _buildSubFilterChip('pass', isAr ? 'الناجحون' : 'Passed'),
                   const SizedBox(width: 8),
-                  _buildSubFilterChip('fail', 'الراسبون'),
+                  _buildSubFilterChip('fail', isAr ? 'الراسبون' : 'Failed'),
                 ],
               ),
               const SizedBox(height: 10),
 
               // جدول الطلاب بالدرجات
               if (enrolled.isEmpty)
-                const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('لا يوجد طلاب مسجلون بهذه المادة', style: TextStyle(color: Colors.grey))))
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      isAr ? 'لا يوجد طلاب مسجلون بهذه المادة' : 'No students enrolled in this course',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
               else
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: DataTable(
                     columnSpacing: 14,
-                    columns: const [
-                      DataColumn(label: Text('رقم القيد')),
-                      DataColumn(label: Text('اسم الطالب')),
-                      DataColumn(label: Text('المذاكرة')),
-                      DataColumn(label: Text('الشفهي')),
-                      DataColumn(label: Text('الامتحان')),
-                      DataColumn(label: Text('المجموع')),
-                      DataColumn(label: Text('الحالة')),
+                    columns: [
+                      DataColumn(label: Text(isAr ? 'رقم القيد' : 'Student ID')),
+                      DataColumn(label: Text(isAr ? 'اسم الطالب' : 'Student Name')),
+                      DataColumn(label: Text(isAr ? 'المذاكرة' : 'Quiz')),
+                      DataColumn(label: Text(isAr ? 'الشفهي' : 'Oral')),
+                      DataColumn(label: Text(isAr ? 'الامتحان' : 'Exam')),
+                      DataColumn(label: Text(isAr ? 'المجموع' : 'Total')),
+                      DataColumn(label: Text(isAr ? 'الحالة' : 'Status')),
                     ],
                     rows: enrolled.where((st) {
                       final score = (st['exam_score'] is num) ? (st['exam_score'] as num).toDouble() : 0.0;
@@ -1830,7 +1924,7 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                         DataCell(Text('${st['final_exam_score'] ?? 0}')),
                         DataCell(Text('$score / 100', style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'))),
                         DataCell(Text(
-                          isPass ? 'ناجح' : 'راسب',
+                          isPass ? (isAr ? 'ناجح' : 'Pass') : (isAr ? 'راسب' : 'Fail'),
                           style: TextStyle(color: isPass ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
                         )),
                       ]);

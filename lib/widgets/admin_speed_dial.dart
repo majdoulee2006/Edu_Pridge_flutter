@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 // استيراد الواجهات من مجلد center_icons مثل هيكلية المشروع
 import 'package:edu_pridge_flutter/screens/admin/center_icons/reports/reports_screen.dart';
@@ -20,9 +21,12 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
   bool _isOpen = false;
   late AnimationController _animationController;
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -31,8 +35,13 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _animationController.dispose();
     super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   void _toggleMenu() {
@@ -54,7 +63,7 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
     final Color separatorColor = isDark ? Colors.grey.shade800 : Colors.grey.shade200;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -89,7 +98,7 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
                           children: [
                             // 1. التقارير
                             _buildMenuItem(
-                              'التقارير',
+                              isAr ? 'التقارير' : 'Reports',
                               Icons.bar_chart_outlined,
                               Colors.blue,
                               18.0, 0.0, 0.3, itemTextColor,
@@ -97,15 +106,15 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
                             ),
                             // 2. الفصول والمواد
                             _buildMenuItem(
-                              'الفصول والمواد',
+                              isAr ? 'الفصول والمواد' : 'Classes & Courses',
                               Icons.class_outlined,
                               Colors.orange,
                               54.0, 0.2, 0.5, itemTextColor,
                               () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassesScreen())),
                             ),
-                            // 3. المواعيد (في المنتصف تماماً)
+                            // 3. المواعيد
                             _buildMenuItem(
-                              'المواعيد',
+                              isAr ? 'المواعيد' : 'Appointments',
                               Icons.calendar_today_rounded,
                               Colors.teal,
                               90.0, 0.4, 0.7, itemTextColor,
@@ -113,7 +122,7 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
                             ),
                             // 4. الدورات
                             _buildMenuItem(
-                              'الدورات',
+                              isAr ? 'الدورات' : 'Courses',
                               Icons.layers_outlined,
                               Colors.purple,
                               126.0, 0.6, 0.9, itemTextColor,
@@ -121,7 +130,7 @@ class _AdminSpeedDialState extends State<AdminSpeedDial>
                             ),
                             // 5. إدارة الحسابات
                             _buildMenuItem(
-                              'إدارة الحسابات',
+                              isAr ? 'إدارة الحسابات' : 'Accounts',
                               Icons.manage_accounts_outlined,
                               Colors.green,
                               162.0, 0.7, 1.0, itemTextColor,

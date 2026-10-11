@@ -20,7 +20,7 @@ class PerformanceScreen extends StatefulWidget {
 }
 
 class _PerformanceScreenState extends State<PerformanceScreen> {
-  String studentName = "جارِ التحميل...";
+  String studentName = "";
   Map<String, dynamic>? data;
   bool isLoading = true;
   int? studentId;
@@ -28,7 +28,18 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchPerformanceData();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _fetchPerformanceData() async {
@@ -38,7 +49,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       int? sId = prefs.getInt('selected_student_id');
       studentId = sId;
       String? token = prefs.getString('token');
-      studentName = prefs.getString('selected_student_name') ?? "الطالب";
+      studentName = prefs.getString('selected_student_name') ?? "";
 
       if (sId != null && token != null) {
         var response = await Dio().get(
@@ -64,6 +75,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   }
 
   void _showJustifyAbsenceDialog(String date, String subjectName) {
+    final bool isAr = AppSettings.language.value == 'ar';
     TextEditingController reasonController = TextEditingController();
     bool isSubmitting = false;
     File? selectedFile;
@@ -74,22 +86,24 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return Directionality(
-              textDirection: TextDirection.rtl,
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
               child: AlertDialog(
                 backgroundColor: Theme.of(context).cardColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                title: const Text('تبرير غياب', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(isAr ? 'تبرير غياب' : 'Justify Absence', style: const TextStyle(fontWeight: FontWeight.bold)),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('الرجاء إدخال سبب الغياب لمادة $subjectName بتاريخ $date:'),
+                      Text(isAr
+                          ? 'الرجاء إدخال سبب الغياب لمادة $subjectName بتاريخ $date:'
+                          : 'Please enter reason for absence in $subjectName on $date:'),
                       const SizedBox(height: 15),
                       TextField(
                         controller: reasonController,
                         maxLines: 3,
                         decoration: InputDecoration(
-                          hintText: 'مثال: عذر طبي...',
+                          hintText: isAr ? 'مثال: عذر طبي...' : 'e.g., Medical excuse...',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
@@ -107,7 +121,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                           }
                         },
                         icon: const Icon(Icons.attach_file),
-                        label: Text(selectedFile != null ? 'تم إرفاق ملف' : 'إرفاق تقرير طبي أو صورة'),
+                        label: Text(selectedFile != null
+                            ? (isAr ? 'تم إرفاق ملف' : 'File attached')
+                            : (isAr ? 'إرفاق تقرير طبي أو صورة' : 'Attach medical report or image')),
                       ),
                       if (selectedFile != null)
                         Padding(
@@ -120,7 +136,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 actions: [
                   TextButton(
                     onPressed: isSubmitting ? null : () => Navigator.pop(context),
-                    child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+                    child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(color: Colors.grey)),
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
@@ -160,20 +176,26 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                                 if (!context.mounted) return;
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('تم إرسال تبرير الغياب بنجاح!'), backgroundColor: Colors.green),
+                                  SnackBar(
+                                    content: Text(isAr ? 'تم إرسال تبرير الغياب بنجاح!' : 'Absence justification sent successfully!'),
+                                    backgroundColor: Colors.green,
+                                  ),
                                 );
                               }
                             } catch (e) {
                               setStateDialog(() => isSubmitting = false);
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('حدث خطأ أثناء الإرسال'), backgroundColor: Colors.red),
+                                SnackBar(
+                                  content: Text(isAr ? 'حدث خطأ أثناء الإرسال' : 'Error occurred while sending'),
+                                  backgroundColor: Colors.red,
+                                ),
                               );
                             }
                           },
                     child: isSubmitting
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                        : const Text('إرسال', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                        : Text(isAr ? 'إرسال' : 'Submit', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -185,6 +207,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   }
 
   void _showGradeDialog(Map<String, dynamic> item, Color col) {
+    final bool isAr = AppSettings.language.value == 'ar';
     final exams = (item['exams'] as List?) ?? [];
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
@@ -192,7 +215,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     showDialog(
       context: context,
       builder: (context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: AlertDialog(
           backgroundColor: cardColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -204,11 +227,11 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             ],
           ),
           content: exams.isEmpty
-              ? Text("لا توجد تفاصيل للاختبارات", style: TextStyle(color: textColor.withValues(alpha: 0.5)))
+              ? Text(isAr ? "لا توجد تفاصيل للاختبارات" : "No exam details available", style: TextStyle(color: textColor.withValues(alpha: 0.5)))
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: exams.map<Widget>((e) {
-                    final examName = e['exam_name'] ?? 'اختبار';
+                    final examName = e['exam_name'] ?? (isAr ? 'اختبار' : 'Exam');
                     final score = (e['score'] as num?)?.toDouble() ?? 0.0;
                     final max = (e['max_score'] as num?)?.toInt() ?? 100;
                     return Padding(
@@ -230,7 +253,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("إغلاق", style: TextStyle(color: col, fontWeight: FontWeight.bold)),
+              child: Text(isAr ? "إغلاق" : "Close", style: TextStyle(color: col, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -243,14 +266,15 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     return DefaultTabController(
       length: 3,
       child: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: Scaffold(
           backgroundColor: bgColor,
-          appBar: _buildMainAppBar(context, textColor, cardColor),
+          appBar: _buildMainAppBar(context, textColor, cardColor, isAr),
           body: isLoading
               ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
               : Stack(
@@ -258,9 +282,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     Positioned.fill(
                       child: TabBarView(
                         children: [
-                          _buildResultsTab(textColor, cardColor),
-                          _buildGradesTab(textColor, cardColor),
-                          _buildAttendanceTab(textColor, cardColor),
+                          _buildResultsTab(textColor, cardColor, isAr),
+                          _buildGradesTab(textColor, cardColor, isAr),
+                          _buildAttendanceTab(textColor, cardColor, isAr),
                         ],
                       ),
                     ),
@@ -279,18 +303,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  PreferredSizeWidget _buildMainAppBar(BuildContext context, Color textColor, Color cardColor) {
+  PreferredSizeWidget _buildMainAppBar(BuildContext context, Color textColor, Color cardColor, bool isAr) {
+    final String displayName = studentName.isNotEmpty ? studentName : (isAr ? "الطالب" : "Student");
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      title: Text("أداء $studentName", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+      title: Text("${isAr ? 'أداء' : 'Performance of'} $displayName", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
       leading: IconButton(
         icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
       ),
       actions: [
-        IconButton(icon: Icon(Icons.arrow_back, color: textColor), onPressed: () => Navigator.pop(context)),
+        IconButton(icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pop(context)),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(80),
@@ -303,24 +328,28 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             unselectedLabelColor: Colors.grey,
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
-            tabs: const [Tab(text: "النتائج"), Tab(text: "العلامات"), Tab(text: "الحضور")],
+            tabs: [
+              Tab(text: isAr ? "النتائج" : "Results"),
+              Tab(text: isAr ? "العلامات" : "Grades"),
+              Tab(text: isAr ? "الحضور" : "Attendance"),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildResultsTab(Color textColor, Color cardColor) {
+  Widget _buildResultsTab(Color textColor, Color cardColor, bool isAr) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _buildGpaCard(data?['gpa']?.toString() ?? "0.0", textColor, cardColor),
+        _buildGpaCard(data?['gpa']?.toString() ?? "0.0", textColor, cardColor, isAr),
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: _buildSmallStatCard("الحضور", "${data?['attendance_rate'] ?? 0}%", Icons.check_circle, Colors.green, textColor, cardColor)),
+            Expanded(child: _buildSmallStatCard(isAr ? "الحضور" : "Attendance", "${data?['attendance_rate'] ?? 0}%", Icons.check_circle, Colors.green, textColor, cardColor)),
             const SizedBox(width: 15),
-            Expanded(child: _buildSmallStatCard("الغياب", "${data?['absent_count'] ?? 0} يوم", Icons.cancel, Colors.red, textColor, cardColor)),
+            Expanded(child: _buildSmallStatCard(isAr ? "الغياب" : "Absence", "${data?['absent_count'] ?? 0} ${isAr ? 'يوم' : 'days'}", Icons.cancel, Colors.red, textColor, cardColor)),
           ],
         ),
         const SizedBox(height: 30),
@@ -333,9 +362,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  Widget _buildGradesTab(Color textColor, Color cardColor) {
+  Widget _buildGradesTab(Color textColor, Color cardColor, bool isAr) {
     List grades = data?['grades'] ?? [];
-    if (grades.isEmpty) return const Center(child: Text("لا توجد علامات حالياً"));
+    if (grades.isEmpty) return Center(child: Text(isAr ? "لا توجد علامات حالياً" : "No grades available currently"));
 
     return ListView.builder(
       padding: const EdgeInsets.all(20),
@@ -343,48 +372,50 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       itemBuilder: (context, index) {
         final item = grades[index] as Map<String, dynamic>;
         final col = index % 2 == 0 ? Colors.blue : Colors.orange;
-        return _buildGradeDetailCard(item, "${item['score'] ?? 0}%", col, textColor, cardColor);
+        return _buildGradeDetailCard(item, "${item['score'] ?? 0}%", col, textColor, cardColor, isAr);
       },
     );
   }
 
-  Widget _buildAttendanceTab(Color textColor, Color cardColor) {
+  Widget _buildAttendanceTab(Color textColor, Color cardColor, bool isAr) {
     List logs = data?['attendance_logs'] ?? [];
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         Row(
           children: [
-            Expanded(child: _buildAttendanceCircleCard("${data?['attendance_rate'] ?? 0}%", "حضور", Colors.green, textColor, cardColor)),
+            Expanded(child: _buildAttendanceCircleCard("${data?['attendance_rate'] ?? 0}%", isAr ? "حضور" : "Attendance", Colors.green, textColor, cardColor)),
             const SizedBox(width: 15),
-            Expanded(child: _buildAttendanceCircleCard("${(100 - (data?['attendance_rate'] ?? 0))}%", "غياب", Colors.red, textColor, cardColor)),
+            Expanded(child: _buildAttendanceCircleCard("${(100 - (data?['attendance_rate'] ?? 0))}%", isAr ? "غياب" : "Absence", Colors.red, textColor, cardColor)),
           ],
         ),
         const SizedBox(height: 25),
-        if (logs.isEmpty) const Center(child: Text("لا توجد سجلات حضور")),
+        if (logs.isEmpty) Center(child: Text(isAr ? "لا توجد سجلات حضور" : "No attendance records")),
         ...logs.map((log) {
-          final status = log['status'] ?? '';
-          String statusText = 'غائب';
+          final status = log['status']?.toString().toLowerCase() ?? '';
+          String statusText = isAr ? 'غائب' : 'Absent';
           Color statusColor = Colors.red;
-          if (status == 'present') {
-            statusText = 'حاضر';
+          if (status == 'present' || status == 'حاضر') {
+            statusText = isAr ? 'حاضر' : 'Present';
             statusColor = Colors.green;
-          } else if (status == 'late') {
-            statusText = 'متأخر';
+          } else if (status == 'late' || status == 'متأخر') {
+            statusText = isAr ? 'متأخر' : 'Late';
             statusColor = Colors.amber;
-          } else if (status == 'pending') {
-            statusText = 'قيد الانتظار';
+          } else if (status == 'pending' || status == 'قيد الانتظار') {
+            statusText = isAr ? 'قيد الانتظار' : 'Pending';
             statusColor = Colors.orange;
           }
+          final bool isAbsent = status == 'absent' || status == 'غائب' || statusText == (isAr ? 'غائب' : 'Absent');
+
           return _buildLectureRow(
             log['attendance_date']?.toString().split('-').last ?? "00",
-            "الشهر",
+            isAr ? "الشهر" : "Month",
             log['name'] ?? "",
             statusText,
             statusColor,
             textColor,
             cardColor,
-            onTap: statusText == 'غائب' ? () => _showJustifyAbsenceDialog(log['attendance_date'].toString().split(' ')[0], log['name'] ?? "") : null,
+            onTap: isAbsent ? () => _showJustifyAbsenceDialog(log['attendance_date'].toString().split(' ')[0], log['name'] ?? "") : null,
           );
         }),
         const SizedBox(height: 150),
@@ -392,7 +423,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  Widget _buildGpaCard(String gpaValue, Color textColor, Color cardColor) {
+  Widget _buildGpaCard(String gpaValue, Color textColor, Color cardColor, bool isAr) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(35)),
@@ -402,7 +433,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("المعدل التراكمي", style: TextStyle(color: textColor.withValues(alpha: 0.5))),
+              Text(isAr ? "المعدل التراكمي" : "Cumulative GPA", style: TextStyle(color: textColor.withValues(alpha: 0.5))),
               Text(gpaValue, style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: textColor)),
             ],
           ),
@@ -433,7 +464,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     );
   }
 
-  Widget _buildGradeDetailCard(Map<String, dynamic> item, String percent, Color col, Color textColor, Color cardColor) {
+  Widget _buildGradeDetailCard(Map<String, dynamic> item, String percent, Color col, Color textColor, Color cardColor, bool isAr) {
     return GestureDetector(
       onTap: () => _showGradeDialog(item, col),
       child: Container(
@@ -448,7 +479,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             const Spacer(),
             Text(percent, style: TextStyle(color: col, fontWeight: FontWeight.bold)),
             const SizedBox(width: 10),
-            Icon(Icons.arrow_back, size: 12, color: textColor.withValues(alpha: 0.3)),
+            Icon(isAr ? Icons.arrow_back_ios_new : Icons.arrow_forward_ios, size: 12, color: textColor.withValues(alpha: 0.3)),
           ],
         ),
       ),

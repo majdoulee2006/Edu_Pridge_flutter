@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:edu_pridge_flutter/widgets/affairs_officer_speed_dial.dart';
+import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
@@ -22,16 +22,27 @@ class AffairsOfficerActivitiesScreen extends StatefulWidget {
 }
 
 class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitiesScreen> {
-  String _currentFilter = 'الكل';
-  final List<String> _filters = ['الكل', 'القادمة', 'المكتملة'];
+  bool get isAr => AppSettings.language.value == 'ar';
+  int _selectedFilterIndex = 0;
 
   List<dynamic> _activities = [];
   bool _isLoading = true;
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadActivities();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _loadActivities() async {
@@ -48,7 +59,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
 
   List<dynamic> get _filteredActivities {
     final now = DateTime.now();
-    if (_currentFilter == 'القادمة') {
+    if (_selectedFilterIndex == 1) { // Upcoming
       return _activities.where((a) {
         final dateStr = a['event_date'] ?? a['created_at'] ?? '';
         try {
@@ -56,7 +67,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
         } catch (_) { return true; }
       }).toList();
     }
-    if (_currentFilter == 'المكتملة') {
+    if (_selectedFilterIndex == 2) { // Completed
       return _activities.where((a) {
         final dateStr = a['event_date'] ?? a['created_at'] ?? '';
         try {
@@ -83,13 +94,13 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: AlertDialog(
-          title: const Text('تأكيد الحذف', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
-          content: const Text('هل أنت متأكد من حذف هذا النشاط؟', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          title: Text(isAr ? 'تأكيد الحذف' : 'Confirm Delete', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+          content: Text(isAr ? 'هل أنت متأكد من حذف هذا النشاط؟' : 'Are you sure you want to delete this activity?', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(isAr ? 'إلغاء' : 'Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(isAr ? 'حذف' : 'Delete', style: const TextStyle(color: Colors.red))),
           ],
         ),
       ),
@@ -99,7 +110,14 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
       if (ok && mounted) {
         _loadActivities();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حذف النشاط بنجاح', textAlign: TextAlign.center), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(
+              isAr ? 'تم حذف النشاط بنجاح' : 'Activity deleted successfully',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+            ),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     }
@@ -114,8 +132,14 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
     final Color textColor = isDark ? Colors.white : Colors.black;
     final Color subColor = isDark ? Colors.grey.shade400 : Colors.grey;
 
+    final filterLabels = [
+      isAr ? 'الكل' : 'All',
+      isAr ? 'القادمة' : 'Upcoming',
+      isAr ? 'المكتملة' : 'Completed',
+    ];
+
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         floatingActionButton: Padding(
@@ -143,16 +167,16 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
               child: Column(
                 children: [
                   // ═══════════════════════════════════════
-                  // الهيدر: زر رجوع (يمين) | العنوان (وسط) | إعدادات (يسار)
+                  // الهيدر: زر رجوع | العنوان | إعدادات
                   // ═══════════════════════════════════════
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // ✅ زر الإعدادات على اليسار
+                        // زر الإعدادات
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: isAr ? Alignment.centerLeft : Alignment.centerRight,
                           child: IconButton(
                             icon: Icon(
                               Icons.settings,
@@ -167,9 +191,9 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                             },
                           ),
                         ),
-                        // عنوان "أنشطة" بالمنتصف - حجم 20
+                        // عنوان "أنشطة"
                         Text(
-                          "الأنشطة",
+                          isAr ? "الأنشطة" : "Activities",
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -177,12 +201,12 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                             fontFamily: 'Noto Sans Arabic',
                           ),
                         ),
-                        // ✅ زر الرجوع على اليمين - سهم للخلف
+                        // زر الرجوع
                         Align(
-                          alignment: Alignment.centerRight,
+                          alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                           child: IconButton(
                             icon: Icon(
-                              Icons.arrow_back,
+                              isAr ? Icons.arrow_back : Icons.arrow_forward,
                               color: textColor,
                               size: 26,
                             ),
@@ -194,7 +218,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                   ),
 
                   // ═══════════════════════════════════════
-                  // شريط الفلاتر (الكل، القادمة، المكتملة، رحلات)
+                  // شريط الفلاتر
                   // ═══════════════════════════════════════
                   Container(
                     height: 50,
@@ -202,18 +226,21 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       physics: const BouncingScrollPhysics(),
-                      itemCount: _filters.length,
+                      itemCount: filterLabels.length,
                       itemBuilder: (context, index) {
-                        final filter = _filters[index];
-                        final isSelected = _currentFilter == filter;
+                        final label = filterLabels[index];
+                        final isSelected = _selectedFilterIndex == index;
                         return GestureDetector(
                           onTap: () {
                             setState(() {
-                              _currentFilter = filter;
+                              _selectedFilterIndex = index;
                             });
                           },
                           child: Container(
-                            margin: const EdgeInsets.only(left: 10),
+                            margin: EdgeInsets.only(
+                              left: isAr ? 10 : 0,
+                              right: isAr ? 0 : 10,
+                            ),
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                             decoration: BoxDecoration(
                               color: isSelected
@@ -223,7 +250,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                               boxShadow: isSelected
                                   ? [
                                 BoxShadow(
-                                  color: const Color(0xFFFFCC00).withValues(alpha: 0.4),  // ← أصفر
+                                  color: const Color(0xFFFFCC00).withOpacity(0.4),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -237,7 +264,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                               ],
                             ),
                             child: Text(
-                              filter,
+                              label,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -267,7 +294,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                                     Icon(Icons.event_busy_outlined, size: 64, color: Colors.grey.shade400),
                                     const SizedBox(height: 12),
                                     Text(
-                                      'لا توجد أنشطة منشورة بعد',
+                                      isAr ? 'لا توجد أنشطة منشورة بعد' : 'No activities published yet',
                                       style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontFamily: 'Noto Sans Arabic'),
                                     ),
                                   ],
@@ -335,7 +362,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
   }
 
   // ═══════════════════════════════════════
-  // بطاقة النشاط (بدون: خط هامش + التفاصيل + عدد المسجلين + صور)
+  // بطاقة النشاط
   // ═══════════════════════════════════════
   Widget _buildActivityCard(
       Map<String, dynamic> data, {
@@ -347,23 +374,26 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
     
     // إعداد المتغيرات من بيانات السيرفر
     final String title = data['title'] ?? '';
-    final String category = data['category'] ?? 'عام';
+    final String category = data['category'] ?? (isAr ? 'عام' : 'General');
     final String time = data['event_time'] ?? '';
-    final String location = data['location'] ?? 'غير محدد';
+    final String location = data['location'] ?? (isAr ? 'غير محدد' : 'Not specified');
     final int id = data['id'] ?? data['announcement_id'] ?? 0;
     
-    // Add new fields parsing
-    final String audience = data['target_audience'] == 'students' ? 'طلاب' :
-                            data['target_audience'] == 'teachers' ? 'معلمين' :
-                            data['target_audience'] == 'heads' ? 'رؤساء أقسام' : 'الجميع';
+    final String audience = data['target_audience'] == 'students'
+        ? (isAr ? 'طلاب' : 'Students')
+        : data['target_audience'] == 'teachers'
+            ? (isAr ? 'معلمين' : 'Teachers')
+            : data['target_audience'] == 'heads'
+                ? (isAr ? 'رؤساء أقسام' : 'Department Heads')
+                : (isAr ? 'الجميع' : 'Everyone');
     
     String deptText = '';
     if (data['department_name'] != null) {
-      deptText = ' | قسم: ${data['department_name']}';
+      deptText = isAr ? ' | قسم: ${data['department_name']}' : ' | Dept: ${data['department_name']}';
     }
     String courseText = '';
     if (data['course_name'] != null) {
-      courseText = ' | دورة: ${data['course_name']}';
+      courseText = isAr ? ' | دورة: ${data['course_name']}' : ' | Course: ${data['course_name']}';
     }
     
     // التعامل مع التاريخ
@@ -374,7 +404,9 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
       try {
         final DateTime d = DateTime.parse(dateStr);
         day = d.day.toString().padLeft(2, '0');
-        const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        final monthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        final monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final months = isAr ? monthsAr : monthsEn;
         if (d.month >= 1 && d.month <= 12) {
           monthStr = months[d.month - 1];
         } else {
@@ -383,7 +415,9 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
       } catch (_) {}
     }
 
-    final Color categoryColor = Colors.blue; // يمكن ربطها بنوع النشاط مستقبلا
+    final Color categoryColor = Colors.blue;
+    final defaultAuthor = isAr ? 'شؤون الطلاب' : 'Student Affairs';
+    final author = data['author_name'] ?? data['publisher_name'] ?? data['created_by'] ?? defaultAuthor;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -403,12 +437,12 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ═══ التاريخ (يمين) ═══
+            // التاريخ
             Container(
               width: 65,
               height: 70,
               decoration: BoxDecoration(
-                color: categoryColor.withValues(alpha: 0.1),
+                color: categoryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -438,12 +472,11 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
 
             const SizedBox(width: 14),
 
-            // ═══ المحتوى (وسط) ═══
+            // المحتوى
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // التصنيف + الأيقونة
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
@@ -486,7 +519,6 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // عنوان النشاط
                   Text(
                     title,
                     style: TextStyle(
@@ -497,7 +529,6 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // الوقت + الموقع
                   Wrap(
                     spacing: 12,
                     runSpacing: 6,
@@ -554,7 +585,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            "نشر بواسطة: ${data['author_name'] ?? data['publisher_name'] ?? data['created_by'] ?? 'شؤون الطلاب'}",
+                            "${isAr ? 'نشر بواسطة:' : 'Published by:'} $author",
                             style: TextStyle(
                               fontSize: 12,
                               color: subColor,
@@ -569,7 +600,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
               ),
             ),
 
-            // ═══ الأزرار (يسار) ═══
+            // الأزرار
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -577,7 +608,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
+                    color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: IconButton(
@@ -592,7 +623,7 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
+                    color: Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: IconButton(
@@ -609,4 +640,4 @@ class _AffairsOfficerActivitiesScreenState extends State<AffairsOfficerActivitie
       ),
     );
   }
-}
+}

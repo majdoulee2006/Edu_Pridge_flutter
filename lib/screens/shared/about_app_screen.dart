@@ -18,18 +18,85 @@ class AboutAppScreen extends StatefulWidget {
 class _AboutAppScreenState extends State<AboutAppScreen> {
   late int _selectedTab;
   late final PageController _pageController;
+  int _selectedMemberIndex = 0;
 
-  final List<_TabItem> _tabs = const [
-    _TabItem(title: 'حول المنصة', icon: Icons.auto_awesome_rounded),
-    _TabItem(title: 'فريق التطوير', icon: Icons.people_alt_rounded),
-    _TabItem(title: 'سياسة الخصوصية', icon: Icons.shield_rounded),
-    _TabItem(title: 'تواصل معنا', icon: Icons.headset_mic_rounded),
+  static const List<_TeamMember> _teamMembers = [
+    _TeamMember(
+      id: 1,
+      nameAr: "مجدولين محمود",
+      nameEn: "Majdouleen Mahmoud",
+      roleAr: "قائدة الفريق ومسؤولة الربط البرمجي",
+      roleEn: "Team Leader & Integration Specialist",
+      descAr: "إدارة وتوجيه دورة حياة المشروع، هندسة وتكامل الأنظمة والربط البرمجي بين الخدمات.",
+      descEn: "Project lifecycle leadership, system architecture, API integration, and cross-platform synergy.",
+      initials: "MM",
+      icon: Icons.hub_rounded,
+      color: Color(0xFFF59E0B),
+      gradient: [Color(0xFFF59E0B), Color(0xFFD97706)],
+      tags: ["Laravel", "System Architecture", "REST APIs Integration", "Security & Auth"],
+    ),
+    _TeamMember(
+      id: 2,
+      nameAr: "محمود غنام",
+      nameEn: "Mahmoud Ghannam",
+      roleAr: "مطوّر واجهات تطبيق الموبايل Flutter",
+      roleEn: "Flutter Mobile App Developer",
+      descAr: "بناء وتطوير واجهات تطبيق الموبايل عالي الأداء مع تجربة مستخدم سلسة وتقنيات الحضور الذكية.",
+      descEn: "High-performance Flutter mobile client engineering, biometric attendance integration, and fluid UX.",
+      initials: "MG",
+      icon: Icons.phone_android_rounded,
+      color: Color(0xFF0EA5E9),
+      gradient: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+      tags: ["Flutter", "Dart", "Mobile Architecture", "QR & Biometrics", "Fluid UX"],
+    ),
+    _TeamMember(
+      id: 3,
+      nameAr: "اسراء منوّر",
+      nameEn: "Israa Munawwar",
+      roleAr: "مطوّرة خادم ومصممة APIs (Backend)",
+      roleEn: "Backend & APIs Developer",
+      descAr: "تطوير المنطق البرمجي للخادم، بناء وتأمين واجهات البرمجة التطبيقية (RESTful APIs) وإدارة العمليات.",
+      descEn: "Robust server business logic, high-security RESTful APIs architecture, and transaction handling.",
+      initials: "EM",
+      icon: Icons.code_rounded,
+      color: Color(0xFFA855F7),
+      gradient: [Color(0xFFA855F7), Color(0xFF9333EA)],
+      tags: ["PHP & Laravel", "RESTful APIs", "MySQL Database", "Backend Logic"],
+    ),
+    _TeamMember(
+      id: 4,
+      nameAr: "هبة الله عيسى",
+      nameEn: "Hiba Issa",
+      roleAr: "مطوّرة لوحة التحكم والإدارة Web",
+      roleEn: "Web Admin Dashboard Developer",
+      descAr: "تصميم وتطوير لوحات التحكم الإدارية ومواقع الويب المتجاوبة بكفاءة وأمان عاليين.",
+      descEn: "Responsive web administration portals, role-based control panels, and enterprise management UI.",
+      initials: "HA",
+      icon: Icons.palette_rounded,
+      color: Color(0xFF10B981),
+      gradient: [Color(0xFF10B981), Color(0xFF059669)],
+      tags: ["Admin Web UI", "Blade Templating", "Responsive Layouts", "JavaScript UX"],
+    ),
+    _TeamMember(
+      id: 5,
+      nameAr: "شهد زريقي",
+      nameEn: "Shahd Zureki",
+      roleAr: "محللة قواعد بيانات ومطوّرة واجهات",
+      roleEn: "Database Analyst & UI Developer",
+      descAr: "هندسة وتحليل جداول واستعلامات قواعد البيانات وبناء واجهات مستخدم تفاعلية متناسقة.",
+      descEn: "Relational schema design, optimized database queries, data modeling, and responsive UI components.",
+      initials: "SZ",
+      icon: Icons.storage_rounded,
+      color: Color(0xFFEAB308),
+      gradient: [Color(0xFFEAB308), Color(0xFFCA8A04)],
+      tags: ["Database Modeling", "SQL Optimization", "Relational Integrity", "UI Design"],
+    ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _selectedTab = widget.initialTabIndex.clamp(0, _tabs.length - 1);
+    _selectedTab = widget.initialTabIndex.clamp(0, 3);
     _pageController = PageController(initialPage: _selectedTab);
   }
 
@@ -63,6 +130,13 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           final subColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
           final borderColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06);
 
+          final tabs = [
+            _TabItem(title: isAr ? 'حول المنصة' : 'About Platform', icon: Icons.auto_awesome_rounded),
+            _TabItem(title: isAr ? 'فريق التطوير' : 'Dev Team', icon: Icons.people_alt_rounded),
+            _TabItem(title: isAr ? 'سياسة الخصوصية' : 'Privacy Policy', icon: Icons.shield_rounded),
+            _TabItem(title: isAr ? 'تواصل معنا' : 'Contact Us', icon: Icons.headset_mic_rounded),
+          ];
+
           return Directionality(
             textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
             child: Scaffold(
@@ -81,7 +155,11 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                   ),
                 ),
                 leading: IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+                  icon: Icon(
+                    isAr ? Icons.arrow_back : Icons.arrow_back_ios_new_rounded,
+                    color: textColor,
+                    size: 20,
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 bottom: PreferredSize(
@@ -143,7 +221,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    "المنظومة الأكاديمية والطلابية الذكية المتكاملة",
+                                    isAr
+                                        ? "المنظومة الأكاديمية والطلابية الذكية المتكاملة"
+                                        : "Integrated Smart Academic & Student System",
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       color: subColor,
@@ -158,15 +238,18 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        // ─── Capsule / Pill Tab Bar ───────────────────────────────
+                        // ─── Capsule Tab Bar ─────────────────────────────────────────
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
                           child: Row(
-                            children: List.generate(_tabs.length, (index) {
+                            children: List.generate(tabs.length, (index) {
                               final isSelected = _selectedTab == index;
                               return Padding(
-                                padding: const EdgeInsets.only(left: 8),
+                                padding: EdgeInsets.only(
+                                  left: isAr ? 0 : 8,
+                                  right: isAr ? 8 : 0,
+                                ),
                                 child: InkWell(
                                   onTap: () => _onTabSelected(index),
                                   borderRadius: BorderRadius.circular(14),
@@ -179,9 +262,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                                           : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
                                       borderRadius: BorderRadius.circular(14),
                                       border: Border.all(
-                                        color: isSelected
-                                            ? const Color(0xFFFFCC00)
-                                            : borderColor,
+                                        color: isSelected ? const Color(0xFFFFCC00) : borderColor,
                                       ),
                                       boxShadow: isSelected
                                           ? [
@@ -197,21 +278,17 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          _tabs[index].icon,
+                                          tabs[index].icon,
                                           size: 15,
-                                          color: isSelected
-                                              ? const Color(0xFF121212)
-                                              : subColor,
+                                          color: isSelected ? const Color(0xFF121212) : subColor,
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
-                                          _tabs[index].title,
+                                          tabs[index].title,
                                           style: TextStyle(
                                             fontSize: 12.5,
                                             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                            color: isSelected
-                                                ? const Color(0xFF121212)
-                                                : textColor,
+                                            color: isSelected ? const Color(0xFF121212) : textColor,
                                           ),
                                         ),
                                       ],
@@ -232,10 +309,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                       controller: _pageController,
                       onPageChanged: (index) => setState(() => _selectedTab = index),
                       children: [
-                        _buildAboutTab(context, cardColor, textColor, subColor, borderColor, isDark),
-                        _buildTeamTab(context, cardColor, textColor, subColor, borderColor, isDark),
-                        _buildPrivacyTab(context, cardColor, textColor, subColor, borderColor, isDark),
-                        _buildContactTab(context, cardColor, textColor, subColor, borderColor, isDark),
+                        _buildAboutTab(context, cardColor, textColor, subColor, borderColor, isDark, isAr),
+                        _buildTeamTab(context, cardColor, textColor, subColor, borderColor, isDark, isAr),
+                        _buildPrivacyTab(context, cardColor, textColor, subColor, borderColor, isDark, isAr),
+                        _buildContactTab(context, cardColor, textColor, subColor, borderColor, isDark, isAr),
                       ],
                     ),
                   ),
@@ -249,7 +326,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // TAB 1: حول المنصة
+  // TAB 1: حول المنصة (About Platform)
   // ══════════════════════════════════════════════════════════════════════════════
   Widget _buildAboutTab(
     BuildContext context,
@@ -258,6 +335,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
     Color subColor,
     Color borderColor,
     bool isDark,
+    bool isAr,
   ) {
     return ListView(
       physics: const BouncingScrollPhysics(),
@@ -271,7 +349,11 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: borderColor),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 3)),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
             ],
           ),
           child: Row(
@@ -288,7 +370,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  "منصة Edu-Bridge هي نظام متكامل ومتقدم لإدارة الشؤون الأكاديمية والطلابية والمعاهد، تهدف لتسهيل التواجد، الخدمات الإلكترونية، ومتابعة المحاضرات والنتائج بكل يسر وسلاسة وأمان.",
+                  isAr
+                      ? "منصة Edu-Bridge هي نظام متكامل ومتقدم لإدارة الشؤون الأكاديمية والطلابية والمعاهد، تهدف لتسهيل التواجد، الخدمات الإلكترونية، ومتابعة المحاضرات والنتائج بكل يسر وسلاسة وأمان."
+                      : "Edu-Bridge is an integrated and advanced management ecosystem for institutes and universities, aiming to streamline attendance, electronic services, lecture schedules, and grade records with complete ease and security.",
                   style: TextStyle(
                     fontSize: 13.5,
                     height: 1.65,
@@ -308,8 +392,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           icon: Icons.layers_rounded,
           iconBg: const Color(0xFFEAB308).withValues(alpha: 0.15),
           iconColor: const Color(0xFFEAB308),
-          title: "إدارة أكاديمية شاملة",
-          desc: "تنظيم المقررات، النتائج الامتحانية، الخطط الدراسية، وتقارير المتابعة الدقيقة لكل طالب.",
+          title: isAr ? "إدارة أكاديمية شاملة" : "Comprehensive Academic Management",
+          desc: isAr
+              ? "تنظيم المقررات، النتائج الامتحانية، الخطط الدراسية، وتقارير المتابعة الدقيقة لكل طالب."
+              : "Organizing courses, exam results, study plans, and meticulous follow-up reports for every student.",
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -320,8 +406,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           icon: Icons.qr_code_scanner_rounded,
           iconBg: const Color(0xFF10B981).withValues(alpha: 0.15),
           iconColor: const Color(0xFF10B981),
-          title: "حضور ذكي بالـ QR وبصمة الوجه",
-          desc: "تسجيل حضور إلكتروني فوري ومؤمّن يمنع التلاعب مع دعم كامل للعمل والمزامنة دون إنترنت.",
+          title: isAr ? "حضور ذكي بالـ QR وبصمة الوجه" : "Smart QR & Facial Biometrics Attendance",
+          desc: isAr
+              ? "تسجيل حضور إلكتروني فوري ومؤمّن يمنع التلاعب مع دعم كامل للعمل والمزامنة دون إنترنت."
+              : "Instant secure attendance recording that prevents tampering with offline biometric synchronization.",
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -332,8 +420,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           icon: Icons.chat_bubble_outline_rounded,
           iconBg: const Color(0xFF3B82F6).withValues(alpha: 0.15),
           iconColor: const Color(0xFF3B82F6),
-          title: "تواصل ومحادثات فورية",
-          desc: "غرف محادثة مباشرة ومشفرة بين الطلاب والمدرسين والإدارة لتبادل الملفات والاستفسارات.",
+          title: isAr ? "تواصل ومحادثات فورية" : "Instant Live Messaging",
+          desc: isAr
+              ? "غرف محادثة مباشرة ومشفرة بين الطلاب والمدرسين والإدارة لتبادل الملفات والاستفسارات."
+              : "Encrypted instant messaging rooms between students, teachers, and administration for discussions and files.",
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -344,8 +434,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           icon: Icons.phone_iphone_rounded,
           iconBg: const Color(0xFFA855F7).withValues(alpha: 0.15),
           iconColor: const Color(0xFFA855F7),
-          title: "تجربة موحدة (ويب وموبايل)",
-          desc: "تطبيق فلاتر فائق السرعة ولوحة تحكم ويب متجاوبة بالكامل لجميع أطراف العملية التعليمية.",
+          title: isAr ? "تجربة موحدة (ويب وموبايل)" : "Unified Experience (Web & Mobile)",
+          desc: isAr
+              ? "تطبيق فلاتر فائق السرعة ولوحة تحكم ويب متجاوبة بالكامل لجميع أطراف العملية التعليمية."
+              : "High-speed Flutter mobile app and fully responsive web admin dashboard for all educational stakeholders.",
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -433,7 +525,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // TAB 2: فريق التطوير (Ordered exactly: مجدولين، محمود، إسراء، شهد، هبة)
+  // TAB 2: فريق التطوير (Development Team - Matching Web 1:1)
   // ══════════════════════════════════════════════════════════════════════════════
   Widget _buildTeamTab(
     BuildContext context,
@@ -442,25 +534,20 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
     Color subColor,
     Color borderColor,
     bool isDark,
+    bool isAr,
   ) {
-    final team = const [
-      _TeamMember(name: "مجدولين محمود", letter: "م", gradient: [Color(0xFFF59E0B), Color(0xFFD97706)]),
-      _TeamMember(name: "محمود غنّام", letter: "م", gradient: [Color(0xFF3B82F6), Color(0xFF2563EB)]),
-      _TeamMember(name: "إسراء منوّر", letter: "إ", gradient: [Color(0xFF10B981), Color(0xFF059669)]),
-      _TeamMember(name: "شهد زريقي", letter: "ش", gradient: [Color(0xFFEC4899), Color(0xFFDB2777)]),
-      _TeamMember(name: "هبة عيسى", letter: "هـ", gradient: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]),
-    ];
+    final activeMember = _teamMembers[_selectedMemberIndex];
 
     return ListView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
       children: [
-        // Section intro
+        // ─── 1. Header & Badge ────────────────────────────────────────────────
         Center(
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFCC00).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -468,12 +555,12 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.laptop_chromebook_rounded, size: 14, color: Color(0xFFEAB308)),
-                    SizedBox(width: 6),
+                  children: [
+                    const Icon(Icons.laptop_chromebook_rounded, size: 14, color: Color(0xFFEAB308)),
+                    const SizedBox(width: 6),
                     Text(
-                      "كفاءات هندسية متميزة",
-                      style: TextStyle(
+                      isAr ? "كفاءات هندسية متميزة" : "Engineering Excellence",
+                      style: const TextStyle(
                         color: Color(0xFFEAB308),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -482,18 +569,21 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
-                "فريق التطوير والبرمجة",
+                isAr ? "فريق التطوير والبرمجة" : "Development & Engineering Team",
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: 18,
                   fontWeight: FontWeight.w900,
                   color: textColor,
+                  letterSpacing: -0.3,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                "فريق العمل الهندسي القائم على تصميم وتطوير منصة Edu-Bridge",
+                isAr
+                    ? "فريق العمل الهندسي القائم على تصميم وتطوير منصة Edu-Bridge"
+                    : "The engineering team behind the design and implementation of Edu-Bridge",
                 style: TextStyle(fontSize: 12.5, color: subColor),
                 textAlign: TextAlign.center,
               ),
@@ -503,73 +593,454 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
 
         const SizedBox(height: 20),
 
-        // Member Cards (Names ONLY + Colorful Avatar, NO subtext)
-        ...team.map((member) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: cardColor,
+        // ─── 2. Interactive Team Grid Selector (Web edubridge-team-grid) ───────
+        SizedBox(
+          height: 125,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _teamMembers.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final member = _teamMembers[index];
+              final isSelected = _selectedMemberIndex == index;
+
+              return InkWell(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _selectedMemberIndex = index);
+                },
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: member.gradient,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: member.gradient.first.withValues(alpha: 0.35),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  width: 125,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? (isDark ? const Color(0xFF242217) : const Color(0xFFFFFBEB))
+                        : cardColor,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFFFCC00)
+                          : borderColor,
+                      width: isSelected ? 2 : 1,
                     ),
-                    child: Center(
-                      child: Text(
-                        member.letter,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                    boxShadow: [
+                      BoxShadow(
+                        color: isSelected
+                            ? const Color(0xFFFFCC00).withValues(alpha: 0.3)
+                            : Colors.black.withValues(alpha: 0.03),
+                        blurRadius: isSelected ? 14 : 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Badge Icon & Initials
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: member.color.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: member.color.withValues(alpha: 0.35)),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(member.icon, size: 18, color: member.color),
+                            Text(
+                              member.initials,
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                color: member.color,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      // Member Name
+                      Text(
+                        member.name(isAr),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: isSelected ? const Color(0xFFEAB308) : textColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 2),
+                      // Member Role Subtitle
+                      Text(
+                        member.role(isAr),
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w500,
+                          color: subColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ─── 3. Interactive Spotlight Detail Card (Web edubridge-member-spotlight) ─
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.0, 0.05),
+                end: Offset.zero,
+              ).animate(anim),
+              child: child,
+            ),
+          ),
+          child: Container(
+            key: ValueKey<int>(activeMember.id),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: activeMember.color.withValues(alpha: 0.35), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: activeMember.color.withValues(alpha: isDark ? 0.22 : 0.12),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Avatar + Name + Role Badge Header
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: activeMember.gradient,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: activeMember.color.withValues(alpha: 0.35),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(activeMember.icon, color: Colors.white, size: 24),
+                          Text(
+                            activeMember.initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            activeMember.name(isAr),
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                              color: textColor,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: activeMember.color.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: activeMember.color.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              activeMember.role(isAr),
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: activeMember.color,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                // Description
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    activeMember.desc(isAr),
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: textColor.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      member.name,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Tech Tags Header
+                Row(
+                  children: [
+                    Icon(Icons.verified_rounded, size: 15, color: activeMember.color),
+                    const SizedBox(width: 6),
+                    Text(
+                      isAr ? "مجالات التخصص والمسؤوليات التقنية:" : "Specializations & Key Responsibilities:",
                       style: TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w800,
-                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: subColor,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Skill / Tech Tags Wrap
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: activeMember.tags.map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: activeMember.color.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: activeMember.color.withValues(alpha: 0.25)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle_rounded, size: 13, color: activeMember.color),
+                          const SizedBox(width: 5),
+                          Text(
+                            tag,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // ─── 4. Full Team Overview Section ───────────────────────────────────
+        Row(
+          children: [
+            Icon(Icons.people_alt_rounded, size: 18, color: textColor),
+            const SizedBox(width: 8),
+            Text(
+              isAr ? "كادر الهندسة والبرمجة (5 مهندسين)" : "Engineering Team (5 Engineers)",
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w800,
+                color: textColor,
               ),
-            )),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // List of all members
+        ..._teamMembers.asMap().entries.map((entry) {
+          final index = entry.key;
+          final member = entry.value;
+          final isSelected = _selectedMemberIndex == index;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isSelected ? const Color(0xFFFFCC00) : borderColor,
+                width: isSelected ? 1.8 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected
+                      ? const Color(0xFFFFCC00).withValues(alpha: 0.15)
+                      : Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _selectedMemberIndex = index);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: member.gradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: member.color.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(member.icon, color: Colors.white, size: 22),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    member.name(isAr),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: isSelected ? const Color(0xFFEAB308) : textColor,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFCC00),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      isAr ? "المختار" : "Active",
+                                      style: const TextStyle(
+                                        color: Color(0xFF121212),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              member.role(isAr),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: member.color,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              member.desc(isAr),
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: subColor,
+                                height: 1.4,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        isAr ? Icons.arrow_back_ios_rounded : Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: isSelected ? const Color(0xFFFFCC00) : subColor,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+
+        const SizedBox(height: 16),
       ],
     );
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // TAB 3: سياسة الخصوصية
+  // TAB 3: سياسة الخصوصية (Privacy Policy)
   // ══════════════════════════════════════════════════════════════════════════════
   Widget _buildPrivacyTab(
     BuildContext context,
@@ -578,6 +1049,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
     Color subColor,
     Color borderColor,
     bool isDark,
+    bool isAr,
   ) {
     return ListView(
       physics: const BouncingScrollPhysics(),
@@ -607,9 +1079,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "سياسة الخصوصية وأمان البيانات",
-                      style: TextStyle(
+                    Text(
+                      isAr ? "سياسة الخصوصية وأمان البيانات" : "Privacy Policy & Data Security",
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF10B981),
@@ -617,7 +1089,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "نحن نلتزم بحماية بياناتك الشخصية والأكاديمية. تُستخدم البيانات المجمعة حصرياً لأغراض التحقق من الهوية والأداء الأكاديمي داخل المعهد.",
+                      isAr
+                          ? "نحن نلتزم بحماية بياناتك الشخصية والأكاديمية. تُستخدم البيانات المجمعة حصرياً لأغراض التحقق من الهوية والأداء الأكاديمي داخل المعهد."
+                          : "We are committed to protecting your personal and academic data. Collected data is used strictly for identity verification and academic progress within the institute.",
                       style: TextStyle(
                         fontSize: 12.5,
                         height: 1.55,
@@ -637,8 +1111,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         _buildPolicyCard(
           icon: Icons.key_rounded,
           iconColor: const Color(0xFFF59E0B),
-          title: "1. سرية وتشفير الحسابات والمعلومات",
-          desc: "تخضع جميع كلمات المرور لجلسات تسجيل الدخول لتقنيات التشفير المتقدم (Bcrypt Hashing). لا يمكن لأي كادر تقني أو إداري الاطلاع على كلمة المرور الأصلية لأي مستخدم.",
+          title: isAr ? "1. سرية وتشفير الحسابات والمعلومات" : "1. Confidentiality & Account Encryption",
+          desc: isAr
+              ? "تخضع جميع كلمات المرور لجلسات تسجيل الدخول لتقنيات التشفير المتقدم (Bcrypt Hashing). لا يمكن لأي كادر تقني أو إداري الاطلاع على كلمة المرور الأصلية لأي مستخدم."
+              : "All passwords and authentication sessions are secured with advanced encryption (Bcrypt Hashing). No technical or administrative personnel can view original passwords.",
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -648,8 +1124,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         _buildPolicyCard(
           icon: Icons.school_rounded,
           iconColor: const Color(0xFF10B981),
-          title: "2. الخصوصية الطلابية والبيانات الأكاديمية",
-          desc: "سجلات الحضور، الدرجات الامتحانية، الإنذارات والتقارير المرفوعة هي بيانات محصورة بالجهات المعنية المحددة حصراً (الطالب صاحب الحساب، ولي أمره، وإدارة المعهد ذات الصلاحية).",
+          title: isAr ? "2. الخصوصية الطلابية والبيانات الأكاديمية" : "2. Student Privacy & Academic Records",
+          desc: isAr
+              ? "سجلات الحضور، الدرجات الامتحانية، الإنذارات والتقارير المرفوعة هي بيانات محصورة بالجهات المعنية المحددة حصراً (الطالب صاحب الحساب، ولي أمره، وإدارة المعهد ذات الصلاحية)."
+              : "Attendance logs, exam marks, warnings, and reports are strictly restricted to authorized stakeholders (the student, guardian, and authorized institute staff).",
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -659,8 +1137,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         _buildPolicyCard(
           icon: Icons.face_rounded,
           iconColor: const Color(0xFF3B82F6),
-          title: "3. أمان التعرف بالوجه وتقنيات الحضور (Biometrics & QR)",
-          desc: "معرفات الأجهزة وبيانات التعرف البصري تُعالج بأعلى معايير الحماية ولا يتم نقلها أو استخدامها لأي غرض خارج نطاق تأكيد التواجد الفعلي في قاعة المحاضرة.",
+          title: isAr ? "3. أمان التعرف بالوجه وتقنيات الحضور (Biometrics & QR)" : "3. Biometrics & QR Attendance Security",
+          desc: isAr
+              ? "معرفات الأجهزة وبيانات التعرف البصري تُعالج بأعلى معايير الحماية ولا يتم نقلها أو استخدامها لأي غرض خارج نطاق تأكيد التواجد الفعلي في قاعة المحاضرة."
+              : "Device identifiers and facial features are processed under strict safeguards and are never used outside the scope of physical lecture attendance confirmation.",
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -670,8 +1150,10 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         _buildPolicyCard(
           icon: Icons.handshake_rounded,
           iconColor: const Color(0xFFEF4444),
-          title: "4. التزام تام بعدم مشاركة البيانات مع جهات خارجية",
-          desc: "تتعهد منظومة Edu-Bridge بعدم تزويد أو بيع أو مشاركة أي جزء من البيانات الشخصية أو الأكاديمية مع أي طرف ثالث أو منصات إعلانية أو خارجية إطلاقاً.",
+          title: isAr ? "4. التزام تام بعدم مشاركة البيانات مع جهات خارجية" : "4. Strict No Third-Party Sharing Commitment",
+          desc: isAr
+              ? "تتعهد منظومة Edu-Bridge بعدم تزويد أو بيع أو مشاركة أي جزء من البيانات الشخصية أو الأكاديمية مع أي طرف ثالث أو منصات إعلانية أو خارجية إطلاقاً."
+              : "Edu-Bridge pledges never to sell, distribute, or share any personal or academic data with third parties or external advertising networks.",
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -690,13 +1172,15 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.verified_rounded, size: 16, color: Color(0xFF22C55E)),
-              SizedBox(width: 8),
+            children: [
+              const Icon(Icons.verified_rounded, size: 16, color: Color(0xFF22C55E)),
+              const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  "متوافق مع أفضل معايير أمن المعلومات والخصوصية الأكاديمية",
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF22C55E)),
+                  isAr
+                      ? "متوافق مع أفضل معايير أمن المعلومات والخصوصية الأكاديمية"
+                      : "Compliant with industry-standard information security and academic privacy",
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF22C55E)),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -759,7 +1243,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // TAB 4: تواصل معنا
+  // TAB 4: تواصل معنا (Contact Us)
   // ══════════════════════════════════════════════════════════════════════════════
   Widget _buildContactTab(
     BuildContext context,
@@ -768,6 +1252,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
     Color subColor,
     Color borderColor,
     bool isDark,
+    bool isAr,
   ) {
     return ListView(
       physics: const BouncingScrollPhysics(),
@@ -786,12 +1271,12 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.headset_mic_rounded, size: 14, color: Color(0xFFEAB308)),
-                    SizedBox(width: 6),
+                  children: [
+                    const Icon(Icons.headset_mic_rounded, size: 14, color: Color(0xFFEAB308)),
+                    const SizedBox(width: 6),
                     Text(
-                      "دعم فني سريع ومباشر",
-                      style: TextStyle(
+                      isAr ? "دعم فني سريع ومباشر" : "Fast & Direct Tech Support",
+                      style: const TextStyle(
                         color: Color(0xFFEAB308),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -802,7 +1287,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "تواصل مع إدارة النظام والمنصة",
+                isAr ? "تواصل مع إدارة النظام والمنصة" : "Connect with System & Support Administration",
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w900,
@@ -811,7 +1296,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                "يسعدنا تلقي استفساراتك واقتراحاتك ومساعدتك عبر القنوات التالية:",
+                isAr
+                    ? "يسعدنا تلقي استفساراتك واقتراحاتك ومساعدتك عبر القنوات التالية:"
+                    : "We are pleased to receive your inquiries, suggestions, and assistance via:",
                 style: TextStyle(fontSize: 12.5, color: subColor),
                 textAlign: TextAlign.center,
               ),
@@ -826,13 +1313,15 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           icon: Icons.email_rounded,
           iconBg: const Color(0xFFEF4444).withValues(alpha: 0.15),
           iconColor: const Color(0xFFEF4444),
-          type: "البريد الإلكتروني الرسمي",
+          type: isAr ? "البريد الإلكتروني الرسمي" : "Official Support Email",
           value: "edubridge2006@gmail.com",
-          desc: "للمراسلات الرسمية، الدعم الفني، والملاحظات الأكاديمية.",
-          actionText: "إرسال رسالة",
+          desc: isAr
+              ? "للمراسلات الرسمية، الدعم الفني، والملاحظات الأكاديمية."
+              : "For official correspondence, technical support, and academic feedback.",
+          actionText: isAr ? "إرسال رسالة" : "Send Email",
           actionColor: const Color(0xFFEF4444),
           onActionTap: () => _launchEmail("edubridge2006@gmail.com"),
-          onCopyTap: () => _copyText(context, "edubridge2006@gmail.com", "تم نسخ البريد الإلكتروني"),
+          onCopyTap: () => _copyText(context, "edubridge2006@gmail.com", isAr ? "تم نسخ البريد الإلكتروني" : "Email copied to clipboard"),
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -846,13 +1335,15 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           icon: Icons.chat_rounded,
           iconBg: const Color(0xFF22C55E).withValues(alpha: 0.15),
           iconColor: const Color(0xFF22C55E),
-          type: "الدعم الفني المباشر (واتساب / هاتف)",
+          type: isAr ? "الدعم الفني المباشر (واتساب / هاتف)" : "Direct Support (WhatsApp / Phone)",
           value: "0959031594",
-          desc: "للمساعدة الفورية في الحسابات والأجهزة والدورات.",
-          actionText: "محادثة واتساب",
+          desc: isAr
+              ? "للمساعدة الفورية في الحسابات والأجهزة والدورات."
+              : "For instant assistance regarding accounts, devices, and courses.",
+          actionText: isAr ? "محادثة واتساب" : "WhatsApp Chat",
           actionColor: const Color(0xFF22C55E),
           onActionTap: () => _launchWhatsApp("0959031594"),
-          onCopyTap: () => _copyText(context, "0959031594", "تم نسخ رقم الهاتف"),
+          onCopyTap: () => _copyText(context, "0959031594", isAr ? "تم نسخ رقم الهاتف" : "Phone number copied to clipboard"),
           cardColor: cardColor,
           textColor: textColor,
           subColor: subColor,
@@ -868,7 +1359,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
             const Icon(Icons.location_on_rounded, color: Color(0xFFEAB308), size: 16),
             const SizedBox(width: 6),
             Text(
-              "الجمهورية العربية السورية — نظام إدارة المؤسسات الأكاديمية",
+              isAr
+                  ? "الجمهورية العربية السورية — نظام إدارة المؤسسات الأكاديمية"
+                  : "Syrian Arab Republic — Academic Management System",
               style: TextStyle(fontSize: 12, color: subColor, fontWeight: FontWeight.w500),
             ),
           ],
@@ -899,6 +1392,13 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -921,77 +1421,62 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                   children: [
                     Text(
                       type,
-                      style: TextStyle(fontSize: 11.5, color: subColor, fontWeight: FontWeight.w600),
+                      style: TextStyle(fontSize: 12, color: subColor, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    SelectableText(
                       value,
-                      textDirection: TextDirection.ltr,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
                         color: textColor,
-                        fontFamily: 'monospace',
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ],
                 ),
               ),
+              IconButton(
+                icon: Icon(Icons.copy_rounded, size: 18, color: subColor),
+                onPressed: onCopyTap,
+                tooltip: "نسخ",
+              ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             desc,
-            style: TextStyle(fontSize: 12, color: subColor, height: 1.4),
+            style: TextStyle(fontSize: 12, color: subColor, height: 1.45),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: onActionTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: actionColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: Text(actionText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                ),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onActionTap,
+              icon: Icon(icon, size: 16, color: Colors.white),
+              label: Text(
+                actionText,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
               ),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: onCopyTap,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: textColor,
-                  side: BorderSide(color: borderColor),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                ),
-                icon: const Icon(Icons.copy_rounded, size: 16),
-                label: const Text("نسخ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: actionColor,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _copyText(BuildContext context, String text, String message) {
+  void _copyText(BuildContext context, String text, String successMsg) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        backgroundColor: const Color(0xFF22C55E),
+        content: Text(successMsg),
+        backgroundColor: const Color(0xFFFFCC00),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
@@ -1027,10 +1512,37 @@ class _TabItem {
 }
 
 class _TeamMember {
-  final String name;
-  final String letter;
+  final int id;
+  final String nameAr;
+  final String nameEn;
+  final String roleAr;
+  final String roleEn;
+  final String descAr;
+  final String descEn;
+  final String initials;
+  final IconData icon;
+  final Color color;
   final List<Color> gradient;
-  const _TeamMember({required this.name, required this.letter, required this.gradient});
+  final List<String> tags;
+
+  const _TeamMember({
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    required this.roleAr,
+    required this.roleEn,
+    required this.descAr,
+    required this.descEn,
+    required this.initials,
+    required this.icon,
+    required this.color,
+    required this.gradient,
+    required this.tags,
+  });
+
+  String name(bool isAr) => isAr ? nameAr : nameEn;
+  String role(bool isAr) => isAr ? roleAr : roleEn;
+  String desc(bool isAr) => isAr ? descAr : descEn;
 }
 
 class _TechTag extends StatelessWidget {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:dio/dio.dart';
 import 'otp_screen.dart';
 
@@ -14,10 +15,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _inputController = TextEditingController();
   bool _isLoading = false;
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    _inputController.dispose();
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _handleSendOtp() async {
     final email = _inputController.text.trim();
     if (email.isEmpty) {
-      _showSnack('يرجى إدخال البريد الإلكتروني');
+      _showSnack(isAr ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter your email');
       return;
     }
 
@@ -36,15 +56,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         MaterialPageRoute(
           builder: (_) => OTPScreen(
             email: email,
-            appBarTitle: 'تحقق من بريدك',
-            message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
+            appBarTitle: isAr ? 'تحقق من بريدك' : 'Verify Email',
+            message: isAr ? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني' : 'Verification code sent to your email',
             isPasswordReset: true,
           ),
         ),
       );
     } on DioException catch (e) {
       final msg = e.response?.data['message']?.toString() ??
-          'البريد الإلكتروني غير مسجّل لدينا';
+          (isAr ? 'البريد الإلكتروني غير مسجّل لدينا' : 'Email not registered');
       _showSnack(msg);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -62,12 +82,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   @override
-  void dispose() {
-    _inputController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -80,21 +94,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     const primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: scaffoldBg,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          title: Text('نسيت كلمة السر',
-              style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  fontFamily: 'Cairo')),
+          title: Text(
+            isAr ? 'نسيت كلمة السر' : 'Forgot Password',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              fontFamily: 'Cairo',
+            ),
+          ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -118,21 +135,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
               const SizedBox(height: 30),
-              Text('استعادة كلمة المرور',
-                  style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      fontFamily: 'Cairo')),
+              Text(
+                isAr ? 'استعادة كلمة المرور' : 'Reset Password',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                  fontFamily: 'Cairo',
+                ),
+              ),
               const SizedBox(height: 12),
               Text(
-                'يرجى إدخال بريدك الإلكتروني المسجل لدينا لنرسل لك رمز التحقق.',
+                isAr
+                    ? 'يرجى إدخال بريدك الإلكتروني المسجل لدينا لنرسل لك رمز التحقق.'
+                    : 'Please enter your registered email to receive a verification code.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 14,
-                    color: subTextColor,
-                    height: 1.5,
-                    fontFamily: 'Cairo'),
+                  fontSize: 14,
+                  color: subTextColor,
+                  height: 1.5,
+                  fontFamily: 'Cairo',
+                ),
               ),
               const SizedBox(height: 45),
               _buildInputField(textColor, cardColor, subTextColor),
@@ -149,23 +172,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.black)
-                      : const Text('متابعة',
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              fontFamily: 'Cairo')),
+                      : Text(
+                          isAr ? 'متابعة' : 'Continue',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            fontFamily: 'Cairo',
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 15),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('إلغاء والعودة',
-                    style: TextStyle(
-                        color: subTextColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Cairo')),
+                child: Text(
+                  isAr ? 'إلغاء والعودة' : 'Cancel and return',
+                  style: TextStyle(
+                    color: subTextColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Cairo',
+                  ),
+                ),
               ),
             ],
           ),
@@ -180,13 +209,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(right: 15, bottom: 8),
-          child: Text('البريد الإلكتروني',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: textColor,
-                  fontFamily: 'Cairo')),
+          padding: EdgeInsets.only(
+            right: isAr ? 15 : 0,
+            left: isAr ? 0 : 15,
+            bottom: 8,
+          ),
+          child: Text(
+            isAr ? 'البريد الإلكتروني' : 'Email Address',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: textColor,
+              fontFamily: 'Cairo',
+            ),
+          ),
         ),
         Container(
           decoration: BoxDecoration(

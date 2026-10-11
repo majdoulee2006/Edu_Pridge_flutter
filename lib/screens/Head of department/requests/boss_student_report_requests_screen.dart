@@ -61,7 +61,7 @@ class _BossStudentReportRequestsScreenState extends State<BossStudentReportReque
                       style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     leading: IconButton(
-                      icon: Icon(Icons.arrow_back, color: textColor),
+                      icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -116,7 +116,7 @@ class _BossStudentReportRequestsScreenState extends State<BossStudentReportReque
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  req['student_name'] ?? 'طالب غير معروف',
+                  req['student_name'] ?? (isAr ? 'طالب غير معروف' : 'Unknown Student'),
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 Text(
@@ -127,12 +127,12 @@ class _BossStudentReportRequestsScreenState extends State<BossStudentReportReque
             ),
             const SizedBox(height: 8),
             Text(
-              (isAr ? 'ولي الأمر: ' : 'Parent: ') + (req['parent_name'] ?? ''),
+              (isAr ? 'ولي الأمر: ' : 'Parent: ') + (req['parent_name'] ?? (isAr ? 'غير محدد' : 'Not specified')),
               style: TextStyle(color: textColor.withValues(alpha: 0.8), fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(
-              (isAr ? 'ملاحظات: ' : 'Notes: ') + (req['notes'] ?? ''),
+              (isAr ? 'ملاحظات: ' : 'Notes: ') + (req['notes'] ?? (isAr ? 'لا توجد ملاحظات' : 'No notes')),
               style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
             ),
           ],

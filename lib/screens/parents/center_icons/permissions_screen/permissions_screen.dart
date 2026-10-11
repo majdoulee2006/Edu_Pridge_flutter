@@ -25,11 +25,24 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   List<dynamic> children = [];
   bool isLoading = true;
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchPermissions();
     _fetchChildren();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   Future<String> _getToken() async {
@@ -90,9 +103,11 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
       );
       if (response.statusCode == 200 && mounted) {
+        final approvedText = isAr ? 'تمت الموافقة ✓' : 'Approved ✓';
+        final rejectedText = isAr ? 'تم الرفض' : 'Rejected';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(status == 'approved' ? 'تمت الموافقة ✓' : 'تم الرفض'),
+            content: Text(status == 'approved' ? approvedText : rejectedText),
             backgroundColor: status == 'approved' ? Colors.green : Colors.red,
           ),
         );
@@ -106,7 +121,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   void _showNewLeaveRequestDialog() {
     if (children.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("لا يوجد أبناء مرتبطون بحسابك")),
+        SnackBar(content: Text(isAr ? "لا يوجد أبناء مرتبطون بحسابك" : "No children linked to your account")),
       );
       return;
     }
@@ -128,7 +143,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
           final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
           return Directionality(
-            textDirection: TextDirection.rtl,
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
             child: Container(
               decoration: BoxDecoration(
                 color: cardColor,
@@ -150,11 +165,17 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text("طلب إجازة جديد", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+                    Text(
+                      isAr ? "طلب إجازة جديد" : "New Leave Request",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+                    ),
                     const SizedBox(height: 20),
 
                     // Child selector
-                    Text("الابن", style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
+                    Text(
+                      isAr ? "الابن" : "Child",
+                      style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6)),
+                    ),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -169,7 +190,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           items: children.map<DropdownMenuItem<int>>((c) {
                             return DropdownMenuItem<int>(
                               value: c['student_id'] as int?,
-                              child: Text(c['full_name'] ?? 'طالب', style: TextStyle(color: textColor)),
+                              child: Text(c['full_name'] ?? (isAr ? 'طالب' : 'Student'), style: TextStyle(color: textColor)),
                             );
                           }).toList(),
                           onChanged: (v) => setModalState(() => selectedStudentId = v),
@@ -179,7 +200,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     const SizedBox(height: 16),
 
                     // Type selector
-                    Text("نوع الإجازة", style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
+                    Text(
+                      isAr ? "نوع الإجازة" : "Leave Type",
+                      style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6)),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -193,11 +217,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Center(
-                                child: Text("يوم كامل",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: selectedType == 'full_day' ? Colors.black : textColor,
-                                    )),
+                                child: Text(
+                                  isAr ? "يوم كامل" : "Full Day",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: selectedType == 'full_day' ? Colors.black : textColor,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -213,11 +239,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Center(
-                                child: Text("ساعية",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: selectedType == 'hourly' ? Colors.black : textColor,
-                                    )),
+                                child: Text(
+                                  isAr ? "ساعية" : "Hourly",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: selectedType == 'hourly' ? Colors.black : textColor,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -233,7 +261,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("التاريخ", style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
+                              Text(
+                                isAr ? "التاريخ" : "Date",
+                                style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6)),
+                              ),
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
@@ -274,7 +305,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("الوقت/الساعة", style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
+                              Text(
+                                isAr ? "الوقت/الساعة" : "Time/Hour",
+                                style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6)),
+                              ),
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
@@ -286,7 +320,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                                     if (pickedTime.hour > 15 || (pickedTime.hour == 15 && pickedTime.minute > 0)) {
                                       if (ctx.mounted) {
                                         ScaffoldMessenger.of(ctx).showSnackBar(
-                                          const SnackBar(content: Text('عذراً، يجب أن يكون وقت الإذن قبل انتهاء الدوام الرسمي (الساعة 3:00 عصراً)')),
+                                          SnackBar(
+                                            content: Text(
+                                              isAr
+                                                  ? 'عذراً، يجب أن يكون وقت الإذن قبل انتهاء الدوام الرسمي (الساعة 3:00 عصراً)'
+                                                  : 'Sorry, leave time must be before official school hours end (3:00 PM)',
+                                            ),
+                                          ),
                                         );
                                       }
                                     } else {
@@ -323,14 +363,17 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     const SizedBox(height: 16),
 
                     // Reason
-                    Text("السبب", style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
+                    Text(
+                      isAr ? "السبب" : "Reason",
+                      style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6)),
+                    ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: reasonController,
                       maxLines: 3,
-                      textAlign: TextAlign.right,
+                      textAlign: isAr ? TextAlign.right : TextAlign.left,
                       decoration: InputDecoration(
-                        hintText: "اكتب سبب الإجازة...",
+                        hintText: isAr ? "اكتب سبب الإجازة..." : "Enter leave reason...",
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3))),
                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3))),
                       ),
@@ -345,7 +388,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           if (selectedStudentId == null) return;
                           if (reasonController.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("يرجى كتابة سبب الإجازة")),
+                              SnackBar(content: Text(isAr ? "يرجى كتابة سبب الإجازة" : "Please enter the leave reason")),
                             );
                             return;
                           }
@@ -369,13 +412,16 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                             if (ctx.mounted) Navigator.pop(ctx);
                             if (mounted) {
                               messenger.showSnackBar(
-                                const SnackBar(content: Text("✅ تم إرسال طلب الإجازة بنجاح"), backgroundColor: Colors.green),
+                                SnackBar(
+                                  content: Text(isAr ? "✅ تم إرسال طلب الإجازة بنجاح" : "✅ Leave request submitted successfully"),
+                                  backgroundColor: Colors.green,
+                                ),
                               );
                               _fetchPermissions();
                             }
                           } on DioException catch (e) {
                             setModalState(() => isSubmitting = false);
-                            final msg = e.response?.data['message'] ?? "حدث خطأ، حاول مجدداً";
+                            final msg = e.response?.data['message'] ?? (isAr ? "حدث خطأ، حاول مجدداً" : "An error occurred, try again");
                             messenger.showSnackBar(
                               SnackBar(content: Text(msg), backgroundColor: Colors.red),
                             );
@@ -390,7 +436,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                         ),
                         child: isSubmitting
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                            : const Text("إرسال الطلب", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            : Text(
+                                isAr ? "إرسال الطلب" : "Submit Request",
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
                       ),
                     ),
                   ],
@@ -410,7 +459,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         extendBody: true,
@@ -420,7 +469,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             isLoading
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                 : permissions.isEmpty
-                    ? const Center(child: Text("لا توجد أذونات مسجلة"))
+                    ? Center(child: Text(isAr ? "لا توجد أذونات مسجلة" : "No permissions recorded"))
                     : ListView.builder(
                         padding: const EdgeInsets.all(15),
                         itemCount: permissions.length + 1,
@@ -429,7 +478,12 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                             return Column(
                               children: [
                                 const SizedBox(height: 20),
-                                Center(child: Text("نهاية القائمة", style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 12))),
+                                Center(
+                                  child: Text(
+                                    isAr ? "نهاية القائمة" : "End of list",
+                                    style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 12),
+                                  ),
+                                ),
                                 const SizedBox(height: 150),
                               ],
                             );
@@ -441,14 +495,14 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           if (itemStatus == 'pending_parent') {
                             return _buildDetailedCard(item, cardColor, textColor);
                           } else if (itemStatus == 'pending_hod' || itemStatus == 'pending_affairs' || itemStatus == 'pending') {
-                            String statusText = 'قيد المراجعة';
+                            String statusText = isAr ? 'قيد المراجعة' : 'Under Review';
                             if (itemStatus == 'pending_hod') {
-                              statusText = 'بانتظار رئيس القسم';
+                              statusText = isAr ? 'بانتظار رئيس القسم' : 'Awaiting HOD';
                             } else if (itemStatus == 'pending_affairs') {
-                              statusText = 'بانتظار شؤون الطلاب';
+                              statusText = isAr ? 'بانتظار شؤون الطلاب' : 'Awaiting Student Affairs';
                             }
                             return _buildSimpleCard(
-                              title: item['student_name'] ?? 'طالب',
+                              title: item['student_name'] ?? (isAr ? 'طالب' : 'Student'),
                               date: item['date']?.toString().substring(0, 10) ?? "",
                               icon: Icons.hourglass_empty_rounded,
                               iconCol: Colors.orange,
@@ -460,13 +514,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           } else {
                             final isApproved = itemStatus == 'approved';
                             return _buildSimpleCard(
-                              title: item['student_name'] ?? 'طالب',
+                              title: item['student_name'] ?? (isAr ? 'طالب' : 'Student'),
                               date: item['date']?.toString().substring(0, 10) ?? "",
                               icon: isApproved ? Icons.check_circle_outline : Icons.cancel_outlined,
                               iconCol: isApproved ? Colors.green : Colors.red,
                               cardColor: cardColor,
                               textColor: textColor,
-                              statusText: isApproved ? 'موافق عليه' : 'مرفوض',
+                              statusText: isApproved ? (isAr ? 'موافق عليه' : 'Approved') : (isAr ? 'مرفوض' : 'Rejected'),
                               statusColor: isApproved ? Colors.green : Colors.red,
                             );
                           }
@@ -482,7 +536,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             ),
             Positioned(
               bottom: 100,
-              left: 20,
+              left: isAr ? 20 : null,
+              right: isAr ? null : 20,
               child: FloatingActionButton(
                 heroTag: "add_permission_btn",
                 onPressed: _showNewLeaveRequestDialog,
@@ -498,12 +553,16 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor) {
+    final titleText = widget.studentName != null
+        ? (isAr ? "أذونات ${widget.studentName}" : "${widget.studentName}'s Permissions")
+        : (isAr ? "أذونات الطالب" : "Student Permissions");
+
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
       title: Text(
-        widget.studentName != null ? "أذونات ${widget.studentName}" : "أذونات الطالب",
+        titleText,
         style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
       ),
       leading: IconButton(
@@ -512,7 +571,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor),
+          icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ],
@@ -520,6 +579,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   }
 
   Widget _buildDetailedCard(dynamic item, Color cardColor, Color textColor) {
+    final leaveTypeText = item['type'] == 'hourly'
+        ? (isAr ? 'إجازة ساعية' : 'Hourly Leave')
+        : (isAr ? 'إجازة يوم كامل' : 'Full Day Leave');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(20),
@@ -546,14 +609,16 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item['student_name'] ?? 'طالب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
-                      Text(item['type'] == 'hourly' ? 'إجازة ساعية' : 'إجازة يوم كامل',
-                          style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5))),
+                      Text(item['student_name'] ?? (isAr ? 'طالب' : 'Student'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
+                      Text(
+                        leaveTypeText,
+                        style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5)),
+                      ),
                     ],
                   ),
                 ],
               ),
-              _statusTag("بانتظار موافقتك", Colors.orange),
+              _statusTag(isAr ? "بانتظار موافقتك" : "Awaiting approval", Colors.orange),
             ],
           ),
           const SizedBox(height: 1),
@@ -562,20 +627,22 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(color: textColor.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(25)),
-            child: Text(item['reason'] ?? "بدون سبب",
-                style: TextStyle(fontSize: 13, height: 1.5, color: textColor.withValues(alpha: 0.8))),
+            child: Text(
+              item['reason'] ?? (isAr ? "بدون سبب" : "No reason specified"),
+              style: TextStyle(fontSize: 13, height: 1.5, color: textColor.withValues(alpha: 0.8)),
+            ),
           ),
           const SizedBox(height: 20),
           Row(
             children: [
               Expanded(child: GestureDetector(
                 onTap: () => _respondToPermission(item['id'], 'rejected'),
-                child: _actionBtn("رفض", Colors.red, isOutlined: true),
+                child: _actionBtn(isAr ? "رفض" : "Reject", Colors.red, isOutlined: true),
               )),
               const SizedBox(width: 12),
               Expanded(child: GestureDetector(
                 onTap: () => _respondToPermission(item['id'], 'approved'),
-                child: _actionBtn("موافقة", Colors.black, btnColor: const Color(0xFFFFCC00)),
+                child: _actionBtn(isAr ? "موافقة" : "Approve", Colors.black, btnColor: const Color(0xFFFFCC00)),
               )),
             ],
           ),

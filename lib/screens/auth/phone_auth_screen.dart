@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/firebase_auth_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/utils/network_helper.dart';
 
 class PhoneAuthScreen extends StatefulWidget {
-  /// رقم الهاتف (اختياري — إذا فُرِّر يُستخدم مباشرة، وإلا يُقرأ من SharedPreferences)
   final String? phoneNumber;
-
-  /// يُستدعى بعد التحقق الناجح. إذا كان null يتم الـ pop تلقائياً.
   final void Function(UserCredential credential)? onVerified;
 
   const PhoneAuthScreen({super.key, this.phoneNumber, this.onVerified});
@@ -27,10 +25,26 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   bool   _loading  = false;
   String _error    = '';
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _init();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    _phoneCtrl.dispose();
+    _otpCtrl.dispose();
+    _otpFocus.dispose();
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _init() async {
@@ -43,20 +57,15 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
     if (_phoneCtrl.text.isNotEmpty) await _requestCode();
   }
 
-  @override
-  void dispose() {
-    _phoneCtrl.dispose();
-    _otpCtrl.dispose();
-    _otpFocus.dispose();
-    super.dispose();
-  }
-
   Future<void> _requestCode() async {
     final phone = _phoneCtrl.text.trim();
-    if (phone.isEmpty) { setState(() => _error = 'أدخل رقم الهاتف'); return; }
+    if (phone.isEmpty) {
+      setState(() => _error = isAr ? 'أدخل رقم الهاتف' : 'Please enter phone number');
+      return;
+    }
 
     if (!await NetworkHelper.hasInternet()) {
-      setState(() => _error = 'لا يوجد اتصال بالإنترنت');
+      setState(() => _error = isAr ? 'لا يوجد اتصال بالإنترنت' : 'No internet connection');
       return;
     }
 
@@ -68,7 +77,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
         if (!mounted) return;
         setState(() { _codeSent = true; _loading = false; });
         FocusScope.of(context).requestFocus(_otpFocus);
-        _showSnack('تم إرسال الرمز إلى $phone');
+        _showSnack(isAr ? 'تم إرسال الرمز إلى $phone' : 'Code sent to $phone');
       },
       onError: (msg) {
         if (!mounted) return;
@@ -84,7 +93,10 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
 
   Future<void> _confirmCode() async {
     final otp = _otpCtrl.text.trim();
-    if (otp.length != 6) { setState(() => _error = 'الرمز يجب أن يكون 6 أرقام'); return; }
+    if (otp.length != 6) {
+      setState(() => _error = isAr ? 'الرمز يجب أن يكون 6 أرقام' : 'Code must be 6 digits');
+      return;
+    }
     setState(() { _loading = true; _error = ''; });
 
     final cred = await _service.verifyOTP(
@@ -105,7 +117,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
     if (widget.onVerified != null) {
       widget.onVerified!(cred);
     } else {
-      _showSnack('تم التحقق بنجاح ✓');
+      _showSnack(isAr ? 'تم التحقق بنجاح ✓' : 'Verified successfully ✓');
       Navigator.pop(context);
     }
   }
@@ -126,14 +138,14 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFAFAFA),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -154,22 +166,24 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                _codeSent ? 'أدخل رمز التحقق' : 'التحقق برقم الهاتف',
+                _codeSent
+                    ? (isAr ? 'أدخل رمز التحقق' : 'Enter Verification Code')
+                    : (isAr ? 'التحقق برقم الهاتف' : 'Phone Verification'),
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black),
               ),
               const SizedBox(height: 8),
               Text(
                 _codeSent
-                    ? 'أرسلنا رمزاً من 6 أرقام إلى ${_phoneCtrl.text}'
-                    : 'سنرسل لك رمز التحقق عبر SMS',
+                    ? (isAr ? 'أرسلنا رمزاً من 6 أرقام إلى ${_phoneCtrl.text}' : 'We sent a 6-digit code to ${_phoneCtrl.text}')
+                    : (isAr ? 'سنرسل لك رمز التحقق عبر SMS' : 'We will send you a verification code via SMS'),
                 style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 14),
               ),
               const SizedBox(height: 32),
 
-              // رقم الهاتف (يظهر فقط إذا لم يُرسل الكود بعد)
+              // رقم الهاتف
               if (!_codeSent) ...[
-                _label('رقم الهاتف', isDark),
+                _label(isAr ? 'رقم الهاتف' : 'Phone Number', isDark),
                 const SizedBox(height: 8),
                 _field(controller: _phoneCtrl, hint: '+963XXXXXXXXX',
                     keyboardType: TextInputType.phone, isDark: isDark),
@@ -178,7 +192,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
 
               // حقل OTP
               if (_codeSent) ...[
-                _label('رمز التحقق', isDark),
+                _label(isAr ? 'رمز التحقق' : 'Verification Code', isDark),
                 const SizedBox(height: 8),
                 _field(
                   controller: _otpCtrl,
@@ -227,8 +241,12 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                   child: _loading
                       ? const SizedBox(width: 22, height: 22,
                           child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
-                      : Text(_codeSent ? 'تأكيد الرمز' : 'إرسال الرمز',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      : Text(
+                          _codeSent
+                              ? (isAr ? 'تأكيد الرمز' : 'Verify Code')
+                              : (isAr ? 'إرسال الرمز' : 'Send Code'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                 ),
               ),
 
@@ -240,8 +258,10 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                     onPressed: _loading ? null : () => setState(() {
                       _codeSent = false; _otpCtrl.clear(); _error = '';
                     }),
-                    child: const Text('إعادة الإرسال أو تغيير الرقم',
-                        style: TextStyle(color: Color(0xFFFFCC00), fontWeight: FontWeight.w600)),
+                    child: Text(
+                      isAr ? 'إعادة الإرسال أو تغيير الرقم' : 'Resend code or change number',
+                      style: const TextStyle(color: Color(0xFFFFCC00), fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
               ],

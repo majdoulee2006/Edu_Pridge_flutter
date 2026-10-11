@@ -18,6 +18,12 @@ class CoursesScreen extends StatefulWidget {
 }
 
 class _CoursesScreenState extends State<CoursesScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   final List<String> departments = [
     "جميع الأقسام",
     "دورات مستقلة (بدون قسم)",
@@ -46,7 +52,29 @@ class _CoursesScreenState extends State<CoursesScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  String _getDeptLabel(String dept) {
+    if (!isAr) {
+      switch (dept) {
+        case "جميع الأقسام": return "All Departments";
+        case "دورات مستقلة (بدون قسم)": return "Independent (No Dept)";
+        case "بدون قسم محدد (دورة مستقلة)": return "No Dept (Independent)";
+        case "نظم معلومات": return "Information Systems";
+        case "طبي": return "Medical";
+        case "هندسي": return "Engineering";
+        case "تجاري": return "Commercial";
+      }
+    }
+    return dept;
   }
 
   Future<void> _loadData() async {
@@ -135,7 +163,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
               ),
               padding: EdgeInsets.fromLTRB(20, 15, 20, MediaQuery.of(context).viewInsets.bottom + 20),
               child: Directionality(
-                textDirection: TextDirection.rtl,
+                textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                 child: Column(
                   children: [
                     Center(
@@ -157,7 +185,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             Icon(Icons.add_circle, color: primaryYellow, size: 28),
                             const SizedBox(width: 10),
                             Text(
-                              "إضافة دورة جديدة",
+                              isAr ? "إضافة دورة جديدة" : "Add New Course",
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -179,11 +207,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel("اسم الدورة", isDark ? Colors.white : Colors.black),
+                            _buildLabel(isAr ? "اسم الدورة" : "Course Name", isDark ? Colors.white : Colors.black),
                             TextField(
                               controller: titleController,
                               decoration: InputDecoration(
-                                hintText: "أدخل اسم الدورة (مثال: برمجيات الويب)",
+                                hintText: isAr ? "أدخل اسم الدورة (مثال: برمجيات الويب)" : "Enter course name (e.g. Web Software)",
                                 filled: true,
                                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -191,12 +219,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             ),
                             const SizedBox(height: 15),
 
-                            _buildLabel("وصف الدورة", isDark ? Colors.white : Colors.black),
+                            _buildLabel(isAr ? "وصف الدورة" : "Course Description", isDark ? Colors.white : Colors.black),
                             TextField(
                               controller: descriptionController,
                               maxLines: 2,
                               decoration: InputDecoration(
-                                hintText: "أدخل وصف مختصر للدورة",
+                                hintText: isAr ? "أدخل وصف مختصر للدورة" : "Enter brief description of course",
                                 filled: true,
                                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -204,11 +232,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             ),
                             const SizedBox(height: 15),
 
-                            _buildLabel("القسم", isDark ? Colors.white : Colors.black),
+                            _buildLabel(isAr ? "القسم" : "Department", isDark ? Colors.white : Colors.black),
                             _buildDropdown(
-                              hint: "اختر القسم",
+                              hint: isAr ? "اختر القسم" : "Select Department",
                               value: modalDept,
                               items: modalDepartments,
+                              labelMapper: _getDeptLabel,
                               onChanged: (val) {
                                 if (val != null) setModalState(() => modalDept = val);
                               },
@@ -216,8 +245,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
                               cardColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                             ),
                             const SizedBox(height: 15),
-
-
                           ],
                         ),
                       ),
@@ -229,7 +256,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           : () async {
                               if (titleController.text.trim().isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("يرجى إدخال اسم الدورة")),
+                                  SnackBar(content: Text(isAr ? "يرجى إدخال اسم الدورة" : "Please enter course name")),
                                 );
                                 return;
                               }
@@ -251,19 +278,20 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                 });
 
                                 if (success) {
-                                  if (!mounted || !context.mounted) return;
-                                  Navigator.pop(context);
-                                  if (!mounted || !context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("تم إضافة الدورة الجديدة بنجاح")),
-                                  );
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(isAr ? "تم إضافة الدورة الجديدة بنجاح" : "New course added successfully")),
+                                    );
+                                  }
                                   _loadData();
                                 }
                               } catch (e) {
-                                if (!mounted || !context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("حدث خطأ أثناء إضافة الدورة: $e")),
-                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(isAr ? "حدث خطأ أثناء إضافة الدورة: $e" : "An error occurred while adding course: $e")),
+                                  );
+                                }
                               } finally {
                                 setModalState(() => isSaving = false);
                               }
@@ -272,7 +300,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                           : const Icon(Icons.check, color: Colors.black),
                       label: Text(
-                        isSaving ? "جاري الحفظ..." : "إضافة الدورة وحفظها",
+                        isSaving
+                            ? (isAr ? "جاري الحفظ..." : "Saving...")
+                            : (isAr ? "إضافة الدورة وحفظها" : "Add & Save Course"),
                         style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -299,20 +329,22 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
 
     final hodData = await AdminServices().getAssignHodData();
-    if (!mounted || !context.mounted) return;
-    Navigator.pop(context); // close loader
+    if (context.mounted) Navigator.pop(context); // close loader
 
     if (hodData == null) {
-      if (!mounted || !context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("تعذر جلب بيانات رؤساء الأقسام")),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "تعذر جلب بيانات رؤساء الأقسام" : "Failed to fetch department heads data")),
+        );
+      }
       return;
     }
 
     final deptList = (hodData['departments'] as List<dynamic>?) ?? [];
     final teachersList = (hodData['teachers'] as List<dynamic>?) ?? [];
 if (!mounted || !context.mounted) return;
+
+    if (!context.mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -329,7 +361,7 @@ if (!mounted || !context.mounted) return;
               ),
               padding: const EdgeInsets.all(20),
               child: Directionality(
-                textDirection: TextDirection.rtl,
+                textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                 child: Column(
                   children: [
                     Center(
@@ -351,7 +383,7 @@ if (!mounted || !context.mounted) return;
                             Icon(Icons.manage_accounts_rounded, color: primaryYellow, size: 28),
                             const SizedBox(width: 10),
                             Text(
-                              "تخصيص وتنسيق رؤساء الأقسام",
+                              isAr ? "تخصيص وتنسيق رؤساء الأقسام" : "Assign & Coordinate Dept Heads",
                               style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
@@ -372,8 +404,9 @@ if (!mounted || !context.mounted) return;
                         itemCount: deptList.length,
                         itemBuilder: (context, index) {
                           final dept = deptList[index];
-                          final deptName = dept['name'] ?? 'قسم بدون اسم';
-                          final hodName = dept['current_hod_name'] ?? 'غير مخصص حالياً';
+                          final deptName = dept['name'] ?? (isAr ? 'قسم بدون اسم' : 'Untitled Department');
+                          final hodName = dept['current_hod_name'] ?? (isAr ? 'غير مخصص حالياً' : 'Currently Unassigned');
+                          final isUnassigned = hodName.toString().contains("غير مخصص") || hodName.toString().contains("Unassigned");
 
                           return Container(
                             margin: const EdgeInsets.only(bottom: 14),
@@ -398,16 +431,16 @@ if (!mounted || !context.mounted) return;
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            deptName,
+                                            _getDeptLabel(deptName.toString()),
                                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                           ),
                                           const SizedBox(height: 3),
                                           Text(
-                                            "رئيس القسم الحالي: $hodName",
+                                            isAr ? "رئيس القسم الحالي: $hodName" : "Current Dept Head: $hodName",
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
-                                              color: hodName.contains("غير مخصص") ? Colors.redAccent : Colors.green,
+                                              color: isUnassigned ? Colors.redAccent : Colors.green,
                                             ),
                                           ),
                                         ],
@@ -419,7 +452,10 @@ if (!mounted || !context.mounted) return;
                                 ElevatedButton.icon(
                                   onPressed: () => _showEditHodDialog(context, dept, teachersList, isDark, primaryYellow),
                                   icon: const Icon(Icons.edit, size: 16, color: Colors.black),
-                                  label: const Text("تعديل رئيس القسم", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+                                  label: Text(
+                                    isAr ? "تعديل رئيس القسم" : "Edit Dept Head",
+                                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: primaryYellow,
                                     minimumSize: const Size(double.infinity, 42),
@@ -483,7 +519,7 @@ if (!mounted || !context.mounted) return;
               ),
               padding: EdgeInsets.fromLTRB(20, 15, 20, MediaQuery.of(context).viewInsets.bottom + 20),
               child: Directionality(
-                textDirection: TextDirection.rtl,
+                textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                 child: Column(
                   children: [
                     Center(
@@ -498,7 +534,7 @@ if (!mounted || !context.mounted) return;
                     ),
                     const SizedBox(height: 15),
                     Text(
-                      "تعديل رئيس قسم: $selectedHodDeptName",
+                      isAr ? "تعديل رئيس قسم: ${_getDeptLabel(selectedHodDeptName)}" : "Edit Dept Head: ${_getDeptLabel(selectedHodDeptName)}",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -526,7 +562,7 @@ if (!mounted || !context.mounted) return;
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                                 child: Text(
-                                  "استاذ موجود بالمؤسسة",
+                                  isAr ? "استاذ موجود بالمؤسسة" : "Existing Teacher",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
@@ -546,7 +582,7 @@ if (!mounted || !context.mounted) return;
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                                 child: Text(
-                                  "إضافة رئيس قسم جديد",
+                                  isAr ? "إضافة رئيس قسم جديد" : "New Dept Head",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
@@ -568,12 +604,13 @@ if (!mounted || !context.mounted) return;
                             ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildLabel("اختر القسم المراد تخصيصه", isDark ? Colors.white : Colors.black),
+                                  _buildLabel(isAr ? "اختر القسم المراد تخصيصه" : "Select Department to Assign", isDark ? Colors.white : Colors.black),
                                   const SizedBox(height: 5),
                                   _buildDropdown(
-                                    hint: "اختر القسم",
+                                    hint: isAr ? "اختر القسم" : "Select Department",
                                     value: selectedHodDeptName,
                                     items: formDepartments,
+                                    labelMapper: _getDeptLabel,
                                     onChanged: (val) {
                                       if (val != null) {
                                         setModalState(() {
@@ -587,7 +624,10 @@ if (!mounted || !context.mounted) return;
                                   ),
                                   const SizedBox(height: 15),
 
-                                  _buildLabel("اختر المعلم المراد تعيينه (أساتذة $selectedHodDeptName)", isDark ? Colors.white : Colors.black),
+                                  _buildLabel(
+                                    isAr ? "اختر المعلم المراد تعيينه (أساتذة ${_getDeptLabel(selectedHodDeptName)})" : "Select Teacher (Teachers of ${_getDeptLabel(selectedHodDeptName)})",
+                                    isDark ? Colors.white : Colors.black,
+                                  ),
                                   const SizedBox(height: 5),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -601,8 +641,8 @@ if (!mounted || !context.mounted) return;
                                         value: selectedTeacherId,
                                         hint: Text(
                                           filteredTeachers.isEmpty
-                                              ? "لا يوجد أساتذة مخصصين لقسم $selectedHodDeptName"
-                                              : "اختر من أساتذة قسم $selectedHodDeptName",
+                                              ? (isAr ? "لا يوجد أساتذة مخصصين لقسم ${_getDeptLabel(selectedHodDeptName)}" : "No teachers assigned to ${_getDeptLabel(selectedHodDeptName)}")
+                                              : (isAr ? "اختر من أساتذة قسم ${_getDeptLabel(selectedHodDeptName)}" : "Select from teachers of ${_getDeptLabel(selectedHodDeptName)}"),
                                           style: const TextStyle(fontSize: 13),
                                         ),
                                         isExpanded: true,
@@ -611,7 +651,7 @@ if (!mounted || !context.mounted) return;
                                           final deptLabel = t['department'] != null ? " (${t['department']})" : "";
                                           return DropdownMenuItem<int>(
                                             value: t['user_id'],
-                                            child: Text("${t['full_name'] ?? 'بدون اسم'}$deptLabel", style: const TextStyle(fontSize: 13)),
+                                            child: Text("${t['full_name'] ?? (isAr ? 'بدون اسم' : 'Unnamed')}$deptLabel", style: const TextStyle(fontSize: 13)),
                                           );
                                         }).toList(),
                                         onChanged: (val) => setModalState(() => selectedTeacherId = val),
@@ -623,12 +663,13 @@ if (!mounted || !context.mounted) return;
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildLabel("القسم المراد تخصيصه", isDark ? Colors.white : Colors.black),
+                                  _buildLabel(isAr ? "القسم المراد تخصيصه" : "Department to Assign", isDark ? Colors.white : Colors.black),
                                   const SizedBox(height: 5),
                                   _buildDropdown(
-                                    hint: "اختر القسم",
+                                    hint: isAr ? "اختر القسم" : "Select Department",
                                     value: selectedHodDeptName,
                                     items: formDepartments,
+                                    labelMapper: _getDeptLabel,
                                     onChanged: (val) {
                                       if (val != null) {
                                         setModalState(() => selectedHodDeptName = val);
@@ -645,11 +686,11 @@ if (!mounted || !context.mounted) return;
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            _buildLabel("الاسم الأول", isDark ? Colors.white : Colors.black),
+                                            _buildLabel(isAr ? "الاسم الأول" : "First Name", isDark ? Colors.white : Colors.black),
                                             TextField(
                                               controller: firstNameCtrl,
                                               decoration: InputDecoration(
-                                                hintText: "الاسم الأول",
+                                                hintText: isAr ? "الاسم الأول" : "First Name",
                                                 filled: true,
                                                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -663,11 +704,11 @@ if (!mounted || !context.mounted) return;
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            _buildLabel("الاسم الثاني", isDark ? Colors.white : Colors.black),
+                                            _buildLabel(isAr ? "الاسم الثاني" : "Last Name", isDark ? Colors.white : Colors.black),
                                             TextField(
                                               controller: lastNameCtrl,
                                               decoration: InputDecoration(
-                                                hintText: "اسم العائلة",
+                                                hintText: isAr ? "اسم العائلة" : "Family Name",
                                                 filled: true,
                                                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -679,7 +720,7 @@ if (!mounted || !context.mounted) return;
                                     ],
                                   ),
                                   const SizedBox(height: 12),
-                                  _buildLabel("البريد الإلكتروني", isDark ? Colors.white : Colors.black),
+                                  _buildLabel(isAr ? "البريد الإلكتروني" : "Email Address", isDark ? Colors.white : Colors.black),
                                   TextField(
                                     controller: emailCtrl,
                                     keyboardType: TextInputType.emailAddress,
@@ -691,7 +732,7 @@ if (!mounted || !context.mounted) return;
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  _buildLabel("اسم المستخدم", isDark ? Colors.white : Colors.black),
+                                  _buildLabel(isAr ? "اسم المستخدم" : "Username", isDark ? Colors.white : Colors.black),
                                   TextField(
                                     controller: usernameCtrl,
                                     decoration: InputDecoration(
@@ -702,7 +743,7 @@ if (!mounted || !context.mounted) return;
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  _buildLabel("رقم الهاتف", isDark ? Colors.white : Colors.black),
+                                  _buildLabel(isAr ? "رقم الهاتف" : "Phone Number", isDark ? Colors.white : Colors.black),
                                   TextField(
                                     controller: phoneCtrl,
                                     keyboardType: TextInputType.phone,
@@ -714,7 +755,7 @@ if (!mounted || !context.mounted) return;
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  _buildLabel("كلمة المرور", isDark ? Colors.white : Colors.black),
+                                  _buildLabel(isAr ? "كلمة المرور" : "Password", isDark ? Colors.white : Colors.black),
                                   TextField(
                                     controller: passwordCtrl,
                                     obscureText: true,
@@ -726,7 +767,7 @@ if (!mounted || !context.mounted) return;
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  _buildLabel("تأكيد كلمة المرور", isDark ? Colors.white : Colors.black),
+                                  _buildLabel(isAr ? "تأكيد كلمة المرور" : "Confirm Password", isDark ? Colors.white : Colors.black),
                                   TextField(
                                     controller: confirmPasswordCtrl,
                                     obscureText: true,
@@ -753,7 +794,7 @@ if (!mounted || !context.mounted) return;
                                 if (activeTab == 0) {
                                   if (selectedTeacherId == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("يرجى اختيار المعلم أولاً")),
+                                      SnackBar(content: Text(isAr ? "يرجى اختيار المعلم أولاً" : "Please select a teacher first")),
                                     );
                                     return;
                                   }
@@ -761,7 +802,7 @@ if (!mounted || !context.mounted) return;
                                 } else {
                                   if (passwordCtrl.text != confirmPasswordCtrl.text) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("كلمتا المرور غير متطابقتين")),
+                                      SnackBar(content: Text(isAr ? "كلمتا المرور غير متطابقتين" : "Passwords do not match")),
                                     );
                                     return;
                                   }
@@ -778,19 +819,21 @@ if (!mounted || !context.mounted) return;
                                 }
 
                                 if (success) {
-                                  if (!mounted || !context.mounted) return;
-                                  Navigator.pop(context); // close edit sheet
-                                  Navigator.pop(context); // close assign hod sheet
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("تم تعيين رئيس القسم بنجاح")),
-                                  );
+                                  if (context.mounted) {
+                                    Navigator.pop(context); // close edit sheet
+                                    Navigator.pop(context); // close assign hod sheet
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(isAr ? "تم تعيين رئيس القسم بنجاح" : "Department Head assigned successfully")),
+                                    );
+                                  }
                                   _loadData();
                                 }
                               } catch (e) {
-                                if (!mounted || !context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("حدث خطأ أثناء التعيين: $e")),
-                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(isAr ? "حدث خطأ أثناء التعيين: $e" : "An error occurred during assignment: $e")),
+                                  );
+                                }
                               } finally {
                                 setModalState(() => isSubmitting = false);
                               }
@@ -803,7 +846,9 @@ if (!mounted || !context.mounted) return;
                       child: isSubmitting
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                           : Text(
-                              activeTab == 0 ? "تعيين رئيس القسم" : "إنشاء وتعيين رئيس القسم",
+                              activeTab == 0
+                                  ? (isAr ? "تعيين رئيس القسم" : "Assign Dept Head")
+                                  : (isAr ? "إنشاء وتعيين رئيس القسم" : "Create & Assign Dept Head"),
                               style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
                             ),
                     ),
@@ -817,8 +862,6 @@ if (!mounted || !context.mounted) return;
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -828,14 +871,14 @@ if (!mounted || !context.mounted) return;
     final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            "الدورات",
+            isAr ? "الدورات" : "Courses",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: textColor,
@@ -845,7 +888,7 @@ if (!mounted || !context.mounted) return;
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
           ),
           actions: [
             IconButton(
@@ -856,7 +899,7 @@ if (!mounted || !context.mounted) return;
                 );
               },
               icon: Icon(Icons.settings_outlined, color: textColor),
-              tooltip: "الإعدادات",
+              tooltip: isAr ? "الإعدادات" : "Settings",
             ),
           ],
         ),
@@ -873,7 +916,7 @@ if (!mounted || !context.mounted) return;
                       children: [
                         Expanded(
                           child: _buildActionButton(
-                            "إضافة دورة جديدة",
+                            isAr ? "إضافة دورة جديدة" : "Add Course",
                             Icons.add_circle_outline,
                             primaryYellow,
                             () => _showAddCourseModal(context, isDark, primaryYellow),
@@ -883,7 +926,7 @@ if (!mounted || !context.mounted) return;
                         const SizedBox(width: 8),
                         Expanded(
                           child: _buildActionButton(
-                            "تخصيص رئيس قسم",
+                            isAr ? "تخصيص رئيس قسم" : "Assign Head",
                             Icons.manage_accounts_outlined,
                             Colors.blueAccent,
                             () => _showAssignHodModal(context, isDark, primaryYellow),
@@ -893,7 +936,7 @@ if (!mounted || !context.mounted) return;
                         const SizedBox(width: 8),
                         Expanded(
                           child: _buildActionButton(
-                            "إضافة قسم جديد",
+                            isAr ? "إضافة قسم جديد" : "Add Dept",
                             Icons.domain_add,
                             const Color(0xFF10B981),
                             () async {
@@ -925,11 +968,12 @@ if (!mounted || !context.mounted) return;
                     const SizedBox(height: 20),
 
                     // ─── فلترة الأقسام ───
-                    _buildLabel("القسم", textColor),
+                    _buildLabel(isAr ? "القسم" : "Department", textColor),
                     _buildDropdown(
-                      hint: "اختر القسم للفلترة",
+                      hint: isAr ? "اختر القسم للفلترة" : "Select department to filter",
                       value: selectedDept,
                       items: departments,
+                      labelMapper: _getDeptLabel,
                       onChanged: (val) {
                         if (val != null) {
                           setState(() => selectedDept = val);
@@ -946,11 +990,11 @@ if (!mounted || !context.mounted) return;
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "قائمة الدورات المتاحة",
+                          isAr ? "قائمة الدورات المتاحة" : "Available Courses List",
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
                         ),
                         Text(
-                          "${filteredProgramsList.length} دورة",
+                          isAr ? "${filteredProgramsList.length} دورة" : "${filteredProgramsList.length} Courses",
                           style: TextStyle(color: Colors.blue.shade400, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -961,7 +1005,15 @@ if (!mounted || !context.mounted) return;
                     if (isLoading)
                       const Center(child: Padding(padding: EdgeInsets.all(30), child: CircularProgressIndicator()))
                     else if (filteredProgramsList.isEmpty)
-                      const Center(child: Padding(padding: EdgeInsets.all(30), child: Text("لا توجد دورات للقسم المحدد")))
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(30),
+                          child: Text(
+                            isAr ? "لا توجد دورات للقسم المحدد" : "No courses for selected department",
+                            style: TextStyle(color: Colors.grey.shade600),
+                          ),
+                        ),
+                      )
                     else
                       ListView.builder(
                         shrinkWrap: true,
@@ -969,8 +1021,8 @@ if (!mounted || !context.mounted) return;
                         itemCount: filteredProgramsList.length,
                         itemBuilder: (context, index) {
                           final prog = filteredProgramsList[index];
-                          final progName = prog['name'] ?? 'دورة بدون اسم';
-                          final deptName = prog['department_name'] ?? 'عام';
+                          final progName = prog['name'] ?? (isAr ? 'دورة بدون اسم' : 'Untitled course');
+                          final deptName = prog['department_name'] ?? (isAr ? 'عام' : 'General');
 
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -1002,7 +1054,7 @@ if (!mounted || !context.mounted) return;
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        "القسم: $deptName",
+                                        isAr ? "القسم: ${_getDeptLabel(deptName.toString())}" : "Department: ${_getDeptLabel(deptName.toString())}",
                                         style: const TextStyle(color: Colors.grey, fontSize: 12),
                                       ),
                                     ],
@@ -1034,9 +1086,9 @@ if (!mounted || !context.mounted) return;
   }
 
   Widget _buildLabel(String text, Color textColor) => Padding(
-        padding: const EdgeInsets.only(bottom: 5, right: 5),
+        padding: const EdgeInsets.only(bottom: 5, right: 5, left: 5),
         child: Align(
-          alignment: Alignment.centerRight,
+          alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
           child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
         ),
       );
@@ -1048,6 +1100,7 @@ if (!mounted || !context.mounted) return;
     required ValueChanged<String?> onChanged,
     required bool isDark,
     required Color cardColor,
+    String Function(String)? labelMapper,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -1062,7 +1115,12 @@ if (!mounted || !context.mounted) return;
           hint: Text(hint, style: const TextStyle(fontSize: 13)),
           isExpanded: true,
           dropdownColor: cardColor,
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
+          items: items
+              .map((e) => DropdownMenuItem(
+                    value: e,
+                    child: Text(labelMapper != null ? labelMapper(e) : e, style: const TextStyle(fontSize: 13)),
+                  ))
+              .toList(),
           onChanged: onChanged,
         ),
       ),

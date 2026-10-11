@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AddParentScreen extends StatefulWidget {
   const AddParentScreen({super.key});
@@ -11,6 +12,9 @@ class AddParentScreen extends StatefulWidget {
 }
 
 class _AddParentScreenState extends State<AddParentScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   final _nameController     = TextEditingController();
   final _phoneController    = TextEditingController();
   final _relationController = TextEditingController();
@@ -23,7 +27,14 @@ class _AddParentScreenState extends State<AddParentScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _nameController.dispose();
     _phoneController.dispose();
     _relationController.dispose();
@@ -52,7 +63,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
         _emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى تعبئة جميع الحقول المطلوبة')),
+        SnackBar(content: Text(isAr ? 'يرجى تعبئة جميع الحقول المطلوبة' : 'Please fill all required fields')),
       );
       return;
     }
@@ -80,13 +91,16 @@ class _AddParentScreenState extends State<AddParentScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم إنشاء حساب ولي الأمر بنجاح'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(isAr ? '✅ تم إنشاء حساب ولي الأمر بنجاح' : '✅ Parent account created successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       debugPrint('⛔ Add Parent Error: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again';
       if (e is DioException && e.response?.data is Map) {
         msg = e.response!.data['message'] ?? msg;
       }
@@ -105,7 +119,10 @@ class _AddParentScreenState extends State<AddParentScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("إنشاء حساب ولي أمر", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(
+          isAr ? "إنشاء حساب ولي أمر" : "Create Parent Account",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, size: 20),
@@ -113,22 +130,28 @@ class _AddParentScreenState extends State<AddParentScreen> {
         ),
       ),
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("معلومات ولي الأمر", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+              Text(
+                isAr ? "معلومات ولي الأمر" : "Parent Information",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+              ),
               const SizedBox(height: 16),
-              _buildInput(label: "اسم ولي الأمر الكامل",     icon: Icons.family_restroom_outlined, controller: _nameController,     isDark: isDark),
-              _buildInput(label: "رقم الهاتف المحمول",        icon: Icons.phone_android_outlined,   controller: _phoneController,    isDark: isDark, inputType: TextInputType.phone),
-              _buildInput(label: "صلة القرابة (أب/أم...)",   icon: Icons.link,                      controller: _relationController, isDark: isDark),
-              _buildInput(label: "البريد الإلكتروني",         icon: Icons.email_outlined,            controller: _emailController,    isDark: isDark, inputType: TextInputType.emailAddress),
-              _buildInput(label: "كلمة المرور",               icon: Icons.lock_outline,              controller: _passwordController, isDark: isDark, isPass: true),
+              _buildInput(label: isAr ? "اسم ولي الأمر الكامل" : "Parent Full Name", icon: Icons.family_restroom_outlined, controller: _nameController, isDark: isDark),
+              _buildInput(label: isAr ? "رقم الهاتف المحمول" : "Mobile Phone", icon: Icons.phone_android_outlined, controller: _phoneController, isDark: isDark, inputType: TextInputType.phone),
+              _buildInput(label: isAr ? "صلة القرابة (أب/أم...)" : "Relation (Father/Mother...)", icon: Icons.link, controller: _relationController, isDark: isDark),
+              _buildInput(label: isAr ? "البريد الإلكتروني" : "Email Address", icon: Icons.email_outlined, controller: _emailController, isDark: isDark, inputType: TextInputType.emailAddress),
+              _buildInput(label: isAr ? "كلمة المرور" : "Password", icon: Icons.lock_outline, controller: _passwordController, isDark: isDark, isPass: true),
 
               const SizedBox(height: 24),
-              const Text("معلومات الأبناء", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+              Text(
+                isAr ? "معلومات الأبناء" : "Children Information",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+              ),
               const SizedBox(height: 16),
 
               // عدد الأبناء
@@ -142,7 +165,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
                   children: [
                     const Icon(Icons.child_care, color: Colors.grey),
                     const SizedBox(width: 12),
-                    Text("عدد الأبناء", style: TextStyle(color: textColor, fontSize: 14)),
+                    Text(isAr ? "عدد الأبناء" : "Number of Children", style: TextStyle(color: textColor, fontSize: 14)),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline, color: Color(0xFFFFCC00)),
@@ -189,8 +212,10 @@ class _AddParentScreenState extends State<AddParentScreen> {
                       children: [
                         const Icon(Icons.badge_outlined, color: Color(0xFFFFCC00), size: 20),
                         const SizedBox(width: 8),
-                        Text("الأرقام الجامعية للأبناء",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                        Text(
+                          isAr ? "الأرقام الجامعية للأبناء" : "Children Academic Numbers",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -201,7 +226,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: textColor),
                         decoration: InputDecoration(
-                          hintText: "الرقم الجامعي للابن ${i + 1}",
+                          hintText: isAr ? "الرقم الجامعي للابن ${i + 1}" : "Child ${i + 1} Academic Number",
                           prefixIcon: const Icon(Icons.numbers, color: Colors.grey),
                           filled: true,
                           fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
@@ -230,7 +255,10 @@ class _AddParentScreenState extends State<AddParentScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                      : const Text("إنشاء الحساب وربط الأبناء", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                      : Text(
+                          isAr ? "إنشاء الحساب وربط الأبناء" : "Create Account & Link Children",
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),

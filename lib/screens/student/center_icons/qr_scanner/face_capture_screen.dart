@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/arc_face_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class FaceCaptureScreen extends StatefulWidget {
   final String qrToken;
@@ -29,7 +30,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   bool _isSubmitting   = false;
   bool _isInitializingReference = false;
   bool _isMirrored     = false;
-  String _hint         = 'وجّه كاميرتك الأمامية نحو وجهك';
+  late String _hint;
 
   // ── فحص الحيوية (Liveness): نطلب رمشة عين حقيقية قبل قبول الصورة
   // لمنع خداع النظام بصورة مطبوعة أو معروضة على شاشة أخرى
@@ -42,6 +43,9 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   @override
   void initState() {
     super.initState();
+    final isAr = AppSettings.language.value == 'ar';
+    _hint = isAr ? 'وجّه كاميرتك الأمامية نحو وجهك' : 'Point your front camera at your face';
+    AppSettings.language.addListener(_onLangChange);
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         enableLandmarks: true,
@@ -50,6 +54,10 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       ),
     );
     _checkAndInitializeFace();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   void _resetBlinkState() {
@@ -118,7 +126,8 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
             final List<dynamic> raw = jsonDecode(localEmbeddingStr);
             final List<double> localEmbedding = raw.map((e) => (e as num).toDouble()).toList();
             if (localEmbedding.isNotEmpty) {
-              setState(() => _hint = "جاري مزامنة بصمة وجهك المحفوظة محلياً...");
+              final isAr = AppSettings.language.value == 'ar';
+              setState(() => _hint = isAr ? "جاري مزامنة بصمة وجهك المحفوظة محلياً..." : "Syncing locally saved face embedding...");
               await Dio().post(
                 "${ApiService().baseUrl}/student/profile/initialize-face",
                 data: {"face_embedding": localEmbedding},
@@ -132,12 +141,14 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
           }
         }
 
+        final isAr = AppSettings.language.value == 'ar';
         if (photoUrl == null || photoUrl.isEmpty) {
-          _showErrorDialog("صورة الوجه المرجعية غير متوفرة في حسابك. يرجى التقاط صورتك الشخصية أولاً.");
+          _showErrorDialog(isAr ? "صورة الوجه المرجعية غير متوفرة في حسابك. يرجى التقاط صورتك الشخصية أولاً." : "Reference photo is not available in your account. Please capture your personal photo first.");
           return;
         }
 
-        setState(() => _hint = "جاري تهيئة بصمة وجهك من صورتك المرجعية...");// 2. تحميل صورة الشؤون مؤقتاً
+        setState(() => _hint = isAr ? "جاري تهيئة بصمة وجهك من صورتك المرجعية..." : "Initializing face embedding from your reference photo...");
+        // 2. تحميل صورة الشؤون مؤقتاً
         final tempDir = await getTemporaryDirectory();
         final tempPath = "${tempDir.path}/ref_photo.jpg";
         await Dio().download(photoUrl, tempPath);
@@ -147,14 +158,14 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         final faces = await _faceDetector!.processImage(inputImage);
 
         if (faces.isEmpty) {
-          _showErrorDialog("فشل العثور على وجه في صورتك الرسمية المرفوعة من الشؤون. يرجى مراجعة شؤون الطلاب لتحديثها.");
+          _showErrorDialog(isAr ? "فشل العثور على وجه في صورتك الرسمية المرفوعة من الشؤون. يرجى مراجعة شؤون الطلاب لتحديثها." : "No face found in your official university photo. Please consult student affairs.");
           return;
         }
 
         final embedding = await ArcFaceService.extractArcFaceEmbedding(faces.first, tempPath);
 
         if (embedding.isEmpty) {
-          _showErrorDialog("فشل استخراج بصمة وجهك من الصورة. يرجى التواصل مع الدعم الفني.");
+          _showErrorDialog(isAr ? "فشل استخراج بصمة وجهك من الصورة. يرجى التواصل مع الدعم الفني." : "Failed to extract face embedding. Please contact technical support.");
           return;
         }
 
@@ -169,7 +180,8 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       // بعد انتهاء التهيئة بنجاح، يتم تشغيل الكاميرا
       await _initCamera();
     } catch (e) {
-      _showErrorDialog("حدث خطأ أثناء الاتصال بالخادم لتهيئة الوجه: $e");
+      final isAr = AppSettings.language.value == 'ar';
+      _showErrorDialog(isAr ? "حدث خطأ أثناء الاتصال بالخادم لتهيئة الوجه: $e" : "Error connecting to server for face setup: $e");
     } finally {
       setState(() => _isInitializingReference = false);
     }
@@ -177,19 +189,20 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
   void _showErrorDialog(String message) {
     if (!mounted) return;
+    final isAr = AppSettings.language.value == 'ar';
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text("تنبيه أمني", textDirection: TextDirection.rtl),
-        content: Text(message, textDirection: TextDirection.rtl),
+        title: Text(isAr ? "تنبيه أمني" : "Security Notice", textDirection: isAr ? TextDirection.rtl : TextDirection.ltr),
+        content: Text(message, textDirection: isAr ? TextDirection.rtl : TextDirection.ltr),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               Navigator.pop(context); // الخروج من شاشة الحضور
             },
-            child: const Text("موافق"),
+            child: Text(isAr ? "موافق" : "OK"),
           )
         ],
       ),
@@ -225,9 +238,10 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         final double pitch = face.headEulerAngleX ?? 0;
 
         if (yaw.abs() > 12 || pitch.abs() > 12) {
+          final isAr = AppSettings.language.value == 'ar';
           setState(() {
             _isFaceDetected = false;
-            _hint = 'انظر مباشرة إلى الكاميرا بشكل مستقيم ⚠️';
+            _hint = isAr ? 'انظر مباشرة إلى الكاميرا بشكل مستقيم ⚠️' : 'Look straight into the camera ⚠️';
             _isCapturing = false;
           });
           _captureTimer?.cancel();
@@ -245,16 +259,17 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         // النظام بصورة مطبوعة أو معروضة على شاشة أخرى
         _trackBlink(face);
 
+        final isAr = AppSettings.language.value == 'ar';
         if (!_blinkConfirmed) {
           setState(() {
-            _hint = _sawEyesClosed
-                ? 'تم رصد الرمشة، افتح عينيك... ✅'
-                : 'ارمش بعينيك لإثبات أنك موجود فعلياً 👁️';
+            _hint = isAr 
+                ? (_sawEyesClosed ? 'تم رصد الرمشة، افتح عينيك... ✅' : 'ارمش بعينيك لإثبات أنك موجود فعلياً 👁️')
+                : (_sawEyesClosed ? 'Blink detected, open your eyes... ✅' : 'Blink your eyes to verify liveness 👁️');
           });
           return;
         }
 
-        setState(() => _hint = 'تم التحقق من حيويتك ✅ — ابقَ ثابتاً...');
+        setState(() => _hint = isAr ? 'تم التحقق من حيويتك ✅ — ابقَ ثابتاً...' : 'Liveness verified ✅ — Stay still...');
 
         if (!_isCapturing) {
           _isCapturing = true;
@@ -264,9 +279,10 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         }
       } else {
         if (_isFaceDetected) {
+          final isAr = AppSettings.language.value == 'ar';
           setState(() {
             _isFaceDetected = false;
-            _hint = 'لم يتم كشف وجهك، حاول مجدداً';
+            _hint = isAr ? 'لم يتم كشف وجهك، حاول مجدداً' : 'Face not detected, try again';
             _isCapturing = false;
           });
           _resetBlinkState();
@@ -278,9 +294,10 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
   Future<void> _captureAndSubmit(Face face, String imagePath) async {
     if (!mounted) return;
+    final isAr = AppSettings.language.value == 'ar';
     setState(() {
       _isSubmitting = true;
-      _hint = 'جارِ التحقق من وجهك...';
+      _hint = isAr ? 'جارِ التحقق من وجهك...' : 'Verifying your face...';
     });
 
     List<double> embedding = [];
@@ -310,7 +327,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       if (!mounted) return;
       _showResult(
         success: res.data['success'] == true,
-        message: res.data['message'] ?? 'تم التسجيل',
+        message: res.data['message'] ?? (isAr ? 'تم التسجيل' : 'Registered successfully'),
         faceStatus: res.data['face_status'],
         score: (res.data['face_score'] as num?)?.toDouble(),
       );
@@ -337,16 +354,17 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       if (isOffline) {
         await _saveAttendanceLocally(widget.qrToken, embedding);
       } else {
-        final msg = e.response?.data?['message'] ?? 'تعذر الاتصال بالسيرفر';
+        final msg = e.response?.data?['message'] ?? (isAr ? 'تعذر الاتصال بالسيرفر' : 'Could not connect to server');
         _showResult(success: false, message: msg);
       }
     } catch (_) {
       if (!mounted) return;
-      _showResult(success: false, message: 'حدث خطأ غير متوقع');
+      _showResult(success: false, message: isAr ? 'حدث خطأ غير متوقع' : 'An unexpected error occurred');
     }
   }
 
   Future<void> _saveAttendanceLocally(String qrToken, List<double> embedding) async {
+    final isAr = AppSettings.language.value == 'ar';
     try {
       final prefs = await SharedPreferences.getInstance();
       List<String> offlineScans = prefs.getStringList('offline_attendance_scans') ?? [];
@@ -376,11 +394,13 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       if (!mounted) return;
       _showResult(
         success: true,
-        message: 'لا يوجد اتصال بالإنترنت. تم حفظ مسح الحضور على جهازك وهو بانتظار المزامنة عند توفر الشبكة 📡⏳',
+        message: isAr
+            ? 'لا يوجد اتصال بالإنترنت. تم حفظ رمز حضورك محلياً بنجاح وسيرسل تلقائياً فور توفر الشبكة! 📡✅'
+            : 'No internet connection. Attendance token saved locally and will sync once online! 📡✅',
       );
     } catch (e) {
       if (!mounted) return;
-      _showResult(success: false, message: 'حدث خطأ أثناء حفظ الحضور محلياً');
+      _showResult(success: false, message: isAr ? 'حدث خطأ أثناء حفظ الحضور محلياً' : 'Error saving attendance locally');
     }
   }
 
@@ -390,6 +410,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     String? faceStatus,
     double? score,
   }) {
+    final isAr = AppSettings.language.value == 'ar';
     Color iconColor = success ? Colors.green : Colors.red;
     IconData icon   = success ? Icons.check_circle_rounded : Icons.error_rounded;
 
@@ -402,7 +423,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           content: Column(
@@ -412,7 +433,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
               Icon(icon, color: iconColor, size: 70),
               const SizedBox(height: 16),
               Text(
-                success ? 'تم التسجيل' : 'فشل التسجيل',
+                success ? (isAr ? 'تم التسجيل' : 'Registered') : (isAr ? 'فشل التسجيل' : 'Registration Failed'),
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -424,7 +445,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
               if (score != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'نسبة التطابق: ${score.toStringAsFixed(1)}%',
+                  isAr ? 'نسبة التطابق: ${score.toStringAsFixed(1)}%' : 'Match Score: ${score.toStringAsFixed(1)}%',
                   style: TextStyle(
                     color: score >= 85 ? Colors.green : (score >= 70 ? Colors.orange : Colors.red),
                     fontWeight: FontWeight.bold,
@@ -445,9 +466,9 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                     Navigator.pop(context); // يغلق الـ dialog
                     Navigator.pop(context); // يغلق FaceCaptureScreen
                   },
-                  child: const Text(
-                    'حسناً',
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                  child: Text(
+                    isAr ? 'حسناً' : 'OK',
+                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ),
@@ -460,6 +481,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _captureTimer?.cancel();
     _cameraController?.dispose();
     _faceDetector?.close();
@@ -468,17 +490,19 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
+
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
           backgroundColor: Colors.black,
           elevation: 0,
           centerTitle: true,
-          title: const Text(
-            'التحقق من الوجه',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          title: Text(
+            isAr ? 'التحقق من الوجه' : 'Face Verification',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -486,17 +510,19 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
           ),
         ),
         body: _isInitializingReference
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(color: Color(0xFFFFCC00)),
-                      SizedBox(height: 20),
+                      const CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                      const SizedBox(height: 20),
                       Text(
-                        'جاري تهيئة بصمة وجهك من صورتك الرسمية بالجامعة...\nالرجاء الانتظار.',
-                        style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.5, fontFamily: 'Noto Sans Arabic'),
+                        isAr
+                            ? 'جاري تهيئة بصمة وجهك من صورتك الرسمية بالجامعة...\nالرجاء الانتظار.'
+                            : 'Initializing face embedding from your official university photo...\nPlease wait.',
+                        style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5, fontFamily: 'Noto Sans Arabic'),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -561,14 +587,14 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.5)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.flip_camera_android, color: Color(0xFFFFCC00), size: 20),
-                        SizedBox(width: 6),
+                        const Icon(Icons.flip_camera_android, color: Color(0xFFFFCC00), size: 20),
+                        const SizedBox(width: 6),
                         Text(
-                          "عكس الكاميرا",
-                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          isAr ? "عكس الكاميرا" : "Flip Camera",
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),

@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -41,6 +42,8 @@ class CustomBottomNav extends StatelessWidget {
         ? Colors.grey.shade500
         : Colors.grey.shade400;
 
+    final bool isAr = AppSettings.language.value == 'ar';
+
     return Positioned.fill(
       child: Stack(
         alignment: Alignment.bottomCenter,
@@ -55,15 +58,15 @@ class CustomBottomNav extends StatelessWidget {
               painter: NotchedBarPainter(bgColor: bgColor, isDark: isDark),
               child: SizedBox(
                 height: 60,
-                // 🌟 إضافة Directionality لضمان ترتيب الأيقونات من اليمين لليسار 🌟
+                // 🌟 إضافة Directionality لضمان الترتيب حسب اللغة 🌟
                 child: Directionality(
-                  textDirection: TextDirection.rtl,
+                  textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildNavItem(
                         currentIndex == 0 ? Icons.home : Icons.home_outlined,
-                        'الرئيسية',
+                        isAr ? 'الرئيسية' : 'Home',
                         0,
                         onHomeTap,
                         activeColor,
@@ -71,7 +74,7 @@ class CustomBottomNav extends StatelessWidget {
                       ),
                       _buildNavItem(
                         currentIndex == 1 ? Icons.person : Icons.person_outline,
-                        'الملف',
+                        isAr ? 'الملف' : 'Profile',
                         1,
                         onProfileTap,
                         activeColor,
@@ -84,7 +87,7 @@ class CustomBottomNav extends StatelessWidget {
                         currentIndex == 2
                             ? Icons.notifications
                             : Icons.notifications_none,
-                        'الإشعارات',
+                        isAr ? 'الإشعارات' : 'Notifications',
                         onNotificationsTap,
                         activeColor,
                         inactiveColor,
@@ -93,7 +96,7 @@ class CustomBottomNav extends StatelessWidget {
                         currentIndex == 3
                             ? Icons.chat_bubble
                             : Icons.chat_bubble_outline,
-                        'رسائل',
+                        isAr ? 'رسائل' : 'Messages',
                         3,
                         onMessagesTap,
                         activeColor,

@@ -1,7 +1,8 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class EditOfTableScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -14,6 +15,9 @@ class EditOfTableScreen extends StatefulWidget {
 }
 
 class _EditOfTableScreenState extends State<EditOfTableScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _dayController;
@@ -27,6 +31,7 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     final d = widget.initialData;
     _dayController     = TextEditingController(text: d?['day']     as String? ?? '');
     _subjectController = TextEditingController(text: d?['subject'] as String? ?? '');
@@ -37,6 +42,7 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _dayController.dispose();
     _subjectController.dispose();
     _teacherController.dispose();
@@ -67,13 +73,16 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم حفظ تعديلات الجدول بنجاح'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(isAr ? '✅ تم حفظ تعديلات الجدول بنجاح' : '✅ Schedule changes saved successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       debugPrint('⛔ Edit Schedule Error: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again';
       if (e is DioException && e.response?.data is Map) {
         msg = e.response!.data['message'] ?? msg;
       }
@@ -90,7 +99,7 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
     const primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
@@ -99,7 +108,7 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
           centerTitle: true,
           iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
           title: Text(
-            'تعديل الجدول الدراسي',
+            isAr ? 'تعديل الجدول الدراسي' : 'Edit Study Schedule',
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
           ),
         ),
@@ -115,16 +124,18 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  'عدّل بيانات هذا الصف في الجدول الدراسي ثم اضغط حفظ.',
+                  isAr
+                      ? 'عدّل بيانات هذا الصف في الجدول الدراسي ثم اضغط حفظ.'
+                      : 'Edit row details in the study schedule then tap save.',
                   style: TextStyle(color: textColor.withValues(alpha: 0.85), fontSize: 12.5, fontFamily: 'Cairo'),
                 ),
               ),
               const SizedBox(height: 14),
-              _input(_dayController,     'اليوم'),
-              _input(_subjectController, 'المادة'),
-              _input(_teacherController, 'الأستاذ'),
-              _input(_timeController,    'الوقت'),
-              _input(_hallController,    'القاعة'),
+              _input(_dayController,     isAr ? 'اليوم' : 'Day'),
+              _input(_subjectController, isAr ? 'المادة' : 'Subject'),
+              _input(_teacherController, isAr ? 'الأستاذ' : 'Teacher'),
+              _input(_timeController,    isAr ? 'الوقت' : 'Time'),
+              _input(_hallController,    isAr ? 'القاعة' : 'Hall'),
               const SizedBox(height: 24),
               SizedBox(
                 height: 52,
@@ -137,7 +148,10 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                      : const Text('حفظ التعديلات', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+                      : Text(
+                          isAr ? 'حفظ التعديلات' : 'Save Changes',
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
+                        ),
                 ),
               ),
             ],
@@ -153,7 +167,7 @@ class _EditOfTableScreenState extends State<EditOfTableScreen> {
       child: TextFormField(
         controller: controller,
         style: const TextStyle(fontFamily: 'Cairo'),
-        validator: (v) => (v == null || v.trim().isEmpty) ? 'هذا الحقل مطلوب' : null,
+        validator: (v) => (v == null || v.trim().isEmpty) ? (isAr ? 'هذا الحقل مطلوب' : 'This field is required') : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

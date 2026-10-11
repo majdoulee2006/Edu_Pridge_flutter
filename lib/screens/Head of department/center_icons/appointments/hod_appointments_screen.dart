@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class HodAppointmentsScreen extends StatefulWidget {
   const HodAppointmentsScreen({super.key});
@@ -11,6 +12,9 @@ class HodAppointmentsScreen extends StatefulWidget {
 }
 
 class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with SingleTickerProviderStateMixin {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   late TabController _tabController;
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 15),
@@ -27,12 +31,14 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _tabController = TabController(length: 2, vsync: this);
     _loadHodData();
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _tabController.dispose();
     super.dispose();
   }
@@ -77,19 +83,19 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FilterChip(
-            label: const Text('الكل'),
+            label: Text(isAr ? 'الكل' : 'All'),
             selected: current == 'all',
             onSelected: (_) => onSelect('all'),
           ),
           const SizedBox(width: 8),
           FilterChip(
-            label: const Text('المعلقة'),
+            label: Text(isAr ? 'المعلقة' : 'Pending'),
             selected: current == 'pending',
             onSelected: (_) => onSelect('pending'),
           ),
           const SizedBox(width: 8),
           FilterChip(
-            label: const Text('المنتهية'),
+            label: Text(isAr ? 'المنتهية' : 'Completed'),
             selected: current == 'completed',
             onSelected: (_) => onSelect('completed'),
           ),
@@ -104,13 +110,13 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
     final primaryColor = Colors.teal.shade700;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
         appBar: AppBar(
-          title: const Text(
-            'مواعيد واستدعاءات رئيس القسم',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          title: Text(
+            isAr ? 'مواعيد واستدعاءات رئيس القسم' : 'Dept Head Appointments & Summons',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
           backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -121,9 +127,9 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
             labelColor: primaryColor,
             unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            tabs: const [
-              Tab(icon: Icon(Icons.event_available_rounded), text: 'طلبات مواعيد أولياء الأمور'),
-              Tab(icon: Icon(Icons.mark_email_read_rounded), text: 'استدعاءات الأهل والمدربين'),
+            tabs: [
+              Tab(icon: const Icon(Icons.event_available_rounded), text: isAr ? 'طلبات مواعيد أولياء الأمور' : 'Parents Appointments'),
+              Tab(icon: const Icon(Icons.mark_email_read_rounded), text: isAr ? 'استدعاءات الأهل والمدربين' : 'Summons'),
             ],
           ),
         ),
@@ -165,7 +171,7 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
             Icon(Icons.event_busy_rounded, size: 70, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
-              'لا توجد مواعيد أولياء أمور مسجلة للقسم حالياً',
+              isAr ? 'لا توجد مواعيد أولياء أمور مسجلة للقسم حالياً' : 'No parent appointments registered currently',
               style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
             ),
           ],
@@ -180,8 +186,8 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
         itemCount: _meetings.length,
         itemBuilder: (context, index) {
           final item = _meetings[index] as Map<String, dynamic>;
-          final parentName = item['parent_name'] ?? 'ولي الأمر';
-          final studentName = item['student_name'] ?? 'الطالب';
+          final parentName = item['parent_name'] ?? (isAr ? 'ولي الأمر' : 'Parent');
+          final studentName = item['student_name'] ?? (isAr ? 'الطالب' : 'Student');
           final subject = item['subject'] ?? '';
           final reason = item['reason'] ?? '';
           final status = (item['status'] ?? 'pending').toString().toLowerCase();
@@ -193,13 +199,13 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
           String statusText;
           if (status == 'approved') {
             statusColor = Colors.green.shade600;
-            statusText = 'موافق عليه ومحدد الموعد';
+            statusText = isAr ? 'موافق عليه ومحدد الموعد' : 'Approved & Scheduled';
           } else if (status == 'rejected') {
             statusColor = Colors.red.shade600;
-            statusText = 'مرفوض';
+            statusText = isAr ? 'مرفوض' : 'Rejected';
           } else {
             statusColor = Colors.orange.shade700;
-            statusText = 'قيد المراجعة';
+            statusText = isAr ? 'قيد المراجعة' : 'Pending Review';
           }
 
           return Container(
@@ -232,7 +238,10 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(parentName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text('ولي أمر الطالب: $studentName', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
+                          Text(
+                            isAr ? 'ولي أمر الطالب: $studentName' : 'Parent of: $studentName',
+                            style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                          ),
                         ],
                       ),
                     ),
@@ -252,10 +261,16 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                 const SizedBox(height: 12),
                 const Divider(),
                 const SizedBox(height: 6),
-                Text('الموضوع: $subject', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(
+                  '${isAr ? "الموضوع:" : "Subject:"} $subject',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
                 if (reason.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text('التفاصيل: $reason', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13)),
+                  Text(
+                    '${isAr ? "التفاصيل:" : "Details:"} $reason',
+                    style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13),
+                  ),
                 ],
                 const SizedBox(height: 10),
                 if (scheduledAt != null && scheduledAt.isNotEmpty) ...[
@@ -270,7 +285,7 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                         const Icon(Icons.event_available_rounded, size: 16, color: Colors.green),
                         const SizedBox(width: 6),
                         Text(
-                          'الموعد المعتمد للزيارة: $scheduledAt',
+                          '${isAr ? "الموعد المعتمد للزيارة:" : "Scheduled visit:"} $scheduledAt',
                           style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ],
@@ -278,14 +293,14 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                   ),
                 ] else if (preferredDate != null && preferredDate.isNotEmpty) ...[
                   Text(
-                    'التاريخ المفضل من الأهل: $preferredDate',
+                    '${isAr ? "التاريخ المفضل من الأهل:" : "Preferred Date:"} $preferredDate',
                     style: const TextStyle(color: Colors.blue, fontSize: 12),
                   ),
                 ],
                 if (adminNotes != null && adminNotes.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    'ملاحظة الشؤون الإدارية: $adminNotes',
+                    '${isAr ? "ملاحظة الشؤون الإدارية:" : "Affairs Note:"} $adminNotes',
                     style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                   ),
                 ],
@@ -306,7 +321,7 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
             Icon(Icons.mark_email_read_rounded, size: 70, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
-              'لا توجد استدعاءات في هذا الفلتر حالياً',
+              isAr ? 'لا توجد استدعاءات في هذا الفلتر حالياً' : 'No summons found currently',
               style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
             ),
           ],
@@ -321,9 +336,9 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
         itemCount: _summons.length,
         itemBuilder: (context, index) {
           final item = _summons[index] as Map<String, dynamic>;
-          final studentName = item['student_name'] ?? 'الطالب';
+          final studentName = item['student_name'] ?? (isAr ? 'الطالب' : 'Student');
           final teacherName = item['teacher_name'];
-          final subject = item['reason_title'] ?? item['subject'] ?? 'استدعاء ولي أمر';
+          final subject = item['reason_title'] ?? item['subject'] ?? (isAr ? 'استدعاء ولي أمر' : 'Parent Summon');
           final details = item['details'] ?? item['reason'] ?? '';
           final date = item['created_at']?.toString() ?? '';
           final status = (item['status'] ?? 'sent').toString();
@@ -346,7 +361,10 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text('الطالب: $studentName', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      child: Text(
+                        '${isAr ? "الطالب:" : "Student:"} $studentName',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
                     ),
                     if (isTeacherSummon)
                       Container(
@@ -355,28 +373,40 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                           color: Colors.orange.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'طلب من المعلم',
-                          style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 11),
+                        child: Text(
+                          isAr ? 'طلب من المعلم' : 'Teacher Request',
+                          style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 11),
                         ),
                       ),
                   ],
                 ),
                 if (teacherName != null) ...[
                   const SizedBox(height: 4),
-                  Text('المعلم المربي: $teacherName', style: TextStyle(color: Colors.teal.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(
+                    '${isAr ? "المعلم المربي:" : "Teacher:"} $teacherName',
+                    style: TextStyle(color: Colors.teal.shade700, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
                 ],
                 const SizedBox(height: 6),
-                Text('السبب: $subject', style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.w600)),
+                Text(
+                  '${isAr ? "السبب:" : "Reason:"} $subject',
+                  style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
                 if (details.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text('التفاصيل: $details', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12)),
+                  Text(
+                    '${isAr ? "التفاصيل:" : "Details:"} $details',
+                    style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12),
+                  ),
                 ],
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('تاريخ الطلب: ${date.split('T')[0]}', style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                    Text(
+                      '${isAr ? "تاريخ الطلب:" : "Date:"} ${date.split('T')[0]}',
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                    ),
                     if (isTeacherSummon)
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -388,13 +418,16 @@ class _HodAppointmentsScreenState extends State<HodAppointmentsScreen> with Sing
                           final ok = await ApiService().forwardSummonToAffairs(summonId);
                           if (ok && mounted && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('تم التحويل المباشر للشؤون بنجاح')),
+                              SnackBar(content: Text(isAr ? 'تم التحويل المباشر للشؤون بنجاح' : 'Forwarded to affairs successfully')),
                             );
                             _loadHodData();
                           }
                         },
                         icon: const Icon(Icons.send_rounded, size: 14, color: Colors.white),
-                        label: const Text('تحويل مباشر للشؤون', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        label: Text(
+                          isAr ? 'تحويل مباشر للشؤون' : 'Forward to Affairs',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
                   ],
                 ),

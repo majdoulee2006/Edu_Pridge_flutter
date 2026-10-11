@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 import '../screens/student/center_icons/assignments/assignments_screen.dart';
 import '../screens/student/center_icons/attendance/attendance_screen.dart';
 import '../screens/student/center_icons/lectures/lectures_screen.dart';
 import '../screens/student/center_icons/schedule/schedule_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class CustomSpeedDialEduBridge extends StatefulWidget {
   const CustomSpeedDialEduBridge({super.key});
@@ -62,8 +63,10 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
         ? Colors.grey.shade800
         : Colors.grey.shade200;
 
+    final bool isAr = AppSettings.language.value == 'ar';
+
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -107,7 +110,7 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                           children: [
                             // 🌟 إضافة الأزرار وتمرير لون النص المتجاوب 🌟
                             _buildMenuItem(
-                              'الجدول',
+                              isAr ? 'الجدول' : 'Schedule',
                               Icons.calendar_month_outlined,
                               Colors.orange,
                               22.5,
@@ -125,7 +128,7 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               },
                             ),
                             _buildMenuItem(
-                              'الواجبات',
+                              isAr ? 'الواجبات' : 'Assignments',
                               Icons.assignment_outlined,
                               Colors.blue,
                               67.5,
@@ -143,7 +146,7 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               },
                             ),
                             _buildMenuItem(
-                              'المحاضرات',
+                              isAr ? 'المحاضرات' : 'Lectures',
                               Icons.play_circle_outline,
                               Colors.purple,
                               112.5,
@@ -161,7 +164,7 @@ class _CustomSpeedDialEduBridgeState extends State<CustomSpeedDialEduBridge>
                               },
                             ),
                             _buildMenuItem(
-                              'الحضور',
+                              isAr ? 'الحضور' : 'Attendance',
                               Icons.how_to_reg_outlined,
                               Colors.green,
                               157.5,

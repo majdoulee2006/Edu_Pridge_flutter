@@ -109,7 +109,7 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
                 ),
               ),
               leading: IconButton(
-                icon: Icon(Icons.arrow_back, color: textColor),
+                icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -118,7 +118,7 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
                 : _children.isEmpty
                     ? Center(
                         child: Text(
-                          'لا يوجد أبناء مرتبطون بحسابك حالياً',
+                          isAr ? 'لا يوجد أبناء مرتبطون بحسابك حالياً' : 'No children linked to your account currently',
                           style: TextStyle(color: subColor, fontSize: 14),
                         ),
                       )
@@ -132,7 +132,7 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'اختر أحد الأبناء:',
+                                  isAr ? 'اختر أحد الأبناء:' : 'Select a child:',
                                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: subColor),
                                 ),
                                 const SizedBox(height: 8),
@@ -148,7 +148,7 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
                                       value: _selectedChild,
                                       isExpanded: true,
                                       items: _children.map((child) {
-                                        final name = child['full_name'] ?? child['name'] ?? 'طالب';
+                                        final name = child['full_name'] ?? child['name'] ?? (isAr ? 'طالب' : 'Student');
                                         final level = child['level'] ?? '';
                                         final code = child['student_code'] ?? '';
                                         return DropdownMenuItem<Map<String, dynamic>>(
@@ -196,11 +196,11 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
                                 : _cardData == null
                                     ? Center(
                                         child: Text(
-                                          'تعذر جلب بطاقة العلامات للطالب',
+                                          isAr ? 'تعذر جلب بطاقة العلامات للطالب' : 'Could not fetch academic card for student',
                                           style: TextStyle(color: subColor),
                                         ),
                                       )
-                                    : _buildAcademicCardContent(cardColor, textColor, subColor, isDark),
+                                    : _buildAcademicCardContent(cardColor, textColor, subColor, isDark, isAr),
                           ),
                         ],
                       ),
@@ -210,7 +210,7 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
     );
   }
 
-  Widget _buildAcademicCardContent(Color cardColor, Color textColor, Color subColor, bool isDark) {
+  Widget _buildAcademicCardContent(Color cardColor, Color textColor, Color subColor, bool isDark, bool isAr) {
     final student = _cardData!['student'] ?? {};
     final summary = _cardData!['summary'] ?? {};
     final List<dynamic> cards = _cardData!['academic_card'] ?? [];
@@ -254,11 +254,11 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'الرقم الجامعي: ${student['university_id'] ?? ''}',
+                      '${isAr ? "الرقم الجامعي" : "University ID"}: ${student['university_id'] ?? ''}',
                       style: TextStyle(fontSize: 12, color: subColor),
                     ),
                     Text(
-                      '${student['department']} • ${student['level']}',
+                      '${student['department'] ?? ''} • ${student['level'] ?? ''}',
                       style: TextStyle(fontSize: 12, color: subColor),
                     ),
                   ],
@@ -273,21 +273,19 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
         // بطاقات ملخص الأداء والمعدل
         Row(
           children: [
-            _buildStatBadge('المعدل العام', '${summary['average'] ?? 0}%', Colors.orange, cardColor, textColor),
+            _buildStatBadge(isAr ? 'المعدل العام' : 'Overall GPA', '${summary['average'] ?? 0}%', Colors.orange, cardColor, textColor),
             const SizedBox(width: 8),
-            _buildStatBadge('المواد الناجحة', '${summary['passed_courses'] ?? 0}', Colors.green, cardColor, textColor),
+            _buildStatBadge(isAr ? 'المواد الناجحة' : 'Passed Courses', '${summary['passed_courses'] ?? 0}', Colors.green, cardColor, textColor),
             const SizedBox(width: 8),
-            _buildStatBadge('لم يتم التقدم', '${summary['not_attended'] ?? 0}', Colors.grey, cardColor, textColor),
+            _buildStatBadge(isAr ? 'لم يتم التقدم' : 'Not Attended', '${summary['not_attended'] ?? 0}', Colors.grey, cardColor, textColor),
           ],
         ),
-
-
 
         const SizedBox(height: 20),
 
         // جدول المواد والعلامات
         Text(
-          'كشف درجات المواد',
+          isAr ? 'كشف درجات المواد' : 'Courses Grade Sheet',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
         ),
         const SizedBox(height: 10),
@@ -296,10 +294,10 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(16)),
-            child: Center(child: Text('لا توجد مواد مسجلة للطالب في سنته الأكاديمية الحالية', style: TextStyle(color: subColor))),
+            child: Center(child: Text(isAr ? 'لا توجد مواد مسجلة للطالب في سنته الأكاديمية الحالية' : 'No courses registered for student currently', style: TextStyle(color: subColor))),
           )
         else
-          ...cards.map((c) => _buildCourseGradeCard(c, cardColor, textColor, subColor, isDark)),
+          ...cards.map((c) => _buildCourseGradeCard(c, cardColor, textColor, subColor, isDark, isAr)),
       ],
     );
   }
@@ -324,16 +322,19 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
     );
   }
 
-  Widget _buildCourseGradeCard(Map<String, dynamic> c, Color cardColor, Color textColor, Color subColor, bool isDark) {
-    final String status = c['status'] ?? 'لم يتم التقدم';
+  Widget _buildCourseGradeCard(Map<String, dynamic> c, Color cardColor, Color textColor, Color subColor, bool isDark, bool isAr) {
+    final String rawStatus = c['status'] ?? '';
+    String status = isAr ? 'لم يتم التقدم' : 'Not Attended';
 
     Color statusBg = Colors.grey.withValues(alpha: 0.15);
     Color statusTextColor = Colors.grey;
 
-    if (status == 'ناجح') {
+    if (rawStatus == 'ناجح' || rawStatus.toLowerCase() == 'passed') {
+      status = isAr ? 'ناجح' : 'Passed';
       statusBg = Colors.green.withValues(alpha: 0.15);
       statusTextColor = Colors.green;
-    } else if (status == 'راسب') {
+    } else if (rawStatus == 'راسب' || rawStatus.toLowerCase() == 'failed') {
+      status = isAr ? 'راسب' : 'Failed';
       statusBg = Colors.red.withValues(alpha: 0.15);
       statusTextColor = Colors.red;
     }
@@ -381,10 +382,10 @@ class _ParentChildrenAcademicCardScreenState extends State<ParentChildrenAcademi
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildGradeCol('المذاكرة', c['quiz_score'], textColor, subColor),
-              _buildGradeCol('عملي / شفهي', c['oral_score'], textColor, subColor),
-              _buildGradeCol('النهائي', c['final_score'], textColor, subColor),
-              _buildGradeCol('المجموع', c['total_score'], textColor, subColor, isTotal: true),
+              _buildGradeCol(isAr ? 'المذاكرة' : 'Quiz', c['quiz_score'], textColor, subColor),
+              _buildGradeCol(isAr ? 'عملي / شفهي' : 'Oral/Practical', c['oral_score'], textColor, subColor),
+              _buildGradeCol(isAr ? 'النهائي' : 'Final', c['final_score'], textColor, subColor),
+              _buildGradeCol(isAr ? 'المجموع' : 'Total', c['total_score'], textColor, subColor, isTotal: true),
             ],
           ),
         ],

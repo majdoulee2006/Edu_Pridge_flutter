@@ -45,6 +45,7 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final chatService = context.read<ChatService>();
       chatService.fetchContacts();
@@ -56,19 +57,29 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     });
   }
 
-  List<Map<String, dynamic>> _getMockActiveData() {
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> _getMockActiveData(bool isAr) {
     return [
-      {'id': 1, 'name': 'أ. مريم (مدرسة اللغة العربية)', 'message': 'أهلاً بك، ابنكم متفوق جداً هذا الفصل', 'time': '2:24 م', 'is_read': false, 'role': 'مدرسة', 'raw_contact': {'id': 1, 'name': 'أ. مريم (مدرسة اللغة العربية)', 'role': 'مدرسة'}},
-      {'id': 2, 'name': 'د. يوسف (رئيس قسم الحاسوب)', 'message': 'تم تحديد موعد اجتماع أولياء الأمور المقبل', 'time': '2:20 م', 'is_read': true, 'role': 'رئيس القسم', 'raw_contact': {'id': 2, 'name': 'د. يوسف (رئيس قسم الحاسوب)', 'role': 'رئيس القسم'}},
-      {'id': 3, 'name': 'إدارة المدرسة', 'message': 'يرجى استلام بطاقات النتائج الامتحانية', 'time': '2:11 م', 'is_read': true, 'role': 'إدارة', 'raw_contact': {'id': 3, 'name': 'إدارة المدرسة', 'role': 'إدارة'}},
+      {'id': 1, 'name': isAr ? 'أ. مريم (مدرسة اللغة العربية)' : 'Ms. Maryam (Arabic Teacher)', 'message': isAr ? 'أهلاً بك، ابنكم متفوق جداً هذا الفصل' : 'Welcome, your son is excelling this semester', 'time': isAr ? '2:24 م' : '2:24 PM', 'is_read': false, 'role': isAr ? 'مدرسة' : 'Teacher', 'raw_contact': {'id': 1, 'name': isAr ? 'أ. مريم (مدرسة اللغة العربية)' : 'Ms. Maryam (Arabic Teacher)', 'role': isAr ? 'مدرسة' : 'Teacher'}},
+      {'id': 2, 'name': isAr ? 'د. يوسف (رئيس قسم الحاسوب)' : 'Dr. Youssef (CS Dept Head)', 'message': isAr ? 'تم تحديد موعد اجتماع أولياء الأمور المقبل' : 'Next parent-teacher meeting is scheduled', 'time': isAr ? '2:20 م' : '2:20 PM', 'is_read': true, 'role': isAr ? 'رئيس القسم' : 'Dept Head', 'raw_contact': {'id': 2, 'name': isAr ? 'د. يوسف (رئيس قسم الحاسوب)' : 'Dr. Youssef (CS Dept Head)', 'role': isAr ? 'رئيس القسم' : 'Dept Head'}},
+      {'id': 3, 'name': isAr ? 'إدارة المدرسة' : 'School Administration', 'message': isAr ? 'يرجى استلام بطاقات النتائج الامتحانية' : 'Please receive the exam report cards', 'time': isAr ? '2:11 م' : '2:11 PM', 'is_read': true, 'role': isAr ? 'إدارة' : 'Admin', 'raw_contact': {'id': 3, 'name': isAr ? 'إدارة المدرسة' : 'School Administration', 'role': isAr ? 'إدارة' : 'Admin'}},
     ];
   }
 
-  List<Map<String, dynamic>> _getNewContactsMockData() {
+  List<Map<String, dynamic>> _getNewContactsMockData(bool isAr) {
     return [
-      {'id': 10, 'name': 'م. خالد (مدرس الفيزياء)', 'role': 'مدرس', 'raw_contact': {'id': 10, 'name': 'م. خالد (مدرس الفيزياء)', 'role': 'مدرس'}},
-      {'id': 11, 'name': 'أ. ريم (مدرسة الرياضيات)', 'role': 'مدرسة', 'raw_contact': {'id': 11, 'name': 'أ. ريم (مدرسة الرياضيات)', 'role': 'مدرسة'}},
-      {'id': 12, 'name': 'الموجه التربوي', 'role': 'إدارة', 'raw_contact': {'id': 12, 'name': 'الموجه التربوي', 'role': 'إدارة'}},
+      {'id': 10, 'name': isAr ? 'م. خالد (مدرس الفيزياء)' : 'Eng. Khaled (Physics Teacher)', 'role': isAr ? 'مدرس' : 'Teacher', 'raw_contact': {'id': 10, 'name': isAr ? 'م. خالد (مدرس الفيزياء)' : 'Eng. Khaled (Physics Teacher)', 'role': isAr ? 'مدرس' : 'Teacher'}},
+      {'id': 11, 'name': isAr ? 'أ. ريم (مدرسة الرياضيات)' : 'Ms. Reem (Math Teacher)', 'role': isAr ? 'مدرسة' : 'Teacher', 'raw_contact': {'id': 11, 'name': isAr ? 'أ. ريم (مدرسة الرياضيات)' : 'Ms. Reem (Math Teacher)', 'role': isAr ? 'مدرسة' : 'Teacher'}},
+      {'id': 12, 'name': isAr ? 'الموجه التربوي' : 'Educational Supervisor', 'role': isAr ? 'إدارة' : 'Admin', 'raw_contact': {'id': 12, 'name': isAr ? 'الموجه التربوي' : 'Educational Supervisor', 'role': isAr ? 'إدارة' : 'Admin'}},
     ];
   }
 
@@ -78,13 +89,14 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
     final Color cardColor = Theme.of(context).cardColor;
     final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     final chatService = context.watch<ChatService>();
     final isLoading = chatService.isLoadingContacts;
 
     final allContacts = chatService.contacts.isNotEmpty
         ? chatService.contacts
-        : _getMockActiveData();
+        : _getMockActiveData(isAr);
 
     final activeContacts = allContacts.where((c) {
       final name = (c['name']?.toString() ?? '').toLowerCase();
@@ -95,28 +107,26 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     }).toList();
 
     return Scaffold(
-      // نفس إصلاح شاشة رسائل الطالب: يمنع الشريط السفلي من الطلوع فوق
-      // الكيبورد وقت البحث
       resizeToAvoidBottomInset: false,
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: SafeArea(
           bottom: false,
           child: Stack(
             children: [
               Column(
                 children: [
-                  _buildHeader(context, isDark),
+                  _buildHeader(context, isDark, isAr),
                   
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     child: TextField(
                       onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                      textAlign: TextAlign.right,
+                      textAlign: isAr ? TextAlign.right : TextAlign.left,
                       style: TextStyle(color: textColor),
                       decoration: InputDecoration(
-                        hintText: "ابحث في المحادثات...",
+                        hintText: isAr ? "ابحث في المحادثات..." : "Search conversations...",
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
@@ -132,13 +142,21 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
                     child: isLoading
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                         : activeContacts.isEmpty
-                            ? const Center(child: Text('لا توجد محادثات مطابقة\nاضغط على (+) لبدء محادثة جديدة', textAlign: TextAlign.center))
+                            ? Center(
+                                child: Text(
+                                  isAr
+                                      ? 'لا توجد محادثات مطابقة\nاضغط على (+) لبدء محادثة جديدة'
+                                      : 'No matching conversations\nTap (+) to start a new chat',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: textColor.withAlpha(150)),
+                                ),
+                              )
                             : ListView.builder(
                                 padding: const EdgeInsets.only(bottom: 90),
                                 itemCount: activeContacts.length,
                                 itemBuilder: (context, index) {
                                   final contact = activeContacts[index];
-                                  return _buildChatTile(context, contact, isDark, cardColor, textColor, chatService);
+                                  return _buildChatTile(context, contact, isDark, cardColor, textColor, chatService, isAr);
                                 },
                               ),
                   ),
@@ -160,15 +178,15 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     );
   }
 
-  Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor, ChatService chatServiceInstance) {
+  Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor, ChatService chatServiceInstance, bool isAr) {
     final int unreadCount = contact['unread'] ?? 0;
     final bool isMyMessage = contact['is_my_message'] == true;
     final bool isUnread = !isMyMessage && unreadCount > 0;
-    final String name    = contact['name']?.toString() ?? 'مستخدم غير معروف';
-    final String initial = name.isNotEmpty ? name[0] : '؟';
+    final String name    = contact['name']?.toString() ?? (isAr ? 'مستخدم غير معروف' : 'Unknown User');
+    final String initial = name.isNotEmpty ? name[0] : '?';
     final String role    = contact['role']?.toString() ?? '';
-    final String lastMsg = contact['message']?.toString() ?? contact['last_message']?.toString() ?? 'انقر لبدء المحادثة...';
-    final String time    = contact['time']?.toString() ?? 'الآن';
+    final String lastMsg = contact['message']?.toString() ?? contact['last_message']?.toString() ?? (isAr ? 'انقر لبدء المحادثة...' : 'Tap to start chatting...');
+    final String time    = contact['time']?.toString() ?? (isAr ? 'الآن' : 'Now');
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -288,23 +306,23 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
+  Widget _buildHeader(BuildContext context, bool isDark, bool isAr) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
           ),
-          const Text("الرسائل", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(isAr ? "الرسائل" : "Messages", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           Row(
             children: [
               IconButton(
                 icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
-                tooltip: "محادثة جديدة",
-                onPressed: () => _showNewChatModal(context, context.read<ChatService>()),
+                tooltip: isAr ? "محادثة جديدة" : "New Chat",
+                onPressed: () => _showNewChatModal(context, context.read<ChatService>(), isAr),
               ),
               GestureDetector(
                 onTap: () => Navigator.push(
@@ -312,7 +330,7 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
                   MaterialPageRoute(builder: (context) => const SettingsScreen()),
                 ),
                 child: Container(
-                  margin: const EdgeInsets.only(right: 8),
+                  margin: EdgeInsets.only(right: isAr ? 8 : 0, left: isAr ? 0 : 8),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -328,7 +346,7 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     );
   }
 
-  void _showNewChatModal(BuildContext context, ChatService chatService) {
+  void _showNewChatModal(BuildContext context, ChatService chatService, bool isAr) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -337,7 +355,7 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
         String query = '';
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final contacts = chatService.contacts.isNotEmpty ? chatService.contacts : _getNewContactsMockData();
+            final contacts = chatService.contacts.isNotEmpty ? chatService.contacts : _getNewContactsMockData(isAr);
             final filtered = contacts.where((c) {
               final name = (c['name']?.toString() ?? '').toLowerCase();
               return name.contains(query.toLowerCase());
@@ -346,98 +364,101 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
             final cardColor = Theme.of(context).cardColor;
             final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.75,
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'بدء محادثة جديدة (+)',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: textColor),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    onChanged: (val) => setModalState(() => query = val.trim()),
-                    textAlign: TextAlign.right,
-                    style: TextStyle(color: textColor),
-                    decoration: InputDecoration(
-                      hintText: "ابحث عن شخص لمراسلته...",
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Theme.of(context).scaffoldBackgroundColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
+            return Directionality(
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.75,
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? const Center(child: Text('لا توجد جهات اتصال مطابقة', style: TextStyle(color: Colors.grey)))
-                        : ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (context, index) {
-                              final contact = filtered[index];
-                              final name = contact['name']?.toString() ?? 'مجهول';
-                              final role = contact['role']?.toString() ?? '';
-                              final initial = name.isNotEmpty ? name[0] : '؟';
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isAr ? 'بدء محادثة جديدة (+)' : 'Start New Chat (+)',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: textColor),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      onChanged: (val) => setModalState(() => query = val.trim()),
+                      textAlign: isAr ? TextAlign.right : TextAlign.left,
+                      style: TextStyle(color: textColor),
+                      decoration: InputDecoration(
+                        hintText: isAr ? "ابحث عن شخص لمراسلته..." : "Search for someone to message...",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                        filled: true,
+                        fillColor: Theme.of(context).scaffoldBackgroundColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? Center(child: Text(isAr ? 'لا توجد جهات اتصال مطابقة' : 'No matching contacts', style: const TextStyle(color: Colors.grey)))
+                          : ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final contact = filtered[index];
+                                final name = contact['name']?.toString() ?? (isAr ? 'مجهول' : 'Unknown');
+                                final role = contact['role']?.toString() ?? '';
+                                final initial = name.isNotEmpty ? name[0] : '?';
 
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).scaffoldBackgroundColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: const Color(0xFFFFCC00).withAlpha(40),
-                                    child: Text(initial, style: const TextStyle(color: Color(0xFFD4AC0D), fontWeight: FontWeight.bold)),
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).scaffoldBackgroundColor,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-                                  subtitle: role.isNotEmpty ? Text(role, style: const TextStyle(color: Colors.grey, fontSize: 12)) : null,
-                                  trailing: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFFFCC00)),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ChangeNotifierProvider.value(
-                                          value: chatService,
-                                          child: ChatRoomScreen(contact: contact['raw_contact'] ?? contact),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: const Color(0xFFFFCC00).withAlpha(40),
+                                      child: Text(initial, style: const TextStyle(color: Color(0xFFD4AC0D), fontWeight: FontWeight.bold)),
+                                    ),
+                                    title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                                    subtitle: role.isNotEmpty ? Text(role, style: const TextStyle(color: Colors.grey, fontSize: 12)) : null,
+                                    trailing: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFFFCC00)),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ChangeNotifierProvider.value(
+                                            value: chatService,
+                                            child: ChatRoomScreen(contact: contact['raw_contact'] ?? contact),
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             );
           },

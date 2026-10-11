@@ -15,7 +15,7 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';
 import 'report_requests_screen.dart';
 import 'teacher_services_menu_screen.dart';
-import '../shared/ai_floating_button.dart';
+import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -226,7 +226,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                           onRefresh: _fetchDashboard,
                           color: const Color(0xFFFFCC00),
                           child: _announcements.isEmpty
-                              ? const Center(child: Text('لا توجد إعلانات حالياً', style: TextStyle(color: Colors.grey, fontSize: 15)))
+                              ? Center(child: Text(isAr ? 'لا توجد إعلانات حالياً' : 'No announcements currently', style: const TextStyle(color: Colors.grey, fontSize: 15)))
                               : ListView.builder(
                                   physics: const BouncingScrollPhysics(),
                                   padding: const EdgeInsets.fromLTRB(20, 15, 20, 140),
@@ -236,7 +236,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                                     return _buildNewsCard(
                                       context,
                                       announcementData: a,
-                                      tag: 'إعلان',
+                                      tag: isAr ? 'إعلان' : 'Announcement',
                                       title: a['title'] as String? ?? '',
                                       description: a['content'] as String? ?? '',
                                       time: a['time_ago'] as String? ?? a['created_at'] as String? ?? '',
@@ -300,6 +300,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }) {
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AnnouncementDetailScreen(announcement: announcementData))),
@@ -373,7 +374,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("نشر بواسطة: ${announcementData['author_name'] as String? ?? announcementData['publisher_name'] as String? ?? announcementData['created_by'] as String? ?? 'الإدارة'} • $time", style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                          Text("${isAr ? 'نشر بواسطة:' : 'Published by:'} ${announcementData['author_name'] as String? ?? announcementData['publisher_name'] as String? ?? announcementData['created_by'] as String? ?? (isAr ? 'الإدارة' : 'Administration')} • $time", style: const TextStyle(color: Colors.grey, fontSize: 11)),
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle),
@@ -412,25 +413,26 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
 
   String _formatTargetAudience(Map<String, dynamic> data) {
+    final bool isAr = AppSettings.language.value == 'ar';
     final target = data['target_audience']?.toString() ?? data['target_role']?.toString() ?? 'all';
     final category = data['category']?.toString() ?? '';
     final dept = data['department_name']?.toString() ?? data['department']?.toString();
     final course = data['course_name']?.toString() ?? data['course']?.toString();
 
-    String label = 'الجميع';
+    String label = isAr ? 'الجميع' : 'All';
     if (category.contains('معلم') || target == 'teachers' || target == 'teacher') {
-      label = 'للمعلمين';
+      label = isAr ? 'للمعلمين' : 'Teachers';
     } else if (category.contains('طالب') || category.contains('طلاب') || target == 'students' || target == 'student') {
-      label = 'للطلاب';
+      label = isAr ? 'للطلاب' : 'Students';
     } else if (category.contains('رؤساء') || target == 'heads') {
-      label = 'لرؤساء الأقسام';
+      label = isAr ? 'لرؤساء الأقسام' : 'Dept Heads';
     } else if (category.isNotEmpty && category != 'عام' && category != 'general') {
       label = category;
     }
 
     List<String> details = [];
-    if (dept != null && dept.isNotEmpty) details.add('قسم: $dept');
-    if (course != null && course.isNotEmpty) details.add('دورة: $course');
+    if (dept != null && dept.isNotEmpty) details.add(isAr ? 'قسم: $dept' : 'Dept: $dept');
+    if (course != null && course.isNotEmpty) details.add(isAr ? 'دورة: $course' : 'Course: $course');
 
     if (details.isNotEmpty) {
       label += ' (${details.join(" | ")})';

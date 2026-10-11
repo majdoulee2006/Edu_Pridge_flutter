@@ -369,12 +369,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                               const SizedBox(height: 16),
 
                               if (latestNews.isEmpty)
-                                    const Center(
+                                    Center(
                                       child: Padding(
-                                        padding: EdgeInsets.all(20.0),
+                                        padding: const EdgeInsets.all(20.0),
                                         child: Text(
-                                          "لا توجد أخبار حالياً",
-                                          style: TextStyle(color: Colors.grey),
+                                          isAr ? "لا توجد أخبار حالياً" : "No news currently",
+                                          style: const TextStyle(color: Colors.grey),
                                         ),
                                       ),
                                     )
@@ -385,23 +385,25 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                       String? course = news['course_name']?.toString();
 
                                       String audienceTag = switch (rawAudience) {
-                                        'students' => 'طلاب',
-                                        'teachers' => 'معلمين',
-                                        'heads'    => 'رؤساء أقسام',
-                                        _          => 'الجميع',
+                                        'students' => isAr ? 'طلاب' : 'Students',
+                                        'teachers' => isAr ? 'معلمين' : 'Teachers',
+                                        'heads'    => isAr ? 'رؤساء أقسام' : 'Dept Heads',
+                                        _          => isAr ? 'الجميع' : 'All',
                                       };
                                       if (dept != null && dept.isNotEmpty) {
-                                        audienceTag += ' | قسم: $dept';
+                                        audienceTag += isAr ? ' | قسم: $dept' : ' | Dept: $dept';
                                       }
                                       if (course != null && course.isNotEmpty) {
-                                        audienceTag += ' | دورة: $course';
+                                        audienceTag += isAr ? ' | دورة: $course' : ' | Course: $course';
                                       }
 
                                       String rawType = news['type'] ?? 'general';
-                                      String typeTag = rawType == 'course_specific' ? 'إعلان مقرر' : 'إعلان عام';
+                                      String typeTag = rawType == 'course_specific'
+                                          ? (isAr ? 'إعلان مقرر' : 'Course Announcement')
+                                          : (isAr ? 'إعلان عام' : 'General Announcement');
                                       bool isUrgent = rawAudience != 'all' || (dept != null && dept.isNotEmpty);
 
-                                      String authorName = news['author_name'] ?? news['publisher_name'] ?? news['created_by'] ?? 'الإدارة';
+                                      String authorName = news['author_name'] ?? news['publisher_name'] ?? news['created_by'] ?? (isAr ? 'الإدارة' : 'Admin');
                                       String date = (news['created_at'] ?? '')
                                           .toString()
                                           .split('T')
@@ -412,9 +414,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                         announcementData: Map<String, dynamic>.from(news as Map),
                                         tag: typeTag,
                                         audienceTag: audienceTag,
-                                        title: news['title'] ?? 'بدون عنوان',
+                                        title: news['title'] ?? (isAr ? 'بدون عنوان' : 'No title'),
                                         description: news['content'] ?? '',
-                                        time: "نشر بواسطة: $authorName • $timeAgo",
+                                        time: isAr ? "نشر بواسطة: $authorName • $timeAgo" : "Posted by: $authorName • $timeAgo",
                                         gradientColors: isDark
                                             ? (isUrgent
                                                   ? [
@@ -663,6 +665,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   Widget _buildUpcomingLectureCard(Map<String, dynamic> data, bool isDark) {
+    final bool isAr = AppSettings.language.value == 'ar';
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -678,9 +681,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "المحاضرة القادمة",
-                  style: TextStyle(
+                Text(
+                  isAr ? "المحاضرة القادمة" : "Upcoming Lecture",
+                  style: const TextStyle(
                     fontSize: 12,
                     color: Colors.grey,
                     fontWeight: FontWeight.bold,
@@ -688,14 +691,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  data['course_name'] ?? data['subject'] ?? "غير محدد",
+                  data['course_name'] ?? data['subject'] ?? (isAr ? "غير محدد" : "N/A"),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
                 ),
                 Text(
-                  "القاعة: ${data['room'] ?? '-'} | الساعة: ${data['start_time'] ?? '-'}",
+                  isAr
+                      ? "القاعة: ${data['room'] ?? '-'} | الساعة: ${data['start_time'] ?? '-'}"
+                      : "Room: ${data['room'] ?? '-'} | Time: ${data['start_time'] ?? '-'}",
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? Colors.white70 : Colors.black87,

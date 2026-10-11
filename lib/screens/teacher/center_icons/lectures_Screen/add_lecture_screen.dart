@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AddLectureScreen extends StatefulWidget {
   final Map<String, dynamic>? lecture;
@@ -38,9 +39,14 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
 
   bool get _isEditing => widget.lecture != null;
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadData();
     if (_isEditing) _prefill();
   }
@@ -54,6 +60,7 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _titleController.dispose();
     _descController.dispose();
     _urlController.dispose();
@@ -143,14 +150,27 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
   }
 
   Future<void> _submit() async {
-    if (_titleController.text.trim().isEmpty) { _snack('يرجى إدخال عنوان المحاضرة'); return; }
-    if (_selectedCourseId == null)            { _snack('يرجى اختيار المادة');         return; }
+    final isAr = AppSettings.language.value == 'ar';
+    if (_titleController.text.trim().isEmpty) {
+      _snack(isAr ? 'يرجى إدخال عنوان المحاضرة' : 'Please enter lecture title');
+      return;
+    }
+    if (_selectedCourseId == null) {
+      _snack(isAr ? 'يرجى اختيار المادة' : 'Please select a course');
+      return;
+    }
 
     if (!_isEditing) {
       if (_isUrlMode) {
-        if (_urlController.text.trim().isEmpty) { _snack('يرجى إدخال رابط الفيديو'); return; }
+        if (_urlController.text.trim().isEmpty) {
+          _snack(isAr ? 'يرجى إدخال رابط الفيديو' : 'Please enter video URL');
+          return;
+        }
       } else {
-        if (_pickedFile == null || _pickedFile!.bytes == null) { _snack('يرجى إرفاق ملف المحاضرة'); return; }
+        if (_pickedFile == null || _pickedFile!.bytes == null) {
+          _snack(isAr ? 'يرجى إرفاق ملف المحاضرة' : 'Please attach a lecture file');
+          return;
+        }
       }
     }
 
@@ -186,12 +206,14 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
       );
 
       if (mounted) {
-        _snack(_isEditing ? '✅ تم تحديث المحاضرة' : '✅ تم رفع المحاضرة');
+        _snack(_isEditing
+            ? (isAr ? '✅ تم تحديث المحاضرة' : '✅ Lecture updated successfully')
+            : (isAr ? '✅ تم رفع المحاضرة' : '✅ Lecture uploaded successfully'));
         Navigator.pop(context, true);
       }
     } catch (e) {
       debugPrint('⛔ Lesson Error: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, please try again';
       if (e is DioException && e.response?.data is Map) {
         final d = e.response!.data as Map;
         msg = (d['errors'] != null)
@@ -223,24 +245,31 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
   @override
   Widget build(BuildContext context) {
     const Color yellow = Color(0xFFFFCC00);
+    final isAr      = AppSettings.language.value == 'ar';
     final bgColor   = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final isDark    = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
+            icon: Icon(
+              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+              color: textColor,
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            _isEditing ? 'تعديل المحاضرة' : 'إضافة محاضرة',
+            _isEditing
+                ? (isAr ? 'تعديل المحاضرة' : 'Edit Lecture')
+                : (isAr ? 'إضافة محاضرة' : 'Add Lecture'),
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
@@ -254,8 +283,13 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // عنوان المحاضرة
-                    _label('عنوان المحاضرة', textColor),
-                    _field(controller: _titleController, hint: 'أدخل عنوان المحاضرة', cardColor: cardColor, textColor: textColor),
+                    _label(isAr ? 'عنوان المحاضرة' : 'Lecture Title', textColor, isAr),
+                    _field(
+                      controller: _titleController,
+                      hint: isAr ? 'أدخل عنوان المحاضرة' : 'Enter lecture title',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                    ),
                     const SizedBox(height: 24),
 
                     // الدورة + السنة جنب بعض
@@ -265,9 +299,9 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _label('الدورة', textColor),
+                              _label(isAr ? 'الدورة' : 'Program', textColor, isAr),
                               _dropdown(
-                                hint: 'اختر الدورة',
+                                hint: isAr ? 'اختر الدورة' : 'Select Program',
                                 value: _selectedProgramId,
                                 items: _programs.map((p) => DropdownMenuItem(
                                   value: p['id'] as String,
@@ -287,13 +321,13 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _label('السنة الدراسية', textColor),
+                              _label(isAr ? 'السنة الدراسية' : 'Academic Year', textColor, isAr),
                               _dropdown(
-                                hint: 'السنة',
+                                hint: isAr ? 'السنة' : 'Year',
                                 value: _selectedYear?.toString(),
-                                items: const [
-                                  DropdownMenuItem(value: '1', child: Text('السنة الأولى')),
-                                  DropdownMenuItem(value: '2', child: Text('السنة الثانية')),
+                                items: [
+                                  DropdownMenuItem(value: '1', child: Text(isAr ? 'السنة الأولى' : 'First Year')),
+                                  DropdownMenuItem(value: '2', child: Text(isAr ? 'السنة الثانية' : 'Second Year')),
                                 ],
                                 cardColor: cardColor, textColor: textColor, isDark: isDark,
                                 onChanged: (val) {
@@ -310,7 +344,7 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
 
                     // المادة الدراسية (تظهر بعد اختيار الدورة والسنة)
                     if (_selectedProgramId != null && _selectedYear != null) ...[
-                      _label('المادة الدراسية', textColor),
+                      _label(isAr ? 'المادة الدراسية' : 'Course', textColor, isAr),
                       _filteredCourses.isEmpty
                           ? Container(
                               padding: const EdgeInsets.all(14),
@@ -319,13 +353,15 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                                 borderRadius: BorderRadius.circular(15),
                                 border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
                               ),
-                              child: const Center(
-                                child: Text('لا توجد مواد لهذه الدورة والسنة',
-                                    style: TextStyle(color: Colors.orange, fontSize: 13)),
+                              child: Center(
+                                child: Text(
+                                  isAr ? 'لا توجد مواد لهذه الدورة والسنة' : 'No courses found for this program and year',
+                                  style: const TextStyle(color: Colors.orange, fontSize: 13),
+                                ),
                               ),
                             )
                           : _dropdown(
-                              hint: 'اختر المادة',
+                              hint: isAr ? 'اختر المادة' : 'Select Course',
                               value: _selectedCourseId,
                               items: _filteredCourses.map((c) => DropdownMenuItem(
                                 value: c['id'] as String,
@@ -338,12 +374,24 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                     ],
 
                     // الوصف
-                    _label('الوصف (اختياري)', textColor),
-                    _field(controller: _descController, hint: 'أدخل وصفاً للمحاضرة...', maxLines: 3, cardColor: cardColor, textColor: textColor),
+                    _label(isAr ? 'الوصف (اختياري)' : 'Description (Optional)', textColor, isAr),
+                    _field(
+                      controller: _descController,
+                      hint: isAr ? 'أدخل وصفاً للمحاضرة...' : 'Enter lecture description...',
+                      maxLines: 3,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                    ),
                     const SizedBox(height: 24),
 
                     // نوع المحتوى — تبديل بين ملف ورابط
-                    _label(_isEditing ? 'المحتوى (اختياري)' : 'محتوى المحاضرة', textColor),
+                    _label(
+                      _isEditing
+                          ? (isAr ? 'المحتوى (اختياري)' : 'Content (Optional)')
+                          : (isAr ? 'محتوى المحاضرة' : 'Lecture Content'),
+                      textColor,
+                      isAr,
+                    ),
                     Container(
                       decoration: BoxDecoration(
                         color: cardColor,
@@ -367,11 +415,13 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                                     Icon(Icons.attach_file_rounded,
                                         size: 16, color: !_isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5)),
                                     const SizedBox(width: 6),
-                                    Text('رفع ملف',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold, fontSize: 13,
-                                          color: !_isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5),
-                                        )),
+                                    Text(
+                                      isAr ? 'رفع ملف' : 'Upload File',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold, fontSize: 13,
+                                        color: !_isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -393,11 +443,13 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                                     Icon(Icons.play_circle_outline_rounded,
                                         size: 16, color: _isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5)),
                                     const SizedBox(width: 6),
-                                    Text('رابط يوتيوب',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold, fontSize: 13,
-                                          color: _isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5),
-                                        )),
+                                    Text(
+                                      isAr ? 'رابط يوتيوب' : 'YouTube Link',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold, fontSize: 13,
+                                        color: _isUrlMode ? Colors.black : textColor.withValues(alpha: 0.5),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -438,7 +490,11 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                _pickedFile != null ? _pickedFile!.name : 'اضغط لإرفاق ملف (PDF، Word، PowerPoint، فيديو)',
+                                _pickedFile != null
+                                    ? _pickedFile!.name
+                                    : (isAr
+                                        ? 'اضغط لإرفاق ملف (PDF، Word، PowerPoint، فيديو)'
+                                        : 'Click to attach file (PDF, Word, PPT, Video)'),
                                 textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -471,7 +527,9 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    _isEditing ? 'حفظ التعديلات' : 'نشر المحاضرة',
+                                    _isEditing
+                                        ? (isAr ? 'حفظ التعديلات' : 'Save Changes')
+                                        : (isAr ? 'نشر المحاضرة' : 'Publish Lecture'),
                                     style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
                                   ),
                                   const SizedBox(width: 10),
@@ -488,8 +546,8 @@ class _AddLectureScreenState extends State<AddLectureScreen> {
     );
   }
 
-  Widget _label(String text, Color textColor) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, right: 4),
+  Widget _label(String text, Color textColor, bool isAr) => Padding(
+    padding: EdgeInsets.only(bottom: 8, right: isAr ? 4 : 0, left: isAr ? 0 : 4),
     child: Text(text, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
   );
 

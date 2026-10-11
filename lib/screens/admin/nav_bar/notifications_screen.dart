@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/widgets/admin_speed_dial.dart';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
 
@@ -11,7 +12,8 @@ class AdminNotificationsScreen extends StatefulWidget {
   const AdminNotificationsScreen({super.key});
 
   @override
-  State<AdminNotificationsScreen> createState() => _AdminNotificationsScreenState();
+  State<AdminNotificationsScreen> createState() =>
+      _AdminNotificationsScreenState();
 }
 
 class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
@@ -39,18 +41,64 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   final TextEditingController subjectController = TextEditingController();
   final TextEditingController messageController = TextEditingController();
 
-  final List<String> roles = [
-    "رئيس القسم",
-    "معلمين",
-    "طلاب",
-    "أولياء أمور",
+  final List<String> roleKeys = [
+    "dept_head",
+    "teachers",
+    "students",
+    "parents",
   ];
+
+  bool get isAr => AppSettings.language.value == 'ar';
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadData();
     messageController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    searchController.dispose();
+    subjectController.dispose();
+    messageController.dispose();
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  String _getRoleLabel(String key) {
+    if (isAr) {
+      switch (key) {
+        case 'dept_head':
+          return "رئيس القسم";
+        case 'teachers':
+          return "معلمين";
+        case 'students':
+          return "طلاب";
+        case 'parents':
+          return "أولياء أمور";
+        default:
+          return key;
+      }
+    } else {
+      switch (key) {
+        case 'dept_head':
+          return "Dept Head";
+        case 'teachers':
+          return "Teachers";
+        case 'students':
+          return "Students";
+        case 'parents':
+          return "Parents";
+        default:
+          return key;
+      }
+    }
   }
 
   Future<void> _loadData() async {
@@ -67,15 +115,15 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     });
   }
 
-  int? _roleLabelToId(String label) {
-    switch (label) {
-      case 'رئيس القسم':
+  int? _roleKeyToId(String key) {
+    switch (key) {
+      case 'dept_head':
         return 5;
-      case 'معلمين':
+      case 'teachers':
         return 2;
-      case 'طلاب':
+      case 'students':
         return 3;
-      case 'أولياء أمور':
+      case 'parents':
         return 4;
     }
     return null;
@@ -93,7 +141,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       );
       deptName = match?['name'];
     }
-    final roleIds = selectedRoles.map(_roleLabelToId).whereType<int>().toSet();
+    final roleIds = selectedRoles.map(_roleKeyToId).whereType<int>().toSet();
 
     return allUsers.where((u) {
       final name = (u['full_name'] ?? '').toString().toLowerCase();
@@ -102,7 +150,9 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         return false;
       }
       if (deptName != null && u['department'] != deptName) return false;
-      if (roleIds.isNotEmpty && !roleIds.contains(_toInt(u['role_id']))) return false;
+      if (roleIds.isNotEmpty && !roleIds.contains(_toInt(u['role_id']))) {
+        return false;
+      }
       return true;
     }).toList();
   }
@@ -111,7 +161,10 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, textDirection: TextDirection.rtl),
+        content: Text(
+          message,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        ),
         backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
@@ -122,7 +175,12 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     final message = messageController.text.trim();
 
     if (subject.isEmpty || message.isEmpty) {
-      _showSnack('يرجى تعبئة الموضوع ونص الرسالة', isError: true);
+      _showSnack(
+        isAr
+            ? 'يرجى تعبئة الموضوع ونص الرسالة'
+            : 'Please fill in the subject and message body',
+        isError: true,
+      );
       return;
     }
 
@@ -134,26 +192,38 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       recipientType = 'all';
     } else if (selectedTarget == 1) {
       if (selectedDepartmentId == null) {
-        _showSnack('يرجى اختيار القسم المستهدف', isError: true);
+        _showSnack(
+          isAr
+              ? 'يرجى اختيار القسم المستهدف'
+              : 'Please select the target department',
+          isError: true,
+        );
         return;
       }
       if (selectedCategories.isEmpty) {
         recipientType = 'departments';
         targetDepartments = [selectedDepartmentId!];
       } else {
-        // تحديد فئات معينة داخل القسم: نحولها لقائمة أفراد محددين
         final deptMatch = departments.firstWhere(
           (d) => d['department_id'] == selectedDepartmentId,
           orElse: () => null,
         );
         final String? deptName = deptMatch?['name'];
-        final roleIds = selectedCategories.map(_roleLabelToId).whereType<int>().toSet();
+        final roleIds =
+            selectedCategories.map(_roleKeyToId).whereType<int>().toSet();
         final matched = allUsers
-            .where((u) => u['department'] == deptName && roleIds.contains(_toInt(u['role_id'])))
+            .where((u) =>
+                u['department'] == deptName &&
+                roleIds.contains(_toInt(u['role_id'])))
             .map<int>((u) => _toInt(u['user_id']))
             .toList();
         if (matched.isEmpty) {
-          _showSnack('لا يوجد مستخدمون مطابقون لهذا الاختيار', isError: true);
+          _showSnack(
+            isAr
+                ? 'لا يوجد مستخدمون مطابقون لهذا الاختيار'
+                : 'No users match this selection',
+            isError: true,
+          );
           return;
         }
         recipientType = 'individuals';
@@ -161,7 +231,12 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       }
     } else {
       if (selectedUsers.isEmpty) {
-        _showSnack('يرجى اختيار مستخدم واحد على الأقل', isError: true);
+        _showSnack(
+          isAr
+              ? 'يرجى اختيار مستخدم واحد على الأقل'
+              : 'Please select at least one user',
+          isError: true,
+        );
         return;
       }
       recipientType = 'individuals';
@@ -178,7 +253,11 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         targetUsers: targetUsers,
       );
       if (success) {
-        _showSnack('تم إرسال التعميم بنجاح');
+        _showSnack(
+          isAr
+              ? 'تم إرسال التعميم بنجاح'
+              : 'Announcement sent successfully',
+        );
         setState(() {
           subjectController.clear();
           messageController.clear();
@@ -189,21 +268,21 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           selectedDeptForIndividuals = null;
         });
       } else {
-        _showSnack('تعذر إرسال التعميم، حاولي مرة أخرى', isError: true);
+        _showSnack(
+          isAr
+              ? 'تعذر إرسال التعميم، حاول مرة أخرى'
+              : 'Failed to send announcement, please try again',
+          isError: true,
+        );
       }
     } catch (e) {
-      _showSnack('حدث خطأ أثناء الإرسال: $e', isError: true);
+      _showSnack(
+        isAr ? 'حدث خطأ أثناء الإرسال: $e' : 'Error sending announcement: $e',
+        isError: true,
+      );
     } finally {
       if (mounted) setState(() => isSending = false);
     }
-  }
-
-  @override
-  void dispose() {
-    searchController.dispose();
-    subjectController.dispose();
-    messageController.dispose();
-    super.dispose();
   }
 
   @override
@@ -212,11 +291,12 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? (isDark ? Colors.white : Colors.black);
-    final primaryYellow = const Color(0xFFFFCC00);
+    final textColor = theme.textTheme.bodyLarge?.color ??
+        (isDark ? Colors.white : Colors.black);
+    const primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
@@ -225,7 +305,9 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
 
             SafeArea(
               child: isLoadingData
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(
+                      child: CircularProgressIndicator(color: primaryYellow),
+                    )
                   : SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
                       child: Column(
@@ -234,30 +316,69 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
                           _buildHeader(textColor),
                           const SizedBox(height: 20),
 
-                          _buildSectionTitle("توجيه الرسالة إلى", primaryYellow),
+                          _buildSectionTitle(
+                            isAr ? "توجيه الرسالة إلى" : "Direct Message To",
+                            primaryYellow,
+                          ),
                           const SizedBox(height: 15),
 
                           // خيارات التوجيه
                           Row(
                             children: [
-                              _buildTargetCard("الجميع", Icons.group, 0, primaryYellow, cardColor, textColor),
+                              _buildTargetCard(
+                                isAr ? "الجميع" : "Everyone",
+                                Icons.group,
+                                0,
+                                primaryYellow,
+                                cardColor,
+                                textColor,
+                              ),
                               const SizedBox(width: 10),
-                              _buildTargetCard("قسم", Icons.business, 1, primaryYellow, cardColor, textColor),
+                              _buildTargetCard(
+                                isAr ? "قسم" : "Department",
+                                Icons.business,
+                                1,
+                                primaryYellow,
+                                cardColor,
+                                textColor,
+                              ),
                               const SizedBox(width: 10),
-                              _buildTargetCard("أفراد", Icons.person_search, 2, primaryYellow, cardColor, textColor),
+                              _buildTargetCard(
+                                isAr ? "أفراد" : "Individuals",
+                                Icons.person_search,
+                                2,
+                                primaryYellow,
+                                cardColor,
+                                textColor,
+                              ),
                             ],
                           ),
 
                           const SizedBox(height: 30),
 
                           if (selectedTarget == 1)
-                            _buildDepartmentSection(cardColor, textColor, primaryYellow, isDark)
+                            _buildDepartmentSection(
+                              cardColor,
+                              textColor,
+                              primaryYellow,
+                              isDark,
+                            )
                           else if (selectedTarget == 2)
-                            _buildIndividualsSection(cardColor, textColor, primaryYellow, isDark),
+                            _buildIndividualsSection(
+                              cardColor,
+                              textColor,
+                              primaryYellow,
+                              isDark,
+                            ),
 
                           const SizedBox(height: 25),
 
-                          _buildMessageForm(cardColor, textColor, primaryYellow, isDark),
+                          _buildMessageForm(
+                            cardColor,
+                            textColor,
+                            primaryYellow,
+                            isDark,
+                          ),
                           const SizedBox(height: 25),
 
                           _buildSendButton(primaryYellow),
@@ -269,10 +390,25 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
             CustomBottomNav(
               currentIndex: 2,
               centerButton: const AdminSpeedDial(),
-              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminProfileScreen())),
+              onHomeTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminHomeScreen(),
+                ),
+              ),
+              onProfileTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminProfileScreen(),
+                ),
+              ),
               onNotificationsTap: () {},
-              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminMessagesScreen())),
+              onMessagesTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminMessagesScreen(),
+                ),
+              ),
             ),
           ],
         ),
@@ -286,11 +422,15 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+          icon: Icon(
+            isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+            color: textColor,
+            size: 26,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         Text(
-          "الإشعارات الإدارية",
+          isAr ? "الإشعارات الإدارية" : "Administrative Notifications",
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w900,
@@ -303,14 +443,22 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   // ====================== قسم ======================
-  Widget _buildDepartmentSection(Color cardColor, Color textColor, Color yellow, bool isDark) {
+  Widget _buildDepartmentSection(
+    Color cardColor,
+    Color textColor,
+    Color yellow,
+    bool isDark,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildFieldLabel("اختر القسم"),
+        _buildFieldLabel(isAr ? "اختر القسم" : "Select Department"),
         DropdownButtonFormField<int>(
-          initialValue: selectedDepartmentId,
-          decoration: _inputDecoration("اختر القسم المستهدف", isDark),
+          value: selectedDepartmentId,
+          decoration: _inputDecoration(
+            isAr ? "اختر القسم المستهدف" : "Select Target Department",
+            isDark,
+          ),
           dropdownColor: cardColor,
           items: departments
               .map((dept) => DropdownMenuItem<int>(
@@ -322,28 +470,34 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         ),
         const SizedBox(height: 25),
 
-        _buildFieldLabel("الفئات المستهدفة داخل القسم (اختياري — اتركيها فاضية لإرسال للقسم كامل)"),
+        _buildFieldLabel(
+          isAr
+              ? "الفئات المستهدفة داخل القسم (اختياري — اتركها فارغة لإرسال للقسم كامل)"
+              : "Target categories in department (Optional — leave empty for whole department)",
+        ),
         Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: roles.map((role) {
-            bool isSelected = selectedCategories.contains(role);
+          children: roleKeys.map((key) {
+            bool isSelected = selectedCategories.contains(key);
             return FilterChip(
-              label: Text(role),
+              label: Text(_getRoleLabel(key)),
               selected: isSelected,
               onSelected: (selected) {
                 setState(() {
                   if (selected) {
-                    selectedCategories.add(role);
+                    selectedCategories.add(key);
                   } else {
-                    selectedCategories.remove(role);
+                    selectedCategories.remove(key);
                   }
                 });
               },
               backgroundColor: cardColor,
               selectedColor: yellow,
               checkmarkColor: Colors.black,
-              labelStyle: TextStyle(color: isSelected ? Colors.black : textColor),
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.black : textColor,
+              ),
             );
           }).toList(),
         ),
@@ -352,24 +506,37 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   // ====================== الأفراد ======================
-  Widget _buildIndividualsSection(Color cardColor, Color textColor, Color yellow, bool isDark) {
+  Widget _buildIndividualsSection(
+    Color cardColor,
+    Color textColor,
+    Color yellow,
+    bool isDark,
+  ) {
     final filtered = _filteredIndividuals;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildFieldLabel("بحث عن مستخدم"),
+        _buildFieldLabel(isAr ? "بحث عن مستخدم" : "Search User"),
         TextField(
           controller: searchController,
-          decoration: _inputDecoration("ابحث بالاسم أو البريد الإلكتروني...", isDark),
+          decoration: _inputDecoration(
+            isAr
+                ? "ابحث بالاسم أو البريد الإلكتروني..."
+                : "Search by name or email...",
+            isDark,
+          ),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 20),
 
-        _buildFieldLabel("اختر القسم"),
+        _buildFieldLabel(isAr ? "اختر القسم" : "Select Department"),
         DropdownButtonFormField<int>(
-          initialValue: selectedDeptForIndividuals,
-          decoration: _inputDecoration("كل الأقسام", isDark),
+          value: selectedDeptForIndividuals,
+          decoration: _inputDecoration(
+            isAr ? "كل الأقسام" : "All Departments",
+            isDark,
+          ),
           dropdownColor: cardColor,
           items: departments
               .map((d) => DropdownMenuItem<int>(
@@ -381,35 +548,41 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         ),
         const SizedBox(height: 25),
 
-        _buildFieldLabel("نوع الحساب"),
+        _buildFieldLabel(isAr ? "نوع الحساب" : "Account Type"),
         Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: roles.map((role) {
-            bool isSelected = selectedRoles.contains(role);
+          children: roleKeys.map((key) {
+            bool isSelected = selectedRoles.contains(key);
             return FilterChip(
-              label: Text(role),
+              label: Text(_getRoleLabel(key)),
               selected: isSelected,
               onSelected: (sel) {
                 setState(() {
                   if (sel) {
-                    selectedRoles.add(role);
+                    selectedRoles.add(key);
                   } else {
-                    selectedRoles.remove(role);
+                    selectedRoles.remove(key);
                   }
                 });
               },
               backgroundColor: cardColor,
               selectedColor: yellow,
               checkmarkColor: Colors.black,
-              labelStyle: TextStyle(color: isSelected ? Colors.black : textColor),
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.black : textColor,
+              ),
             );
           }).toList(),
         ),
 
         const SizedBox(height: 25),
 
-        _buildFieldLabel("المستخدمون المطابقون (${filtered.length}) — المحدد (${selectedUsers.length})"),
+        _buildFieldLabel(
+          isAr
+              ? "المستخدمون المطابقون (${filtered.length}) — المحدد (${selectedUsers.length})"
+              : "Matching Users (${filtered.length}) — Selected (${selectedUsers.length})",
+        ),
         Container(
           height: 240,
           decoration: BoxDecoration(
@@ -419,7 +592,10 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           ),
           child: filtered.isEmpty
               ? Center(
-                  child: Text('لا يوجد مستخدمون مطابقون', style: TextStyle(color: textColor.withValues(alpha: 0.6))),
+                  child: Text(
+                    isAr ? 'لا يوجد مستخدمون مطابقون' : 'No matching users',
+                    style: TextStyle(color: textColor.withValues(alpha: 0.6)),
+                  ),
                 )
               : ListView.builder(
                   shrinkWrap: true,
@@ -431,10 +607,16 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
                     final bool isSelected = selectedUsers.contains(userId);
                     return CheckboxListTile(
                       dense: true,
-                      title: Text(user['full_name']?.toString() ?? 'مستخدم', style: TextStyle(color: textColor)),
+                      title: Text(
+                        user['full_name']?.toString() ??
+                            (isAr ? 'مستخدم' : 'User'),
+                        style: TextStyle(color: textColor),
+                      ),
                       subtitle: Text(
                         "${user['department'] ?? ''} • ${user['role'] ?? ''}",
-                        style: TextStyle(color: textColor.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.7),
+                        ),
                       ),
                       value: isSelected,
                       activeColor: yellow,
@@ -457,34 +639,59 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   // ====================== النموذج والأزرار ======================
-  Widget _buildMessageForm(Color cardColor, Color textColor, Color yellow, bool isDark) {
+  Widget _buildMessageForm(
+    Color cardColor,
+    Color textColor,
+    Color yellow,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.06), blurRadius: 20)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.06),
+            blurRadius: 20,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildFieldLabel("الموضوع"),
+          _buildFieldLabel(isAr ? "الموضوع" : "Subject"),
           TextField(
             controller: subjectController,
-            decoration: _inputDecoration("أدخل عنواناً واضحاً للرسالة...", isDark),
+            decoration: _inputDecoration(
+              isAr
+                  ? "أدخل عنواناً واضحاً للرسالة..."
+                  : "Enter a clear title for the message...",
+              isDark,
+            ),
           ),
           const SizedBox(height: 20),
-          _buildFieldLabel("نص الرسالة"),
+          _buildFieldLabel(isAr ? "نص الرسالة" : "Message Body"),
           TextField(
             controller: messageController,
             maxLines: 6,
-            decoration: _inputDecoration("اكتب تفاصيل الرسالة الإدارية هنا...", isDark),
+            decoration: _inputDecoration(
+              isAr
+                  ? "اكتب تفاصيل الرسالة الإدارية هنا..."
+                  : "Write administrative message details here...",
+              isDark,
+            ),
           ),
           const SizedBox(height: 20),
           Row(
             children: [
               const Spacer(),
-              Text("${messageController.text.length} حرف", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(
+                isAr
+                    ? "${messageController.text.length} حرف"
+                    : "${messageController.text.length} characters",
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
             ],
           ),
         ],
@@ -501,7 +708,13 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         decoration: BoxDecoration(
           color: isSending ? yellow.withValues(alpha: 0.6) : yellow,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: yellow.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 5))],
+          boxShadow: [
+            BoxShadow(
+              color: yellow.withValues(alpha: 0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -510,13 +723,23 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
                   SizedBox(
                     width: 22,
                     height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.black,
+                    ),
                   ),
                 ]
-              : const [
-                  Text("إرسال التعميم", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
-                  SizedBox(width: 10),
-                  Icon(Icons.send_rounded, color: Colors.black),
+              : [
+                  Text(
+                    isAr ? "إرسال التعميم" : "Send Announcement",
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Icon(Icons.send_rounded, color: Colors.black),
                 ],
         ),
       ),
@@ -524,7 +747,14 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   // ====================== أدوات مساعدة ======================
-  Widget _buildTargetCard(String label, IconData icon, int index, Color yellow, Color cardColor, Color textColor) {
+  Widget _buildTargetCard(
+    String label,
+    IconData icon,
+    int index,
+    Color yellow,
+    Color cardColor,
+    Color textColor,
+  ) {
     bool isSelected = selectedTarget == index;
     return Expanded(
       child: GestureDetector(
@@ -534,14 +764,33 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           decoration: BoxDecoration(
             color: isSelected ? yellow : cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: isSelected ? null : Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-            boxShadow: isSelected ? [BoxShadow(color: yellow.withValues(alpha: 0.3), blurRadius: 12)] : [],
+            border: isSelected
+                ? null
+                : Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: yellow.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                    ),
+                  ]
+                : [],
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? Colors.black : Colors.grey, size: 28),
+              Icon(
+                icon,
+                color: isSelected ? Colors.black : Colors.grey,
+                size: 28,
+              ),
               const SizedBox(height: 8),
-              Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.black : textColor)),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.black : textColor,
+                ),
+              ),
             ],
           ),
         ),
@@ -555,10 +804,13 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
       filled: true,
       fillColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide.none,
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(color: const Color(0xFFFFCC00), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFFFFCC00), width: 1.5),
       ),
     );
   }
@@ -566,7 +818,14 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   Widget _buildFieldLabel(String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, right: 5),
-      child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+        ),
+      ),
     );
   }
 
@@ -575,7 +834,10 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       children: [
         Icon(Icons.alternate_email, color: yellow, size: 18),
         const SizedBox(width: 8),
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        ),
       ],
     );
   }
@@ -585,7 +847,10 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       opacity: 0.03,
       child: Container(
         decoration: const BoxDecoration(
-          image: DecorationImage(image: AssetImage("assets/images/grid.png"), repeat: ImageRepeat.repeat),
+          image: DecorationImage(
+            image: AssetImage("assets/images/grid.png"),
+            repeat: ImageRepeat.repeat,
+          ),
         ),
       ),
     );

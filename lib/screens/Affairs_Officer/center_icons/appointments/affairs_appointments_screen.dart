@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 
@@ -11,6 +12,7 @@ class AffairsAppointmentsScreen extends StatefulWidget {
 }
 
 class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> with SingleTickerProviderStateMixin {
+  bool get isAr => AppSettings.language.value == 'ar';
   late TabController _tabController;
   final AffairsServices _affairsServices = AffairsServices();
 
@@ -23,9 +25,14 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
   // Metadata for summon creation
   List<dynamic> _studentsList = [];
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _tabController = TabController(length: 2, vsync: this);
     _loadMeetings();
     _loadSummons();
@@ -34,6 +41,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _tabController.dispose();
     super.dispose();
   }
@@ -76,21 +84,19 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
     return _meetings.where((m) => (m['status'] ?? 'pending').toString().toLowerCase() == _filterStatus).toList();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Colors.orange.shade800;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
         appBar: AppBar(
-          title: const Text(
-            'مواعيد واستدعاءات الشؤون',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          title: Text(
+            isAr ? 'مواعيد واستدعاءات الشؤون' : 'Affairs Appointments & Summons',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
           centerTitle: true,
           backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -101,9 +107,15 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
             labelColor: primaryColor,
             unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            tabs: const [
-              Tab(icon: Icon(Icons.event_available_rounded), text: 'طلبات المواعيد الواردة'),
-              Tab(icon: Icon(Icons.send_rounded), text: 'الاستدعاءات الرسمية'),
+            tabs: [
+              Tab(
+                icon: const Icon(Icons.event_available_rounded),
+                text: isAr ? 'طلبات المواعيد الواردة' : 'Incoming Meeting Requests',
+              ),
+              Tab(
+                icon: const Icon(Icons.send_rounded),
+                text: isAr ? 'الاستدعاءات الرسمية' : 'Official Summons',
+              ),
             ],
           ),
         ),
@@ -133,9 +145,9 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
             color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
             child: Row(
               children: [
-                const Text(
-                  'التصفية:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                Text(
+                  isAr ? 'التصفية:' : 'Filter:',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -143,13 +155,13 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterChip('الكل', 'all', isDark),
+                        _buildFilterChip(isAr ? 'الكل' : 'All', 'all', isDark),
                         const SizedBox(width: 8),
-                        _buildFilterChip('قيد المراجعة', 'pending', isDark),
+                        _buildFilterChip(isAr ? 'قيد المراجعة' : 'Pending', 'pending', isDark),
                         const SizedBox(width: 8),
-                        _buildFilterChip('مقبولة', 'approved', isDark),
+                        _buildFilterChip(isAr ? 'مقبولة' : 'Approved', 'approved', isDark),
                         const SizedBox(width: 8),
-                        _buildFilterChip('مرفوضة', 'rejected', isDark),
+                        _buildFilterChip(isAr ? 'مرفوضة' : 'Rejected', 'rejected', isDark),
                       ],
                     ),
                   ),
@@ -168,7 +180,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                         Icon(Icons.event_busy_rounded, size: 70, color: Colors.grey.shade400),
                         const SizedBox(height: 16),
                         Text(
-                          'لا توجد طلبات مواعيد حالياً',
+                          isAr ? 'لا توجد طلبات مواعيد حالياً' : 'No meeting requests currently',
                           style: TextStyle(fontSize: 16, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -210,10 +222,10 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
 
   Widget _buildMeetingCard(Map<String, dynamic> item, bool isDark) {
     final status = (item['status'] ?? 'pending').toString().toLowerCase();
-    final parentName = item['parent_name'] ?? 'ولي الأمر';
-    final studentName = item['student_name'] ?? 'الطالب';
-    final hodName = item['hod_name'] ?? 'رئيس القسم المعني';
-    final subject = item['subject'] ?? 'بدون عنوان';
+    final parentName = item['parent_name'] ?? (isAr ? 'ولي الأمر' : 'Parent');
+    final studentName = item['student_name'] ?? (isAr ? 'الطالب' : 'Student');
+    final hodName = item['hod_name'] ?? (isAr ? 'رئيس القسم المعني' : 'Concerned Dept Head');
+    final subject = item['subject'] ?? (isAr ? 'بدون عنوان' : 'No Subject');
     final reason = item['reason'] ?? '';
     final preferredDate = item['preferred_date']?.toString();
     final scheduledAt = item['scheduled_at']?.toString();
@@ -226,15 +238,15 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
 
     if (status == 'approved') {
       statusColor = Colors.green.shade600;
-      statusText = 'مقبول ومحدد';
+      statusText = isAr ? 'مقبول ومحدد' : 'Approved & Scheduled';
       statusIcon = Icons.check_circle_rounded;
     } else if (status == 'rejected') {
       statusColor = Colors.red.shade600;
-      statusText = 'مرفوض';
+      statusText = isAr ? 'مرفوض' : 'Rejected';
       statusIcon = Icons.cancel_rounded;
     } else {
       statusColor = Colors.orange.shade700;
-      statusText = 'قيد المراجعة';
+      statusText = isAr ? 'قيد المراجعة' : 'Pending Review';
       statusIcon = Icons.pending_actions_rounded;
     }
 
@@ -308,7 +320,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'ولي أمر الطالب: $studentName',
+                            "${isAr ? 'ولي أمر الطالب:' : 'Parent of student:'} $studentName",
                             style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13),
                           ),
                         ],
@@ -326,12 +338,12 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                     Icon(Icons.badge_rounded, size: 18, color: Colors.teal.shade400),
                     const SizedBox(width: 6),
                     Text(
-                      'المقابل المستهدف: ',
+                      isAr ? 'المقابل المستهدف: ' : 'Target Interviewee: ',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
                     ),
                     Expanded(
                       child: Text(
-                        'رئيس القسم ($hodName)',
+                        "${isAr ? 'رئيس القسم' : 'Dept Head'} ($hodName)",
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.teal),
                       ),
                     ),
@@ -341,13 +353,13 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
 
                 // Subject & Reason
                 Text(
-                  'الموضوع: $subject',
+                  "${isAr ? 'الموضوع:' : 'Subject:'} $subject",
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 if (reason.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'السبب/التفاصيل: $reason',
+                    "${isAr ? 'السبب/التفاصيل:' : 'Reason/Details:'} $reason",
                     style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade800, fontSize: 13),
                   ),
                 ],
@@ -366,7 +378,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                         const Icon(Icons.calendar_month_rounded, size: 16, color: Colors.blue),
                         const SizedBox(width: 6),
                         Text(
-                          'التاريخ المفضل من الأهل: $preferredDate',
+                          "${isAr ? 'التاريخ المفضل من الأهل:' : 'Preferred date by parent:'} $preferredDate",
                           style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -387,7 +399,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                         const Icon(Icons.event_available_rounded, size: 16, color: Colors.green),
                         const SizedBox(width: 6),
                         Text(
-                          'الموعد المحدد النهائي: $scheduledAt',
+                          "${isAr ? 'الموعد المحدد النهائي:' : 'Final scheduled date:'} $scheduledAt",
                           style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -399,7 +411,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                 if (adminNotes != null && adminNotes.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'ملاحظة الشؤون: $adminNotes',
+                    "${isAr ? 'ملاحظة الشؤون:' : 'Affairs note:'} $adminNotes",
                     style: TextStyle(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
@@ -423,7 +435,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           icon: const Icon(Icons.check_circle_rounded, size: 18),
-                          label: const Text('موافقة وتحديد موعد', style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: Text(isAr ? 'موافقة وتحديد موعد' : 'Approve & Schedule', style: const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -437,7 +449,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           icon: const Icon(Icons.close_rounded, size: 18),
-                          label: const Text('رفض الطلب', style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: Text(isAr ? 'رفض الطلب' : 'Reject Request', style: const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -469,141 +481,153 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final isDark = Theme.of(context).brightness == Brightness.dark;
-            return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
+            return Directionality(
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
                   ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade400,
-                          borderRadius: BorderRadius.circular(2),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade400,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'الموافقة على الطلب وتأكيد الموعد',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      preferredDate != null
-                          ? 'التاريخ المفضل للأهل: $preferredDate. يمكنك تغييره أو اعتماده:'
-                          : 'حدد موعد الزيارة المناسب لمقابلة رئيس القسم:',
-                      style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
+                      Text(
+                        isAr ? 'الموافقة على الطلب وتأكيد الموعد' : 'Approve Request & Confirm Date',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        preferredDate != null
+                            ? (isAr ? 'التاريخ المفضل للأهل: $preferredDate. يمكنك تغييره أو اعتماده:' : 'Parent preferred date: $preferredDate. You can change or keep it:')
+                            : (isAr ? 'حدد موعد الزيارة المناسب لمقابلة رئيس القسم:' : 'Set appropriate visit date to meet Dept Head:'),
+                        style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 13),
+                      ),
+                      const SizedBox(height: 16),
 
-                    // Date Picker Tile
-                    ListTile(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      leading: const Icon(Icons.calendar_month_rounded, color: Colors.green),
-                      title: const Text('الموعد المحدد النهائي:'),
-                      subtitle: Text(
-                        DateFormat('yyyy-MM-dd HH:mm').format(selectedDate),
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
-                      ),
-                      trailing: TextButton(
-                        onPressed: () async {
-                          final pickedDate = await showDatePicker(
-                            context: sheetContext,
-                            initialDate: selectedDate,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 90)),
-                          );
-                          if (pickedDate != null) {
-                            if (!mounted || !context.mounted) return;
-                            final pickedTime = await showTimePicker(
+                      // Date Picker Tile
+                      ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        leading: const Icon(Icons.calendar_month_rounded, color: Colors.green),
+                        title: Text(isAr ? 'الموعد المحدد النهائي:' : 'Final Scheduled Date:'),
+                        subtitle: Text(
+                          DateFormat('yyyy-MM-dd HH:mm').format(selectedDate),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                        trailing: TextButton(
+                          onPressed: () async {
+                            final pickedDate = await showDatePicker(
                               context: sheetContext,
-                              initialTime: TimeOfDay.fromDateTime(selectedDate),
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 90)),
                             );
-                            if (pickedTime != null) {
-                              setSheetState(() {
-                                selectedDate = DateTime(
-                                  pickedDate.year,
-                                  pickedDate.month,
-                                  pickedDate.day,
-                                  pickedTime.hour,
-                                  pickedTime.minute,
-                                );
-                              });
+                            if (pickedDate != null) {
+                              final pickedTime = await showTimePicker(
+                                context: sheetContext,
+                                initialTime: TimeOfDay.fromDateTime(selectedDate),
+                              );
+                              if (pickedTime != null) {
+                                setSheetState(() {
+                                  selectedDate = DateTime(
+                                    pickedDate.year,
+                                    pickedDate.month,
+                                    pickedDate.day,
+                                    pickedTime.hour,
+                                    pickedTime.minute,
+                                  );
+                                });
+                              }
                             }
-                          }
-                        },
-                        child: const Text('تغيير التاريخ/الوقت'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Optional Notes
-                    TextField(
-                      controller: notesController,
-                      decoration: InputDecoration(
-                        labelText: 'ملاحظات موجه للأهل ورئيس القسم (اختياري)',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Submit button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: isSubmitting
-                            ? null
-                            : () async {
-                                setSheetState(() => isSubmitting = true);
-                                final scheduledStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate);
-                                final success = await _affairsServices.respondToMeetingRequest(
-                                  meetingId,
-                                  status: 'approved',
-                                  scheduledAt: scheduledStr,
-                                  adminResponse: notesController.text.trim(),
-                                );
-                                if (mounted && context.mounted) {
-                                  Navigator.pop(sheetContext);
-                                  if (success) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('تمت الموافقة وتأكيد الموعد وإشعارهما بنجاح')),
-                                    );
-                                    _loadMeetings();
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('حدث خطأ أثناء معالجة الطلب')),
-                                    );
-                                  }
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          },
+                          child: Text(isAr ? 'تغيير التاريخ/الوقت' : 'Change Date/Time'),
                         ),
-                        child: isSubmitting
-                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text('تأكيد الموافقة وإرسال الإشعارات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+
+                      // Optional Notes
+                      TextField(
+                        controller: notesController,
+                        decoration: InputDecoration(
+                          labelText: isAr ? 'ملاحظات موجهة للأهل ورئيس القسم (اختياري)' : 'Notes for parent and dept head (optional)',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Submit button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  setSheetState(() => isSubmitting = true);
+                                  final scheduledStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDate);
+                                  final success = await _affairsServices.respondToMeetingRequest(
+                                    meetingId,
+                                    status: 'approved',
+                                    scheduledAt: scheduledStr,
+                                    adminResponse: notesController.text.trim(),
+                                  );
+                                  if (mounted) {
+                                    Navigator.pop(sheetContext);
+                                    if (success) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            isAr ? 'تمت الموافقة وتأكيد الموعد وإشعارهما بنجاح' : 'Approved, date confirmed and notifications sent',
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      );
+                                      _loadMeetings();
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            isAr ? 'حدث خطأ أثناء معالجة الطلب' : 'Error occurred while processing request',
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade600,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: isSubmitting
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : Text(isAr ? 'تأكيد الموافقة وإرسال الإشعارات' : 'Confirm Approval & Send Notifications', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -622,60 +646,73 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('رفض طلب الموعد', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('هل أنت أثق من عدم موافقة الشؤون على هذا الموعد؟'),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: reasonController,
-                    decoration: InputDecoration(
-                      labelText: 'سبب الرفض (اختياري)',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            return Directionality(
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              child: AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: Text(isAr ? 'رفض طلب الموعد' : 'Reject Meeting Request', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(isAr ? 'هل أنت متأكد من عدم موافقة الشؤون على هذا الموعد؟' : 'Are you sure student affairs does not approve this meeting?'),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: reasonController,
+                      decoration: InputDecoration(
+                        labelText: isAr ? 'سبب الرفض (اختياري)' : 'Rejection reason (optional)',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      maxLines: 2,
                     ),
-                    maxLines: 2,
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: Text(isAr ? 'إلغاء' : 'Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            setDialogState(() => isSubmitting = true);
+                            final success = await _affairsServices.respondToMeetingRequest(
+                              meetingId,
+                              status: 'rejected',
+                              adminResponse: reasonController.text.trim(),
+                            );
+                            if (mounted) {
+                              Navigator.pop(dialogContext);
+                              if (success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isAr ? 'تم رفض الطلب وإرسال الإشعار لولي الأمر ورئيس القسم' : 'Request rejected and notifications sent',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                );
+                                _loadMeetings();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isAr ? 'حدث خطأ أثناء معالجة الطلب' : 'Error occurred while processing request',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    child: isSubmitting
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(isAr ? 'تأكيد الرفض' : 'Confirm Rejection', style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('إلغاء'),
-                ),
-                ElevatedButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          setDialogState(() => isSubmitting = true);
-                          final success = await _affairsServices.respondToMeetingRequest(
-                            meetingId,
-                            status: 'rejected',
-                            adminResponse: reasonController.text.trim(),
-                          );
-                          if (mounted && context.mounted) {
-                            Navigator.pop(dialogContext);
-                            if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('تم رفض الطلب وإرسال الإشعار لولي الأمر ورئيس القسم')),
-                              );
-                              _loadMeetings();
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('حدث خطأ أثناء معالجة الطلب')),
-                              );
-                            }
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: isSubmitting
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('تأكيد الرفض', style: TextStyle(color: Colors.white)),
-                ),
-              ],
             );
           },
         );
@@ -705,7 +742,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
         backgroundColor: Colors.orange.shade800,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('إصدار استدعاء جديد', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: Text(isAr ? 'إصدار استدعاء جديد' : 'Issue New Summons', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: RefreshIndicator(
         onRefresh: _loadSummons,
@@ -716,7 +753,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
               color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               child: Row(
                 children: [
-                  const Text('التصفية:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(isAr ? 'التصفية:' : 'Filter:', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: SingleChildScrollView(
@@ -724,19 +761,19 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                       child: Row(
                         children: [
                           ChoiceChip(
-                            label: const Text('الكل'),
+                            label: Text(isAr ? 'الكل' : 'All'),
                             selected: _summonFilterStatus == 'all',
                             onSelected: (_) => setState(() => _summonFilterStatus = 'all'),
                           ),
                           const SizedBox(width: 8),
                           ChoiceChip(
-                            label: const Text('المعلقة'),
+                            label: Text(isAr ? 'المعلقة' : 'Pending'),
                             selected: _summonFilterStatus == 'pending',
                             onSelected: (_) => setState(() => _summonFilterStatus = 'pending'),
                           ),
                           const SizedBox(width: 8),
                           ChoiceChip(
-                            label: const Text('المنتهية / الصادرة'),
+                            label: Text(isAr ? 'المنتهية / الصادرة' : 'Completed / Issued'),
                             selected: _summonFilterStatus == 'completed',
                             onSelected: (_) => setState(() => _summonFilterStatus = 'completed'),
                           ),
@@ -757,7 +794,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                           Icon(Icons.mark_email_read_rounded, size: 70, color: Colors.grey.shade400),
                           const SizedBox(height: 16),
                           Text(
-                            'لا توجد استدعاءات في هذا الفلتر حالياً',
+                            isAr ? 'لا توجد استدعاءات في هذا الفلتر حالياً' : 'No summons in this filter currently',
                             style: TextStyle(fontSize: 16, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -779,9 +816,9 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
   }
 
   Widget _buildSummonCard(Map<String, dynamic> item, bool isDark) {
-    final studentName = item['student_name'] ?? 'الطالب';
-    final parentName = item['parent_name'] ?? 'ولي الأمر المعني';
-    final subject = item['subject'] ?? 'استدعاء ولي أمر';
+    final studentName = item['student_name'] ?? (isAr ? 'الطالب' : 'Student');
+    final parentName = item['parent_name'] ?? (isAr ? 'ولي الأمر المعني' : 'Concerned Parent');
+    final subject = item['subject'] ?? (isAr ? 'استدعاء ولي أمر' : 'Parent Summons');
     final reason = item['reason'] ?? '';
     final date = item['date']?.toString().split(' ')[0] ?? item['created_at']?.toString().split('T')[0] ?? '';
     final time = item['time'] ?? '';
@@ -823,16 +860,16 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'استدعاء ولي أمر: $studentName',
+                      '${isAr ? "استدعاء ولي أمر: " : "Parent Summons: "}$studentName',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     Text(
-                      'المستلم: $parentName',
+                      '${isAr ? "المستلم: " : "Recipient: "}$parentName',
                       style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12),
                     ),
                   ],
                 ),
-                ),
+              ),
               if (date.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -851,13 +888,13 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
           const Divider(),
           const SizedBox(height: 6),
           Text(
-            'العنوان: $subject',
+            '${isAr ? "العنوان: " : "Subject: "}$subject',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           ),
           if (reason.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
-              'السبب: $reason',
+              '${isAr ? "السبب: " : "Reason: "}$reason',
               style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontSize: 12),
             ),
           ],
@@ -873,7 +910,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                 ),
                 onPressed: () => _handleIssueSummon(summonId),
                 icon: const Icon(Icons.send_rounded, size: 16),
-                label: const Text('اعتماد وإصدار الموعد لولي الأمر', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(isAr ? 'اعتماد وإصدار الموعد لولي الأمر' : 'Approve & Issue Date to Parent', style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -906,7 +943,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('اعتماد وتاريخ الاستدعاء الرسمي', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(isAr ? 'اعتماد وتاريخ الاستدعاء الرسمي' : 'Official Summons Approval & Date', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
                   ListTile(
                     shape: RoundedRectangleBorder(
@@ -914,7 +951,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                       side: BorderSide(color: Colors.grey.shade300),
                     ),
                     leading: const Icon(Icons.calendar_today, color: Colors.orange),
-                    title: const Text('تاريخ الحضور المحدد لولي الأمر:'),
+                    title: Text(isAr ? 'تاريخ الحضور المحدد لولي الأمر:' : 'Scheduled Attendance Date for Parent:'),
                     subtitle: Text(
                       DateFormat('yyyy-MM-dd HH:mm').format(selectedDate),
                       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
@@ -944,7 +981,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                   TextField(
                     controller: notesController,
                     decoration: InputDecoration(
-                      labelText: 'ملاحظات إضافية (اختياري)',
+                      labelText: isAr ? 'ملاحظات إضافية (اختياري)' : 'Additional Notes (Optional)',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -971,7 +1008,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                 Navigator.pop(sheetCtx);
                                 if (ok) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('تم إصدار الاستدعاء رسمياً وإشعار ولي الأمر والمعلم')),
+                                    SnackBar(content: Text(isAr ? 'تم إصدار الاستدعاء رسمياً وإشعار ولي الأمر والمعلم' : 'Summons officially issued; parent and teacher notified')),
                                   );
                                   _loadSummons();
                                 }
@@ -979,7 +1016,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                             },
                       child: isSubmitting
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('اعتماد وإرسال الإشعار لولي الأمر', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          : Text(isAr ? 'اعتماد وإرسال الإشعار لولي الأمر' : 'Confirm & Send Notice to Parent', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -1034,14 +1071,14 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'إصدار استدعاء رسمي لولي الأمر',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      Text(
+                        isAr ? 'إصدار استدعاء رسمي لولي الأمر' : 'Issue Official Parent Summons',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
 
                       // Student Dropdown
-                      const Text('اختر الطالب المعني:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(isAr ? 'اختر الطالب المعني:' : 'Select Concerned Student:', style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<int>(
                         initialValue: selectedStudentId,
@@ -1050,14 +1087,14 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
-                        hint: const Text('حدد الطالب...'),
+                        hint: Text(isAr ? 'حدد الطالب...' : 'Select student...'),
                         items: _studentsList.map((st) {
-                          final name = st['student_name'] ?? 'طالب';
-                          final parent = st['parent_name'] ?? 'ولي أمر غير مسجل';
+                          final name = st['student_name'] ?? (isAr ? 'طالب' : 'Student');
+                          final parent = st['parent_name'] ?? (isAr ? 'ولي أمر غير مسجل' : 'Unregistered Parent');
                           final id = int.tryParse(st['student_id']?.toString() ?? '0');
                           return DropdownMenuItem<int>(
                             value: id,
-                            child: Text('$name (الأهل: $parent)'),
+                            child: Text('$name (${isAr ? "الأهل: " : "Parent: "}$parent)'),
                           );
                         }).toList(),
                         onChanged: (val) => setSheetState(() => selectedStudentId = val),
@@ -1068,7 +1105,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                       TextField(
                         controller: subjectController,
                         decoration: InputDecoration(
-                          labelText: 'عنوان/موضوع الاستدعاء',
+                          labelText: isAr ? 'عنوان/موضوع الاستدعاء' : 'Summons Title/Subject',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -1078,7 +1115,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                       TextField(
                         controller: reasonController,
                         decoration: InputDecoration(
-                          labelText: 'تفاصيل السبب أو الملاحظات',
+                          labelText: isAr ? 'تفاصيل السبب أو الملاحظات' : 'Reason Details or Notes',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         maxLines: 2,
@@ -1095,7 +1132,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                 borderRadius: BorderRadius.circular(10),
                                 side: BorderSide(color: Colors.grey.shade300),
                               ),
-                              title: const Text('تاريخ الحضور', style: TextStyle(fontSize: 12)),
+                              title: Text(isAr ? 'تاريخ الحضور' : 'Attendance Date', style: const TextStyle(fontSize: 12)),
                               subtitle: Text(
                                 DateFormat('yyyy-MM-dd').format(selectedDate),
                                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -1119,7 +1156,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                 borderRadius: BorderRadius.circular(10),
                                 side: BorderSide(color: Colors.grey.shade300),
                               ),
-                              title: const Text('الوقت', style: TextStyle(fontSize: 12)),
+                              title: Text(isAr ? 'الوقت' : 'Time', style: const TextStyle(fontSize: 12)),
                               subtitle: Text(
                                 selectedTime.format(context),
                                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -1147,7 +1184,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                               : () async {
                                   if (selectedStudentId == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('يرجى اختيار الطالب أولاً')),
+                                      SnackBar(content: Text(isAr ? 'يرجى اختيار الطالب أولاً' : 'Please select a student first')),
                                     );
                                     return;
                                   }
@@ -1166,12 +1203,12 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                     Navigator.pop(sheetContext);
                                     if (success) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('تم إصدار وإرسال الاستدعاء بنجاح')),
+                                        SnackBar(content: Text(isAr ? 'تم إصدار وإرسال الاستدعاء بنجاح' : 'Summons issued and sent successfully')),
                                       );
                                       _loadSummons();
                                     } else {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('حدث خطأ أثناء إصدار الاستدعاء')),
+                                        SnackBar(content: Text(isAr ? 'حدث خطأ أثناء إصدار الاستدعاء' : 'An error occurred while issuing summons')),
                                       );
                                     }
                                   }
@@ -1183,7 +1220,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                           ),
                           child: isSubmitting
                               ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('إرسال الاستدعاء لولي الأمر', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              : Text(isAr ? 'إرسال الاستدعاء لولي الأمر' : 'Send Summons to Parent', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         ),
                       ),
                     ],

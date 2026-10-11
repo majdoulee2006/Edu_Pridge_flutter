@@ -46,7 +46,7 @@ class ParentServicesMenuScreen extends StatelessWidget {
                     ),
                     leading: IconButton(
                       icon: Icon(
-                        Icons.arrow_back,
+                        isAr ? Icons.arrow_back : Icons.arrow_forward,
                         color: textColor,
                       ),
                       onPressed: () => Navigator.pop(context),

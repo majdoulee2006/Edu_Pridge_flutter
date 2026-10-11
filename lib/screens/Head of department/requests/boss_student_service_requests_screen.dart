@@ -24,6 +24,8 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
   List<dynamic> _requests = [];
   final ApiService _apiService = ApiService();
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
   @override
   void initState() {
     super.initState();
@@ -41,20 +43,23 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
     }
   }
 
-  Future<void> _respond(int id, String status, String statusAr, String notes) async {
-    // إغلاق المودال أولاً
+  Future<void> _respond(int id, String status, String notes) async {
     Navigator.of(context).pop();
 
     setState(() => _isLoading = true);
     bool success = await _apiService.respondHeadStudentServiceRequest(id, status, notes: notes);
+    if (!mounted) return;
     if (success) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم $statusAr بنجاح')));
+      final msg = isAr
+          ? (status == 'approved' ? 'تم القبول بنجاح' : 'تم الرفض بنجاح')
+          : (status == 'approved' ? 'Approved successfully' : 'Rejected successfully');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       _fetchRequests();
     } else {
       setState(() => _isLoading = false);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('حدث خطأ أثناء تنفيذ الطلب')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(isAr ? 'حدث خطأ أثناء تنفيذ الطلب' : 'An error occurred while processing the request'),
+      ));
     }
   }
 
@@ -138,7 +143,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                   // Affairs Notes
                   Text(
                     isAr ? "ملاحظات الشؤون:" : "Affairs Notes:",
-                    style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   Container(
@@ -187,7 +192,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _respond(req['id'], 'rejected', 'الرفض', notesController.text),
+                            onPressed: () => _respond(req['id'], 'rejected', notesController.text),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red.shade100, 
                               foregroundColor: Colors.red,
@@ -201,7 +206,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                         const SizedBox(width: 15),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _respond(req['id'], 'approved', 'القبول', notesController.text),
+                            onPressed: () => _respond(req['id'], 'approved', notesController.text),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green.shade100, 
                               foregroundColor: Colors.green,
@@ -298,7 +303,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                         style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                       ),
                       leading: IconButton(
-                        icon: Icon(Icons.arrow_back, color: textColor),
+                        icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
                         onPressed: () => Navigator.pop(context),
                       ),
                       bottom: TabBar(
@@ -306,8 +311,8 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                         unselectedLabelColor: Colors.grey,
                         indicatorColor: AppColors.accent,
                         tabs: [
-                          Tab(text: isAr ? 'طلبات معلقة' : 'Pending'),
-                          Tab(text: isAr ? 'طلبات منتهية' : 'Completed'),
+                          Tab(text: isAr ? 'طلبات معلقة' : 'Pending Requests'),
+                          Tab(text: isAr ? 'طلبات منتهية' : 'Completed Requests'),
                         ],
                       ),
                     ),
@@ -391,7 +396,7 @@ class _BossStudentServiceRequestsScreenState extends State<BossStudentServiceReq
                 children: [
                   Expanded(
                     child: Text(
-                      req['student_name'] ?? 'طالب غير معروف',
+                      req['student_name'] ?? (isAr ? 'طالب غير معروف' : 'Unknown Student'),
                       style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),

@@ -37,15 +37,21 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
   bool _hasMore = true;
   final ScrollController _scrollController = ScrollController();
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchNotifications();
     _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _scrollController.dispose();
     super.dispose();
   }
@@ -168,6 +174,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     final n = _notifications[index];
     final relatedId = n['related_id'];
     if (relatedId == null) return;
+    final isAr = AppSettings.language.value == 'ar';
     try {
       final token = await _getToken();
       await Dio().post(
@@ -181,7 +188,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
             ..['leave_status'] = status == 'approved' ? 'approved' : 'rejected';
         });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(status == 'approved' ? 'تمت الموافقة على طلب الإجازة ✅' : 'تم رفض الطلب'),
+          content: Text(status == 'approved' ? (isAr ? 'تمت الموافقة على طلب الإجازة ✅' : 'Leave request approved ✅') : (isAr ? 'تم رفض الطلب' : 'Request rejected')),
           backgroundColor: status == 'approved' ? Colors.green : Colors.red,
         ));
       }
@@ -189,13 +196,14 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       debugPrint("⛔ Respond leave error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ، حاول مجدداً'), backgroundColor: Colors.red),
+          SnackBar(content: Text(isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again'), backgroundColor: Colors.red),
         );
       }
     }
   }
 
   Future<void> _openTranscriptPreview([int? studentId]) async {
+    final isAr = AppSettings.language.value == 'ar';
     int? resolvedStudentId = studentId;
     if (resolvedStudentId == null || resolvedStudentId == 0) {
       final prefs = await SharedPreferences.getInstance();
@@ -206,18 +214,18 @@ if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
+      builder: (_) => Center(
         child: Card(
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(color: Color(0xFFFFCC00)),
-                SizedBox(height: 16),
-                Text('جاري تحميل كشف درجات الطالب المعتمد...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                const SizedBox(height: 16),
+                Text(isAr ? 'جاري تحميل كشف درجات الطالب المعتمد...' : 'Loading certified student transcript...', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -234,18 +242,20 @@ if (!mounted) return;
         context,
         MaterialPageRoute(
           builder: (_) => AffairsPdfViewerScreen(
-            title: 'كشف درجات الطالب المعتمد',
+            title: isAr ? 'كشف درجات الطالب المعتمد' : 'Certified Student Transcript',
             pdfBytes: pdfBytes,
             fileName: 'transcript_preview.pdf',
-            bannerNotice: '⚠️ تنبيه إداري ورسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط لولي الأمر داخل التطبيق. في حال الرغبة بالحصول على النسخة الورقية الرسمية المختومة والموقعة، يتعين مراجعة موظف شؤون الطلاب بالمعهد شخصياً.',
+            bannerNotice: isAr
+                ? '⚠️ تنبيه إداري ورسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط لولي الأمر داخل التطبيق. في حال الرغبة بالحصول على النسخة الورقية الرسمية المختومة والموقعة، يتعين مراجعة موظف شؤون الطلاب بالمعهد شخصياً.'
+                : '⚠️ Official Notice: This copy is for immediate in-app digital preview only. To obtain a sealed and signed hard copy, please consult student affairs staff in person.',
           ),
         ),
       );
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر تحميل كشف درجات الطالب حالياً. يرجى التحقق من اتصال الخادم.'),
+          SnackBar(
+            content: Text(isAr ? 'تعذر تحميل كشف درجات الطالب حالياً. يرجى التحقق من اتصال الخادم.' : 'Could not load student transcript. Please check server connection.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -377,37 +387,38 @@ if (!mounted) return;
   }
 
   Map<String, dynamic> _getStyleByType(String? type) {
+    final bool isAr = AppSettings.language.value == 'ar';
     switch (type?.toLowerCase()) {
       case 'message':
       case 'chat':
-        return {'color': Colors.blueAccent, 'icon': Icons.chat_bubble_outline, 'label': 'رسالة'};
+        return {'color': Colors.blueAccent, 'icon': Icons.chat_bubble_outline, 'label': isAr ? 'رسالة' : 'Message'};
       case 'announcement':
       case 'administrative':
-        return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': 'إعلان'};
+        return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': isAr ? 'إعلان' : 'Announcement'};
       case 'transcript_shared':
-        return {'color': Colors.blue, 'icon': Icons.school_rounded, 'label': 'كشف درجات معتمد'};
+        return {'color': Colors.blue, 'icon': Icons.school_rounded, 'label': isAr ? 'كشف درجات معتمد' : 'Official Transcript'};
       case 'cohort_results_shared':
-        return {'color': Colors.indigo, 'icon': Icons.groups_rounded, 'label': 'محضر وقرار الدفعة'};
+        return {'color': Colors.indigo, 'icon': Icons.groups_rounded, 'label': isAr ? 'محضر وقرار الدفعة' : 'Batch Decision'};
       case 'report':
-        return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': 'تقرير أداء'};
+        return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': isAr ? 'تقرير أداء' : 'Performance Report'};
       case 'attendance':
-        return {'color': Colors.red, 'icon': Icons.person_off, 'label': 'حضور وغياب'};
+        return {'color': Colors.red, 'icon': Icons.person_off, 'label': isAr ? 'حضور وغياب' : 'Attendance'};
       case 'leave_request':
-        return {'color': Colors.blue, 'icon': Icons.description_outlined, 'label': 'طلب إجازة'};
+        return {'color': Colors.blue, 'icon': Icons.description_outlined, 'label': isAr ? 'طلب إجازة' : 'Leave Request'};
       case 'grade':
-        return {'color': Colors.green, 'icon': Icons.grade_rounded, 'label': 'نتيجة علامة'};
+        return {'color': Colors.green, 'icon': Icons.grade_rounded, 'label': isAr ? 'نتيجة علامة' : 'Grade Result'};
       case 'marks':
-        return {'color': Colors.amber, 'icon': Icons.grade_rounded, 'label': 'نتائج امتحانات'};
+        return {'color': Colors.amber, 'icon': Icons.grade_rounded, 'label': isAr ? 'نتائج امتحانات' : 'Exam Results'};
       case 'meeting_request':
-        return {'color': Colors.teal, 'icon': Icons.calendar_month_outlined, 'label': 'طلب موعد'};
+        return {'color': Colors.teal, 'icon': Icons.calendar_month_outlined, 'label': isAr ? 'طلب موعد' : 'Meeting Request'};
       case 'summon':
-        return {'color': Colors.deepOrange, 'icon': Icons.person_add_alt_1_outlined, 'label': 'استدعاء إداري'};
+        return {'color': Colors.deepOrange, 'icon': Icons.person_add_alt_1_outlined, 'label': isAr ? 'استدعاء إداري' : 'Administrative Summon'};
       case 'holiday':
-        return {'color': Colors.green, 'icon': Icons.beach_access_rounded, 'label': 'عطلة رسمية'};
+        return {'color': Colors.green, 'icon': Icons.beach_access_rounded, 'label': isAr ? 'عطلة رسمية' : 'Official Holiday'};
       case 'event':
-        return {'color': Colors.purple, 'icon': Icons.event_available, 'label': 'فعالية مدرسية'};
+        return {'color': Colors.purple, 'icon': Icons.event_available, 'label': isAr ? 'فعالية مدرسية' : 'School Event'};
       default:
-        return {'color': Colors.blueGrey, 'icon': Icons.notifications_active, 'label': 'إشعار'};
+        return {'color': Colors.blueGrey, 'icon': Icons.notifications_active, 'label': isAr ? 'إشعار' : 'Notification'};
     }
   }
 
@@ -452,12 +463,13 @@ if (!mounted) return;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
-        appBar: _buildAppBar(context, textColor),
+        appBar: _buildAppBar(context, textColor, isAr),
         body: SizedBox.expand(
           child: Stack(
           children: [
@@ -468,11 +480,11 @@ if (!mounted) return;
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildFilterChip('الكل', 'all', isDark),
+                      _buildFilterChip(isAr ? 'الكل' : 'All', 'all', isDark),
                       const SizedBox(width: 8),
-                      _buildFilterChip('غير المقروءة', 'unread', isDark),
+                      _buildFilterChip(isAr ? 'غير المقروءة' : 'Unread', 'unread', isDark),
                       const SizedBox(width: 8),
-                      _buildFilterChip('المقروءة', 'read', isDark),
+                      _buildFilterChip(isAr ? 'المقروءة' : 'Read', 'read', isDark),
                     ],
                   ),
                 ),
@@ -487,7 +499,7 @@ if (!mounted) return;
                                   children: [
                                     SizedBox(
                                       height: 400,
-                                      child: Center(child: Text("لا توجد إشعارات حالياً", style: TextStyle(color: textColor.withValues(alpha: 0.5)))),
+                                      child: Center(child: Text(isAr ? "لا توجد إشعارات حالياً" : "No notifications currently", style: TextStyle(color: textColor.withValues(alpha: 0.5)))),
                                     ),
                                   ],
                                 )
@@ -512,7 +524,7 @@ if (!mounted) return;
                                         _markAsRead(nId, index);
                                         _onNotificationTap(n);
                                       },
-                                      child: _buildNotificationCard(n, cardColor, textColor, isDark, index),
+                                      child: _buildNotificationCard(n, cardColor, textColor, isDark, index, isAr),
                                     );
                                   },
                                 ),
@@ -535,7 +547,7 @@ if (!mounted) return;
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor, bool isAr) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -543,7 +555,7 @@ if (!mounted) return;
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text("الإشعارات", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+          Text(isAr ? "الإشعارات" : "Notifications", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
           if (_unreadCount > 0) ...[
             const SizedBox(width: 8),
             Container(
@@ -567,15 +579,15 @@ if (!mounted) return;
                 )
               : TextButton(
                   onPressed: _markAllAsRead,
-                  child: Text('تمييز الكل كمقروء', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                  child: Text(isAr ? 'تمييز الكل كمقروء' : 'Mark all as read', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
                 )
         else
-          IconButton(icon: Icon(Icons.arrow_back, color: textColor), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
+          IconButton(icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen()))),
       ],
     );
   }
 
-  Widget _buildNotificationCard(Map<String, dynamic> n, Color cardColor, Color textColor, bool isDark, int index) {
+  Widget _buildNotificationCard(Map<String, dynamic> n, Color cardColor, Color textColor, bool isDark, int index, bool isAr) {
     final style = _getStyleByType(n['type']?.toString());
     final color = style['color'] as Color;
     final isLeave = n['type'] == 'leave_request';
@@ -590,7 +602,9 @@ if (!mounted) return;
     final msg = n['message']?.toString() ?? n['body']?.toString() ?? '';
     final bool isTranscript = type == 'transcript_shared' ||
         title.contains('كشف علامات') || title.contains('كشف درجات') ||
-        msg.contains('كشف علامات') || msg.contains('كشف درجات');
+        title.contains('Transcript') || title.contains('Grades') ||
+        msg.contains('كشف علامات') || msg.contains('كشف درجات') ||
+        msg.contains('Transcript') || msg.contains('grades');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -606,7 +620,13 @@ if (!mounted) return;
         borderRadius: BorderRadius.circular(30),
         child: Stack(
           children: [
-            Positioned(right: 0, top: 0, bottom: 0, child: Container(width: 5, color: color)),
+            Positioned(
+              right: isAr ? 0 : null,
+              left: isAr ? null : 0,
+              top: 0,
+              bottom: 0,
+              child: Container(width: 5, color: color),
+            ),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -627,7 +647,7 @@ if (!mounted) return;
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Flexible(
-                                  child: Text(n['title']?.toString() ?? "إشعار",
+                                  child: Text(n['title']?.toString() ?? (isAr ? "إشعار" : "Notification"),
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                       overflow: TextOverflow.ellipsis),
                                 ),
@@ -676,14 +696,14 @@ if (!mounted) return;
                                 ),
                               ],
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.visibility_rounded, size: 16, color: Colors.black),
-                                SizedBox(width: 5),
+                                const Icon(Icons.visibility_rounded, size: 16, color: Colors.black),
+                                const SizedBox(width: 5),
                                 Text(
-                                  'مشاهدة فقط 👁️',
-                                  style: TextStyle(
+                                  isAr ? 'مشاهدة فقط 👁️' : 'View only 👁️',
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
@@ -694,7 +714,7 @@ if (!mounted) return;
                           ),
                         ),
                         Text(
-                          'معاينة كشف درجات الطالب',
+                          isAr ? 'معاينة كشف درجات الطالب' : "Preview student's transcript",
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -716,12 +736,12 @@ if (!mounted) return;
                           color: Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.orange),
-                            SizedBox(width: 6),
-                            Text('بانتظار موافقة رئيس القسم', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
+                            const Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.orange),
+                            const SizedBox(width: 6),
+                            Text(isAr ? 'بانتظار موافقة رئيس القسم' : 'Pending department head approval', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
                           ],
                         ),
                       )
@@ -737,7 +757,7 @@ if (!mounted) return;
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 elevation: 0,
                               ),
-                              child: const Text("موافقة", style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: Text(isAr ? "موافقة" : "Approve", style: const TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -750,7 +770,7 @@ if (!mounted) return;
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 elevation: 0,
                               ),
-                              child: const Text("رفض", style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: Text(isAr ? "رفض" : "Reject", style: const TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ],
@@ -773,7 +793,9 @@ if (!mounted) return;
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              leaveStatus == 'rejected' ? 'تم رفض الطلب' : 'تمت الموافقة على الطلب',
+                              leaveStatus == 'rejected'
+                                  ? (isAr ? 'تم رفض الطلب' : 'Request rejected')
+                                  : (isAr ? 'تمت الموافقة على الطلب' : 'Request approved'),
                               style: TextStyle(
                                 color: leaveStatus == 'rejected' ? Colors.red : Colors.green,
                                 fontWeight: FontWeight.bold,

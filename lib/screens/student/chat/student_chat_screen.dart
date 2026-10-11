@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../services/chat_service.dart';
 import '../../../widgets/chat/chat_bubble_widget.dart';
 import '../../../widgets/chat/chat_input_widget.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class StudentChatScreen extends StatelessWidget {
   final String chatId;
@@ -11,8 +12,11 @@ class StudentChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Chat with Teacher")),
+    final bool isAr = AppSettings.language.value == 'ar';
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        appBar: AppBar(title: Text(isAr ? "المحادثة مع المعلم" : "Chat with Teacher")),
       body: Consumer<ChatService>(
         builder: (context, chatService, child) {
           return Column(
@@ -43,6 +47,7 @@ class StudentChatScreen extends StatelessWidget {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 }

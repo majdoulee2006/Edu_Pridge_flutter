@@ -78,11 +78,12 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
       builder: (ctx) => StatefulBuilder(
         builder: (context, setSheetState) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
+          final bool isAr = AppSettings.language.value == 'ar';
           final sheetBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
           final textClr = isDark ? Colors.white : AppColors.textDark;
           final cardBg  = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF7F9FC);
-          final studentName = req['student_name']?.toString() ?? 'الطالب';
-          final courseName  = req['course_name']?.toString() ?? 'غير محدد';
+          final studentName = req['student_name']?.toString() ?? (isAr ? 'الطالب' : 'Student');
+          final courseName  = req['course_name']?.toString() ?? (isAr ? 'غير محدد' : 'N/A');
           final reqId       = req['id'] is int ? req['id'] as int : int.tryParse(req['id'].toString()) ?? 0;
 
           return Padding(
@@ -98,7 +99,7 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
               ),
               child: Directionality(
-                textDirection: TextDirection.rtl,
+                textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Column(
@@ -135,7 +136,7 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "تقديم تقرير الطالب",
+                                  isAr ? "تقديم تقرير الطالب" : "Submit Student Report",
                                   style: TextStyle(color: textClr, fontWeight: FontWeight.bold, fontSize: 17),
                                 ),
                                 const SizedBox(height: 2),
@@ -169,7 +170,7 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                               children: [
                                 const Icon(Icons.book_outlined, size: 16, color: Colors.grey),
                                 const SizedBox(width: 6),
-                                Text("المادة: $courseName", style: TextStyle(color: textClr, fontSize: 13, fontWeight: FontWeight.w600)),
+                                Text("${isAr ? 'المادة' : 'Course'}: $courseName", style: TextStyle(color: textClr, fontSize: 13, fontWeight: FontWeight.w600)),
                               ],
                             ),
                             if (req['requester_name'] != null) ...[
@@ -178,7 +179,7 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                                 children: [
                                   const Icon(Icons.person_outline, size: 16, color: Colors.grey),
                                   const SizedBox(width: 6),
-                                  Text("الجهة الطالبة: ${req['requester_name']}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                  Text("${isAr ? 'الجهة الطالبة' : 'Requested by'}: ${req['requester_name']}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
                                 ],
                               ),
                             ],
@@ -193,7 +194,7 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                                   border: Border.all(color: Colors.amber.withAlpha(60)),
                                 ),
                                 child: Text(
-                                  "ملاحظات رئيس القسم: ${req['notes']}",
+                                  "${isAr ? 'ملاحظات رئيس القسم' : 'Head notes'}: ${req['notes']}",
                                   style: const TextStyle(fontSize: 12, color: Color(0xFFB45309)),
                                 ),
                               ),
@@ -206,7 +207,7 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                       // زر فحص إحصائيات الطالب الأكاديمية
                       if (studentStats == null && !isLoadingStats)
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: isAr ? Alignment.centerLeft : Alignment.centerRight,
                           child: TextButton.icon(
                             onPressed: () async {
                               setSheetState(() => isLoadingStats = true);
@@ -217,7 +218,10 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                               });
                             },
                             icon: const Icon(Icons.analytics_outlined, size: 18, color: Color(0xFFCC9900)),
-                            label: const Text("عرض حضور وعلامات الطالب للمساعدة", style: TextStyle(color: Color(0xFFCC9900), fontSize: 13, fontWeight: FontWeight.bold)),
+                            label: Text(
+                              isAr ? "عرض حضور وعلامات الطالب للمساعدة" : "View attendance & grades for help",
+                              style: const TextStyle(color: Color(0xFFCC9900), fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
 
@@ -238,10 +242,10 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                             children: [
                               Column(
                                 children: [
-                                  const Text("معدل العلامات", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                  Text(isAr ? "معدل العلامات" : "Grades Average", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                                   const SizedBox(height: 4),
                                   Text(
-                                    studentStats!['avg_grade'] != null ? "${studentStats!['avg_grade']} / 100" : "غير متوفر",
+                                    studentStats!['avg_grade'] != null ? "${studentStats!['avg_grade']} / 100" : (isAr ? "غير متوفر" : "N/A"),
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blue),
                                   ),
                                 ],
@@ -249,10 +253,10 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                               Container(width: 1, height: 25, color: Colors.grey.withAlpha(80)),
                               Column(
                                 children: [
-                                  const Text("نسبة الحضور", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                  Text(isAr ? "نسبة الحضور" : "Attendance Rate", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                                   const SizedBox(height: 4),
                                   Text(
-                                    studentStats!['attendance_rate'] != null ? "${studentStats!['attendance_rate']}%" : "غير متوفر",
+                                    studentStats!['attendance_rate'] != null ? "${studentStats!['attendance_rate']}%" : (isAr ? "غير متوفر" : "N/A"),
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.teal),
                                   ),
                                 ],
@@ -262,14 +266,14 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                         ),
 
                       // حقل إدخال التقرير
-                      Text("تقرير المعلم وملاحظاته:", style: TextStyle(color: textClr, fontSize: 14, fontWeight: FontWeight.bold)),
+                      Text(isAr ? "تقرير المعلم وملاحظاته:" : "Teacher Report & Notes:", style: TextStyle(color: textClr, fontSize: 14, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: notesController,
                         maxLines: 5,
                         style: TextStyle(color: textClr, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: "اكتب تقييمك السلوكي أو الأكاديمي الشامل للطالب هنا...",
+                          hintText: isAr ? "اكتب تقييمك السلوكي أو الأكاديمي الشامل للطالب هنا..." : "Write your comprehensive academic/behavioral evaluation here...",
                           hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
                           fillColor: cardBg,
                           filled: true,
@@ -298,7 +302,7 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                                   final messenger = ScaffoldMessenger.of(context);
                                   if (text.length < 3) {
                                     messenger.showSnackBar(
-                                      const SnackBar(content: Text("يرجى كتابة تقرير مناسب (3 أحرف على الأقل)")),
+                                      SnackBar(content: Text(isAr ? "يرجى كتابة تقرير مناسب (3 أحرف على الأقل)" : "Please enter a valid report (at least 3 characters)")),
                                     );
                                     return;
                                   }
@@ -311,8 +315,8 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                                     if (ctx.mounted) Navigator.pop(ctx);
                                     if (mounted) {
                                       messenger.showSnackBar(
-                                        const SnackBar(
-                                          content: Text("تم إرسال التقرير لرئيس القسم بنجاح"),
+                                        SnackBar(
+                                          content: Text(isAr ? "تم إرسال التقرير لرئيس القسم بنجاح" : "Report submitted to Department Head successfully"),
                                           backgroundColor: Colors.green,
                                         ),
                                       );
@@ -321,8 +325,8 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                                   } else {
                                     if (mounted) {
                                       messenger.showSnackBar(
-                                        const SnackBar(
-                                          content: Text("حدث خطأ أثناء إرسال التقرير، يرجى المحاولة ثانية"),
+                                        SnackBar(
+                                          content: Text(isAr ? "حدث خطأ أثناء إرسال التقرير، يرجى المحاولة ثانية" : "Error sending report, please try again"),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
@@ -331,7 +335,7 @@ class _ReportRequestsScreenState extends State<ReportRequestsScreen>
                                 },
                           child: isSubmitting
                               ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                              : const Text("إرسال التقرير لرئيس القسم", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                              : Text(isAr ? "إرسال التقرير لرئيس القسم" : "Submit Report to Head", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                         ),
                       ),
                       const SizedBox(height: 10),

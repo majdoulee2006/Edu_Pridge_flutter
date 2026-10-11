@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:dio/dio.dart';
@@ -17,17 +18,19 @@ class EditActivityScreen extends StatefulWidget {
 }
 
 class _EditActivityScreenState extends State<EditActivityScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
 
   String _selectedAudience = 'all';
-  final Map<String, String> _audiences = {
-    'all': 'كل المعهد (عام)',
-    'students': 'الطلاب في قسم/دورة',
-    'teachers': 'المعلمين في قسم/دورة',
-    'heads': 'رؤساء الأقسام',
-    'department': 'قسم معين',
+  Map<String, String> get _audiences => {
+    'all': isAr ? 'كل المعهد (عام)' : 'Whole Institute (General)',
+    'students': isAr ? 'الطلاب في قسم/دورة' : 'Students in Dept/Course',
+    'teachers': isAr ? 'المعلمين في قسم/دورة' : 'Teachers in Dept/Course',
+    'heads': isAr ? 'رؤساء الأقسام' : 'Department Heads',
+    'department': isAr ? 'قسم معين' : 'Specific Department',
   };
 
   List<dynamic> _departments = [];
@@ -35,9 +38,14 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
   String? _selectedDepartment;
   String? _selectedCourse;
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchMetadata();
     _titleController.text = (widget.activity["title"] ?? widget.activity["name"] ?? "").toString();
     _contentController.text = (widget.activity["content"] ?? widget.activity["body"] ?? widget.activity["details"] ?? "").toString();
@@ -45,7 +53,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     _categoryController.text = (widget.activity["category"] ?? "").toString();
 
     final aud = widget.activity["target_audience"]?.toString();
-    if (aud != null && _audiences.containsKey(aud)) {
+    if (aud != null) {
       _selectedAudience = aud;
     } else {
       _selectedAudience = "all";
@@ -88,10 +96,10 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
           _departments = fetchedDepts;
         } else {
           _departments = [
-            {'department_id': 1, 'name': 'قسم نظم المعلومات'},
-            {'department_id': 2, 'name': 'قسم تجاري'},
-            {'department_id': 3, 'name': 'قسم طبي'},
-            {'department_id': 4, 'name': 'قسم هندسي'},
+            {'department_id': 1, 'name': isAr ? 'قسم نظم المعلومات' : 'Information Systems Dept'},
+            {'department_id': 2, 'name': isAr ? 'قسم تجاري' : 'Business Dept'},
+            {'department_id': 3, 'name': isAr ? 'قسم طبي' : 'Medical Dept'},
+            {'department_id': 4, 'name': isAr ? 'قسم هندسي' : 'Engineering Dept'},
           ];
         }
         _courses = (meta != null && meta['courses'] is List) ? meta['courses'] : [];
@@ -137,6 +145,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _titleController.dispose();
     _contentController.dispose();
     _locationController.dispose();
@@ -152,13 +161,13 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         sourcePath: pickedFile.path,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'تعديل الصورة',
+            toolbarTitle: isAr ? 'تعديل الصورة' : 'Edit Image',
             toolbarColor: const Color(0xFFFFCC00),
             toolbarWidgetColor: Colors.black,
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
           ),
-          IOSUiSettings(title: 'تعديل الصورة'),
+          IOSUiSettings(title: isAr ? 'تعديل الصورة' : 'Edit Image'),
         ],
       );
       if (croppedFile != null) {
@@ -220,19 +229,17 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     final content = _contentController.text.trim();
 
     if (title.isEmpty) {
-      _showSnackBar("يرجى إدخال عنوان النشاط");
+      _showSnackBar(isAr ? "يرجى إدخال عنوان النشاط" : "Please enter activity title");
       return;
     }
     if (content.isEmpty) {
-      _showSnackBar("يرجى إدخال تفاصيل النشاط");
+      _showSnackBar(isAr ? "يرجى إدخال تفاصيل النشاط" : "Please enter activity details");
       return;
     }
     if (_selectedDate == null || _selectedTime == null) {
-      _showSnackBar("يرجى تحديد تاريخ ووقت النشاط");
+      _showSnackBar(isAr ? "يرجى تحديد تاريخ ووقت النشاط" : "Please select activity date and time");
       return;
     }
-
-
 
     setState(() => isSubmitting = true);
 
@@ -240,7 +247,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
       FormData formData = FormData.fromMap({
         'title': title,
         'content': content,
-        'category': _categoryController.text.trim().isNotEmpty ? _categoryController.text.trim() : 'عام',
+        'category': _categoryController.text.trim().isNotEmpty ? _categoryController.text.trim() : (isAr ? 'عام' : 'General'),
         'target_audience': _selectedAudience,
         'event_date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
         'event_time': "${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00",
@@ -261,15 +268,15 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
       if (mounted) {
         setState(() => isSubmitting = false);
         if (result != null) {
-          _showSnackBar("تم تعديل النشاط بنجاح", isError: false);
+          _showSnackBar(isAr ? "تم تعديل النشاط بنجاح" : "Activity updated successfully", isError: false);
           Navigator.pop(context, true);
         } else {
-          _showSnackBar("فشل نشر النشاط، يرجى المحاولة لاحقاً");
+          _showSnackBar(isAr ? "فشل تعديل النشاط، يرجى المحاولة لاحقاً" : "Failed to update activity, please try again later");
         }
       }
     } catch (e) {
       setState(() => isSubmitting = false);
-      _showSnackBar("حدث خطأ أثناء الاتصال بالخادم");
+      _showSnackBar(isAr ? "حدث خطأ أثناء الاتصال بالخادم" : "An error occurred while connecting to server");
     }
   }
 
@@ -291,20 +298,20 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     return Directionality(
-      textDirection: ui.TextDirection.rtl,
+      textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
           backgroundColor: bgColor,
           elevation: 0,
-          title: const Text(
-            "تعديل النشاط",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, fontFamily: 'Noto Sans Arabic'),
+          title: Text(
+            isAr ? "تعديل النشاط" : "Edit Activity",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, fontFamily: 'Noto Sans Arabic'),
           ),
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
           ),
         ),
         body: isSubmitting
@@ -319,10 +326,10 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                     TextField(
                       controller: _titleController,
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
-                      decoration: const InputDecoration(
-                        hintText: "عنوان النشاط (مثال: رحلة علمية)",
-                        hintStyle: TextStyle(fontSize: 18, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
-                        border: UnderlineInputBorder(),
+                      decoration: InputDecoration(
+                        hintText: isAr ? "عنوان النشاط (مثال: رحلة علمية)" : "Activity title (e.g. Science trip)",
+                        hintStyle: const TextStyle(fontSize: 18, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                        border: const UnderlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -335,7 +342,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "الجمهور المستهدف:",
+                                isAr ? "الجمهور المستهدف:" : "Target Audience:",
                                 style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                               ),
                               const SizedBox(height: 8),
@@ -371,7 +378,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "تصنيف النشاط:",
+                                isAr ? "تصنيف النشاط:" : "Activity Category:",
                                 style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                               ),
                               const SizedBox(height: 8),
@@ -379,7 +386,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                 controller: _categoryController,
                                 style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
                                 decoration: InputDecoration(
-                                  hintText: "مثال: رحلة، اجتماع...",
+                                  hintText: isAr ? "مثال: رحلة، اجتماع..." : "e.g. Trip, Meeting...",
                                   hintStyle: const TextStyle(fontSize: 13, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
                                   fillColor: cardColor,
                                   filled: true,
@@ -405,7 +412,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "القسم (اختياري):",
+                                    isAr ? "القسم (اختياري):" : "Department (Optional):",
                                     style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                                   ),
                                   const SizedBox(height: 8),
@@ -423,7 +430,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                     dropdownColor: cardColor,
                                     style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
                                     items: [
-                                      const DropdownMenuItem<String>(value: null, child: Text("كل الأقسام", overflow: TextOverflow.ellipsis)),
+                                      DropdownMenuItem<String>(value: null, child: Text(isAr ? "كل الأقسام" : "All Departments", overflow: TextOverflow.ellipsis)),
                                       ..._departments.map((dept) {
                                         final deptId = (dept['department_id'] ?? dept['id']).toString();
                                         final deptName = (dept['name'] ?? dept['title'] ?? '').toString();
@@ -436,7 +443,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                     onChanged: (val) {
                                       setState(() {
                                         _selectedDepartment = val;
-                                        _selectedCourse = null; // إعادة تعيين الدورة إلى كل الدورات عند تغيير القسم
+                                        _selectedCourse = null;
                                       });
                                     },
                                   ),
@@ -449,7 +456,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "الدورة (اختياري):",
+                                    isAr ? "الدورة (اختياري):" : "Course (Optional):",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: isDeptSelected ? textColor : Colors.grey,
@@ -474,7 +481,9 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                       DropdownMenuItem<String>(
                                         value: null,
                                         child: Text(
-                                          isDeptSelected ? "كل الدورات في هذا القسم" : "كل الدورات (إجباري عند اختيار كل الأقسام)",
+                                          isDeptSelected
+                                              ? (isAr ? "كل الدورات في هذا القسم" : "All courses in this dept")
+                                              : (isAr ? "كل الدورات (إجباري عند اختيار كل الأقسام)" : "All courses (Default for all depts)"),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
@@ -511,7 +520,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "التاريخ:",
+                                isAr ? "التاريخ:" : "Date:",
                                 style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                               ),
                               const SizedBox(height: 8),
@@ -527,7 +536,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        _selectedDate == null ? 'اختر التاريخ' : DateFormat('yyyy-MM-dd').format(_selectedDate!),
+                                        _selectedDate == null ? (isAr ? 'اختر التاريخ' : 'Select Date') : DateFormat('yyyy-MM-dd').format(_selectedDate!),
                                         style: TextStyle(color: _selectedDate == null ? Colors.grey : textColor, fontSize: 13, fontFamily: 'Noto Sans Arabic'),
                                       ),
                                       Icon(Icons.calendar_today, color: Colors.grey.shade400, size: 20),
@@ -544,7 +553,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "الوقت:",
+                                isAr ? "الوقت:" : "Time:",
                                 style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                               ),
                               const SizedBox(height: 8),
@@ -560,7 +569,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        _selectedTime == null ? 'اختر الوقت' : _selectedTime!.format(context),
+                                        _selectedTime == null ? (isAr ? 'اختر الوقت' : 'Select Time') : _selectedTime!.format(context),
                                         style: TextStyle(color: _selectedTime == null ? Colors.grey : textColor, fontSize: 13, fontFamily: 'Noto Sans Arabic'),
                                       ),
                                       Icon(Icons.access_time, color: Colors.grey.shade400, size: 20),
@@ -577,7 +586,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
 
                     // محتوى النشاط / التفاصيل
                     Text(
-                      "تفاصيل النشاط:",
+                      isAr ? "تفاصيل النشاط:" : "Activity Details:",
                       style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                     ),
                     const SizedBox(height: 8),
@@ -592,9 +601,9 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                         controller: _contentController,
                         maxLines: 5,
                         style: TextStyle(fontSize: 16, color: textColor, fontFamily: 'Noto Sans Arabic'),
-                        decoration: const InputDecoration(
-                          hintText: "اكتب تفاصيل النشاط هنا...",
-                          hintStyle: TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                        decoration: InputDecoration(
+                          hintText: isAr ? "اكتب تفاصيل النشاط هنا..." : "Write activity details here...",
+                          hintStyle: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
                           border: InputBorder.none,
                         ),
                       ),
@@ -603,7 +612,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
 
                     // موقع النشاط
                     Text(
-                      "الموقع (اختياري):",
+                      isAr ? "الموقع (اختياري):" : "Location (Optional):",
                       style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                     ),
                     const SizedBox(height: 8),
@@ -611,7 +620,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                       controller: _locationController,
                       style: TextStyle(fontSize: 16, color: textColor, fontFamily: 'Noto Sans Arabic'),
                       decoration: InputDecoration(
-                        hintText: "مثال: المسرح المدرسي",
+                        hintText: isAr ? "مثال: المسرح المدرسي" : "e.g. School Auditorium",
                         hintStyle: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
                         fillColor: cardColor,
                         filled: true,
@@ -622,7 +631,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
 
                     // إرفاق صورة للنشاط
                     Text(
-                      "إرفاق صورة للنشاط (اختياري):",
+                      isAr ? "إرفاق صورة للنشاط (اختياري):" : "Attach Activity Photo (Optional):",
                       style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                     ),
                     const SizedBox(height: 8),
@@ -655,7 +664,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                         children: [
                                           Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey.shade400),
                                           const SizedBox(height: 8),
-                                          Text("تغيير الصورة الحالية", style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Noto Sans Arabic')),
+                                          Text(isAr ? "تغيير الصورة الحالية" : "Change current photo", style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Noto Sans Arabic')),
                                         ],
                                       ),
                                     ),
@@ -665,7 +674,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                     children: [
                                       Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey.shade400),
                                       const SizedBox(height: 8),
-                                      Text("اضغط لإضافة صورة", style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Noto Sans Arabic')),
+                                      Text(isAr ? "اضغط لإضافة صورة" : "Tap to add image", style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Noto Sans Arabic')),
                                     ],
                                   ),
                       ),
@@ -689,15 +698,15 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                       ),
                       elevation: 8,
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "حفظ التعديلات",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
+                          isAr ? "حفظ التعديلات" : "Save Changes",
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
                         ),
-                        SizedBox(width: 10),
-                        Icon(Icons.event_available, size: 22),
+                        const SizedBox(width: 10),
+                        const Icon(Icons.event_available, size: 22),
                       ],
                     ),
                   ),
@@ -707,3 +716,4 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     );
   }
 }
+

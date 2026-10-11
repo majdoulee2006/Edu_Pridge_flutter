@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
@@ -17,9 +18,9 @@ class _AddPostScreenState extends State<AddPostScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   final TextEditingController _linkController = TextEditingController();
-  
+
   String? selectedImagePath;
-  
+
   String selectedAudience = "all"; // all, students, teachers, department
   int? selectedDepartmentId;
   int? selectedCourseId;
@@ -28,23 +29,46 @@ class _AddPostScreenState extends State<AddPostScreen> {
   bool isLoadingDepts = false;
   bool isSubmitting = false;
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     if (widget.announcement != null) {
       _titleController.text = widget.announcement!['title'] ?? '';
       _contentController.text = widget.announcement!['content'] ?? '';
-      _linkController.text = widget.announcement!['link_url'] ?? widget.announcement!['link'] ?? '';
+      _linkController.text =
+          widget.announcement!['link_url'] ??
+          widget.announcement!['link'] ??
+          '';
       selectedAudience = widget.announcement!['target_audience'] ?? 'all';
       if (widget.announcement!['department_id'] != null) {
-        selectedDepartmentId = int.tryParse(widget.announcement!['department_id'].toString());
+        selectedDepartmentId = int.tryParse(
+          widget.announcement!['department_id'].toString(),
+        );
       }
       if (widget.announcement!['course_id'] != null) {
-        selectedCourseId = int.tryParse(widget.announcement!['course_id'].toString());
+        selectedCourseId = int.tryParse(
+          widget.announcement!['course_id'].toString(),
+        );
       }
     }
     _loadDepartments();
     _loadCourses();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    _titleController.dispose();
+    _contentController.dispose();
+    _linkController.dispose();
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadCourses() async {
@@ -76,7 +100,6 @@ class _AddPostScreenState extends State<AddPostScreen> {
       debugPrint("Error loading departments: $e");
     } finally {
       if (departments.isEmpty) {
-        // Fallback static list
         departments = [
           {'department_id': 1, 'name': 'قسم نظم المعلومات'},
           {'department_id': 2, 'name': 'قسم تجاري'},
@@ -88,21 +111,33 @@ class _AddPostScreenState extends State<AddPostScreen> {
     }
   }
 
+  String _getDeptName(dynamic dept) {
+    final name = dept['name']?.toString() ?? '';
+    if (isAr) return name;
+    if (name.contains('نظم المعلومات')) return 'Information Systems Dept';
+    if (name.contains('تجاري')) return 'Commercial Dept';
+    if (name.contains('طبي')) return 'Medical Dept';
+    if (name.contains('هندسي')) return 'Engineering Dept';
+    return name;
+  }
+
   Future<void> _pickAndCropImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
     if (pickedFile != null) {
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'تعديل الصورة',
+            toolbarTitle: isAr ? 'تعديل الصورة' : 'Edit Image',
             toolbarColor: const Color(0xFFFFCC00),
             toolbarWidgetColor: Colors.black,
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
           ),
-          IOSUiSettings(title: 'تعديل الصورة'),
+          IOSUiSettings(title: isAr ? 'تعديل الصورة' : 'Edit Image'),
         ],
       );
       if (croppedFile != null) {
@@ -119,11 +154,19 @@ class _AddPostScreenState extends State<AddPostScreen> {
     final link = _linkController.text.trim();
 
     if (title.isEmpty) {
-      _showSnackBar("يرجى إدخال عنوان المنشور/الإعلان");
+      _showSnackBar(
+        isAr
+            ? "يرجى إدخال عنوان المنشور/الإعلان"
+            : "Please enter the post/announcement title",
+      );
       return;
     }
     if (content.isEmpty) {
-      _showSnackBar("يرجى إدخال محتوى المنشور/الإعلان");
+      _showSnackBar(
+        isAr
+            ? "يرجى إدخال محتوى المنشور/الإعلان"
+            : "Please enter the post/announcement content",
+      );
       return;
     }
 
@@ -131,13 +174,17 @@ class _AddPostScreenState extends State<AddPostScreen> {
     try {
       bool success = false;
       if (widget.announcement != null) {
-        final annId = widget.announcement!['announcement_id'] ?? widget.announcement!['id'];
+        final annId =
+            widget.announcement!['announcement_id'] ??
+            widget.announcement!['id'];
         success = await AdminServices().updateAnnouncement(
           id: annId,
           title: title,
           content: content,
           targetAudience: selectedAudience,
-          departmentId: selectedAudience == 'department' ? selectedDepartmentId : null,
+          departmentId: selectedAudience == 'department'
+              ? selectedDepartmentId
+              : null,
           courseId: selectedAudience == 'department' ? selectedCourseId : null,
           imagePath: selectedImagePath,
           link: link,
@@ -147,7 +194,9 @@ class _AddPostScreenState extends State<AddPostScreen> {
           title: title,
           content: content,
           targetAudience: selectedAudience,
-          departmentId: selectedAudience == 'department' ? selectedDepartmentId : null,
+          departmentId: selectedAudience == 'department'
+              ? selectedDepartmentId
+              : null,
           courseId: selectedAudience == 'department' ? selectedCourseId : null,
           imagePath: selectedImagePath,
           link: link,
@@ -155,33 +204,56 @@ class _AddPostScreenState extends State<AddPostScreen> {
       }
 
       if (success) {
-        _showSnackBar(widget.announcement != null ? "تم تعديل الإعلان بنجاح" : "تم نشر الإعلان بنجاح", isError: false);
-        if (!mounted) return;
-        Navigator.pop(context);
+        _showSnackBar(
+          widget.announcement != null
+              ? (isAr
+                  ? "تم تعديل الإعلان بنجاح"
+                  : "Announcement updated successfully")
+              : (isAr
+                  ? "تم نشر الإعلان بنجاح"
+                  : "Announcement published successfully"),
+          isError: false,
+        );
+        if (mounted) Navigator.pop(context);
       } else {
-        _showSnackBar("فشل حفظ الإعلان، يرجى المحاولة لاحقاً");
+        _showSnackBar(
+          isAr
+              ? "فشل حفظ الإعلان، يرجى المحاولة لاحقاً"
+              : "Failed to save announcement, please try again later",
+        );
       }
     } on DioException catch (e) {
       debugPrint("Dio Error submitting post: ${e.response?.data}");
-      String msg = "حدث خطأ بالاتصال بالسيرفر";
+      String msg = isAr
+          ? "حدث خطأ بالاتصال بالسيرفر"
+          : "Server connection error occurred";
       if (e.response?.data != null && e.response?.data['errors'] != null) {
         msg = e.response!.data['errors'].values.first.first;
-      } else if (e.response?.data != null && e.response?.data['message'] != null) {
+      } else if (e.response?.data != null &&
+          e.response?.data['message'] != null) {
         msg = e.response!.data['message'];
       }
       _showSnackBar(msg);
     } catch (e) {
       debugPrint("Error submitting post: $e");
-      _showSnackBar("حدث خطأ بالاتصال بالسيرفر");
+      _showSnackBar(
+        isAr
+            ? "حدث خطأ بالاتصال بالسيرفر"
+            : "Server connection error occurred",
+      );
     } finally {
-      setState(() => isSubmitting = false);
+      if (mounted) setState(() => isSubmitting = false);
     }
   }
 
   void _showSnackBar(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Cairo')),
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'Cairo'),
+        ),
         backgroundColor: isError ? Colors.redAccent : Colors.green,
       ),
     );
@@ -190,29 +262,40 @@ class _AddPostScreenState extends State<AddPostScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryYellow = const Color(0xFFFFCC00);
+    const primaryYellow = Color(0xFFFFCC00);
     final textColor = isDark ? Colors.white : Colors.black;
     final cardColor = isDark ? const Color(0xFF1E2633) : Colors.white;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
+        backgroundColor: isDark
+            ? const Color(0xFF101922)
+            : const Color(0xFFF6F7F8),
         appBar: AppBar(
-          backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
+          backgroundColor: isDark
+              ? const Color(0xFF101922)
+              : const Color(0xFFF6F7F8),
           elevation: 0,
           title: Text(
-            widget.announcement != null ? "تعديل المنشور / الإعلان" : "إنشاء منشور جديد",
+            widget.announcement != null
+                ? (isAr ? "تعديل المنشور / الإعلان" : "Edit Post / Announcement")
+                : (isAr ? "إنشاء منشور جديد" : "Create New Post"),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(
+              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+              color: textColor,
+            ),
           ),
         ),
         body: isSubmitting
-            ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.amber),
+              )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -221,19 +304,31 @@ class _AddPostScreenState extends State<AddPostScreen> {
                     // عنوان المنشور
                     TextField(
                       controller: _titleController,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
-                      decoration: const InputDecoration(
-                        hintText: "عنوان الإعلان / المنشور",
-                        hintStyle: TextStyle(fontSize: 18, color: Colors.grey),
-                        border: UnderlineInputBorder(),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: isAr
+                            ? "عنوان الإعلان / المنشور"
+                            : "Announcement / Post Title",
+                        hintStyle: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                        ),
+                        border: const UnderlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 20),
 
                     // اختيار الجمهور المستهدف
                     Text(
-                      "الجمهور المستهدف:",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                      isAr ? "الجمهور المستهدف:" : "Target Audience:",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
@@ -241,14 +336,36 @@ class _AddPostScreenState extends State<AddPostScreen> {
                       decoration: InputDecoration(
                         fillColor: cardColor,
                         filled: true,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                       ),
                       dropdownColor: cardColor,
-                      items: const [
-                        DropdownMenuItem(value: "all", child: Text("الجميع (عام)")),
-                        DropdownMenuItem(value: "students", child: Text("الطلاب فقط")),
-                        DropdownMenuItem(value: "teachers", child: Text("المعلمين فقط")),
-                        DropdownMenuItem(value: "department", child: Text("قسم معين")),
+                      items: [
+                        DropdownMenuItem(
+                          value: "all",
+                          child: Text(
+                            isAr ? "الجميع (عام)" : "Everyone (General)",
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: "students",
+                          child: Text(
+                            isAr ? "الطلاب فقط" : "Students Only",
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: "teachers",
+                          child: Text(
+                            isAr ? "المعلمين فقط" : "Teachers Only",
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: "department",
+                          child: Text(
+                            isAr ? "قسم معين" : "Specific Department",
+                          ),
+                        ),
                       ],
                       onChanged: (val) {
                         setState(() {
@@ -267,8 +384,11 @@ class _AddPostScreenState extends State<AddPostScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "القسم المعين:",
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                                  isAr ? "القسم المعين:" : "Department:",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 isLoadingDepts
@@ -278,13 +398,20 @@ class _AddPostScreenState extends State<AddPostScreen> {
                                         decoration: InputDecoration(
                                           fillColor: cardColor,
                                           filled: true,
-                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              15,
+                                            ),
+                                          ),
                                         ),
                                         dropdownColor: cardColor,
                                         items: departments.map((dept) {
                                           return DropdownMenuItem<int>(
                                             value: dept['department_id'],
-                                            child: Text(dept['name'] ?? '', overflow: TextOverflow.ellipsis),
+                                            child: Text(
+                                              _getDeptName(dept),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           );
                                         }).toList(),
                                         onChanged: (val) {
@@ -303,8 +430,13 @@ class _AddPostScreenState extends State<AddPostScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "الدورة (اختياري):",
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                                  isAr
+                                      ? "الدورة (اختياري):"
+                                      : "Course (Optional):",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 DropdownButtonFormField<int>(
@@ -312,22 +444,36 @@ class _AddPostScreenState extends State<AddPostScreen> {
                                   decoration: InputDecoration(
                                     fillColor: cardColor,
                                     filled: true,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
                                   ),
                                   dropdownColor: cardColor,
                                   items: [
-                                    const DropdownMenuItem<int>(value: null, child: Text("كل الدورات")),
+                                    DropdownMenuItem<int>(
+                                      value: null,
+                                      child: Text(
+                                        isAr ? "كل الدورات" : "All Courses",
+                                      ),
+                                    ),
                                     ...courses.where((c) {
-                                      if (selectedDepartmentId == null) return true;
+                                      if (selectedDepartmentId == null) {
+                                        return true;
+                                      }
                                       final deptIds = c['department_ids'];
                                       if (deptIds is List) {
-                                        return deptIds.contains(selectedDepartmentId);
+                                        return deptIds.contains(
+                                          selectedDepartmentId,
+                                        );
                                       }
                                       return true;
                                     }).map((c) {
                                       return DropdownMenuItem<int>(
                                         value: c['course_id'],
-                                        child: Text(c['title'] ?? '', overflow: TextOverflow.ellipsis),
+                                        child: Text(
+                                          c['title'] ?? '',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       );
                                     }),
                                   ],
@@ -347,8 +493,11 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
                     // محتوى المنشور
                     Text(
-                      "محتوى المنشور:",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                      isAr ? "محتوى المنشور:" : "Post Content:",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -362,9 +511,14 @@ class _AddPostScreenState extends State<AddPostScreen> {
                         controller: _contentController,
                         maxLines: 8,
                         style: TextStyle(fontSize: 16, color: textColor),
-                        decoration: const InputDecoration(
-                          hintText: "اكتب تفاصيل الإعلان هنا...",
-                          hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
+                        decoration: InputDecoration(
+                          hintText: isAr
+                              ? "اكتب تفاصيل الإعلان هنا..."
+                              : "Write announcement details here...",
+                          hintStyle: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                           border: InputBorder.none,
                         ),
                       ),
@@ -373,8 +527,11 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
                     // إرفاق رابط (اختياري)
                     Text(
-                      "رابط إضافي (اختياري):",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                      isAr ? "رابط إضافي (اختياري):" : "Additional Link (Optional):",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -382,10 +539,16 @@ class _AddPostScreenState extends State<AddPostScreen> {
                       style: TextStyle(fontSize: 16, color: textColor),
                       decoration: InputDecoration(
                         hintText: "https://example.com",
-                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                        hintStyle: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                         fillColor: cardColor,
                         filled: true,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                       keyboardType: TextInputType.url,
                     ),
@@ -393,8 +556,11 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
                     // إرفاق صورة (اختياري)
                     Text(
-                      "إرفاق صورة (اختياري):",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                      isAr ? "إرفاق صورة (اختياري):" : "Attach Image (Optional):",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     GestureDetector(
@@ -418,9 +584,20 @@ class _AddPostScreenState extends State<AddPostScreen> {
                             : Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey.shade400),
+                                  Icon(
+                                    Icons.add_photo_alternate_outlined,
+                                    size: 40,
+                                    color: Colors.grey.shade400,
+                                  ),
                                   const SizedBox(height: 8),
-                                  Text("اضغط لإضافة صورة", style: TextStyle(color: Colors.grey.shade500)),
+                                  Text(
+                                    isAr
+                                        ? "اضغط لإضافة صورة"
+                                        : "Tap to add image",
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
                                 ],
                               ),
                       ),
@@ -444,15 +621,20 @@ class _AddPostScreenState extends State<AddPostScreen> {
                       ),
                       elevation: 8,
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "نشر الآن",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          widget.announcement != null
+                              ? (isAr ? "حفظ التعديلات" : "Save Changes")
+                              : (isAr ? "نشر الآن" : "Publish Now"),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        SizedBox(width: 10),
-                        Icon(Icons.send, size: 22),
+                        const SizedBox(width: 10),
+                        const Icon(Icons.send, size: 22),
                       ],
                     ),
                   ),

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AddStudentScreen extends StatefulWidget {
   const AddStudentScreen({super.key});
@@ -11,6 +12,9 @@ class AddStudentScreen extends StatefulWidget {
 }
 
 class _AddStudentScreenState extends State<AddStudentScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   final _nameController           = TextEditingController();
   final _academicNumberController = TextEditingController();
   final _levelController          = TextEditingController();
@@ -19,7 +23,14 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _nameController.dispose();
     _academicNumberController.dispose();
     _levelController.dispose();
@@ -33,7 +44,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         _emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى تعبئة جميع الحقول المطلوبة')),
+        SnackBar(content: Text(isAr ? 'يرجى تعبئة جميع الحقول المطلوبة' : 'Please fill all required fields')),
       );
       return;
     }
@@ -54,13 +65,16 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم إنشاء حساب الطالب بنجاح'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(isAr ? '✅ تم إنشاء حساب الطالب بنجاح' : '✅ Student account created successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       debugPrint('⛔ Add Student Error: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again';
       if (e is DioException && e.response?.data is Map) {
         msg = e.response!.data['message'] ?? msg;
       }
@@ -77,7 +91,10 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("إنشاء حساب طالب جديد", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(
+          isAr ? "إنشاء حساب طالب جديد" : "Create New Student Account",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, size: 20),
@@ -85,19 +102,22 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         ),
       ),
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("المعلومات الأساسية", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+              Text(
+                isAr ? "المعلومات الأساسية" : "Basic Information",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+              ),
               const SizedBox(height: 20),
-              _buildInput(label: "اسم الطالب الكامل",        icon: Icons.person_outline,  controller: _nameController,           isDark: isDark),
-              _buildInput(label: "الرقم الأكاديمي",           icon: Icons.numbers,          controller: _academicNumberController,  isDark: isDark),
-              _buildInput(label: "المستوى الدراسي / السنة",  icon: Icons.grade_outlined,   controller: _levelController,           isDark: isDark),
-              _buildInput(label: "البريد الإلكتروني",         icon: Icons.email_outlined,   controller: _emailController,           isDark: isDark, inputType: TextInputType.emailAddress),
-              _buildInput(label: "كلمة المرور",               icon: Icons.lock_outline,     controller: _passwordController,        isDark: isDark, isPass: true),
+              _buildInput(label: isAr ? "اسم الطالب الكامل" : "Student Full Name", icon: Icons.person_outline, controller: _nameController, isDark: isDark),
+              _buildInput(label: isAr ? "الرقم الأكاديمي" : "Academic Number", icon: Icons.numbers, controller: _academicNumberController, isDark: isDark),
+              _buildInput(label: isAr ? "المستوى الدراسي / السنة" : "Academic Level / Year", icon: Icons.grade_outlined, controller: _levelController, isDark: isDark),
+              _buildInput(label: isAr ? "البريد الإلكتروني" : "Email Address", icon: Icons.email_outlined, controller: _emailController, isDark: isDark, inputType: TextInputType.emailAddress),
+              _buildInput(label: isAr ? "كلمة المرور" : "Password", icon: Icons.lock_outline, controller: _passwordController, isDark: isDark, isPass: true),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
@@ -111,7 +131,10 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                      : const Text("تأكيد وحفظ البيانات", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                      : Text(
+                          isAr ? "تأكيد وحفظ البيانات" : "Confirm & Save Data",
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                 ),
               ),
             ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class GradesScreen extends StatefulWidget {
   const GradesScreen({super.key});
@@ -13,13 +14,25 @@ class _GradesScreenState extends State<GradesScreen> {
   List<dynamic> _grades = [];
   String? _errorMessage;
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchGrades();
   }
 
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
   Future<void> _fetchGrades() async {
+    final bool isAr = AppSettings.language.value == 'ar';
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -36,7 +49,9 @@ class _GradesScreenState extends State<GradesScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = "تعذر تحميل كشف العلامات، يرجى التحقق من الاتصال.";
+          _errorMessage = isAr
+              ? "تعذر تحميل كشف العلامات، يرجى التحقق من الاتصال."
+              : "Failed to load grades report, please check your connection.";
           _isLoading = false;
         });
       }
@@ -45,40 +60,44 @@ class _GradesScreenState extends State<GradesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "كشف العلامات الأكاديمية",
-          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Tajawal'),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: textColor,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: "تحديث",
-            onPressed: _fetchGrades,
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            isAr ? "كشف العلامات الأكاديمية" : "Academic Grades Report",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Tajawal'),
           ),
-        ],
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: textColor,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: isAr ? "تحديث" : "Refresh",
+              onPressed: _fetchGrades,
+            ),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+                ? _buildErrorView(textColor, isAr)
+                : _grades.isEmpty
+                    ? _buildEmptyView(textColor, isAr)
+                    : _buildGradesList(cardColor, textColor, primaryColor, isAr),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? _buildErrorView(textColor)
-              : _grades.isEmpty
-                  ? _buildEmptyView(textColor)
-                  : _buildGradesList(cardColor, textColor, primaryColor),
     );
   }
 
-  Widget _buildErrorView(Color textColor) {
+  Widget _buildErrorView(Color textColor, bool isAr) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -96,7 +115,7 @@ class _GradesScreenState extends State<GradesScreen> {
             ElevatedButton.icon(
               onPressed: _fetchGrades,
               icon: const Icon(Icons.refresh),
-              label: const Text("إعادة المحاولة"),
+              label: Text(isAr ? "إعادة المحاولة" : "Retry"),
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -107,7 +126,7 @@ class _GradesScreenState extends State<GradesScreen> {
     );
   }
 
-  Widget _buildEmptyView(Color textColor) {
+  Widget _buildEmptyView(Color textColor, bool isAr) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -115,15 +134,15 @@ class _GradesScreenState extends State<GradesScreen> {
           Icon(Icons.assignment_turned_in_outlined, size: 70, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
-            "لا توجد علامات مرصودة حتى الآن",
-            style: TextStyle(fontSize: 16, color: textColor.withValues(alpha: 0.7), fontWeight: FontWeight.bold),
+            isAr ? "لا توجد علامات مرصودة حتى الآن" : "No grades recorded yet",
+            style: TextStyle(fontSize: 16, color: textColor.withOpacity(0.7), fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGradesList(Color cardColor, Color textColor, Color primaryColor) {
+  Widget _buildGradesList(Color cardColor, Color textColor, Color primaryColor, bool isAr) {
     return RefreshIndicator(
       onRefresh: _fetchGrades,
       child: ListView.builder(
@@ -131,7 +150,7 @@ class _GradesScreenState extends State<GradesScreen> {
         itemCount: _grades.length,
         itemBuilder: (context, index) {
           final item = _grades[index] as Map<String, dynamic>;
-          final courseTitle = item['course_title'] ?? item['title'] ?? item['course_name'] ?? 'مادة غير محددة';
+          final courseTitle = item['course_title'] ?? item['title'] ?? item['course_name'] ?? (isAr ? 'مادة غير محددة' : 'Unspecified Course');
           final code = item['course_code'] ?? '';
           final totalScore = item['total'] ?? item['score'] ?? item['grade'] ?? 0;
           final maxScore = item['max_score'] ?? 100;
@@ -177,7 +196,7 @@ class _GradesScreenState extends State<GradesScreen> {
                           ),
                           if (code.toString().isNotEmpty)
                             Text(
-                              "رمز المادة: $code",
+                              "${isAr ? "رمز المادة:" : "Course Code:"} $code",
                               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                             ),
                         ],
@@ -190,7 +209,7 @@ class _GradesScreenState extends State<GradesScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        isPassed ? "ناجح" : "راسب",
+                        isPassed ? (isAr ? "ناجح" : "Passed") : (isAr ? "راسب" : "Failed"),
                         style: TextStyle(
                           color: isPassed ? Colors.green.shade700 : Colors.red.shade700,
                           fontWeight: FontWeight.bold,
@@ -204,10 +223,10 @@ class _GradesScreenState extends State<GradesScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    if (oral != null) _buildScoreItem("شفهي", oral, textColor),
-                    if (practical != null) _buildScoreItem("عملي", practical, textColor),
-                    if (midterm != null) _buildScoreItem("منتصف الفصل", midterm, textColor),
-                    if (finalExam != null) _buildScoreItem("النهائي", finalExam, textColor),
+                    if (oral != null) _buildScoreItem(isAr ? "شفهي" : "Oral", oral, textColor),
+                    if (practical != null) _buildScoreItem(isAr ? "عملي" : "Practical", practical, textColor),
+                    if (midterm != null) _buildScoreItem(isAr ? "منتصف الفصل" : "Midterm", midterm, textColor),
+                    if (finalExam != null) _buildScoreItem(isAr ? "النهائي" : "Final", finalExam, textColor),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -220,9 +239,9 @@ class _GradesScreenState extends State<GradesScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        "المجموع النهائي:",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      Text(
+                        isAr ? "المجموع النهائي:" : "Final Total:",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       Text(
                         "$totalScore / $maxScore",

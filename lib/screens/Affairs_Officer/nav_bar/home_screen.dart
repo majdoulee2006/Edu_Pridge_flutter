@@ -156,7 +156,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                         _buildShortcut(
                           context,
                           Icons.grid_view_rounded,
-                          'الخدمات الطلابية',
+                          isAr ? 'الخدمات الطلابية' : 'Student Services',
                           const Color(0xFFFF9800),
                           () => Navigator.push(
                             context,
@@ -166,7 +166,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                         _buildShortcut(
                           context,
                           Icons.manage_accounts_outlined,
-                          'الحسابات',
+                          isAr ? 'الحسابات' : 'Accounts',
                           const Color(0xFFFFCC00),
                           () => Navigator.push(
                             context,
@@ -176,7 +176,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                         _buildShortcut(
                           context,
                           Icons.event_available_outlined,
-                          'الإجازات',
+                          isAr ? 'الإجازات' : 'Leaves',
                           const Color(0xFF4DB6AC),
                           () => Navigator.push(
                             context,
@@ -186,7 +186,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                         _buildShortcut(
                           context,
                           Icons.calendar_month_outlined,
-                          'التقويم',
+                          isAr ? 'التقويم' : 'Calendar',
                           const Color(0xFF7E57C2),
                           () => Navigator.push(
                             context,
@@ -196,7 +196,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                         _buildShortcut(
                           context,
                           Icons.local_activity_outlined,
-                          'الأنشطة',
+                          isAr ? 'الأنشطة' : 'Activities',
                           const Color(0xFFEF5350),
                           () => Navigator.push(
                             context,
@@ -224,7 +224,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                               padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
                               children: [
                                 // قسم الإحصائيات
-                                _buildStatsGrid(cardColor, textColor, subColor),
+                                _buildStatsGrid(cardColor, textColor, subColor, isAr),
                                 const SizedBox(height: 24),
 
                                 // عنوان الإعلانات/الأخبار
@@ -363,7 +363,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
     );
   }
 
-  Widget _buildStatsGrid(Color cardColor, Color textColor, Color subColor) {
+  Widget _buildStatsGrid(Color cardColor, Color textColor, Color subColor, bool isAr) {
     final totalStudents = _stats?['totalStudents'] ?? 0;
     final totalTeachers = _stats?['totalTeachers'] ?? 0;
     final totalStaff = _stats?['totalStaff'] ?? 0;
@@ -377,11 +377,11 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
       mainAxisSpacing: 12,
       childAspectRatio: 1.5,
       children: [
-        _buildStatCard('الطلاب المسجلين', totalStudents.toString(), Icons.school_outlined, Colors.blue, cardColor, textColor, subColor),
-        _buildStatCard('أعضاء التدريس', totalTeachers.toString(), Icons.co_present_outlined, Colors.green, cardColor, textColor, subColor),
-        _buildStatCard('إجمالي الكادر', totalStaff.toString(), Icons.badge_outlined, Colors.orange, cardColor, textColor, subColor),
+        _buildStatCard(isAr ? 'الطلاب المسجلين' : 'Enrolled Students', totalStudents.toString(), Icons.school_outlined, Colors.blue, cardColor, textColor, subColor),
+        _buildStatCard(isAr ? 'أعضاء التدريس' : 'Teaching Staff', totalTeachers.toString(), Icons.co_present_outlined, Colors.green, cardColor, textColor, subColor),
+        _buildStatCard(isAr ? 'إجمالي الكادر' : 'Total Staff', totalStaff.toString(), Icons.badge_outlined, Colors.orange, cardColor, textColor, subColor),
         _buildStatCard(
-          'طلبات أذون معلقة',
+          isAr ? 'طلبات أذون معلقة' : 'Pending Leaves',
           pendingLeaves.toString(),
           Icons.assignment_late_outlined,
           Colors.red,
@@ -469,23 +469,23 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
     final String target = data['target_audience']?.toString() ?? data['target_role']?.toString() ?? '';
     final String category = data['category']?.toString() ?? '';
 
-    String badgeText = 'إعلان عام';
+    String badgeText = isAr ? 'إعلان عام' : 'General';
     Color badgeBg = const Color(0xFF0D9488);
 
     if (category.contains('معلم') || target == 'teachers' || target == 'teacher') {
-      badgeText = 'للمعلمين';
+      badgeText = isAr ? 'للمعلمين' : 'Teachers';
       badgeBg = Colors.purple;
     } else if (category.contains('طالب') || category.contains('طلاب') || target == 'students' || target == 'student') {
-      badgeText = 'للطلاب';
+      badgeText = isAr ? 'للطلاب' : 'Students';
       badgeBg = Colors.orange;
     } else if (category.contains('رؤساء') || target == 'heads') {
-      badgeText = 'لرؤساء الأقسام';
+      badgeText = isAr ? 'لرؤساء الأقسام' : 'Department Heads';
       badgeBg = Colors.indigo;
     } else if (category.isNotEmpty && category != 'عام' && category != 'general') {
       badgeText = category;
       badgeBg = Colors.blue;
     } else if (data['type'] == 'special') {
-      badgeText = 'إعلان خاص';
+      badgeText = isAr ? 'إعلان خاص' : 'Special';
       badgeBg = Colors.amber.shade800;
     }
 
@@ -618,7 +618,7 @@ class _AffairsOfficerHomeScreenState extends State<AffairsOfficerHomeScreen> {
                             ),
                           ),
                           Icon(
-                            Icons.arrow_back_ios_rounded,
+                            isAr ? Icons.arrow_back_ios_rounded : Icons.arrow_forward_ios_rounded,
                             size: 12,
                             color: subColor,
                           ),

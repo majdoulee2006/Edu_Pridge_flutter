@@ -138,157 +138,164 @@ class _MessagesViewState extends State<MessagesView> {
 
     final bool isAllEmpty = filteredHead.isEmpty && filteredAdmins.isEmpty && filteredTeachers.isEmpty && filteredStudents.isEmpty;
 
-    return Scaffold(
-      // نفس إصلاح شاشة رسائل الطالب: يمنع الشريط السفلي من الطلوع فوق
-      // الكيبورد وقت البحث
-      resizeToAvoidBottomInset: false,
-      backgroundColor: bgColor,
-      extendBody: true,
-      appBar: AppBar(
-        backgroundColor: cardColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor, size: 20),
-          onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
-        ),
-        title: Text(
-          "الرسائل",
-          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
-            tooltip: "محادثة جديدة",
-            onPressed: () => _showNewChatModal(context, chatService),
-          ),
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: textColor),
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
-        ],
-      ),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Stack(
-          children: [
-            isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
-                  )
-                : RefreshIndicator(
-                    onRefresh: () async {
-                      await context.read<ChatService>().fetchContacts();
-                    },
-                    color: const Color(0xFFFFCC00),
-                    child: CustomScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-                            child: TextField(
-                              onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                              textAlign: TextAlign.right,
-                              style: TextStyle(color: textColor),
-                              decoration: InputDecoration(
-                                hintText: "ابحث في المحادثات السابقة...",
-                                hintStyle: const TextStyle(color: Colors.grey),
-                                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                                filled: true,
-                                fillColor: cardColor,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+    return ValueListenableBuilder<String>(
+      valueListenable: AppSettings.language,
+      builder: (context, lang, _) {
+        final bool isAr = lang == 'ar';
 
-                        if (isAllEmpty)
-                          const SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: Center(
-                              child: Text(
-                                'لا توجد محادثات سابقة حتى الآن\nاضغطي على (+) لبدء محادثة جديدة',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey, fontSize: 15, height: 1.5),
-                              ),
-                            ),
-                          )
-                        else ...[
-                          if (filteredHead.isNotEmpty) ...[
-                            _buildSectionHeader("رئيس القسم", textColor),
-                            SliverPadding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildChatTile(context, filteredHead[index], chatService, iconData: Icons.person_pin_rounded),
-                                  childCount: filteredHead.length,
-                                ),
-                              ),
-                            ),
-                          ],
-
-                          if (filteredAdmins.isNotEmpty) ...[
-                            _buildSectionHeader("شات الإدارة", textColor),
-                            SliverPadding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildChatTile(context, filteredAdmins[index], chatService, iconData: Icons.admin_panel_settings_outlined),
-                                  childCount: filteredAdmins.length,
-                                ),
-                              ),
-                            ),
-                          ],
-
-                          if (filteredTeachers.isNotEmpty) ...[
-                            _buildSectionHeader("المدربين والزملاء", textColor),
-                            SliverPadding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildChatTile(context, filteredTeachers[index], chatService),
-                                  childCount: filteredTeachers.length,
-                                ),
-                              ),
-                            ),
-                          ],
-
-                          if (filteredStudents.isNotEmpty) ...[
-                            _buildSectionHeader("محادثات الطلاب", textColor),
-                            SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildChatTile(context, filteredStudents[index], chatService),
-                                  childCount: filteredStudents.length,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ],
-                    ),
-                  ),
-
-            CustomBottomNav(
-              currentIndex: 3,
-              centerButton: const CustomSpeedDialEduBridge(),
-              onHomeTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen())),
-              onNotificationsTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-              onMessagesTap: () {},
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: Scaffold(
+            resizeToAvoidBottomInset: false,
+            backgroundColor: bgColor,
+            extendBody: true,
+            appBar: AppBar(
+              backgroundColor: cardColor,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back, color: textColor, size: 20),
+                onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
+              ),
+              title: Text(
+                isAr ? "الرسائل" : "Messages",
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              ),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
+                  tooltip: isAr ? "محادثة جديدة" : "New Chat",
+                  onPressed: () => _showNewChatModal(context, chatService, isAr),
+                ),
+                IconButton(
+                  icon: Icon(Icons.settings_outlined, color: textColor),
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+            body: Stack(
+              children: [
+                isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await context.read<ChatService>().fetchContacts();
+                        },
+                        color: const Color(0xFFFFCC00),
+                        child: CustomScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          slivers: [
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                                child: TextField(
+                                  onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                                  textAlign: isAr ? TextAlign.right : TextAlign.left,
+                                  style: TextStyle(color: textColor),
+                                  decoration: InputDecoration(
+                                    hintText: isAr ? "ابحث في المحادثات السابقة..." : "Search previous conversations...",
+                                    hintStyle: const TextStyle(color: Colors.grey),
+                                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                                    filled: true,
+                                    fillColor: cardColor,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            if (isAllEmpty)
+                              SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: Center(
+                                  child: Text(
+                                    isAr
+                                        ? 'لا توجد محادثات سابقة حتى الآن\nاضغطي على (+) لبدء محادثة جديدة'
+                                        : 'No previous conversations yet\nTap (+) to start a new chat',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: Colors.grey, fontSize: 15, height: 1.5),
+                                  ),
+                                ),
+                              )
+                            else ...[
+                              if (filteredHead.isNotEmpty) ...[
+                                _buildSectionHeader(isAr ? "رئيس القسم" : "Department Head", textColor),
+                                SliverPadding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  sliver: SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) => _buildChatTile(context, filteredHead[index], chatService, iconData: Icons.person_pin_rounded),
+                                      childCount: filteredHead.length,
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              if (filteredAdmins.isNotEmpty) ...[
+                                _buildSectionHeader(isAr ? "شات الإدارة" : "Administration Chat", textColor),
+                                SliverPadding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  sliver: SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) => _buildChatTile(context, filteredAdmins[index], chatService, iconData: Icons.admin_panel_settings_outlined),
+                                      childCount: filteredAdmins.length,
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              if (filteredTeachers.isNotEmpty) ...[
+                                _buildSectionHeader(isAr ? "المدربين والزملاء" : "Instructors & Colleagues", textColor),
+                                SliverPadding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  sliver: SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) => _buildChatTile(context, filteredTeachers[index], chatService),
+                                      childCount: filteredTeachers.length,
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              if (filteredStudents.isNotEmpty) ...[
+                                _buildSectionHeader(isAr ? "محادثات الطلاب" : "Student Chats", textColor),
+                                SliverPadding(
+                                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                                  sliver: SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) => _buildChatTile(context, filteredStudents[index], chatService),
+                                      childCount: filteredStudents.length,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ],
+                        ),
+                      ),
+
+                CustomBottomNav(
+                  currentIndex: 3,
+                  centerButton: const CustomSpeedDialEduBridge(),
+                  onHomeTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
+                  onProfileTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                  onNotificationsTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                  onMessagesTap: () {},
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -486,102 +493,104 @@ class _MessagesViewState extends State<MessagesView> {
   }
 
   // 🌟 مودال زر الزائد (+): يعرض الأشخاص غير المتحدث معهم لبدء شات جديد
-  void _showNewChatModal(BuildContext context, ChatService chatService) {
+  void _showNewChatModal(BuildContext context, ChatService chatService, bool isAr) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         String query = '';
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            List<Map<String, dynamic>> newContacts = [];
-            if (chatService.contacts.isNotEmpty) {
-              newContacts = chatService.contacts.where((c) {
-                final lastMsg = c['last_message']?.toString().trim() ?? '';
-                final msg = c['message']?.toString().trim() ?? '';
-                final hasLast = lastMsg.isNotEmpty;
-                final hasMsg = msg.isNotEmpty && msg != 'انقر لبدء المحادثة...';
-                return !hasLast && !hasMsg; // لم نتحدث معهم من قبل
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              List<Map<String, dynamic>> newContacts = [];
+              if (chatService.contacts.isNotEmpty) {
+                newContacts = chatService.contacts.where((c) {
+                  final lastMsg = c['last_message']?.toString().trim() ?? '';
+                  final msg = c['message']?.toString().trim() ?? '';
+                  final hasLast = lastMsg.isNotEmpty;
+                  final hasMsg = msg.isNotEmpty && msg != 'انقر لبدء المحادثة...';
+                  return !hasLast && !hasMsg; // لم نتحدث معهم من قبل
+                }).toList();
+
+                if (newContacts.isEmpty) {
+                  newContacts = chatService.contacts; // إذا الجميع تم محادثتهم نعرضهم للبحث
+                }
+              } else {
+                newContacts = _getNewContactsMockData();
+              }
+
+              final filtered = newContacts.where((c) {
+                final name = (c['name']?.toString() ?? '').toLowerCase();
+                return name.contains(query.toLowerCase());
               }).toList();
 
-              if (newContacts.isEmpty) {
-                newContacts = chatService.contacts; // إذا الجميع تم محادثتهم نعرضهم للبحث
-              }
-            } else {
-              newContacts = _getNewContactsMockData();
-            }
+              final cardColor = Theme.of(context).cardColor;
+              final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-            final filtered = newContacts.where((c) {
-              final name = (c['name']?.toString() ?? '').toLowerCase();
-              return name.contains(query.toLowerCase());
-            }).toList();
-
-            final cardColor = Theme.of(context).cardColor;
-            final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.75,
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
+              return Container(
+                height: MediaQuery.of(context).size.height * 0.75,
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'بدء محادثة جديدة (+)',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isAr ? 'بدء محادثة جديدة (+)' : 'Start New Chat (+)',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: textColor),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      onChanged: (val) => setModalState(() => query = val.trim()),
+                      textAlign: isAr ? TextAlign.right : TextAlign.left,
+                      style: TextStyle(color: textColor),
+                      decoration: InputDecoration(
+                        hintText: isAr ? "ابحث عن شخص لمراسلته أول مرة..." : "Search for someone to message...",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                        filled: true,
+                        fillColor: Theme.of(context).scaffoldBackgroundColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: textColor),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    onChanged: (val) => setModalState(() => query = val.trim()),
-                    textAlign: TextAlign.right,
-                    style: TextStyle(color: textColor),
-                    decoration: InputDecoration(
-                      hintText: "ابحث عن شخص لمراسلته أول مرة...",
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Theme.of(context).scaffoldBackgroundColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'لا يوجد أشخاص جدد لبدء محادثة',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          )
-                        : ListView.builder(
+                    const SizedBox(height: 14),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? Center(
+                              child: Text(
+                                isAr ? 'لا يوجد أشخاص جدد لبدء محادثة' : 'No new contacts to start a chat',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : ListView.builder(
                             itemCount: filtered.length,
                             itemBuilder: (context, index) {
                               final contact = filtered[index];
@@ -646,8 +655,9 @@ class _MessagesViewState extends State<MessagesView> {
               ),
             );
           },
-        );
-      },
+        ),
+      );
+    },
     );
   }
 }

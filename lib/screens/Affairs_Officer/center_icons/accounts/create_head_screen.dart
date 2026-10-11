@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
-import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 class CreateHeadScreen extends StatefulWidget {
   const CreateHeadScreen({super.key});
@@ -20,84 +19,23 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String _selectedGender = 'ذكر';
-  List<Map<String, dynamic>> _departments = [];
-  int? _selectedDepartmentId;
-  bool _loadingDepartments = true;
-  bool _saving = false;
+  String? _selectedDepartment;
+
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadDepartments();
-  }
-
-  Future<void> _loadDepartments() async {
-    final meta = await AffairsServices().getMetadata();
-    if (!mounted) return;
-    setState(() {
-      _departments = List<Map<String, dynamic>>.from(
-        (meta?['departments'] as List? ?? const []).map((d) => Map<String, dynamic>.from(d as Map)),
-      );
-      _loadingDepartments = false;
-    });
-  }
-
-  void _toast(String msg, {bool error = true}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: error ? Colors.red : Colors.green),
-    );
-  }
-
-  Future<void> _save({required int roleId, required String roleLabel, String? specialization}) async {
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final pass = _passwordController.text;
-    if (name.isEmpty || email.isEmpty || pass.isEmpty) {
-      _toast('عبّي الاسم والبريد وكلمة المرور');
-      return;
-    }
-    if (pass.length < 6) {
-      _toast('كلمة المرور لازم تكون 6 أحرف على الأقل');
-      return;
-    }
-    if (pass != _confirmPasswordController.text) {
-      _toast('كلمتا المرور غير متطابقتين');
-      return;
-    }
-    if (_selectedDepartmentId == null) {
-      _toast('اختر القسم');
-      return;
-    }
-    if (roleId == 2 && (specialization == null || specialization.isEmpty)) {
-      _toast('اكتب اختصاص المعلم');
-      return;
-    }
-
-    setState(() => _saving = true);
-    final res = await AffairsServices().createAccount({
-      'full_name': name,
-      'email': email,
-      'phone': _idController.text.trim(),
-      'role_id': roleId,
-      'department_id': _selectedDepartmentId,
-      'password': pass,
-      'gender': _selectedGender,
-      if (_birthDateController.text.isNotEmpty) 'birth_date': _birthDateController.text,
-      if (roleId == 2) 'specialization': specialization,
-    });
-    if (!mounted) return;
-    setState(() => _saving = false);
-
-    if (res['success'] == true) {
-      _toast('تم إنشاء حساب $roleLabel بنجاح', error: false);
-      Navigator.pop(context);
-    } else {
-      _toast((res['message'] ?? 'فشل إنشاء الحساب').toString());
-    }
+    AppSettings.language.addListener(_onLangChange);
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _nameController.dispose();
     _idController.dispose();
     _emailController.dispose();
@@ -106,6 +44,14 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
+
+  List<Map<String, String>> get _departments => [
+    {'ar': 'قسم علوم الحاسب', 'en': 'Computer Science Dept'},
+    {'ar': 'قسم الهندسة', 'en': 'Engineering Dept'},
+    {'ar': 'قسم الطب', 'en': 'Medicine Dept'},
+    {'ar': 'قسم التمريض', 'en': 'Nursing Dept'},
+    {'ar': 'قسم الصيدلة', 'en': 'Pharmacy Dept'},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +63,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
     final Color fieldColor = isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade100;
 
     return Directionality(
-      textDirection: ui.TextDirection.rtl,
+      textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: SafeArea(
@@ -134,7 +80,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                   alignment: Alignment.center,
                   children: [
                     Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: isAr ? Alignment.centerLeft : Alignment.centerRight,
                       child: IconButton(
                         icon: Icon(Icons.settings, color: textColor, size: 26),
                         onPressed: () {
@@ -146,7 +92,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                       ),
                     ),
                     Text(
-                      "إضافة رئيس قسم",
+                      isAr ? "إضافة رئيس قسم" : "Add Head of Department",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -155,9 +101,9 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                       ),
                     ),
                     Align(
-                      alignment: Alignment.centerRight,
+                      alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                       child: IconButton(
-                        icon: Icon(Icons.arrow_back, color: textColor, size: 26),
+                        icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor, size: 26),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
@@ -170,9 +116,9 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 // عنوان "البيانات الشخصية"
                 // ═══════════════════════════════════════
                 Align(
-                  alignment: Alignment.centerRight,
+                  alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                   child: Text(
-                    'البيانات الشخصية',
+                    isAr ? 'البيانات الشخصية' : 'Personal Information',
                     style: TextStyle(
                       fontSize: 14,
                       color: subColor,
@@ -188,7 +134,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _nameController,
-                  hint: 'الاسم الكامل لرئيس القسم',
+                  hint: isAr ? 'الاسم الكامل لرئيس القسم' : 'Full Name of Department Head',
                   icon: Icons.person_outline,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -202,7 +148,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _idController,
-                  hint: 'رقم الهاتف',
+                  hint: isAr ? 'رقم الهاتف' : 'Phone Number',
                   icon: Icons.phone_android_outlined,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -217,7 +163,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _emailController,
-                  hint: 'البريد الإلكتروني المهني',
+                  hint: isAr ? 'البريد الإلكتروني المهني' : 'Professional Email',
                   icon: Icons.alternate_email_outlined,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -231,9 +177,9 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 // عنوان "تفاصيل إضافية"
                 // ═══════════════════════════════════════
                 Align(
-                  alignment: Alignment.centerRight,
+                  alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                   child: Text(
-                    'تفاصيل إضافية',
+                    isAr ? 'تفاصيل إضافية' : 'Additional Details',
                     style: TextStyle(
                       fontSize: 14,
                       color: subColor,
@@ -273,7 +219,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'أنثى',
+                                isAr ? 'أنثى' : 'Female',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -313,7 +259,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'ذكر',
+                                isAr ? 'ذكر' : 'Male',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -367,7 +313,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                   child: AbsorbPointer(
                     child: _buildTextField(
                       controller: _birthDateController,
-                      hint: 'تاريخ الميلاد',
+                      hint: isAr ? 'تاريخ الميلاد' : 'Date of Birth',
                       icon: Icons.calendar_today_outlined,
                       fieldColor: fieldColor,
                       textColor: textColor,
@@ -388,11 +334,11 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
+                    child: DropdownButton<String>(
                       isExpanded: true,
-                      value: _selectedDepartmentId,
+                      value: _selectedDepartment,
                       hint: Text(
-                        _loadingDepartments ? 'جارٍ تحميل الأقسام...' : 'القسم المسؤول عنه',
+                        isAr ? 'القسم المسؤول عنه' : 'Department Responsible For',
                         style: TextStyle(
                           color: subColor,
                           fontFamily: 'Noto Sans Arabic',
@@ -404,15 +350,17 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                         color: textColor,
                         fontFamily: 'Noto Sans Arabic',
                       ),
-                      items: _departments.map((d) {
-                        return DropdownMenuItem<int>(
-                          value: int.tryParse('${d['department_id'] ?? d['id']}'),
-                          child: Text('${d['name']}'),
+                      items: _departments.map((dept) {
+                        final key = dept['ar']!;
+                        final label = isAr ? dept['ar']! : dept['en']!;
+                        return DropdownMenuItem<String>(
+                          value: key,
+                          child: Text(label),
                         );
                       }).toList(),
-                      onChanged: (int? newValue) {
+                      onChanged: (String? newValue) {
                         setState(() {
-                          _selectedDepartmentId = newValue;
+                          _selectedDepartment = newValue;
                         });
                       },
                     ),
@@ -425,9 +373,9 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 // عنوان "أمان الحساب"
                 // ═══════════════════════════════════════
                 Align(
-                  alignment: Alignment.centerRight,
+                  alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                   child: Text(
-                    'أمان الحساب',
+                    isAr ? 'أمان الحساب' : 'Account Security',
                     style: TextStyle(
                       fontSize: 14,
                       color: subColor,
@@ -443,7 +391,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _passwordController,
-                  hint: 'كلمة المرور',
+                  hint: isAr ? 'كلمة المرور' : 'Password',
                   icon: Icons.lock_outline,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -458,7 +406,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _confirmPasswordController,
-                  hint: 'تأكيد كلمة المرور',
+                  hint: isAr ? 'تأكيد كلمة المرور' : 'Confirm Password',
                   icon: Icons.verified_user_outlined,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -474,7 +422,17 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _saving ? null : () => _save(roleId: 5, roleLabel: 'رئيس القسم'),
+                    onPressed: () {
+                      // TODO: حفظ بيانات رئيس القسم
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isAr ? 'حفظ بيانات رئيس القسم - قريباً' : 'Saving Head of Department data - Coming soon',
+                            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+                          ),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFFCC00),
                       shape: RoundedRectangleBorder(
@@ -482,11 +440,9 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: _saving
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                        : const Text(
-                      'اعتماد رئيس القسم',
-                      style: TextStyle(
+                    child: Text(
+                      isAr ? 'اعتماد رئيس القسم' : 'Submit Department Head',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -523,7 +479,7 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
       ),
       child: TextField(
         controller: controller,
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         keyboardType: keyboardType,
         obscureText: isPassword,
         style: TextStyle(

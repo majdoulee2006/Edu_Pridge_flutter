@@ -24,8 +24,12 @@ class AdminMessagesScreen extends StatelessWidget {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
+        if (!didPop) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
+          );
+        }
       },
       child: const AdminMessagesView(),
     );
@@ -40,9 +44,12 @@ class AdminMessagesView extends StatefulWidget {
 }
 
 class _AdminMessagesViewState extends State<AdminMessagesView> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final chatService = context.read<ChatService>();
       chatService.fetchContacts();
@@ -55,27 +62,56 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
   }
 
   @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  String _localizeRole(String role) {
+    if (isAr) return role;
+    switch (role) {
+      case 'Administration':
+      case 'إدارة':
+        return 'Administration';
+      case 'Teacher':
+      case 'معلم':
+        return 'Teacher';
+      case 'Student':
+      case 'طالب':
+        return 'Student';
+      case 'Parent':
+      case 'ولي أمر':
+        return 'Parent';
+      default:
+        return role;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bgColor = Theme.of(context).scaffoldBackgroundColor;
     final Color cardColor = Theme.of(context).cardColor;
-    final Color textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final Color textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-    return Scaffold(
-      // نفس إصلاح شاشة رسائل الطالب: يمنع الشريط السفلي من الطلوع فوق
-      // الكيبورد وقت البحث
-      resizeToAvoidBottomInset: false,
-      backgroundColor: bgColor,
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: SafeArea(
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: bgColor,
+        body: SafeArea(
           bottom: false,
           child: Stack(
             children: [
               Column(
                 children: [
                   _buildHeader(context, isDark),
-                  
+
                   // Main Content: Full Screen Contacts List
                   Expanded(
                     child: Padding(
@@ -83,13 +119,20 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
                       child: Column(
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 8.0,
+                            ),
                             child: TextField(
                               decoration: InputDecoration(
-                                hintText: "بحث عن موظف...",
+                                hintText: isAr
+                                    ? "بحث عن موظف..."
+                                    : "Search for staff...",
                                 prefixIcon: const Icon(Icons.search),
                                 filled: true,
-                                fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
+                                fillColor: isDark
+                                    ? Colors.grey[800]
+                                    : Colors.grey[200],
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide.none,
@@ -101,23 +144,42 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
                             child: Consumer<ChatService>(
                               builder: (context, chatService, child) {
                                 if (chatService.isLoadingContacts) {
-                                  return const Center(child: CircularProgressIndicator());
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
                                 }
-                                
+
                                 final allContacts = chatService.contacts;
                                 final activeContacts = allContacts.where((c) {
-                                  return c['role'] == 'Administration' || (c['last_message'] != null && c['last_message'].toString().trim().isNotEmpty);
+                                  return c['role'] == 'Administration' ||
+                                      (c['last_message'] != null &&
+                                          c['last_message']
+                                              .toString()
+                                              .trim()
+                                              .isNotEmpty);
                                 }).toList();
-                                
+
                                 if (activeContacts.isEmpty) {
-                                  return const Center(child: Text('لا توجد محادثات نشطة'));
+                                  return Center(
+                                    child: Text(
+                                      isAr
+                                          ? 'لا توجد محادثات نشطة'
+                                          : 'No active conversations',
+                                    ),
+                                  );
                                 }
 
                                 return ListView.builder(
                                   itemCount: activeContacts.length,
                                   itemBuilder: (context, index) {
                                     final contact = activeContacts[index];
-                                    return _buildChatTile(context, contact, isDark, cardColor, textColor);
+                                    return _buildChatTile(
+                                      context,
+                                      contact,
+                                      isDark,
+                                      cardColor,
+                                      textColor,
+                                    );
                                   },
                                 );
                               },
@@ -133,9 +195,24 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
               CustomBottomNav(
                 currentIndex: 3,
                 centerButton: const AdminSpeedDial(),
-                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen())),
-                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminProfileScreen())),
-                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminNotificationsScreen())),
+                onHomeTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminHomeScreen(),
+                  ),
+                ),
+                onProfileTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminProfileScreen(),
+                  ),
+                ),
+                onNotificationsTap: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminNotificationsScreen(),
+                  ),
+                ),
                 onMessagesTap: () {},
               ),
             ],
@@ -145,17 +222,26 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
     );
   }
 
-  Widget _buildChatTile(BuildContext context, Map<String, dynamic> contact, bool isDark, Color cardColor, Color textColor) {
+  Widget _buildChatTile(
+    BuildContext context,
+    Map<String, dynamic> contact,
+    bool isDark,
+    Color cardColor,
+    Color textColor,
+  ) {
     final int unreadCount = contact['unread'] ?? 0;
     final bool isMyMessage = contact['is_my_message'] == true;
     final bool hasUnread = !isMyMessage && unreadCount > 0;
-    final String name = contact['name'] ?? 'مستخدم غير معروف';
+    final String name = contact['name'] ??
+        (isAr ? 'مستخدم غير معروف' : 'Unknown User');
     final String initial = name.isNotEmpty ? name[0] : '؟';
-    final String role = contact['role'] ?? '';
-    final String lastMsg = (contact['last_message'] != null && contact['last_message'].toString().trim().isNotEmpty)
+    final String rawRole = contact['role'] ?? '';
+    final String role = _localizeRole(rawRole);
+    final String lastMsg = (contact['last_message'] != null &&
+            contact['last_message'].toString().trim().isNotEmpty)
         ? contact['last_message']
-        : 'انقر لبدء المحادثة...';
-    final String time = contact['time'] ?? 'الآن';
+        : (isAr ? 'انقر لبدء المحادثة...' : 'Tap to start conversation...');
+    final String time = contact['time'] ?? (isAr ? 'الآن' : 'Now');
     final String? avatarUrl = contact['image'];
     final bool isOnline = contact['is_online'] ?? false;
     final bool isRead = contact['is_read'] == true;
@@ -166,9 +252,22 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
         color: cardColor,
         borderRadius: BorderRadius.circular(15),
         boxShadow: hasUnread
-            ? [BoxShadow(color: isDark ? Colors.black.withAlpha(40) : Colors.black.withAlpha(12), blurRadius: 10, offset: const Offset(0, 4))]
+            ? [
+                BoxShadow(
+                  color: isDark
+                      ? Colors.black.withAlpha(40)
+                      : Colors.black.withAlpha(12),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
             : [],
-        border: hasUnread ? Border.all(color: const Color(0xFFFFCC00).withAlpha(102), width: 1) : null,
+        border: hasUnread
+            ? Border.all(
+                color: const Color(0xFFFFCC00).withAlpha(102),
+                width: 1,
+              )
+            : null,
       ),
       child: ListTile(
         onTap: () {
@@ -188,7 +287,9 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
             CircleAvatar(
               radius: 28,
               backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
-              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? NetworkImage(avatarUrl)
+                  : null,
               child: avatarUrl == null || avatarUrl.isEmpty
                   ? Text(
                       initial,
@@ -220,14 +321,18 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
         ),
         title: Text(
           name,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: textColor,
+          ),
         ),
         subtitle: Row(
           children: [
-            if (isRead && !hasUnread) 
-              const Padding(
-                padding: EdgeInsets.only(left: 4), 
-                child: Icon(Icons.done_all, color: Colors.blue, size: 16)
+            if (isRead && !hasUnread)
+              Padding(
+                padding: EdgeInsets.only(left: isAr ? 4 : 0, right: isAr ? 0 : 4),
+                child: const Icon(Icons.done_all, color: Colors.blue, size: 16),
               ),
             Expanded(
               child: Text(
@@ -235,7 +340,9 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: hasUnread ? (isDark ? Colors.white : Colors.black87) : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                  color: hasUnread
+                      ? (isDark ? Colors.white : Colors.black87)
+                      : (isDark ? Colors.grey[400] : Colors.grey[600]),
                   fontSize: 13,
                   fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
                 ),
@@ -251,12 +358,15 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
             if (role.isNotEmpty) ...[
               Container(
                 margin: EdgeInsets.zero,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withAlpha(38), // ~0.15 opacity
+                  color: const Color(0xFFFFCC00).withAlpha(38),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: const Color(0xFFFFCC00).withAlpha(102), // ~0.4 opacity
+                    color: const Color(0xFFFFCC00).withAlpha(102),
                     width: 0.5,
                   ),
                 ),
@@ -274,7 +384,11 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
               time,
               style: TextStyle(
                 fontSize: 11,
-                color: hasUnread ? (isDark ? Colors.amber.shade300 : const Color(0xFFD4AC0D)) : Colors.grey.shade500,
+                color: hasUnread
+                    ? (isDark
+                        ? Colors.amber.shade300
+                        : const Color(0xFFD4AC0D))
+                    : Colors.grey.shade500,
                 fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -282,10 +396,17 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
               const SizedBox(height: 1),
               Container(
                 padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(color: Color(0xFFFFCC00), shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFCC00),
+                  shape: BoxShape.circle,
+                ),
                 child: Text(
                   '$unreadCount',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ],
@@ -302,30 +423,57 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
-            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminHomeScreen())),
+            icon: Icon(
+              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+            onPressed: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminHomeScreen()),
+            ),
           ),
-          const Text("الرسائل", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(
+            isAr ? "الرسائل" : "Messages",
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
-                tooltip: "محادثة جديدة",
-                onPressed: () => _showNewChatModal(context, context.read<ChatService>()),
+                icon: const Icon(
+                  Icons.add_circle_rounded,
+                  color: Color(0xFFFFCC00),
+                  size: 28,
+                ),
+                tooltip: isAr ? "محادثة جديدة" : "New Chat",
+                onPressed: () => _showNewChatModal(
+                  context,
+                  context.read<ChatService>(),
+                ),
               ),
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
                 ),
                 child: Container(
-                  margin: const EdgeInsets.only(right: 8),
+                  margin: EdgeInsets.only(
+                    right: isAr ? 8 : 0,
+                    left: isAr ? 0 : 8,
+                  ),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.2),
+                    ),
                   ),
-                  child: const Icon(Icons.settings_outlined, color: Colors.grey, size: 22),
+                  child: const Icon(
+                    Icons.settings_outlined,
+                    color: Colors.grey,
+                    size: 22,
+                  ),
                 ),
               ),
             ],
@@ -351,129 +499,159 @@ class _AdminMessagesViewState extends State<AdminMessagesView> {
             }).toList();
 
             final cardColor = Theme.of(context).cardColor;
-            final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+            final textColor =
+                Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.75,
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+            return Directionality(
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.75,
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(25),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'محادثة جديدة (+)',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isAr ? 'محادثة جديدة (+)' : 'New Chat (+)',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: textColor),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      onChanged: (val) =>
+                          setModalState(() => query = val.trim()),
+                      textAlign: isAr ? TextAlign.right : TextAlign.left,
+                      style: TextStyle(color: textColor),
+                      decoration: InputDecoration(
+                        hintText: isAr
+                            ? "ابحث عن شخص لمراسلته..."
+                            : "Search for someone to chat with...",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.grey,
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).scaffoldBackgroundColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: textColor),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    onChanged: (val) => setModalState(() => query = val.trim()),
-                    textAlign: TextAlign.right,
-                    style: TextStyle(color: textColor),
-                    decoration: InputDecoration(
-                      hintText: "ابحث عن شخص لمراسلته...",
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Theme.of(context).scaffoldBackgroundColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'لا توجد جهات اتصال مطابقة',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (context, index) {
-                              final contact = filtered[index];
-                              final name = contact['name'] as String? ?? 'مجهول';
-                              final role = contact['role'] as String? ?? '';
-                              final initial = name.isNotEmpty ? name[0] : '؟';
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? Center(
+                              child: Text(
+                                isAr
+                                    ? 'لا توجد جهات اتصال مطابقة'
+                                    : 'No matching contacts',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final contact = filtered[index];
+                                final name = contact['name'] as String? ??
+                                    (isAr ? 'مجهول' : 'Unknown');
+                                final rawRole =
+                                    contact['role'] as String? ?? '';
+                                final role = _localizeRole(rawRole);
+                                final initial =
+                                    name.isNotEmpty ? name[0] : '؟';
 
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).scaffoldBackgroundColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: const Color(0xFFFFCC00).withAlpha(40),
-                                    child: Text(
-                                      initial,
-                                      style: const TextStyle(
-                                        color: Color(0xFFD4AC0D),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .scaffoldBackgroundColor,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  title: Text(
-                                    name,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: textColor,
-                                    ),
-                                  ),
-                                  subtitle: role.isNotEmpty
-                                      ? Text(
-                                          role,
-                                          style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                        )
-                                      : null,
-                                  trailing: const Icon(
-                                    Icons.chat_bubble_outline_rounded,
-                                    color: Color(0xFFFFCC00),
-                                  ),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ChangeNotifierProvider.value(
-                                          value: chatService,
-                                          child: ChatRoomScreen(contact: contact),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: const Color(
+                                        0xFFFFCC00,
+                                      ).withAlpha(40),
+                                      child: Text(
+                                        initial,
+                                        style: const TextStyle(
+                                          color: Color(0xFFD4AC0D),
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                                    ),
+                                    title: Text(
+                                      name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    subtitle: role.isNotEmpty
+                                        ? Text(
+                                            role,
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12,
+                                            ),
+                                          )
+                                        : null,
+                                    trailing: const Icon(
+                                      Icons.chat_bubble_outline_rounded,
+                                      color: Color(0xFFFFCC00),
+                                    ),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              ChangeNotifierProvider.value(
+                                            value: chatService,
+                                            child: ChatRoomScreen(
+                                              contact: contact,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             );
           },

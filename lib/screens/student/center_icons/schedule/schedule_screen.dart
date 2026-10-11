@@ -54,8 +54,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void initState() {
     super.initState();
     _selectedTab = widget.initialTab;
+    AppSettings.language.addListener(_onLangChange);
     _fetchSchedules();
     _fetchExams();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   // ----------------------------------------------------------------
@@ -117,17 +128,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
-
-
-
-
   Future<void> _exportScheduleAsImage() async {
+    final isAr = AppSettings.language.value == 'ar';
     if (_isExporting) return;
     setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
-      const SnackBar(
-        content: Text('جاري إنشاء صورة الجدول الرسمي بدقة عالية...'),
+      SnackBar(
+        content: Text(isAr ? 'جاري إنشاء صورة الجدول الرسمي بدقة عالية...' : 'Generating high-resolution official schedule image...'),
         backgroundColor: Colors.blue,
       ),
     );
@@ -135,7 +143,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     try {
       final url = await StudentServices().getScheduleExportUrl();
       if (url == null || url.isEmpty) {
-        throw 'لم نتمكن من استلام رابط الجدول من السيرفر';
+        throw isAr ? 'لم نتمكن من استلام رابط الجدول من السيرفر' : 'Failed to retrieve schedule link from server';
       }
 
       final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
@@ -153,7 +161,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
 
       if (response.data == null || response.data!.isEmpty) {
-        throw 'الملف المستلم فارغ';
+        throw isAr ? 'الملف المستلم فارغ' : 'Received file is empty';
       }
 
       final pdfBytes = Uint8List.fromList(response.data!);
@@ -169,7 +177,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       }
 
       if (pngBytes == null) {
-        throw 'تعذر تحويل الجدول إلى صورة';
+        throw isAr ? 'تعذر تحويل الجدول إلى صورة' : 'Could not convert schedule to image';
       }
 
       final tempDir = await getTemporaryDirectory();
@@ -185,8 +193,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       await Gal.putImage(tempFile.path);
 
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('تم حفظ صورة الجدول الرسمي في المعرض بدقة عالية بنجاح ✓'),
+        SnackBar(
+          content: Text(isAr ? 'تم حفظ صورة الجدول الرسمي في المعرض بدقة عالية بنجاح ✓' : 'Official schedule image saved to gallery successfully ✓'),
           backgroundColor: Colors.green,
         ),
       );
@@ -200,12 +208,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _exportExamsAsImage() async {
+    final isAr = AppSettings.language.value == 'ar';
     if (_isExporting) return;
     setState(() => _isExporting = true);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
-      const SnackBar(
-        content: Text('جاري إنشاء صورة جدول الامتحانات بدقة عالية...'),
+      SnackBar(
+        content: Text(isAr ? 'جاري إنشاء صورة جدول الامتحانات بدقة عالية...' : 'Generating high-resolution exam schedule image...'),
         backgroundColor: Colors.blue,
       ),
     );
@@ -213,7 +222,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     try {
       final url = await StudentServices().getExportUrl('pdf');
       if (url == null || url.isEmpty) {
-        throw 'لم نتمكن من استلام رابط جدول الامتحانات من السيرفر';
+        throw isAr ? 'لم نتمكن من استلام رابط جدول الامتحانات من السيرفر' : 'Failed to retrieve exam schedule link from server';
       }
 
       final fixedUrl = ApiService.fixMediaUrl(url) ?? url;
@@ -231,7 +240,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
 
       if (response.data == null || response.data!.isEmpty) {
-        throw 'الملف المستلم فارغ';
+        throw isAr ? 'الملف المستلم فارغ' : 'Received file is empty';
       }
 
       final pdfBytes = Uint8List.fromList(response.data!);
@@ -247,7 +256,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       }
 
       if (pngBytes == null) {
-        throw 'تعذر تحويل جدول الامتحانات إلى صورة';
+        throw isAr ? 'تعذر تحويل جدول الامتحانات إلى صورة' : 'Could not convert exam schedule to image';
       }
 
       final tempDir = await getTemporaryDirectory();
@@ -263,8 +272,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       await Gal.putImage(tempFile.path);
 
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('تم حفظ صورة جدول الامتحانات في المعرض بدقة عالية بنجاح ✓'),
+        SnackBar(
+          content: Text(isAr ? 'تم حفظ صورة جدول الامتحانات في المعرض بدقة عالية بنجاح ✓' : 'Exam schedule image saved to gallery successfully ✓'),
           backgroundColor: Colors.green,
         ),
       );
@@ -277,16 +286,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _exportWidgetAsImage(GlobalKey key, String fileName) async {
+    final isAr = AppSettings.language.value == 'ar';
     final messenger = ScaffoldMessenger.of(context);
     try {
       final boundary = key.currentContext?.findRenderObject();
       if (boundary is! RenderRepaintBoundary) {
-        throw 'لم يتم العثور على محتوى للتصدير';
+        throw isAr ? 'لم يتم العثور على محتوى للتصدير' : 'No content found to export';
       }
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) {
-        throw 'فشل تحويل الصورة إلى بيانات';
+        throw isAr ? 'فشل تحويل الصورة إلى بيانات' : 'Failed to convert image to data';
       }
       final Uint8List pngBytes = byteData.buffer.asUint8List();
 
@@ -303,15 +313,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       await Gal.putImage(tempFile.path);
 
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('تم حفظ الصورة في المعرض بنجاح ✓'),
+        SnackBar(
+          content: Text(isAr ? 'تم حفظ الصورة في المعرض بنجاح ✓' : 'Image saved to gallery successfully ✓'),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text('خطأ أثناء حفظ الصورة في المعرض: $e'),
+          content: Text(isAr ? 'خطأ أثناء حفظ الصورة في المعرض: $e' : 'Error saving image to gallery: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -321,6 +331,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
         ? Theme.of(context).scaffoldBackgroundColor
@@ -328,7 +339,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final textColor = isDark ? Colors.white : Colors.black;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
@@ -339,7 +350,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'الجداول الدراسية',
+            isAr ? 'الجداول الدراسية' : 'Academic Schedules',
             style: TextStyle(
               color: textColor,
               fontWeight: FontWeight.bold,
@@ -411,6 +422,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   // 1. التاب العلوي
   // ----------------------------------------------------------------
   Widget _buildCustomTabBar() {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -421,8 +433,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
       child: Row(
         children: [
-          _buildTabItem(title: 'جدول الحصص', index: 0),
-          _buildTabItem(title: 'جدول الامتحانات', index: 1),
+          _buildTabItem(title: isAr ? 'جدول الحصص' : 'Class Schedule', index: 0),
+          _buildTabItem(title: isAr ? 'جدول الامتحانات' : 'Exam Schedule', index: 1),
         ],
       ),
     );
@@ -466,15 +478,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  static const List<String> _weekDays = [
+  static const List<String> _weekDaysAr = [
     'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'
+  ];
+  static const List<String> _weekDaysEn = [
+    'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'
   ];
 
   // ----------------------------------------------------------------
   // 2. واجهة "جدول الحصص"
   // ----------------------------------------------------------------
   Widget _buildClassSchedule() {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final weekDays = isAr ? _weekDaysAr : _weekDaysEn;
 
     if (_isLoadingSchedules) {
       return const Center(
@@ -482,24 +499,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
     }
 
-    if (_selectedDateIndex >= _weekDays.length) _selectedDateIndex = 0;
+    if (_selectedDateIndex >= weekDays.length) _selectedDateIndex = 0;
 
-    final selectedDayName = _weekDays[_selectedDateIndex];
+    final selectedDayName = weekDays[_selectedDateIndex];
+    final selectedArDay = _weekDaysAr[_selectedDateIndex];
+    final selectedEnDay = _weekDaysEn[_selectedDateIndex];
 
     // find lectures for this day from API data (may be empty)
     final dayData = _schedulesData.firstWhere(
       (d) {
         final dDay = d['day']?.toString().trim().toLowerCase() ?? '';
-        final selDay = selectedDayName.trim().toLowerCase();
-        const Map<String, String> arToEn = {
-          'الأحد': 'sunday', 'الاثنين': 'monday', 'الثلاثاء': 'tuesday',
-          'الأربعاء': 'wednesday', 'الخميس': 'thursday', 'الجمعة': 'friday', 'السبت': 'saturday'
-        };
-        const Map<String, String> enToAr = {
-          'sunday': 'الأحد', 'monday': 'الاثنين', 'tuesday': 'الثلاثاء',
-          'wednesday': 'الأربعاء', 'thursday': 'الخميس', 'friday': 'الجمعة', 'saturday': 'السبت'
-        };
-        return dDay == selDay || arToEn[selDay] == dDay || enToAr[dDay] == selDay;
+        return dDay == selectedArDay.toLowerCase() ||
+               dDay == selectedEnDay.toLowerCase();
       },
       orElse: () => {'day': selectedDayName, 'lectures': []},
     );
@@ -514,7 +525,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               Icon(Icons.calendar_today_outlined, size: 50, color: Colors.grey.withValues(alpha: 0.4)),
               const SizedBox(height: 12),
               Text(
-                'لا توجد محاضرات في هذا اليوم',
+                isAr ? 'لا توجد محاضرات في هذا اليوم' : 'No lectures on this day',
                 style: TextStyle(
                   fontSize: 15,
                   color: isDark ? Colors.white70 : Colors.black54,
@@ -535,11 +546,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
         List<String> timeParts = lecture['start_time'].toString().split(' ');
         String startTimeStr = timeParts[0];
-        String startAmPmStr = timeParts.length > 1 ? (timeParts[1] == 'AM' ? 'ص' : 'م') : '';
+        String startAmPmStr = timeParts.length > 1 ? (timeParts[1] == 'AM' ? (isAr ? 'ص' : 'AM') : (isAr ? 'م' : 'PM')) : '';
         // Parse end time
         List<String> endParts = lecture['end_time']?.toString().split(' ') ?? [];
         String endTimeStr = endParts.isNotEmpty ? endParts[0] : '';
-        String endAmPmStr = endParts.length > 1 ? (endParts[1] == 'AM' ? 'ص' : 'م') : '';
+        String endAmPmStr = endParts.length > 1 ? (endParts[1] == 'AM' ? (isAr ? 'ص' : 'AM') : (isAr ? 'م' : 'PM')) : '';
         
         return GestureDetector(
           onTap: () => setState(() => _selectedLectureIndex = index),
@@ -555,7 +566,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               instructor: lecture['teacher'],
               instructorId: lecture['teacher_id'] ?? 1,
               location: lecture['room'],
-              tagText: lecture['duration'] ?? 'محاضرة',
+              tagText: lecture['duration'] ?? (isAr ? 'محاضرة' : 'Lecture'),
               icon: Icons.menu_book,
               iconColor: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
               iconBgColor: isDark ? Colors.blue.withAlpha(30) : Colors.blue.shade50,
@@ -576,8 +587,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
-              children: List.generate(_weekDays.length, (index) {
-                return _buildDayCircle(day: _weekDays[index], index: index);
+              children: List.generate(weekDays.length, (index) {
+                return _buildDayCircle(day: weekDays[index], index: index);
               }),
             ),
           ),
@@ -592,7 +603,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 Row(
                   children: [
                     Text(
-                      'برنامج $selectedDayName',
+                      isAr ? 'برنامج $selectedDayName' : '$selectedDayName Schedule',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -614,17 +625,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             ),
                           ],
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.image,
                               color: Colors.blueAccent,
                               size: 15,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Text(
-                              'صورة الجدول (PNG)',
-                              style: TextStyle(
+                              isAr ? 'صورة الجدول (PNG)' : 'Schedule (PNG)',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
@@ -643,7 +654,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
-                  '${lectures.length} حصص',
+                  isAr ? '${lectures.length} حصص' : '${lectures.length} classes',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -661,7 +672,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: lectures.isEmpty
               ? Center(
                   child: Text(
-                    'لا توجد حصص ليوم $selectedDayName',
+                    isAr ? 'لا توجد حصص ليوم $selectedDayName' : 'No classes for $selectedDayName',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 )
@@ -681,6 +692,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   // 3. واجهة "جدول الامتحانات"
   // ----------------------------------------------------------------
   Widget _buildExamSchedule() {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (_isLoadingExams) {
@@ -690,8 +702,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
 
     final List<dynamic> displayExams = _examsData;
-    final List<dynamic> finalExams = displayExams.where((e) => e['type_label'] != 'مذاكرة').toList();
-    final List<dynamic> quizzes = displayExams.where((e) => e['type_label'] == 'مذاكرة').toList();
+    final List<dynamic> finalExams = displayExams.where((e) => e['type_label'] != 'مذاكرة' && e['type_label'] != 'Quiz').toList();
+    final List<dynamic> quizzes = displayExams.where((e) => e['type_label'] == 'مذاكرة' || e['type_label'] == 'Quiz').toList();
 
     return RepaintBoundary(
       key: _examScheduleBoundaryKey,
@@ -703,7 +715,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'الامتحانات والمذاكرات',
+                isAr ? 'الامتحانات والمذاكرات' : 'Exams & Quizzes',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -729,17 +741,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           ),
                         ],
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.image,
                             color: Colors.blueAccent,
                             size: 16,
                           ),
-                          SizedBox(width: 5),
+                          const SizedBox(width: 5),
                           Text(
-                            'صورة الجدول (PNG)',
-                            style: TextStyle(
+                            isAr ? 'صورة الجدول (PNG)' : 'Schedule Image (PNG)',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
@@ -763,11 +775,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 Icon(Icons.event_busy_rounded, size: 50, color: Colors.grey.withValues(alpha: 0.4)),
                 const SizedBox(height: 12),
                 Text(
-                  'لا يوجد برنامج امتحانات متاح حالياً',
+                  isAr ? 'لا يوجد برنامج امتحانات متاح حالياً' : 'No exam schedule currently available',
                   style: TextStyle(
                     fontSize: 15,
                     color: isDark ? Colors.white70 : Colors.black54,
-                    fontFamily: 'Cairo',
+                    fontFamily: isAr ? 'Cairo' : 'Inter',
                   ),
                 ),
               ],
@@ -775,18 +787,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           )
         else ...[
           if (finalExams.isNotEmpty) ...[
-            _buildExamSectionHeader('الامتحانات النهائية', Icons.assignment_late_rounded, Colors.red),
+            _buildExamSectionHeader(isAr ? 'الامتحانات النهائية' : 'Final Exams', Icons.assignment_late_rounded, Colors.red),
             const SizedBox(height: 10),
             ...finalExams.map((exam) {
               return _buildExamCard(
                 time: exam['time'],
                 title: exam['subject'],
-                duration: exam['duration'] ?? 'غير محدد',
-                location: exam['room'] ?? 'القاعة الامتحانية',
+                duration: exam['duration'] ?? (isAr ? 'غير محدد' : 'Not specified'),
+                location: exam['room'] ?? (isAr ? 'القاعة الامتحانية' : 'Exam Hall'),
                 month: exam['month'],
                 dayNumber: exam['day_num'].toString(),
                 dayName: exam['day_name'],
-                typeLabel: exam['type_label'] ?? 'نهائي',
+                typeLabel: exam['type_label'] ?? (isAr ? 'نهائي' : 'Final'),
                 score: exam['score'],
                 maxScore: exam['max_score'],
                 onTap: exam['event_id'] != null
@@ -797,18 +809,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ],
           if (quizzes.isNotEmpty) ...[
             SizedBox(height: finalExams.isNotEmpty ? 24 : 0),
-            _buildExamSectionHeader('المذاكرات', Icons.edit_note_rounded, Colors.blue),
+            _buildExamSectionHeader(isAr ? 'المذاكرات' : 'Quizzes', Icons.edit_note_rounded, Colors.blue),
             const SizedBox(height: 10),
             ...quizzes.map((exam) {
               return _buildExamCard(
                 time: exam['time'],
                 title: exam['subject'],
-                duration: exam['duration'] ?? 'غير محدد',
-                location: exam['room'] ?? 'القاعة الامتحانية',
+                duration: exam['duration'] ?? (isAr ? 'غير محدد' : 'Not specified'),
+                location: exam['room'] ?? (isAr ? 'القاعة الامتحانية' : 'Exam Hall'),
                 month: exam['month'],
                 dayNumber: exam['day_num'].toString(),
                 dayName: exam['day_name'],
-                typeLabel: exam['type_label'] ?? 'نهائي',
+                typeLabel: exam['type_label'] ?? (isAr ? 'مذاكرة' : 'Quiz'),
                 score: exam['score'],
                 maxScore: exam['max_score'],
                 onTap: exam['event_id'] != null
@@ -828,8 +840,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
               color: isDark
-                  ? Colors.orange.withAlpha(50)
-                  : const Color(0xFFFFF59D),
+                ? Colors.orange.withAlpha(50)
+                : const Color(0xFFFFF59D),
               width: 1.5,
             ),
           ),
@@ -844,7 +856,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'يرجى الحضور قبل موعد الامتحان بـ 15 دقيقة على الأقل وإحضار البطاقة الجامعية.',
+                  isAr
+                      ? 'يرجى الحضور قبل موعد الامتحان بـ 15 دقيقة على الأقل وإحضار البطاقة الجامعية.'
+                      : 'Please arrive at least 15 minutes before the exam and bring your university ID.',
                   style: TextStyle(
                     color: isDark
                         ? Colors.orange.shade400
@@ -1013,9 +1027,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     showDialog(
       context: context,
       builder: (context) {
+        final isAr = AppSettings.language.value == 'ar';
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
             backgroundColor: isDark
                 ? Theme.of(context).cardColor
@@ -1054,9 +1069,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.person, color: Colors.grey),
-                  title: const Text(
-                    'أستاذ المادة',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  title: Text(
+                    isAr ? 'أستاذ المادة' : 'Course Instructor',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   subtitle: Text(
                     instructor,
@@ -1069,9 +1084,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.location_on, color: Colors.grey),
-                  title: const Text(
-                    'القاعة / الموقع',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  title: Text(
+                    isAr ? 'القاعة / الموقع' : 'Hall / Location',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   subtitle: Text(
                     location,
@@ -1084,9 +1099,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.timer, color: Colors.grey),
-                  title: const Text(
-                    'مدة المحاضرة',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  title: Text(
+                    isAr ? 'مدة المحاضرة' : 'Lecture Duration',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   subtitle: Text(
                     tagText,
@@ -1103,7 +1118,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
-                  'إغلاق',
+                  isAr ? 'إغلاق' : 'Close',
                   style: TextStyle(
                     color: isDark ? Colors.white : Colors.black,
                     fontWeight: FontWeight.bold,
@@ -1124,11 +1139,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     showDialog(
       context: context,
       builder: (context) {
+        final isAr = AppSettings.language.value == 'ar';
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return StatefulBuilder(
           builder: (context, setStateBuilder) {
             return Directionality(
-              textDirection: TextDirection.rtl,
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
               child: AlertDialog(
                 backgroundColor: isDark
                     ? Theme.of(context).cardColor
@@ -1137,7 +1153,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   borderRadius: BorderRadius.circular(25),
                 ),
                 title: Text(
-                  'ضبط تذكير',
+                  isAr ? 'ضبط تذكير' : 'Set Reminder',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black,
@@ -1148,7 +1164,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'المادة: $title',
+                      '${isAr ? "المادة" : "Course"}: $title',
                       style: const TextStyle(color: Colors.grey, fontSize: 13),
                     ),
                     const SizedBox(height: 20),
@@ -1220,9 +1236,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'إلغاء',
-                      style: TextStyle(color: Colors.grey),
+                    child: Text(
+                      isAr ? 'إلغاء' : 'Cancel',
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ),
                   ElevatedButton(
@@ -1236,15 +1252,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     onPressed: () {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تم ضبط التذكير بنجاح'),
+                        SnackBar(
+                          content: Text(isAr ? 'تم ضبط التذكير بنجاح' : 'Reminder set successfully'),
                           backgroundColor: Colors.green,
                         ),
                       );
                     },
-                    child: const Text(
-                      'حفظ',
-                      style: TextStyle(
+                    child: Text(
+                      isAr ? 'حفظ' : 'Save',
+                      style: const TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1263,9 +1279,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     showDialog(
       context: context,
       builder: (context) {
+        final isAr = AppSettings.language.value == 'ar';
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
             backgroundColor: isDark
                 ? Theme.of(context).cardColor
@@ -1274,7 +1291,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               borderRadius: BorderRadius.circular(25),
             ),
             title: Text(
-              'تقديم عذر - $title',
+              '${isAr ? "تقديم عذر" : "Submit Excuse"} - $title',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -1288,7 +1305,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   maxLines: 3,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
-                    hintText: 'يرجى كتابة سبب الغياب أو التأخير...',
+                    hintText: isAr ? 'يرجى كتابة سبب الغياب أو التأخير...' : 'Please enter reason for absence or tardiness...',
                     hintStyle: const TextStyle(
                       color: Colors.grey,
                       fontSize: 12,
@@ -1337,7 +1354,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'إرفاق مستند أو صورة',
+                          isAr ? 'إرفاق مستند أو صورة' : 'Attach document or image',
                           style: TextStyle(
                             color: isDark
                                 ? Colors.grey.shade400
@@ -1355,9 +1372,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'إلغاء',
-                  style: TextStyle(color: Colors.grey),
+                child: Text(
+                  isAr ? 'إلغاء' : 'Cancel',
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ),
               ElevatedButton(
@@ -1371,15 +1388,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 onPressed: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('تم إرسال العذر بنجاح'),
+                    SnackBar(
+                      content: Text(isAr ? 'تم إرسال العذر بنجاح' : 'Excuse submitted successfully'),
                       backgroundColor: Colors.green,
                     ),
                   );
                 },
-                child: const Text(
-                  'إرسال العذر',
-                  style: TextStyle(
+                child: Text(
+                  isAr ? 'إرسال العذر' : 'Submit Excuse',
+                  style: const TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1397,9 +1414,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        final isAr = AppSettings.language.value == 'ar';
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -1413,7 +1431,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'إرفاق ملف',
+                  isAr ? 'إرفاق ملف' : 'Attach File',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1426,17 +1444,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   children: [
                     _buildAttachmentOption(
                       Icons.camera_alt,
-                      'الكاميرا',
+                      isAr ? 'الكاميرا' : 'Camera',
                       Colors.blue,
                     ),
                     _buildAttachmentOption(
                       Icons.photo_library,
-                      'المعرض',
+                      isAr ? 'المعرض' : 'Gallery',
                       Colors.purple,
                     ),
                     _buildAttachmentOption(
                       Icons.insert_drive_file,
-                      'مستند',
+                      isAr ? 'مستند' : 'Document',
                       Colors.orange,
                     ),
                   ],
@@ -1451,13 +1469,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Widget _buildAttachmentOption(IconData icon, String title, Color color) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم اختيار $title بنجاح'),
+            content: Text(isAr ? 'تم اختيار $title بنجاح' : '$title selected successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -1503,6 +1522,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     required Color iconBgColor,
     required bool isActive,
   }) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -1573,7 +1593,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                     onSelected: (value) {
-                      if (value == 'تفاصيل المادة') {
+                      if (value == 'details') {
                         _showSubjectDetailsDialog(
                           title,
                           instructor,
@@ -1583,7 +1603,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           iconColor,
                           iconBgColor,
                         );
-                      } else if (value == 'مراسلة المدرس') {
+                      } else if (value == 'message') {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -1596,15 +1616,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             ),
                           ),
                         );
-                      } else if (value == 'ضبط تذكير') {
+                      } else if (value == 'reminder') {
                         _showReminderDialog(title);
-                      } else if (value == 'تقديم عذر غياب') {
+                      } else if (value == 'excuse') {
                         _showAbsenceExcuseDialog(title);
                       }
                     },
                     itemBuilder: (BuildContext context) => [
                       PopupMenuItem(
-                        value: 'تفاصيل المادة',
+                        value: 'details',
                         child: Row(
                           children: [
                             Icon(
@@ -1614,7 +1634,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'تفاصيل المادة',
+                              isAr ? 'تفاصيل المادة' : 'Course Details',
                               style: TextStyle(
                                 color: isDark ? Colors.white : Colors.black,
                               ),
@@ -1623,7 +1643,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                       ),
                       PopupMenuItem(
-                        value: 'مراسلة المدرس',
+                        value: 'message',
                         child: Row(
                           children: [
                             Icon(
@@ -1633,7 +1653,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'مراسلة المدرس',
+                              isAr ? 'مراسلة المدرس' : 'Message Instructor',
                               style: TextStyle(
                                 color: isDark ? Colors.white : Colors.black,
                               ),
@@ -1642,7 +1662,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                       ),
                       PopupMenuItem(
-                        value: 'ضبط تذكير',
+                        value: 'reminder',
                         child: Row(
                           children: [
                             Icon(
@@ -1652,7 +1672,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'ضبط تذكير',
+                              isAr ? 'ضبط تذكير' : 'Set Reminder',
                               style: TextStyle(
                                 color: isDark ? Colors.white : Colors.black,
                               ),
@@ -1661,7 +1681,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                       ),
                       PopupMenuItem(
-                        value: 'تقديم عذر غياب',
+                        value: 'excuse',
                         child: Row(
                           children: [
                             Icon(
@@ -1671,7 +1691,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'تقديم عذر غياب',
+                              isAr ? 'تقديم عذر غياب' : 'Submit Absence Excuse',
                               style: TextStyle(
                                 color: isDark ? Colors.white : Colors.black,
                               ),
@@ -1722,6 +1742,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _showGradeSheet(int eventId, String subject) async {
+    final isAr = AppSettings.language.value == 'ar';
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
     if (!mounted) return;
@@ -1746,49 +1767,55 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         final score   = info?['score'];
         final maxSc   = info?['max_score'];
         final notes   = info?['notes'];
-        final type    = info?['type_label'] ?? '';
+        final rawType = info?['type_label'] ?? '';
+        final type    = isAr
+            ? (rawType == 'Quiz' ? 'مذاكرة' : (rawType == 'Final' ? 'نهائي' : rawType))
+            : (rawType == 'مذاكرة' ? 'Quiz' : (rawType == 'نهائي' ? 'Final' : rawType));
         final title   = info?['title'] ?? subject;
         final course  = info?['course'] ?? subject;
 
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              Text(course, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
-              const SizedBox(height: 4),
-              Text('$type — $title', style: const TextStyle(color: Colors.grey, fontSize: 13)),
-              const SizedBox(height: 20),
-              if (info == null)
-                const Center(child: Text('تعذّر تحميل البيانات', style: TextStyle(color: Colors.grey)))
-              else if (!graded)
-                Row(children: [
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.orange.withAlpha(30), borderRadius: BorderRadius.circular(10)),
-                    child: Row(children: [
-                      const Icon(Icons.hourglass_empty, color: Colors.orange, size: 16),
-                      const SizedBox(width: 6),
-                      Text('لم يتم التصحيح بعد', style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold)),
-                    ])),
-                ])
-              else
-                Row(children: [
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(color: const Color(0xFFFFCC00).withAlpha(30), borderRadius: BorderRadius.circular(12)),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                      Text('علامتك', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                      const SizedBox(height: 4),
-                      Text('$score / $maxSc', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Color(0xFFCC9900))),
-                    ])),
-                  if (notes != null && notes.toString().isNotEmpty) ...[
-                    const SizedBox(width: 12),
-                    Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: isDark ? Colors.white.withAlpha(10) : Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
-                      child: Text(notes.toString(), style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.black87)))),
-                  ],
-                ]),
-              const SizedBox(height: 20),
-            ],
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 16),
+                Text(course, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
+                const SizedBox(height: 4),
+                Text('$type — $title', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                const SizedBox(height: 20),
+                if (info == null)
+                  Center(child: Text(isAr ? 'تعذّر تحميل البيانات' : 'Failed to load data', style: const TextStyle(color: Colors.grey)))
+                else if (!graded)
+                  Row(children: [
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.orange.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+                      child: Row(children: [
+                        const Icon(Icons.hourglass_empty, color: Colors.orange, size: 16),
+                        const SizedBox(width: 6),
+                        Text(isAr ? 'لم يتم التصحيح بعد' : 'Not graded yet', style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold)),
+                      ])),
+                  ])
+                else
+                  Row(children: [
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(color: const Color(0xFFFFCC00).withAlpha(30), borderRadius: BorderRadius.circular(12)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                        Text(isAr ? 'علامتك' : 'Your Grade', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                        const SizedBox(height: 4),
+                        Text('$score / $maxSc', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Color(0xFFCC9900))),
+                      ])),
+                    if (notes != null && notes.toString().isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: isDark ? Colors.white.withAlpha(10) : Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
+                        child: Text(notes.toString(), style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.black87)))),
+                    ],
+                  ]),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         );
       },
@@ -1827,6 +1854,61 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  String _translateExamDay(String day, bool isAr) {
+    if (isAr) {
+      switch (day.toLowerCase().trim()) {
+        case 'sunday': case 'sun': return 'الأحد';
+        case 'monday': case 'mon': return 'الإثنين';
+        case 'tuesday': case 'tue': return 'الثلاثاء';
+        case 'wednesday': case 'wed': return 'الأربعاء';
+        case 'thursday': case 'thu': return 'الخميس';
+        case 'friday': case 'fri': return 'الجمعة';
+        case 'saturday': case 'sat': return 'السبت';
+        default: return day;
+      }
+    } else {
+      switch (day.trim()) {
+        case 'الأحد': return 'Sun';
+        case 'الإثنين': case 'الاثنين': return 'Mon';
+        case 'الثلاثاء': return 'Tue';
+        case 'الأربعاء': return 'Wed';
+        case 'الخميس': return 'Thu';
+        case 'الجمعة': return 'Fri';
+        case 'السبت': return 'Sat';
+        default: return day;
+      }
+    }
+  }
+
+  String _translateExamMonth(String m, bool isAr) {
+    final clean = m.toLowerCase().trim();
+    if (isAr) {
+      if (clean == 'january' || clean == 'jan' || clean == '1' || clean == '01') return 'يناير';
+      if (clean == 'february' || clean == 'feb' || clean == '2' || clean == '02') return 'فبراير';
+      if (clean == 'march' || clean == 'mar' || clean == '3' || clean == '03') return 'مارس';
+      if (clean == 'april' || clean == 'apr' || clean == '4' || clean == '04') return 'أبريل';
+      if (clean == 'may' || clean == '5' || clean == '05') return 'مايو';
+      if (clean == 'june' || clean == 'jun' || clean == '6' || clean == '06') return 'يونيو';
+      if (clean == 'july' || clean == 'jul' || clean == '7' || clean == '07') return 'يوليو';
+      if (clean == 'august' || clean == 'aug' || clean == '8' || clean == '08') return 'أغسطس';
+      if (clean == 'september' || clean == 'sep' || clean == '9' || clean == '09') return 'سبتمبر';
+      if (clean == 'october' || clean == 'oct' || clean == '10') return 'أكتوبر';
+      if (clean == 'november' || clean == 'nov' || clean == '11') return 'نوفمبر';
+      if (clean == 'december' || clean == 'dec' || clean == '12') return 'ديسمبر';
+      return m;
+    } else {
+      const enMap = {
+        'يناير': 'Jan', 'فبراير': 'Feb', 'مارس': 'Mar', 'أبريل': 'Apr',
+        'مايو': 'May', 'يونيو': 'Jun', 'يوليو': 'Jul', 'أغسطس': 'Aug',
+        'سبتمبر': 'Sep', 'أكتوبر': 'Oct', 'نوفمبر': 'Nov', 'ديسمبر': 'Dec',
+        'كانون الثاني': 'Jan', 'شباط': 'Feb', 'آذار': 'Mar', 'نيسان': 'Apr',
+        'أيار': 'May', 'حزيران': 'Jun', 'تموز': 'Jul', 'آب': 'Aug',
+        'أيلول': 'Sep', 'تشرين الأول': 'Oct', 'تشرين الثاني': 'Nov', 'كانون الأول': 'Dec',
+      };
+      return enMap[m.trim()] ?? m;
+    }
+  }
+
   Widget _buildExamCard({
     required String time,
     required String title,
@@ -1840,8 +1922,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     dynamic maxScore,
     VoidCallback? onTap,
   }) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color tagClr = typeLabel == 'مذاكرة' ? Colors.blue : Colors.red;
+    final isQuiz = typeLabel == 'مذاكرة' || typeLabel == 'Quiz';
+    final Color tagClr = isQuiz ? Colors.blue : Colors.red;
+    final String displayType = isAr
+        ? (typeLabel == 'Quiz' ? 'مذاكرة' : (typeLabel == 'Final' ? 'نهائي' : typeLabel))
+        : (typeLabel == 'مذاكرة' ? 'Quiz' : (typeLabel == 'نهائي' ? 'Final' : typeLabel));
+    final String displayMonth = _translateExamMonth(month, isAr);
+    final String displayDayName = _translateExamDay(dayName, isAr);
 
     return GestureDetector(
       onTap: onTap,
@@ -1876,7 +1965,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         color: isDark ? tagClr.withAlpha(40) : tagClr.withAlpha(20),
                         borderRadius: BorderRadius.circular(5),
                       ),
-                      child: Text(typeLabel, style: TextStyle(color: tagClr, fontSize: 9, fontWeight: FontWeight.bold)),
+                      child: Text(displayType, style: TextStyle(color: tagClr, fontSize: 9, fontWeight: FontWeight.bold)),
                     ),
                     if (score != null) ...[
                       const SizedBox(width: 8),
@@ -1912,11 +2001,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               child: Column(
                 children: [
-                  Text(month, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+                  Text(displayMonth, style: const TextStyle(color: Colors.grey, fontSize: 9)),
                   const SizedBox(height: 2),
                   Text(dayNumber, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text(dayName, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+                  Text(displayDayName, style: const TextStyle(color: Colors.grey, fontSize: 9)),
                 ],
               ),
             ),

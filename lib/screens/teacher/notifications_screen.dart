@@ -14,6 +14,7 @@ import 'package:edu_pridge_flutter/screens/teacher/report_requests_screen.dart';
 import '../../widgets/teacher_speed_dial.dart';
 import '../shared/chat_room_screen.dart';
 import '../../services/notification_polling.dart';
+import '../shared/settings_screen.dart';
 import 'teacher_home.dart';
 import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
@@ -257,29 +258,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   // أيقونة ولون كل نوع إشعار
-  _NotifStyle _styleForType(String? type) {
+  _NotifStyle _styleForType(String? type, [bool isAr = true]) {
     switch (type) {
       case 'message':
       case 'chat':
-        return _NotifStyle(Icons.chat_bubble_outline, Colors.blueAccent, const Color(0xFF002244), 'رسالة');
+        return _NotifStyle(Icons.chat_bubble_outline, Colors.blueAccent, const Color(0xFF002244), isAr ? 'رسالة' : 'Message');
       case 'academic':
       case 'assignment':
-        return _NotifStyle(Icons.assignment_outlined, const Color(0xFFFFCC00), const Color(0xFF3D3A00), 'واجب');
+        return _NotifStyle(Icons.assignment_outlined, const Color(0xFFFFCC00), const Color(0xFF3D3A00), isAr ? 'واجب' : 'Assignment');
       case 'lecture':
-        return _NotifStyle(Icons.play_circle_outline, Colors.teal, const Color(0xFF003333), 'محاضرة');
+        return _NotifStyle(Icons.play_circle_outline, Colors.teal, const Color(0xFF003333), isAr ? 'محاضرة' : 'Lecture');
       case 'announcement':
-        return _NotifStyle(Icons.campaign_outlined, const Color(0xFFCCAA00), const Color(0xFF3D2D00), 'إعلان');
+        return _NotifStyle(Icons.campaign_outlined, const Color(0xFFCCAA00), const Color(0xFF3D2D00), isAr ? 'إعلان' : 'Announcement');
       case 'attendance':
-        return _NotifStyle(Icons.how_to_reg_outlined, Colors.blue, const Color(0xFF003366), 'حضور وغياب');
+        return _NotifStyle(Icons.how_to_reg_outlined, Colors.blue, const Color(0xFF003366), isAr ? 'حضور وغياب' : 'Attendance');
       case 'administrative':
-        return _NotifStyle(Icons.admin_panel_settings_outlined, Colors.purple, const Color(0xFF2E0047), 'إداري');
+        return _NotifStyle(Icons.admin_panel_settings_outlined, Colors.purple, const Color(0xFF2E0047), isAr ? 'إداري' : 'Administrative');
       case 'leave_request':
-        return _NotifStyle(Icons.event_busy_outlined, Colors.red, const Color(0xFF3D0000), 'طلب إجازة');
+        return _NotifStyle(Icons.event_busy_outlined, Colors.red, const Color(0xFF3D0000), isAr ? 'طلب إجازة' : 'Leave Request');
       case 'report':
       case 'report_request':
-        return _NotifStyle(Icons.assessment_outlined, Colors.orange, const Color(0xFF3D1A00), 'تقرير');
+        return _NotifStyle(Icons.assessment_outlined, Colors.orange, const Color(0xFF3D1A00), isAr ? 'تقرير' : 'Report');
       default:
-        return _NotifStyle(Icons.notifications_outlined, Colors.grey, const Color(0xFF1A1A1A), 'إشعار');
+        return _NotifStyle(Icons.notifications_outlined, Colors.grey, const Color(0xFF1A1A1A), isAr ? 'إشعار' : 'Notification');
     }
   }
 
@@ -320,177 +321,184 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark     = Theme.of(context).brightness == Brightness.dark;
-    final bgColor    = Theme.of(context).scaffoldBackgroundColor;
-    final cardColor  = Theme.of(context).cardColor;
-    final textColor  = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+    return ValueListenableBuilder<String>(
+      valueListenable: AppSettings.language,
+      builder: (context, lang, _) {
+        final bool isAr = lang == 'ar';
+        final isDark     = Theme.of(context).brightness == Brightness.dark;
+        final bgColor    = Theme.of(context).scaffoldBackgroundColor;
+        final cardColor  = Theme.of(context).cardColor;
+        final textColor  = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: bgColor,
-        extendBody: true,
-        appBar: AppBar(
-          backgroundColor: cardColor,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
-            onPressed: () => Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
-          ),
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'الإشعارات',
-                style: TextStyle(
-                    color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: Scaffold(
+            backgroundColor: bgColor,
+            extendBody: true,
+            appBar: AppBar(
+              backgroundColor: cardColor,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back, color: textColor, size: 20),
+                onPressed: () => Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
               ),
-              if (_unreadCount > 0) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFCC00),
-                    borderRadius: BorderRadius.circular(10),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isAr ? 'الإشعارات' : 'Notifications',
+                    style: TextStyle(
+                        color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                   ),
-                  child: Text(
-                    '$_unreadCount',
-                    style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          centerTitle: true,
-          actions: [
-            if (_unreadCount > 0)
-              _isMarkingAll
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Color(0xFFFFCC00))),
-                    )
-                  : TextButton(
-                      onPressed: _markAllAsRead,
-                      child: const Text('تمييز الكل كمقروء',
-                          style: TextStyle(
-                              color: Color(0xFFFFCC00), fontSize: 12, fontWeight: FontWeight.bold)),
+                  if (_unreadCount > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFCC00),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$_unreadCount',
+                        style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            const SizedBox.expand(),
-
-            Column(
+                  ],
+                ],
+              ),
+              centerTitle: true,
+              actions: [
+                if (_unreadCount > 0)
+                  _isMarkingAll
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Color(0xFFFFCC00))),
+                        )
+                      : TextButton(
+                          onPressed: _markAllAsRead,
+                          child: Text(isAr ? 'تمييز الكل كمقروء' : 'Mark all as read',
+                              style: const TextStyle(
+                                  color: Color(0xFFFFCC00), fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+              ],
+            ),
+            body: Stack(
               children: [
-                // شريط الفلترة
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildFilterChip('الكل', 'all', isDark),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('غير المقروءة', 'unread', isDark),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('المقروءة', 'read', isDark),
-                    ],
-                  ),
+                const SizedBox.expand(),
+
+                Column(
+                  children: [
+                    // شريط الفلترة
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildFilterChip(isAr ? 'الكل' : 'All', 'all', isDark),
+                          const SizedBox(width: 8),
+                          _buildFilterChip(isAr ? 'غير المقروءة' : 'Unread', 'unread', isDark),
+                          const SizedBox(width: 8),
+                          _buildFilterChip(isAr ? 'المقروءة' : 'Read', 'read', isDark),
+                        ],
+                      ),
+                    ),
+
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () => _fetchNotifications(refresh: true),
+                        color: const Color(0xFFFFCC00),
+                        child: _isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                    color: Color(0xFFFFCC00)),
+                              )
+                            : _notifications.isEmpty
+                                ? ListView(
+                                    children: [
+                                      SizedBox(
+                                        height: MediaQuery.of(context).size.height * 0.5,
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.notifications_off_outlined,
+                                                size: 64,
+                                                color: Colors.grey.shade600),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              isAr ? 'لا توجد إشعارات' : 'No notifications',
+                                              style: const TextStyle(
+                                                  color: Colors.grey, fontSize: 16),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : ListView.separated(
+                                    controller: _scrollController,
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                                    itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
+                                    separatorBuilder: (context, i) =>
+                                        const SizedBox(height: 10),
+                                    itemBuilder: (context, index) {
+                                      if (index == _notifications.length) {
+                                        return const Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(8.0),
+                                            child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                                          ),
+                                        );
+                                      }
+                                      final n = _notifications[index];
+                                      final style =
+                                          _styleForType(n['type'] as String?, isAr);
+                                      final isRead = n['is_read'] == true;
+                                      return _buildNotifCard(
+                                        context,
+                                        id: n['id'] as int,
+                                        index: index,
+                                        title: n['title'] as String? ?? '',
+                                        message: n['message'] as String? ?? '',
+                                        time: n['formatted_date'] as String? ?? n['time_ago'] as String? ?? '',
+                                        isRead: isRead,
+                                        style: style,
+                                        cardColor: cardColor,
+                                        textColor: textColor,
+                                        isAr: isAr,
+                                      );
+                                    },
+                                  ),
+                      ),
+                    ),
+                  ],
                 ),
 
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () => _fetchNotifications(refresh: true),
-                    color: const Color(0xFFFFCC00),
-                    child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                                color: Color(0xFFFFCC00)),
-                          )
-                        : _notifications.isEmpty
-                            ? ListView(
-                                children: [
-                                  SizedBox(
-                                    height: MediaQuery.of(context).size.height * 0.5,
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.notifications_off_outlined,
-                                            size: 64,
-                                            color: Colors.grey.shade600),
-                                        const SizedBox(height: 16),
-                                        const Text(
-                                          'لا توجد إشعارات',
-                                          style: TextStyle(
-                                              color: Colors.grey, fontSize: 16),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : ListView.separated(
-                                controller: _scrollController,
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-                                itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
-                                separatorBuilder: (context, i) =>
-                                    const SizedBox(height: 10),
-                                itemBuilder: (context, index) {
-                                  if (index == _notifications.length) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(8.0),
-                                        child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
-                                      ),
-                                    );
-                                  }
-                                  final n = _notifications[index];
-                                  final style =
-                                      _styleForType(n['type'] as String?);
-                                  final isRead = n['is_read'] == true;
-                                  return _buildNotifCard(
-                                    context,
-                                    id: n['id'] as int,
-                                    index: index,
-                                    title: n['title'] as String? ?? '',
-                                    message: n['message'] as String? ?? '',
-                                    time: n['formatted_date'] as String? ?? n['time_ago'] as String? ?? '',
-                                    isRead: isRead,
-                                    style: style,
-                                    cardColor: cardColor,
-                                    textColor: textColor,
-                                  );
-                                },
-                              ),
-                  ),
+                // الشريط السفلي
+                CustomBottomNav(
+                  currentIndex: 2,
+                  centerButton: const CustomSpeedDialEduBridge(),
+                  onHomeTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
+                  onProfileTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                  onNotificationsTap: () {},
+                  onMessagesTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const MessagesScreen())),
                 ),
               ],
             ),
-
-            // الشريط السفلي
-            CustomBottomNav(
-              currentIndex: 2,
-              centerButton: const CustomSpeedDialEduBridge(),
-              onHomeTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const TeacherHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen())),
-              onNotificationsTap: () {},
-              onMessagesTap: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const MessagesScreen())),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -505,6 +513,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     required _NotifStyle style,
     required Color cardColor,
     required Color textColor,
+    bool isAr = true,
   }) {
     final dateStr = time;
     return GestureDetector(
@@ -523,7 +532,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           borderRadius: BorderRadius.circular(30),
           child: Stack(
             children: [
-              Positioned(right: 0, top: 0, bottom: 0, child: Container(width: 5, color: style.color)),
+              Positioned(
+                right: isAr ? 0 : null,
+                left: isAr ? null : 0,
+                top: 0,
+                bottom: 0,
+                child: Container(width: 5, color: style.color),
+              ),
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(

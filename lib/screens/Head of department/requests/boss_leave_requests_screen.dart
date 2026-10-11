@@ -15,6 +15,8 @@ class _BossLeaveRequestsScreenState extends State<BossLeaveRequestsScreen> {
   List<dynamic> _requests = [];
   final ApiService _apiService = ApiService();
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
   @override
   void initState() {
     super.initState();
@@ -32,15 +34,19 @@ class _BossLeaveRequestsScreenState extends State<BossLeaveRequestsScreen> {
     }
   }
 
-  Future<void> _respond(int id, String status, String statusAr) async {
+  Future<void> _respond(int id, String status) async {
     bool success = await _apiService.respondHeadLeaveRequest(id, status);
+    if (!mounted) return;
     if (success) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم $statusAr بنجاح')));
+      final msg = isAr
+          ? (status == 'approved' ? 'تم القبول بنجاح' : 'تم الرفض بنجاح')
+          : (status == 'approved' ? 'Approved successfully' : 'Rejected successfully');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       _fetchRequests();
     } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('حدث خطأ أثناء تنفيذ الطلب')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(isAr ? 'حدث خطأ أثناء تنفيذ الطلب' : 'An error occurred while processing the request'),
+      ));
     }
   }
 
@@ -73,7 +79,7 @@ class _BossLeaveRequestsScreenState extends State<BossLeaveRequestsScreen> {
                       style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     leading: IconButton(
-                      icon: Icon(Icons.arrow_back, color: textColor),
+                      icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -132,7 +138,7 @@ class _BossLeaveRequestsScreenState extends State<BossLeaveRequestsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  req['student_name'] ?? req['user_name'] ?? 'مستخدم',
+                  req['student_name'] ?? req['user_name'] ?? (isAr ? 'مستخدم' : 'User'),
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 Container(
@@ -164,13 +170,19 @@ class _BossLeaveRequestsScreenState extends State<BossLeaveRequestsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
-                    onPressed: () => _respond(req['id'], 'rejected', 'الرفض'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade100, foregroundColor: Colors.red),
+                    onPressed: () => _respond(req['id'], 'rejected'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade100,
+                      foregroundColor: Colors.red,
+                    ),
                     child: Text(isAr ? 'رفض' : 'Reject'),
                   ),
                   ElevatedButton(
-                    onPressed: () => _respond(req['id'], 'approved', 'القبول'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade100, foregroundColor: Colors.green),
+                    onPressed: () => _respond(req['id'], 'approved'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade100,
+                      foregroundColor: Colors.green,
+                    ),
                     child: Text(isAr ? 'قبول' : 'Approve'),
                   ),
                 ],

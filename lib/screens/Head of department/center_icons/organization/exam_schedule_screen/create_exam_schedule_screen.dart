@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class CreateExamScheduleScreen extends StatefulWidget {
   const CreateExamScheduleScreen({super.key});
@@ -11,6 +12,9 @@ class CreateExamScheduleScreen extends StatefulWidget {
 }
 
 class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   final _formKey = GlobalKey<FormState>();
   final _courseCtrl = TextEditingController();
   final _hallCtrl = TextEditingController();
@@ -29,17 +33,43 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
   static const _examTypes = ['نصف فصلي', 'نهائي', 'عملي', 'شفهي'];
 
   @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _courseCtrl.dispose();
     _hallCtrl.dispose();
     super.dispose();
   }
 
+  String _periodLabel(String p) => isAr ? p : (p == 'الفترة الصباحية' ? 'Morning Period' : 'Evening Period');
+
+  String _examTypeLabel(String t) {
+    if (isAr) return t;
+    return switch (t) {
+      'نصف فصلي' => 'Midterm',
+      'نهائي' => 'Final',
+      'عملي' => 'Practical',
+      'شفهي' => 'Oral',
+      _ => t,
+    };
+  }
+
   String _formatDate(DateTime d) {
-    const months = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-        'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    return '${days[d.weekday % 7]}، ${d.day} ${months[d.month]} ${d.year}';
+    if (isAr) {
+      const months = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+          'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      return '${days[d.weekday % 7]}، ${d.day} ${months[d.month]} ${d.year}';
+    } else {
+      const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return '${days[d.weekday % 7]}, ${months[d.month]} ${d.day}, ${d.year}';
+    }
   }
 
   String _formatTime(TimeOfDay t) {
@@ -83,11 +113,11 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_examDate == null) {
-      _showSnack('اختر تاريخ الامتحان أولاً');
+      _showSnack(isAr ? 'اختر تاريخ الامتحان أولاً' : 'Select exam date first');
       return;
     }
     if (_startTime == null || _endTime == null) {
-      _showSnack('اختر وقت البداية والنهاية');
+      _showSnack(isAr ? 'اختر وقت البداية والنهاية' : 'Select start and end times');
       return;
     }
 
@@ -113,12 +143,12 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
       );
 
       if (mounted) {
-        _showSnack('✅ تم إضافة الامتحان بنجاح', isSuccess: true);
+        _showSnack(isAr ? '✅ تم إضافة الامتحان بنجاح' : '✅ Exam added successfully', isSuccess: true);
         Navigator.pop(context, true);
       }
     } catch (e) {
       debugPrint('⛔ Create Exam: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again';
       if (e is DioException && e.response?.data is Map) {
         msg = (e.response!.data['message'] ?? msg).toString();
       }
@@ -142,7 +172,7 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
@@ -150,8 +180,10 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
           elevation: 0,
           centerTitle: true,
           iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
-          title: Text('إضافة امتحان جديد',
-              style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+          title: Text(
+            isAr ? 'إضافة امتحان جديد' : 'Add New Exam',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
+          ),
         ),
         body: Form(
           key: _formKey,
@@ -159,20 +191,21 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               // ── معلومات المادة ─────────────────────────────────
-              _sectionTitle('معلومات المادة', Icons.book_outlined, _orange),
+              _sectionTitle(isAr ? 'معلومات المادة' : 'Course Information', Icons.book_outlined, _orange),
               const SizedBox(height: 10),
               _card(cardColor, [
                 _field(
                   ctrl: _courseCtrl,
-                  label: 'اسم المادة',
+                  label: isAr ? 'اسم المادة' : 'Course Name',
                   icon: Icons.school_outlined,
-                  validator: (v) => (v?.trim().isEmpty ?? true) ? 'أدخل اسم المادة' : null,
+                  validator: (v) => (v?.trim().isEmpty ?? true) ? (isAr ? 'أدخل اسم المادة' : 'Enter course name') : null,
                 ),
                 const SizedBox(height: 14),
                 _dropdownRow(
-                  label: 'نوع الامتحان',
+                  label: isAr ? 'نوع الامتحان' : 'Exam Type',
                   value: _examType,
                   items: _examTypes,
+                  itemLabel: _examTypeLabel,
                   onChanged: (v) => setState(() => _examType = v!),
                   textColor: textColor,
                 ),
@@ -180,13 +213,13 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
               const SizedBox(height: 16),
 
               // ── التاريخ والوقت ─────────────────────────────────
-              _sectionTitle('التاريخ والوقت', Icons.schedule_outlined, _orange),
+              _sectionTitle(isAr ? 'التاريخ والوقت' : 'Date & Time', Icons.schedule_outlined, _orange),
               const SizedBox(height: 10),
               _card(cardColor, [
                 // تاريخ
                 _pickerTile(
-                  label: 'تاريخ الامتحان',
-                  value: _examDate != null ? _formatDate(_examDate!) : 'اختر التاريخ',
+                  label: isAr ? 'تاريخ الامتحان' : 'Exam Date',
+                  value: _examDate != null ? _formatDate(_examDate!) : (isAr ? 'اختر التاريخ' : 'Select Date'),
                   icon: Icons.calendar_today_outlined,
                   hasValue: _examDate != null,
                   onTap: _pickDate,
@@ -195,17 +228,18 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
                 const Divider(height: 1),
                 // الفترة
                 _dropdownRow(
-                  label: 'الفترة',
+                  label: isAr ? 'الفترة' : 'Period',
                   value: _period,
                   items: _periods,
+                  itemLabel: _periodLabel,
                   onChanged: (v) => setState(() => _period = v!),
                   textColor: textColor,
                 ),
                 const Divider(height: 1),
                 // وقت البداية
                 _pickerTile(
-                  label: 'وقت البداية',
-                  value: _startTime != null ? _formatTime(_startTime!) : 'اختر الوقت',
+                  label: isAr ? 'وقت البداية' : 'Start Time',
+                  value: _startTime != null ? _formatTime(_startTime!) : (isAr ? 'اختر الوقت' : 'Select Time'),
                   icon: Icons.access_time_outlined,
                   hasValue: _startTime != null,
                   onTap: () => _pickTime(true),
@@ -214,8 +248,8 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
                 const Divider(height: 1),
                 // وقت النهاية
                 _pickerTile(
-                  label: 'وقت الانتهاء',
-                  value: _endTime != null ? _formatTime(_endTime!) : 'اختر الوقت',
+                  label: isAr ? 'وقت الانتهاء' : 'End Time',
+                  value: _endTime != null ? _formatTime(_endTime!) : (isAr ? 'اختر الوقت' : 'Select Time'),
                   icon: Icons.access_time_filled_outlined,
                   hasValue: _endTime != null,
                   onTap: () => _pickTime(false),
@@ -225,12 +259,12 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
               const SizedBox(height: 16),
 
               // ── القاعة ─────────────────────────────────────────
-              _sectionTitle('مكان الامتحان', Icons.location_on_outlined, _orange),
+              _sectionTitle(isAr ? 'مكان الامتحان' : 'Exam Location', Icons.location_on_outlined, _orange),
               const SizedBox(height: 10),
               _card(cardColor, [
                 _field(
                   ctrl: _hallCtrl,
-                  label: 'رقم القاعة / المختبر',
+                  label: isAr ? 'رقم القاعة / المختبر' : 'Hall / Lab Number',
                   icon: Icons.door_back_door_outlined,
                 ),
               ]),
@@ -251,7 +285,7 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
                           child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                       : const Icon(Icons.save_outlined, color: Colors.black),
                   label: Text(
-                    _isLoading ? 'جارٍ الحفظ...' : 'حفظ الامتحان',
+                    _isLoading ? (isAr ? 'جارٍ الحفظ...' : 'Saving...') : (isAr ? 'حفظ الامتحان' : 'Save Exam'),
                     style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Cairo', fontSize: 15),
                   ),
                 ),
@@ -336,7 +370,7 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
               )),
             ]),
           ),
-          const Icon(Icons.chevron_left, color: Colors.grey, size: 20),
+          Icon(isAr ? Icons.chevron_left : Icons.chevron_right, color: Colors.grey, size: 20),
         ]),
       ),
     );
@@ -348,6 +382,7 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
     required Color textColor,
+    String Function(String)? itemLabel,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -357,7 +392,7 @@ class _CreateExamScheduleScreenState extends State<CreateExamScheduleScreen> {
           value: value,
           underline: const SizedBox(),
           style: TextStyle(color: textColor, fontFamily: 'Cairo', fontSize: 13),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(itemLabel != null ? itemLabel(e) : e))).toList(),
           onChanged: onChanged,
         ),
       ]),

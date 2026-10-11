@@ -17,10 +17,6 @@ import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import '../requests/boss_student_service_requests_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
 
-// 🛠️ إشعارات "طلب خدمة محول من الشؤون" (بعد ما تحوّل الشؤون طلب استرحام/وثائق/
-// إكمال لرئيس القسم) بتوصل بنوع type = "student_service_<mercy|document|makeup>"
-// (النوع الحقيقي للطلب مُضمّن بقيمة type نفسها). هاي الدالة بتحوّل هاد النوع
-// لعنوان الشاشة المطلوبة وتفتحها مباشرة.
 Widget? _bossStudentServiceScreenForType(String notificationType) {
   if (!notificationType.startsWith('student_service_')) return null;
   final requestType = notificationType.substring('student_service_'.length);
@@ -60,7 +56,7 @@ class BossNotification {
   final String type;
   final int? relatedId;
   final int? senderId;
-  final String? leaveStatus; // pending_hod | pending_parent | approved | rejected
+  final String? leaveStatus;
 
   BossNotification({
     required this.id,
@@ -91,6 +87,12 @@ class BossNotificationScreen extends StatefulWidget {
 }
 
 class _BossNotificationScreenState extends State<BossNotificationScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   bool _isLoading = true;
   bool _isLoadingMore = false;
   List<BossNotification> notifications = [];
@@ -102,6 +104,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchNotifications();
     NotificationPolling.latestNew.addListener(_onNewNotif);
     _scrollController.addListener(_onScroll);
@@ -109,6 +112,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     NotificationPolling.latestNew.removeListener(_onNewNotif);
     _scrollController.dispose();
     super.dispose();
@@ -252,7 +256,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     if (n.relatedId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا يمكن الرد على هذا الطلب: معرف الطلب مفقود')),
+          SnackBar(content: Text(isAr ? 'لا يمكن الرد على هذا الطلب: معرف الطلب مفقود' : 'Cannot respond: Request ID missing')),
         );
       }
       return;
@@ -274,7 +278,9 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
           );
         });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(status == 'approved' ? 'تمت الموافقة على الطلب ✅' : 'تم رفض الطلب'),
+          content: Text(status == 'approved'
+              ? (isAr ? 'تمت الموافقة على الطلب ✅' : 'Request approved ✅')
+              : (isAr ? 'تم رفض الطلب' : 'Request rejected')),
           backgroundColor: status == 'approved' ? Colors.green : Colors.red,
         ));
       }
@@ -282,7 +288,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
       debugPrint('⛔ Respond Leave Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ، حاول مجدداً'), backgroundColor: Colors.red),
+          SnackBar(content: Text(isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again'), backgroundColor: Colors.red),
         );
       }
     }
@@ -296,9 +302,9 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     String target = 'students';
     bool isSending = false;
     final targets = [
-      {'value': 'students',          'label': 'الطلاب فقط'},
-      {'value': 'students_teachers', 'label': 'الطلاب والمعلمين'},
-      {'value': 'all',               'label': 'الكل'},
+      {'value': 'students',          'label': isAr ? 'الطلاب فقط' : 'Students Only'},
+      {'value': 'students_teachers', 'label': isAr ? 'الطلاب والمعلمين' : 'Students & Teachers'},
+      {'value': 'all',               'label': isAr ? 'الكل' : 'All'},
     ];
 
     showModalBottomSheet(
@@ -307,7 +313,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
             child: Container(
@@ -325,17 +331,19 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                       decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2))),
                   ),
                   const SizedBox(height: 20),
-                  const Text('إرسال إشعار جديد',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    isAr ? 'إرسال إشعار جديد' : 'Send New Notification',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 20),
                   TextField(
                     controller: titleCtrl,
                     decoration: InputDecoration(
-                      labelText: 'عنوان الإشعار',
+                      labelText: isAr ? 'عنوان الإشعار' : 'Notification Title',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFFCCAA00), width: 2),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(14)),
+                        borderSide: BorderSide(color: Color(0xFFCCAA00), width: 2),
                       ),
                     ),
                   ),
@@ -344,16 +352,16 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                     controller: messageCtrl,
                     maxLines: 3,
                     decoration: InputDecoration(
-                      labelText: 'محتوى الإشعار',
+                      labelText: isAr ? 'محتوى الإشعار' : 'Notification Content',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFFCCAA00), width: 2),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(14)),
+                        borderSide: BorderSide(color: Color(0xFFCCAA00), width: 2),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('إرسال إلى:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(isAr ? 'إرسال إلى:' : 'Send To:', style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Column(
                     children: targets.map((t) {
@@ -393,7 +401,10 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                         if (isSending) return;
                         if (titleCtrl.text.trim().isEmpty || messageCtrl.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('يرجى ملء جميع الحقول'), backgroundColor: Colors.red),
+                            SnackBar(
+                              content: Text(isAr ? 'يرجى ملء جميع الحقول' : 'Please fill all fields'),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                           return;
                         }
@@ -415,7 +426,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                           }
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('تم إرسال الإشعار بنجاح ✅'), backgroundColor: Colors.green),
+                              SnackBar(content: Text(isAr ? 'تم إرسال الإشعار بنجاح ✅' : 'Notification sent successfully ✅'), backgroundColor: Colors.green),
                             );
                           }
                         } catch (e) {
@@ -425,7 +436,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                           }
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('حدث خطأ، حاول مجدداً'), backgroundColor: Colors.red),
+                              SnackBar(content: Text(isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again'), backgroundColor: Colors.red),
                             );
                           }
                         }
@@ -439,7 +450,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                       child: isSending
                           ? const SizedBox(width: 20, height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                          : const Text('إرسال الإشعار', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          : Text(isAr ? 'إرسال الإشعار' : 'Send Notification', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -485,7 +496,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: SafeArea(
           bottom: false,
           child: Stack(
@@ -499,9 +510,9 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildFilterChip('الكل', 'all', isDark),
-                        _buildFilterChip('غير المقروءة', 'unread', isDark),
-                        _buildFilterChip('المقروءة', 'read', isDark),
+                        _buildFilterChip(isAr ? 'الكل' : 'All', 'all', isDark),
+                        _buildFilterChip(isAr ? 'غير المقروءة' : 'Unread', 'unread', isDark),
+                        _buildFilterChip(isAr ? 'المقروءة' : 'Read', 'read', isDark),
                       ],
                     ),
                   ),
@@ -513,12 +524,14 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                             color: const Color(0xFFCCAA00),
                             child: notifications.isEmpty
                                 ? ListView(
-                                    children: const [
+                                    children: [
                                       Padding(
-                                        padding: EdgeInsets.all(40),
+                                        padding: const EdgeInsets.all(40),
                                         child: Center(
-                                          child: Text("لا توجد إشعارات حالياً",
-                                              style: TextStyle(color: Colors.grey)),
+                                          child: Text(
+                                            isAr ? "لا توجد إشعارات حالياً" : "No notifications yet",
+                                            style: const TextStyle(color: Colors.grey),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -549,7 +562,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
                                                 'content':    n.description,
                                                 'time_ago':   n.time,
                                                 'created_at': n.time,
-                                                'author_name': 'الإدارة',
+                                                'author_name': isAr ? 'الإدارة' : 'Admin',
                                               }),
                                             ));
                                           } else if (n.type == 'report') {
@@ -593,7 +606,8 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
               // زر إرسال إشعار جديد
               Positioned(
                 bottom: 95,
-                left: 20,
+                left: isAr ? 20 : null,
+                right: isAr ? null : 20,
                 child: GestureDetector(
                   onTap: _showCreateNotifSheet,
                   child: Container(
@@ -628,15 +642,17 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back,
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back,
                 color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
           ),
           Row(
             children: [
-              const Text("الإشعارات",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(
+                isAr ? "الإشعارات" : "Notifications",
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
               if (_unreadCount > 0) ...[
                 const SizedBox(width: 8),
                 Container(
@@ -654,8 +670,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
           ),
           GestureDetector(
             onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen(
-                    userName: "رئيس القسم", userRole: "رئيس قسم"))),
+                MaterialPageRoute(builder: (_) => const SettingsScreen())),
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -670,6 +685,16 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
   }
 
   String _labelForType(String type) {
+    if (!isAr) {
+      switch (type) {
+        case 'leave_request': return 'Leave Request';
+        case 'meeting_request': return 'Meeting Request';
+        case 'summon': return 'Parent Summon';
+        case 'announcement':  return 'Announcement';
+        case 'report':        return 'Report';
+        default:              return 'Notification';
+      }
+    }
     switch (type) {
       case 'leave_request': return 'طلب إجازة';
       case 'meeting_request': return 'طلب موعد لقاء';
@@ -703,7 +728,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
         }
         if (n.type == 'message' || n.type == 'chat') {
           final senderId = n.senderId ?? n.relatedId;
-          final senderName = n.title.replaceFirst('رسالة جديدة من ', '');
+          final senderName = n.title.replaceFirst(isAr ? 'رسالة جديدة من ' : 'New message from ', '');
           if (n.id > 0) ApiService().deleteNotification(n.id);
           if (senderId != null) ApiService().deleteChatNotifications(senderId);
           if (mounted) {
@@ -716,7 +741,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
             Navigator.push(context, MaterialPageRoute(
               builder: (_) => ChatRoomScreen(contact: {
                 'id': senderId,
-                'name': senderName.isNotEmpty ? senderName : 'المستخدم',
+                'name': senderName.isNotEmpty ? senderName : (isAr ? 'المستخدم' : 'User'),
               }),
             ));
           }
@@ -733,7 +758,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
               'content':    n.description,
               'time_ago':   n.time,
               'created_at': n.time,
-              'author_name': 'الإدارة',
+              'author_name': isAr ? 'الإدارة' : 'Admin',
             }),
           ));
         } else if (n.isLeaveRequest) {
@@ -753,164 +778,175 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
         }
       },
       child: Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Stack(
-          children: [
-            Positioned(right: 0, top: 0, bottom: 0,
-                child: Container(width: 5, color: color)),
-            // نقطة الإشعار غير المقروء
-            if (n.isUnread)
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: Stack(
+            children: [
               Positioned(
-                left: 14,
-                top: 14,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF5722),
-                    shape: BoxShape.circle,
+                right: isAr ? 0 : null,
+                left: isAr ? null : 0,
+                top: 0,
+                bottom: 0,
+                child: Container(width: 5, color: color),
+              ),
+              // نقطة الإشعار غير المقروء
+              if (n.isUnread)
+                Positioned(
+                  left: isAr ? 14 : null,
+                  right: isAr ? null : 14,
+                  top: 14,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF5722),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-                        child: Icon(n.icon, color: color, size: 24),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  child: Text(n.title,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                      overflow: TextOverflow.ellipsis),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.07),
-                                    borderRadius: BorderRadius.circular(12),
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                          child: Icon(n.icon, color: color, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: Text(n.title,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                        overflow: TextOverflow.ellipsis),
                                   ),
-                                  child: Text(dateStr, style: TextStyle(color: color, fontSize: 10)),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(n.description,
-                                style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13, height: 1.4)),
-                            const SizedBox(height: 6),
-                            Text(label,
-                                style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.07),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(dateStr, style: TextStyle(color: color, fontSize: 10)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(n.description,
+                                  style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 13, height: 1.4)),
+                              const SizedBox(height: 6),
+                              Text(label,
+                                  style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  if (n.isLeaveRequest) ...[
-                    const SizedBox(height: 14),
-                    if (n.isPendingParent)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                    if (n.isLeaveRequest) ...[
+                      const SizedBox(height: 14),
+                      if (n.isPendingParent)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.blue),
+                              const SizedBox(width: 6),
+                              Text(
+                                isAr ? 'بانتظار موافقة ولي الأمر' : 'Awaiting Parent Approval',
+                                style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (n.isPendingLeave)
+                        Row(
                           children: [
-                            Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.blue),
-                            SizedBox(width: 6),
-                            Text('بانتظار موافقة ولي الأمر', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 13)),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => _respondLeave(index, 'approved'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFCCAA00),
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                child: Text(isAr ? "موافقة" : "Approve", style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => _respondLeave(index, 'rejected'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey.withValues(alpha: 0.15),
+                                  foregroundColor: isDark ? Colors.white : Colors.black,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                child: Text(isAr ? "رفض" : "Reject", style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ),
                           ],
-                        ),
-                      )
-                    else if (n.isPendingLeave)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _respondLeave(index, 'approved'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFCCAA00),
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              child: const Text("موافقة", style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
+                        )
+                      else
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: (n.leaveStatus == 'rejected' ? Colors.red : Colors.green).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _respondLeave(index, 'rejected'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey.withValues(alpha: 0.15),
-                                foregroundColor: isDark ? Colors.white : Colors.black,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              child: const Text("رفض", style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: (n.leaveStatus == 'rejected' ? Colors.red : Colors.green).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              n.leaveStatus == 'rejected' ? Icons.cancel_outlined : Icons.check_circle_outline,
-                              size: 18,
-                              color: n.leaveStatus == 'rejected' ? Colors.red : Colors.green,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              n.leaveStatus == 'rejected' ? 'تم رفض الطلب' : 'تمت الموافقة على الطلب',
-                              style: TextStyle(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                n.leaveStatus == 'rejected' ? Icons.cancel_outlined : Icons.check_circle_outline,
+                                size: 18,
                                 color: n.leaveStatus == 'rejected' ? Colors.red : Colors.green,
-                                fontWeight: FontWeight.bold, fontSize: 13,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Text(
+                                n.leaveStatus == 'rejected'
+                                    ? (isAr ? 'تم رفض الطلب' : 'Request Rejected')
+                                    : (isAr ? 'تمت الموافقة على الطلب' : 'Request Approved'),
+                                style: TextStyle(
+                                  color: n.leaveStatus == 'rejected' ? Colors.red : Colors.green,
+                                  fontWeight: FontWeight.bold, fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }

@@ -40,13 +40,21 @@ class _AffairsOfficerNotificationsScreenState
     super.initState();
     _fetchNotifications();
     _scrollController.addListener(_onScroll);
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _scrollController.dispose();
     super.dispose();
   }
+
+  bool get isAr => AppSettings.language.value == 'ar';
 
   void _onScroll() {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
@@ -245,21 +253,21 @@ class _AffairsOfficerNotificationsScreenState
     switch (type) {
       case 'announcement':
       case 'administrative':
-        return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': 'إعلان'};
+        return {'color': const Color(0xFFCCAA00), 'icon': Icons.campaign_outlined, 'label': isAr ? 'إعلان' : 'Announcement'};
       case 'leave_request':
-        return {'color': Colors.blue, 'icon': Icons.description_outlined, 'label': 'طلب إجازة'};
+        return {'color': Colors.blue, 'icon': Icons.description_outlined, 'label': isAr ? 'طلب إجازة' : 'Leave Request'};
       case 'meeting_request':
-        return {'color': Colors.teal, 'icon': Icons.calendar_month_outlined, 'label': 'طلب موعد'};
+        return {'color': Colors.teal, 'icon': Icons.calendar_month_outlined, 'label': isAr ? 'طلب موعد' : 'Appointment'};
       case 'summon':
-        return {'color': Colors.deepOrange, 'icon': Icons.person_add_alt_1_outlined, 'label': 'استدعاء إداري'};
+        return {'color': Colors.deepOrange, 'icon': Icons.person_add_alt_1_outlined, 'label': isAr ? 'استدعاء إداري' : 'Summon'};
       case 'report':
-        return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': 'تقرير'};
+        return {'color': Colors.orange, 'icon': Icons.assignment_turned_in_rounded, 'label': isAr ? 'تقرير' : 'Report'};
       case 'attendance':
-        return {'color': Colors.red, 'icon': Icons.person_off, 'label': 'حضور وغياب'};
+        return {'color': Colors.red, 'icon': Icons.person_off, 'label': isAr ? 'حضور وغياب' : 'Attendance'};
       case 'message':
-        return {'color': Colors.teal, 'icon': Icons.chat_bubble_outline, 'label': 'رسالة'};
+        return {'color': Colors.teal, 'icon': Icons.chat_bubble_outline, 'label': isAr ? 'رسالة' : 'Message'};
       default:
-        return {'color': Colors.blueGrey, 'icon': Icons.notifications_active, 'label': 'إشعار'};
+        return {'color': Colors.blueGrey, 'icon': Icons.notifications_active, 'label': isAr ? 'إشعار' : 'Notification'};
     }
   }
 
@@ -295,7 +303,7 @@ class _AffairsOfficerNotificationsScreenState
     final Color textColor = isDark ? Colors.white : Colors.black;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
@@ -315,7 +323,7 @@ class _AffairsOfficerNotificationsScreenState
                         ),
                         Row(
                           children: [
-                            Text("الإشعارات", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+                            Text(isAr ? "الإشعارات" : "Notifications", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
                             if (_unreadCount > 0) ...[
                               const SizedBox(width: 8),
                               Container(
@@ -333,11 +341,11 @@ class _AffairsOfficerNotificationsScreenState
                                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00)))
                                   : TextButton(
                                       onPressed: _markAllAsRead,
-                                      child: Text('تمييز الكل كمقروء', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                                      child: Text(isAr ? 'تمييز الكل كمقروء' : 'Mark all read', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
                                     )
                             else
                                 IconButton(
-                                  icon: Icon(Icons.arrow_back, color: textColor, size: 26),
+                                  icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor, size: 26),
                                   onPressed: () {
                                     if (Navigator.canPop(context)) {
                                       Navigator.pop(context);
@@ -361,9 +369,9 @@ class _AffairsOfficerNotificationsScreenState
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildFilterChip('الكل', 'all', isDark),
-                        _buildFilterChip('غير المقروءة', 'unread', isDark),
-                        _buildFilterChip('المقروءة', 'read', isDark),
+                        _buildFilterChip(isAr ? 'الكل' : 'All', 'all', isDark),
+                        _buildFilterChip(isAr ? 'غير المقروءة' : 'Unread', 'unread', isDark),
+                        _buildFilterChip(isAr ? 'المقروءة' : 'Read', 'read', isDark),
                       ],
                     ),
                   ),
@@ -379,7 +387,7 @@ class _AffairsOfficerNotificationsScreenState
                                     SizedBox(
                                       height: 400,
                                       child: Center(
-                                        child: Text("لا توجد إشعارات حالياً",
+                                        child: Text(isAr ? "لا توجد إشعارات حالياً" : "No notifications currently",
                                             style: TextStyle(color: textColor.withValues(alpha: 0.5))),
                                       ),
                                     )
@@ -449,7 +457,12 @@ class _AffairsOfficerNotificationsScreenState
               width: 4,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: const BorderRadius.only(topRight: Radius.circular(16), bottomRight: Radius.circular(16)),
+                borderRadius: BorderRadius.only(
+                  topRight: isAr ? const Radius.circular(16) : Radius.zero,
+                  bottomRight: isAr ? const Radius.circular(16) : Radius.zero,
+                  topLeft: isAr ? Radius.zero : const Radius.circular(16),
+                  bottomLeft: isAr ? Radius.zero : const Radius.circular(16),
+                ),
               ),
             ),
             Expanded(
@@ -465,7 +478,7 @@ class _AffairsOfficerNotificationsScreenState
                           Text(dateStr, style: TextStyle(fontSize: 10, color: textColor.withValues(alpha: 0.5))),
                           const SizedBox(height: 4),
                           Text(
-                            n['title']?.toString() ?? 'إشعار',
+                            n['title']?.toString() ?? (isAr ? 'إشعار' : 'Notification'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,

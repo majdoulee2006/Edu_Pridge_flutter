@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
 
 class DepartmentSetupWizard extends StatefulWidget {
@@ -28,6 +29,12 @@ enum WizardScreen {
 }
 
 class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   WizardScreen _currentScreen = WizardScreen.mainChoice;
   bool _isLoading = false;
 
@@ -57,11 +64,13 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadInitialData();
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
     _emailCtrl.dispose();
@@ -96,10 +105,10 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
     _hodCompleted = true;
     if (!_coursesCompleted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم تعيين رئيس القسم بنجاح! الانتقال إجباري لتخصيص الدورات...'),
+        SnackBar(
+          content: Text(isAr ? 'تم تعيين رئيس القسم بنجاح! الانتقال إجباري لتخصيص الدورات...' : 'Head of Department assigned successfully! Redirecting to allocate courses...'),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
       setState(() => _currentScreen = WizardScreen.coursesSubChoice);
@@ -112,10 +121,10 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
     _coursesCompleted = true;
     if (!_hodCompleted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم إعداد الدورات بنجاح! الانتقال إجباري لتعيين رئيس القسم...'),
+        SnackBar(
+          content: Text(isAr ? 'تم إعداد الدورات بنجاح! الانتقال إجباري لتعيين رئيس القسم...' : 'Courses setup successfully! Redirecting to assign Head of Department...'),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
       setState(() => _currentScreen = WizardScreen.hodSubChoice);
@@ -128,7 +137,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
     widget.onFinished();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('تهانينا! تم إكمال جميع خطوات تأسيس قسم "${widget.departmentName}" بنجاح! 🎉'),
+        content: Text(isAr ? 'تهانينا! تم إكمال جميع خطوات تأسيس قسم "${widget.departmentName}" بنجاح! 🎉' : 'Congratulations! All setup steps for department "${widget.departmentName}" completed successfully! 🎉'),
         backgroundColor: Colors.green,
       ),
     );
@@ -143,7 +152,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
         _usernameCtrl.text.trim().isEmpty ||
         _passwordCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى تعبئة جميع الحقول المطلوبة')),
+        SnackBar(content: Text(isAr ? 'يرجى تعبئة جميع الحقول المطلوبة' : 'Please fill all required fields')),
       );
       return;
     }
@@ -164,25 +173,29 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       if (success) {
         _onHodStepDone();
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل إنشاء حساب رئيس القسم'), backgroundColor: Colors.red),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(isAr ? 'فشل إنشاء حساب رئيس القسم' : 'Failed to create Head of Department account'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? 'خطأ: $e' : 'Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _submitExistingHod() async {
     if (_selectedTeacherId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى اختيار أستاذ من القائمة')),
+        SnackBar(content: Text(isAr ? 'يرجى اختيار أستاذ من القائمة' : 'Please select a teacher from the list')),
       );
       return;
     }
@@ -197,25 +210,29 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       if (success) {
         _onHodStepDone();
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل تخصيص رئيس القسم'), backgroundColor: Colors.red),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(isAr ? 'فشل تخصيص رئيس القسم' : 'Failed to assign Head of Department'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? 'خطأ: $e' : 'Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _submitNewCourse() async {
     if (_courseTitleCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال اسم الدورة')),
+        SnackBar(content: Text(isAr ? 'يرجى إدخال اسم الدورة' : 'Please enter course title')),
       );
       return;
     }
@@ -231,25 +248,29 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       if (success) {
         _onCoursesStepDone();
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل إضافة الدورة الجديدة'), backgroundColor: Colors.red),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(isAr ? 'فشل إضافة الدورة الجديدة' : 'Failed to add new course'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? 'خطأ: $e' : 'Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _submitAssignCourses() async {
     if (_selectedProgramIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى اختيار دورة واحدة على الأقل')),
+        SnackBar(content: Text(isAr ? 'يرجى اختيار دورة واحدة على الأقل' : 'Please select at least one course')),
       );
       return;
     }
@@ -264,18 +285,22 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
       if (success) {
         _onCoursesStepDone();
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل تخصيص الدورات للقسم'), backgroundColor: Colors.red),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(isAr ? 'فشل تخصيص الدورات للقسم' : 'Failed to allocate courses to department'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? 'خطأ: $e' : 'Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -294,24 +319,29 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
         final confirm = await showDialog<bool>(
           context: context,
           builder: (context) => Directionality(
-            textDirection: TextDirection.rtl,
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
             child: AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                  SizedBox(width: 8),
-                  Text('تنبيه نقل دورة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Text(
+                    isAr ? 'تنبيه نقل دورة' : 'Course Transfer Warning',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ],
               ),
               content: Text(
-                'الدورة "${program['name']}" مخصصة حالياً لقسم "$currentDept".\n\nهل تريد إلغاء تخصيصها ونقلها بالكامل لقسمك الجديد "${widget.departmentName}"؟',
+                isAr
+                    ? 'الدورة "${program['name']}" مخصصة حالياً لقسم "$currentDept".\n\nهل تريد إلغاء تخصيصها ونقلها بالكامل لقسمك الجديد "${widget.departmentName}"؟'
+                    : 'Course "${program['name']}" is currently assigned to "$currentDept".\n\nDo you want to transfer it completely to your new department "${widget.departmentName}"?',
                 style: const TextStyle(fontSize: 14),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+                  child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
@@ -320,7 +350,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('تأكيد النقل'),
+                  child: Text(isAr ? 'تأكيد النقل' : 'Confirm Transfer'),
                 ),
               ],
             ),
@@ -342,7 +372,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
     final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         backgroundColor: isDark ? const Color(0xFF181B20) : Colors.white,
@@ -369,7 +399,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        "تم إنشاء القسم بنجاح! 🎉",
+                        isAr ? "تم إنشاء القسم بنجاح! 🎉" : "Department Created Successfully! 🎉",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -379,7 +409,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "القسم: ${widget.departmentName}",
+                        isAr ? "القسم: ${widget.departmentName}" : "Department: ${widget.departmentName}",
                         style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
@@ -418,9 +448,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
   Widget _buildMainChoiceScreen(bool isDark, Color primaryYellow) {
     return Column(
       children: [
-        const Text(
-          "ماذا تريد أن تفعل الآن للقسم الجديد؟",
-          style: TextStyle(fontSize: 13, color: Colors.grey),
+        Text(
+          isAr ? "ماذا تريد أن تفعل الآن للقسم الجديد؟" : "What would you like to do next for the new department?",
+          style: const TextStyle(fontSize: 13, color: Colors.grey),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 20),
@@ -436,7 +466,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
               size: 20,
             ),
             label: Text(
-              _hodCompleted ? "تعديل رئيس القسم (مكتمل)" : "تخصيص رئيس للقسم",
+              _hodCompleted
+                  ? (isAr ? "تعديل رئيس القسم (مكتمل)" : "Edit Department Head (Done)")
+                  : (isAr ? "تخصيص رئيس للقسم" : "Assign Head of Department"),
               style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
             ),
             style: ElevatedButton.styleFrom(
@@ -459,7 +491,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
               size: 20,
             ),
             label: Text(
-              _coursesCompleted ? "إدارة دورات القسم (مكتمل)" : "إضافة/تخصيص دورات للقسم",
+              _coursesCompleted
+                  ? (isAr ? "إدارة دورات القسم (مكتمل)" : "Manage Department Courses (Done)")
+                  : (isAr ? "إضافة/تخصيص دورات للقسم" : "Add/Assign Courses to Department"),
               style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
             ),
             style: ElevatedButton.styleFrom(
@@ -476,7 +510,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
             widget.onFinished();
             Navigator.pop(context);
           },
-          child: const Text("إلغاء / تخطي", style: TextStyle(color: Colors.grey, fontSize: 13)),
+          child: Text(isAr ? "إلغاء / تخطي" : "Cancel / Skip", style: const TextStyle(color: Colors.grey, fontSize: 13)),
         ),
       ],
     );
@@ -486,9 +520,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
   Widget _buildHodSubChoiceScreen(bool isDark, Color primaryYellow) {
     return Column(
       children: [
-        const Text(
-          "إشراف رئيس القسم: اختر الآلية المناسبة",
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        Text(
+          isAr ? "إشراف رئيس القسم: اختر الآلية المناسبة" : "Department Head Supervision: Choose method",
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
 
@@ -498,9 +532,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
           child: ElevatedButton.icon(
             onPressed: () => setState(() => _currentScreen = WizardScreen.hodCreateNew),
             icon: const Icon(Icons.person_add, color: Colors.black, size: 18),
-            label: const Text(
-              "إنشاء حساب رئيس قسم جديد (إضافة)",
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+            label: Text(
+              isAr ? "إنشاء حساب رئيس قسم جديد (إضافة)" : "Create New Department Head Account",
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryYellow,
@@ -517,9 +551,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
           child: OutlinedButton.icon(
             onPressed: () => setState(() => _currentScreen = WizardScreen.hodAssignExisting),
             icon: const Icon(Icons.group, size: 18),
-            label: const Text(
-              "تخصيص شخص موجود في النظام",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            label: Text(
+              isAr ? "تخصيص شخص موجود في النظام" : "Assign an Existing Teacher",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -531,7 +565,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
 
         TextButton(
           onPressed: () => setState(() => _currentScreen = WizardScreen.mainChoice),
-          child: const Text("رجوع للخيارات", style: TextStyle(color: Colors.grey, fontSize: 12)),
+          child: Text(isAr ? "رجوع للخيارات" : "Back to Options", style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ),
       ],
     );
@@ -542,23 +576,26 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("إضافة رئيس قسم جديد وتخصيصه فوراً:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          isAr ? "إضافة رئيس قسم جديد وتخصيصه فوراً:" : "Add new Department Head and assign immediately:",
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(child: _buildTextField(_firstNameCtrl, "الاسم الأول", isDark)),
+            Expanded(child: _buildTextField(_firstNameCtrl, isAr ? "الاسم الأول" : "First Name", isDark)),
             const SizedBox(width: 8),
-            Expanded(child: _buildTextField(_lastNameCtrl, "اسم العائلة", isDark)),
+            Expanded(child: _buildTextField(_lastNameCtrl, isAr ? "اسم العائلة" : "Last Name", isDark)),
           ],
         ),
         const SizedBox(height: 8),
-        _buildTextField(_emailCtrl, "البريد الإلكتروني", isDark, keyboardType: TextInputType.emailAddress),
+        _buildTextField(_emailCtrl, isAr ? "البريد الإلكتروني" : "Email", isDark, keyboardType: TextInputType.emailAddress),
         const SizedBox(height: 8),
-        _buildTextField(_phoneCtrl, "رقم الهاتف", isDark, keyboardType: TextInputType.phone),
+        _buildTextField(_phoneCtrl, isAr ? "رقم الهاتف" : "Phone Number", isDark, keyboardType: TextInputType.phone),
         const SizedBox(height: 8),
-        _buildTextField(_usernameCtrl, "اسم المستخدم", isDark),
+        _buildTextField(_usernameCtrl, isAr ? "اسم المستخدم" : "Username", isDark),
         const SizedBox(height: 8),
-        _buildTextField(_passwordCtrl, "كلمة المرور", isDark, isPassword: true),
+        _buildTextField(_passwordCtrl, isAr ? "كلمة المرور" : "Password", isDark, isPassword: true),
         const SizedBox(height: 16),
 
         Row(
@@ -566,7 +603,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
           children: [
             TextButton(
               onPressed: () => setState(() => _currentScreen = WizardScreen.hodSubChoice),
-              child: const Text("رجوع", style: TextStyle(color: Colors.grey)),
+              child: Text(isAr ? "رجوع" : "Back", style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: _submitNewHod,
@@ -575,7 +612,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text("إنهاء وتعيين", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(isAr ? "إنهاء وتعيين" : "Finish & Assign", style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -588,17 +625,21 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("اختر أستاذ من النظام ليكون رئيساً للقسم:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          isAr ? "اختر أستاذ من النظام ليكون رئيساً للقسم:" : "Select teacher from system as Department Head:",
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 10),
         SizedBox(
           height: 200,
           child: _teachers.isEmpty
-              ? const Center(child: Text("لا يوجد أساتذة متاحيين"))
+              ? Center(child: Text(isAr ? "لا يوجد أساتذة متاحيين" : "No available teachers"))
               : ListView.builder(
                   itemCount: _teachers.length,
                   itemBuilder: (context, index) {
                     final teacher = _teachers[index];
                     final isSelected = _selectedTeacherId == teacher['user_id'];
+                    final deptName = teacher['department'] ?? (isAr ? 'غير مخصص' : 'Unassigned');
                     return ListTile(
                       dense: true,
                       onTap: () => setState(() => _selectedTeacherId = teacher['user_id']),
@@ -608,7 +649,10 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                         child: Icon(Icons.person, size: 16, color: isSelected ? Colors.white : Colors.black),
                       ),
                       title: Text(teacher['full_name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                      subtitle: Text('القسم الحالي: ${teacher['department'] ?? 'غير مخصص'}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      subtitle: Text(
+                        isAr ? 'القسم الحالي: $deptName' : 'Current Dept: $deptName',
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
                       trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFF10B981)) : null,
                     );
                   },
@@ -620,7 +664,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
           children: [
             TextButton(
               onPressed: () => setState(() => _currentScreen = WizardScreen.hodSubChoice),
-              child: const Text("رجوع", style: TextStyle(color: Colors.grey)),
+              child: Text(isAr ? "رجوع" : "Back", style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: _submitExistingHod,
@@ -629,7 +673,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text("تأكيد التخصيص", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(isAr ? "تأكيد التخصيص" : "Confirm Assignment", style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -641,9 +685,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
   Widget _buildCoursesSubChoiceScreen(bool isDark, Color primaryYellow) {
     return Column(
       children: [
-        const Text(
-          "إعداد الدورات والبرامج: اختر الإجراء المناسب",
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        Text(
+          isAr ? "إعداد الدورات والبرامج: اختر الإجراء المناسب" : "Courses & Programs Setup: Choose Action",
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
 
@@ -653,9 +697,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
           child: ElevatedButton.icon(
             onPressed: () => setState(() => _currentScreen = WizardScreen.coursesCreateNew),
             icon: const Icon(Icons.add_circle, color: Colors.black, size: 18),
-            label: const Text(
-              "إنشاء دورة جديدة للقسم",
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+            label: Text(
+              isAr ? "إنشاء دورة جديدة للقسم" : "Create New Course for Department",
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryYellow,
@@ -672,9 +716,9 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
           child: OutlinedButton.icon(
             onPressed: () => setState(() => _currentScreen = WizardScreen.coursesAssignExisting),
             icon: const Icon(Icons.category, size: 18),
-            label: const Text(
-              "تخصيص دورات موجودة في النظام",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            label: Text(
+              isAr ? "تخصيص دورات موجودة في النظام" : "Assign Existing Courses from System",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -686,7 +730,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
 
         TextButton(
           onPressed: () => setState(() => _currentScreen = WizardScreen.mainChoice),
-          child: const Text("رجوع للخيارات", style: TextStyle(color: Colors.grey, fontSize: 12)),
+          child: Text(isAr ? "رجوع للخيارات" : "Back to Options", style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ),
       ],
     );
@@ -697,13 +741,14 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("إضافة دورة جديدة مخصصة لهذا القسم:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          isAr ? "إضافة دورة جديدة مخصصة لهذا القسم:" : "Add new course dedicated to this department:",
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 10),
-        _buildTextField(_courseTitleCtrl, "اسم الدورة", isDark),
+        _buildTextField(_courseTitleCtrl, isAr ? "اسم الدورة" : "Course Title", isDark),
         const SizedBox(height: 8),
-        _buildTextField(_courseDescCtrl, "وصف الدورة", isDark, maxLines: 2),
-        const SizedBox(height: 8),
-
+        _buildTextField(_courseDescCtrl, isAr ? "وصف الدورة" : "Course Description", isDark, maxLines: 2),
         const SizedBox(height: 16),
 
         Row(
@@ -711,7 +756,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
           children: [
             TextButton(
               onPressed: () => setState(() => _currentScreen = WizardScreen.coursesSubChoice),
-              child: const Text("رجوع", style: TextStyle(color: Colors.grey)),
+              child: Text(isAr ? "رجوع" : "Back", style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: _submitNewCourse,
@@ -720,7 +765,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text("حفظ الدورة", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(isAr ? "حفظ الدورة" : "Save Course", style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -733,19 +778,22 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("اختر الدورات من النظام لنقلها/تخصيصها لهذا القسم:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          isAr ? "اختر الدورات من النظام لنقلها/تخصيصها لهذا القسم:" : "Select courses from system to transfer/assign to this department:",
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 10),
         SizedBox(
           height: 200,
           child: _programs.isEmpty
-              ? const Center(child: Text("لا توجد دورات مضافة للنظام"))
+              ? Center(child: Text(isAr ? "لا توجد دورات مضافة للنظام" : "No courses added in system"))
               : ListView.builder(
                   itemCount: _programs.length,
                   itemBuilder: (context, index) {
                     final program = _programs[index];
                     final programId = program['id'] as int;
                     final isChecked = _selectedProgramIds.contains(programId);
-                    final currentDept = program['department_name'] as String? ?? 'غير مخصص';
+                    final currentDept = program['department_name'] as String? ?? (isAr ? 'غير مخصص' : 'Unassigned');
 
                     return CheckboxListTile(
                       dense: true,
@@ -753,7 +801,10 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                       onChanged: (val) => _onCourseToggled(val, program),
                       activeColor: const Color(0xFF10B981),
                       title: Text(program['name'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      subtitle: Text('القسم الحالي: $currentDept', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      subtitle: Text(
+                        isAr ? 'القسم الحالي: $currentDept' : 'Current Dept: $currentDept',
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
                     );
                   },
                 ),
@@ -765,7 +816,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
           children: [
             TextButton(
               onPressed: () => setState(() => _currentScreen = WizardScreen.coursesSubChoice),
-              child: const Text("رجوع", style: TextStyle(color: Colors.grey)),
+              child: Text(isAr ? "رجوع" : "Back", style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: _submitAssignCourses,
@@ -774,7 +825,7 @@ class _DepartmentSetupWizardState extends State<DepartmentSetupWizard> {
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text("تأكيد النقل والتخصيص", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(isAr ? "تأكيد النقل والتخصيص" : "Confirm Transfer & Assignment", style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),

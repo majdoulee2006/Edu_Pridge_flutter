@@ -36,10 +36,21 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   String studentYear = "غير متوفر";
   String studentSemester = "غير متوفر";
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadAllData();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _loadAllData() async {
@@ -173,9 +184,13 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
           await prefs.setString('parent_avatar_url', newUrl);
           if (mounted) setState(() => _avatarUrl = newUrl);
         }
-        messenger.showSnackBar(const SnackBar(
-          content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
-          backgroundColor: Color(0xFFFFCC00),
+        final bool isAr = AppSettings.language.value == 'ar';
+        messenger.showSnackBar(SnackBar(
+          content: Text(
+            isAr ? 'تم تحديث الصورة الشخصية' : 'Profile picture updated successfully',
+            style: const TextStyle(fontFamily: 'Cairo'),
+          ),
+          backgroundColor: const Color(0xFFFFCC00),
         ));
       }
     } catch (e) {
@@ -187,56 +202,66 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
+    final displayParentName = parentName == "جارِ التحميل..." ? (isAr ? "جارِ التحميل..." : "Loading...") : parentName;
+    final displayParentPhone = parentPhone == "غير متوفر" ? (isAr ? "غير متوفر" : "N/A") : parentPhone;
+    final displayParentEmail = parentEmail == "غير متوفر" ? (isAr ? "غير متوفر" : "N/A") : parentEmail;
+    final displayStudentName = studentName == "لم يتم تحديد ابن" ? (isAr ? "لم يتم تحديد ابن" : "No child selected") : studentName;
+    final displayStudentDept = (studentDept == "غير متوفر" || studentDept == "غير محدد") ? (isAr ? "غير محدد" : "Not specified") : studentDept;
+    final displayStudentProg = (studentProgram == "غير متوفر" || studentProgram == "غير محدد") ? (isAr ? "غير محدد" : "Not specified") : studentProgram;
+    final displayStudentYear = (studentYear == "غير متوفر" || studentYear == "غير محدد") ? (isAr ? "غير محدد" : "Not specified") : studentYear;
+    final displayStudentSem  = (studentSemester == "غير متوفر" || studentSemester == "غير محدد") ? (isAr ? "غير محدد" : "Not specified") : studentSemester;
+
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         extendBody: true,
-        appBar: _buildAppBar(context, textColor),
+        appBar: _buildAppBar(context, textColor, isAr),
         body: Stack(
           children: [
             SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Column(
                 children: [
-                  _buildProfileHeader(textColor, parentName), // رجعنا الهيدر الأصلي
+                  _buildProfileHeader(textColor, displayParentName, isAr),
                   const SizedBox(height: 30),
 
-                  _buildSectionTitle("معلومات التواصل", textColor),
+                  _buildSectionTitle(isAr ? "معلومات التواصل" : "Contact Information", textColor, isAr),
                   _buildInfoCard(cardColor, [
                     _buildClickableRow(
-                      context, "رقم الهاتف", parentPhone, Icons.phone_android_rounded, Colors.green, textColor,
+                      context, isAr ? "رقم الهاتف" : "Phone Number", displayParentPhone, Icons.phone_android_rounded, Colors.green, textColor,
                           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditPhoneScreen())),
                     ),
                     Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
-                    _buildStaticRow("البريد الإلكتروني", parentEmail, Icons.alternate_email_rounded, Colors.blue, textColor),
+                    _buildStaticRow(isAr ? "البريد الإلكتروني" : "Email Address", displayParentEmail, Icons.alternate_email_rounded, Colors.blue, textColor),
                   ]),
 
                   const SizedBox(height: 25),
-                  _buildSectionTitle("البيانات الأكاديمية لـ $studentName", textColor),
+                  _buildSectionTitle(isAr ? "البيانات الأكاديمية لـ $displayStudentName" : "Academic Info for $displayStudentName", textColor, isAr),
                   _buildInfoCard(cardColor, [
-                    _buildStaticRow("القسم", studentDept, Icons.account_balance_rounded, Colors.purple, textColor),
+                    _buildStaticRow(isAr ? "القسم" : "Department", displayStudentDept, Icons.account_balance_rounded, Colors.purple, textColor),
                     Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
-                    _buildStaticRow("الفرع / التخصص", studentProgram, Icons.school_rounded, Colors.teal, textColor),
+                    _buildStaticRow(isAr ? "الفرع / التخصص" : "Program / Major", displayStudentProg, Icons.school_rounded, Colors.teal, textColor),
                     Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
-                    _buildStaticRow("السنة الدراسية", studentYear, Icons.auto_awesome_mosaic_rounded, Colors.orange, textColor),
+                    _buildStaticRow(isAr ? "السنة الدراسية" : "Academic Year", displayStudentYear, Icons.auto_awesome_mosaic_rounded, Colors.orange, textColor),
                     Divider(height: 1, color: textColor.withValues(alpha:0.1), indent: 20, endIndent: 20),
-                    _buildStaticRow("الفصل الدراسي النشط", studentSemester, Icons.calendar_month_rounded, Colors.indigo, textColor),
+                    _buildStaticRow(isAr ? "الفصل الدراسي النشط" : "Active Semester", displayStudentSem, Icons.calendar_month_rounded, Colors.indigo, textColor),
                   ]),
 
                   const SizedBox(height: 25),
-                  _buildSectionTitle("الأمان والإعدادات", textColor),
+                  _buildSectionTitle(isAr ? "الأمان والإعدادات" : "Security & Settings", textColor, isAr),
                   _buildClickableSettingCard(
-                    "تغيير كلمة المرور", Icons.lock_reset_rounded, Colors.blueAccent, cardColor, textColor,
+                    isAr ? "تغيير كلمة المرور" : "Change Password", Icons.lock_reset_rounded, Colors.blueAccent, cardColor, textColor, isAr,
                         () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditPasswordScreen())),
                   ),
                   const SizedBox(height: 12),
                   _buildClickableSettingCard(
-                    "تسجيل الخروج", Icons.logout_rounded, Colors.red, cardColor, Colors.red,
+                    isAr ? "تسجيل الخروج" : "Logout", Icons.logout_rounded, Colors.red, cardColor, Colors.red, isAr,
                         () => showLogoutConfirmation(context, true),
                   ),
 
@@ -260,7 +285,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
   }
 
   // --- الهيدر الأصلي مع الكاميرا ---
-  Widget _buildProfileHeader(Color textColor, String name) {
+  Widget _buildProfileHeader(Color textColor, String name, bool isAr) {
     return Column(
       children: [
         Stack(
@@ -292,12 +317,11 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
         ),
         const SizedBox(height: 15),
         Text(name, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
-        const Text("ولي أمر الطالب", style: TextStyle(color: Colors.grey, fontSize: 14)),
+        Text(isAr ? "ولي أمر الطالب" : "Student's Parent", style: const TextStyle(color: Colors.grey, fontSize: 14)),
       ],
     );
   }
 
-  // --- بقية الـ Widgets (InfoCard, ClickableRow, StaticRow) كما كانت في تصميمك الأصلي تماماً ---
   Widget _buildInfoCard(Color cardColor, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30),
@@ -350,7 +374,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
     );
   }
 
-  Widget _buildClickableSettingCard(String title, IconData icon, Color color, Color cardColor, Color textColor, VoidCallback onTap) {
+  Widget _buildClickableSettingCard(String title, IconData icon, Color color, Color cardColor, Color textColor, bool isAr, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(25),
@@ -363,7 +387,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
             const SizedBox(width: 15),
             Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
             const Spacer(),
-            const Icon(Icons.arrow_back, size: 16, color: Colors.grey),
+            Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, size: 16, color: Colors.grey),
           ],
         ),
       ),
@@ -378,21 +402,21 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, Color textColor) {
-    return Align(alignment: Alignment.centerRight,
-      child: Padding(padding: const EdgeInsets.only(right: 5, bottom: 10),
+  Widget _buildSectionTitle(String title, Color textColor, bool isAr) {
+    return Align(alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
+      child: Padding(padding: const EdgeInsets.only(right: 5, left: 5, bottom: 10),
         child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor)),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor, bool isAr) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      title: Text("الملف الشخصي",
-          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+      title: Text(isAr ? "الملف الشخصي" : "Profile",
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: isAr ? 'Cairo' : 'Inter')),
       leading: IconButton(
         icon: Icon(Icons.arrow_back, color: textColor),
         onPressed: () => Navigator.pushReplacement(
@@ -404,7 +428,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
           onPressed: () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => SettingsScreen(
                 userName: parentName,
-                userRole: 'ولي أمر',
+                userRole: isAr ? 'ولي أمر' : 'Parent',
                 profileImageUrl: _avatarUrl ?? '',
                 onProfileTap: () => Navigator.pop(context),
               ))),

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AddIdTab extends StatefulWidget {
   final Color cardColor;
@@ -39,11 +40,29 @@ class _AddIdTabState extends State<AddIdTab> {
   DateTime? _selectedBirth;
   List<Map<String, dynamic>> universityIds = [];
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadNextId();
     _loadUniversityIds();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _telegramController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadNextId() async {
@@ -89,23 +108,26 @@ class _AddIdTabState extends State<AddIdTab> {
       context: context,
       backgroundColor: widget.cardColor,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('اختر مصدر الصورة',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
-          const SizedBox(height: 16),
-          ListTile(
-            leading: const Icon(Icons.camera_alt, color: Color(0xFFFFCC00)),
-            title: Text('الكاميرا', style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
-            onTap: () => Navigator.pop(ctx, ImageSource.camera),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library, color: Color(0xFFFFCC00)),
-            title: Text('معرض الصور', style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
-            onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-          ),
-        ]),
+      builder: (ctx) => Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(isAr ? 'اختر مصدر الصورة' : 'Select Photo Source',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFFFFCC00)),
+              title: Text(isAr ? 'الكاميرا' : 'Camera', style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFFFFCC00)),
+              title: Text(isAr ? 'معرض الصور' : 'Gallery', style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ]),
+        ),
       ),
     );
     if (source == null) return;
@@ -137,15 +159,15 @@ class _AddIdTabState extends State<AddIdTab> {
 
   Future<void> _addUniversityId() async {
     if (_firstNameController.text.isEmpty || _lastNameController.text.isEmpty) {
-      _showError('الرجاء إدخال الاسم الأول والأخير');
+      _showError(isAr ? 'الرجاء إدخال الاسم الأول والأخير' : 'Please enter first and last name');
       return;
     }
     if (_selectedPhoto == null) {
-      _showError('الرجاء إرفاق صورة الطالب قبل الإنشاء');
+      _showError(isAr ? 'الرجاء إرفاق صورة الطالب قبل الإنشاء' : 'Please attach student photo before creating');
       return;
     }
     if (_generatedId.isEmpty) {
-      _showError('لم يتم توليد الرقم الجامعي بعد');
+      _showError(isAr ? 'لم يتم توليد الرقم الجامعي بعد' : 'University ID has not been generated yet');
       return;
     }
 
@@ -183,16 +205,19 @@ class _AddIdTabState extends State<AddIdTab> {
         await _loadNextId();
         await _loadUniversityIds();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('تم إضافة الرقم الجامعي بنجاح ✓', textDirection: TextDirection.rtl),
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+              isAr ? 'تم إضافة الرقم الجامعي بنجاح ✓' : 'University ID added successfully ✓',
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+            ),
             backgroundColor: Colors.green,
           ));
         }
       } else {
-        _showError(res.data['message'] ?? 'حدث خطأ');
+        _showError(res.data['message'] ?? (isAr ? 'حدث خطأ' : 'An error occurred'));
       }
     } on DioException catch (e) {
-      _showError(e.response?.data?['message'] ?? 'فشل الاتصال بالسيرفر');
+      _showError(e.response?.data?['message'] ?? (isAr ? 'فشل الاتصال بالسيرفر' : 'Failed to connect to server'));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -201,200 +226,211 @@ class _AddIdTabState extends State<AddIdTab> {
   void _showError(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg, textDirection: TextDirection.rtl), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text(msg, textDirection: isAr ? TextDirection.rtl : TextDirection.ltr),
+        backgroundColor: Colors.red,
+      ),
     );
   }
 
   @override
-  void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _phoneController.dispose();
-    _telegramController.dispose();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
-      children: [
-        // ── بحث ─────────────────────────────────────────────────────
-        Container(
-          decoration: BoxDecoration(
-            color: widget.cardColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withAlpha(widget.isDark ? 20 : 5), blurRadius: 6, offset: const Offset(0, 2))],
-          ),
-          child: TextField(
-            controller: _searchController,
-            textDirection: TextDirection.rtl,
-            style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic'),
-            decoration: InputDecoration(
-              hintText: 'البحث برقم جامعي أو اسم...',
-              hintStyle: TextStyle(color: widget.subColor, fontFamily: 'Noto Sans Arabic'),
-              prefixIcon: Icon(Icons.search, color: widget.subColor),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
+        children: [
+          // ── بحث ─────────────────────────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              color: widget.cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withAlpha(widget.isDark ? 20 : 5), blurRadius: 6, offset: const Offset(0, 2))],
             ),
-            onChanged: (_) => setState(() {}),
+            child: TextField(
+              controller: _searchController,
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic'),
+              decoration: InputDecoration(
+                hintText: isAr ? 'البحث برقم جامعي أو اسم...' : 'Search by university ID or name...',
+                hintStyle: TextStyle(color: widget.subColor, fontFamily: 'Noto Sans Arabic'),
+                prefixIcon: Icon(Icons.search, color: widget.subColor),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
           ),
-        ),
 
-        const SizedBox(height: 24),
+          const SizedBox(height: 24),
 
-        Text('إضافة رقم جامعي جديد',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
-
-        const SizedBox(height: 16),
-
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: widget.cardColor,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withAlpha(widget.isDark ? 20 : 5), blurRadius: 6, offset: const Offset(0, 2))],
+          Text(
+            isAr ? 'إضافة رقم جامعي جديد' : 'Add New University ID',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: widget.textColor, fontFamily: 'Noto Sans Arabic'),
           ),
-          child: Column(children: [
-            // صورة الطالب
-            GestureDetector(
-              onTap: _pickPhoto,
-              child: Container(
-                width: 100, height: 100,
-                decoration: BoxDecoration(
-                  color: widget.isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade100,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFFFCC00), width: 2),
-                  image: _selectedPhoto != null
-                      ? DecorationImage(image: FileImage(_selectedPhoto!), fit: BoxFit.cover)
+
+          const SizedBox(height: 16),
+
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: widget.cardColor,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: Colors.black.withAlpha(widget.isDark ? 20 : 5), blurRadius: 6, offset: const Offset(0, 2))],
+            ),
+            child: Column(children: [
+              // صورة الطالب
+              GestureDetector(
+                onTap: _pickPhoto,
+                child: Container(
+                  width: 100, height: 100,
+                  decoration: BoxDecoration(
+                    color: widget.isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFFFCC00), width: 2),
+                    image: _selectedPhoto != null
+                        ? DecorationImage(image: FileImage(_selectedPhoto!), fit: BoxFit.cover)
+                        : null,
+                  ),
+                  child: _selectedPhoto == null
+                      ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.camera_alt, color: widget.subColor, size: 28),
+                          const SizedBox(height: 4),
+                          Text(
+                            isAr ? 'صورة الطالب' : 'Student Photo',
+                            style: TextStyle(fontSize: 10, color: widget.subColor, fontFamily: 'Noto Sans Arabic'),
+                          ),
+                        ])
                       : null,
                 ),
-                child: _selectedPhoto == null
-                    ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.camera_alt, color: widget.subColor, size: 28),
-                        const SizedBox(height: 4),
-                        Text('صورة الطالب', style: TextStyle(fontSize: 10, color: widget.subColor, fontFamily: 'Noto Sans Arabic')),
-                      ])
-                    : null,
               ),
-            ),
-            if (_selectedPhoto != null)
-              TextButton.icon(
-                onPressed: () => setState(() => _selectedPhoto = null),
-                icon: const Icon(Icons.close, color: Colors.red, size: 16),
-                label: Text('إزالة الصورة', style: TextStyle(color: Colors.red, fontSize: 12, fontFamily: 'Noto Sans Arabic')),
-              ),
-
-            const SizedBox(height: 16),
-
-            // الرقم الجامعي التلقائي
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: widget.isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.5)),
-              ),
-              child: Row(children: [
-                const Icon(Icons.badge_outlined, color: Color(0xFFFFCC00), size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _isLoadingId
-                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00)))
-                      : Text(
-                          'الرقم الجامعي: $_generatedId',
-                          style: TextStyle(color: widget.textColor, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
-                        ),
+              if (_selectedPhoto != null)
+                TextButton.icon(
+                  onPressed: () => setState(() => _selectedPhoto = null),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 16),
+                  label: Text(
+                    isAr ? 'إزالة الصورة' : 'Remove Photo',
+                    style: const TextStyle(color: Colors.red, fontSize: 12, fontFamily: 'Noto Sans Arabic'),
+                  ),
                 ),
-                Text('تلقائي', style: TextStyle(color: widget.subColor, fontSize: 11, fontFamily: 'Noto Sans Arabic')),
-              ]),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-            // الاسم الأول والأخير
-            Row(children: [
-              Expanded(child: _buildField(_firstNameController, 'الاسم الأول')),
-              const SizedBox(width: 10),
-              Expanded(child: _buildField(_lastNameController, 'الاسم الأخير')),
-            ]),
-
-            const SizedBox(height: 12),
-
-            // تاريخ الميلاد
-            GestureDetector(
-              onTap: _pickBirthDate,
-              child: Container(
+              // الرقم الجامعي التلقائي
+              Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: widget.isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.5)),
                 ),
                 child: Row(children: [
-                  Icon(Icons.cake_outlined, color: widget.subColor, size: 20),
+                  const Icon(Icons.badge_outlined, color: Color(0xFFFFCC00), size: 20),
                   const SizedBox(width: 10),
+                  Expanded(
+                    child: _isLoadingId
+                        ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFCC00)))
+                        : Text(
+                            isAr ? 'الرقم الجامعي: $_generatedId' : 'University ID: $_generatedId',
+                            style: TextStyle(color: widget.textColor, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
+                          ),
+                  ),
                   Text(
-                    _selectedBirth != null
-                        ? '${_selectedBirth!.year}-${_selectedBirth!.month.toString().padLeft(2,'0')}-${_selectedBirth!.day.toString().padLeft(2,'0')}'
-                        : 'تاريخ الميلاد',
-                    style: TextStyle(
-                      color: _selectedBirth != null ? widget.textColor : widget.subColor,
-                      fontFamily: 'Noto Sans Arabic',
-                    ),
+                    isAr ? 'تلقائي' : 'Auto',
+                    style: TextStyle(color: widget.subColor, fontSize: 11, fontFamily: 'Noto Sans Arabic'),
                   ),
                 ]),
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // رقم الهاتف
-            _buildField(_phoneController, 'رقم الهاتف', icon: Icons.phone_outlined, type: TextInputType.phone),
+              // الاسم الأول والأخير
+              Row(children: [
+                Expanded(child: _buildField(_firstNameController, isAr ? 'الاسم الأول' : 'First Name')),
+                const SizedBox(width: 10),
+                Expanded(child: _buildField(_lastNameController, isAr ? 'الاسم الأخير' : 'Last Name')),
+              ]),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Telegram ID
-            _buildField(_telegramController, 'Telegram Chat ID', icon: Icons.telegram, type: TextInputType.number),
-
-            const SizedBox(height: 16),
-
-            // زر الإضافة
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _addUniversityId,
-                icon: _isLoading
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                    : const Icon(Icons.add, color: Colors.black),
-                label: Text(
-                  _isLoading ? 'جاري الإضافة...' : 'إضافة وإرسال للتلغرام',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black, fontFamily: 'Noto Sans Arabic'),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFCC00),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+              // تاريخ الميلاد
+              GestureDetector(
+                onTap: _pickBirthDate,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: widget.isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.cake_outlined, color: widget.subColor, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      _selectedBirth != null
+                          ? '${_selectedBirth!.year}-${_selectedBirth!.month.toString().padLeft(2,'0')}-${_selectedBirth!.day.toString().padLeft(2,'0')}'
+                          : (isAr ? 'تاريخ الميلاد' : 'Date of Birth'),
+                      style: TextStyle(
+                        color: _selectedBirth != null ? widget.textColor : widget.subColor,
+                        fontFamily: 'Noto Sans Arabic',
+                      ),
+                    ),
+                  ]),
                 ),
               ),
+
+              const SizedBox(height: 12),
+
+              // رقم الهاتف
+              _buildField(_phoneController, isAr ? 'رقم الهاتف' : 'Phone Number', icon: Icons.phone_outlined, type: TextInputType.phone),
+
+              const SizedBox(height: 12),
+
+              // Telegram ID
+              _buildField(_telegramController, 'Telegram Chat ID', icon: Icons.telegram, type: TextInputType.number),
+
+              const SizedBox(height: 16),
+
+              // زر الإضافة
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _addUniversityId,
+                  icon: _isLoading
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      : const Icon(Icons.add, color: Colors.black),
+                  label: Text(
+                    _isLoading
+                        ? (isAr ? 'جاري الإضافة...' : 'Adding...')
+                        : (isAr ? 'إضافة وإرسال للتلغرام' : 'Add & Send to Telegram'),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black, fontFamily: 'Noto Sans Arabic'),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFCC00),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+
+          const SizedBox(height: 24),
+
+          Row(children: [
+            Container(width: 4, height: 24, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 10),
+            Text(
+              isAr ? 'الأرقام الجامعية المضافة' : 'Added University IDs',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: widget.textColor, fontFamily: 'Noto Sans Arabic'),
             ),
           ]),
-        ),
 
-        const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-        Row(children: [
-          Container(width: 4, height: 24, decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 10),
-          Text('الأرقام الجامعية المضافة',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
-        ]),
-
-        const SizedBox(height: 16),
-
-        ..._buildIdList(),
-      ],
+          ..._buildIdList(),
+        ],
+      ),
     );
   }
 
@@ -402,7 +438,7 @@ class _AddIdTabState extends State<AddIdTab> {
       {IconData? icon, TextInputType type = TextInputType.text}) {
     return TextField(
       controller: ctrl,
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       keyboardType: type,
       style: TextStyle(color: widget.textColor, fontFamily: 'Noto Sans Arabic'),
       decoration: InputDecoration(
@@ -477,39 +513,49 @@ class _AddIdTabState extends State<AddIdTab> {
     final name = item['full_name'] ?? '${item['first_name'] ?? ''} ${item['last_name'] ?? ''}'.trim();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: widget.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('تأكيد الحذف', textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: widget.textColor, fontFamily: 'Noto Sans Arabic')),
-        content: Text('هل أنت متأكد من حذف $name؟', textAlign: TextAlign.center,
-            style: TextStyle(color: widget.subColor, fontFamily: 'Noto Sans Arabic')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: TextStyle(color: widget.subColor, fontFamily: 'Noto Sans Arabic')),
+      builder: (context) => Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          backgroundColor: widget.cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            isAr ? 'تأكيد الحذف' : 'Confirm Delete',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: widget.textColor, fontFamily: 'Noto Sans Arabic'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final id = item['id']?.toString() ?? '';
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                final token = prefs.getString('token') ?? '';
-                await _dio.delete(
-                  '${_api.baseUrl}/affairs/university-ids/$id',
-                  options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
-                );
-                await _loadUniversityIds();
-              } catch (e) {
-                setState(() => universityIds.remove(item));
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text('حذف', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic')),
+          content: Text(
+            isAr ? 'هل أنت متأكد من حذف $name؟' : 'Are you sure you want to delete $name?',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: widget.subColor, fontFamily: 'Noto Sans Arabic'),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(isAr ? 'إلغاء' : 'Cancel', style: TextStyle(color: widget.subColor, fontFamily: 'Noto Sans Arabic')),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                final id = item['id']?.toString() ?? '';
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final token = prefs.getString('token') ?? '';
+                  await _dio.delete(
+                    '${_api.baseUrl}/affairs/university-ids/$id',
+                    options: Options(headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}),
+                  );
+                  await _loadUniversityIds();
+                } catch (e) {
+                  setState(() => universityIds.remove(item));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: Text(isAr ? 'حذف' : 'Delete', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic')),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+

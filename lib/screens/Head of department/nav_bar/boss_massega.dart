@@ -18,11 +18,10 @@ class BossMessageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
+    return WillPopScope(
+      onWillPop: () async {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen()));
+        return false;
       },
       child: const BossMessageView(),
     );
@@ -37,11 +36,18 @@ class BossMessageView extends StatefulWidget {
 }
 
 class _BossMessageViewState extends State<BossMessageView> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final chatService = context.read<ChatService>();
       chatService.startContactsPolling();
@@ -55,8 +61,26 @@ class _BossMessageViewState extends State<BossMessageView> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     context.read<ChatService>().stopContactsPolling();
     super.dispose();
+  }
+
+  String _translateRole(String r) {
+    if (isAr) return r;
+    switch (r.trim()) {
+      case 'طالب': return 'Student';
+      case 'معلم':
+      case 'مدرس':
+      case 'استاذ':
+      case 'مدرس قسم': return 'Teacher';
+      case 'ولي أمر':
+      case 'ولي امر': return 'Parent';
+      case 'رئيس قسم': return 'Dept Head';
+      case 'عميد الكلية': return 'College Dean';
+      case 'إدارة': return 'Admin';
+      default: return r;
+    }
   }
 
   static final List<Map<String, dynamic>> _activeMockList = [
@@ -108,12 +132,10 @@ class _BossMessageViewState extends State<BossMessageView> {
     }).toList();
 
     return Scaffold(
-      // نفس إصلاح شاشة رسائل الطالب: يمنع الشريط السفلي من الطلوع فوق
-      // الكيبورد وقت البحث
       resizeToAvoidBottomInset: false,
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: SafeArea(
           bottom: false,
           child: Stack(
@@ -126,10 +148,10 @@ class _BossMessageViewState extends State<BossMessageView> {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     child: TextField(
                       onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                      textAlign: TextAlign.right,
+                      textAlign: isAr ? TextAlign.right : TextAlign.left,
                       style: TextStyle(color: textColor),
                       decoration: InputDecoration(
-                        hintText: "ابحث في المحادثات...",
+                        hintText: isAr ? "ابحث في المحادثات..." : "Search in conversations...",
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
@@ -145,8 +167,14 @@ class _BossMessageViewState extends State<BossMessageView> {
                     child: isLoading
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                         : activeContacts.isEmpty
-                            ? const Center(
-                                child: Text('لا توجد محادثات مطابقة\nاضغطي على (+) لبدء محادثة جديدة', textAlign: TextAlign.center),
+                            ? Center(
+                                child: Text(
+                                  isAr
+                                      ? 'لا توجد محادثات مطابقة\nاضغط على (+) لبدء محادثة جديدة'
+                                      : 'No matching conversations\nTap (+) to start a new chat',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
                               )
                             : ListView.builder(
                                 padding: const EdgeInsets.only(bottom: 90),
@@ -182,11 +210,11 @@ class _BossMessageViewState extends State<BossMessageView> {
     final bool isMyMsg   = contact['is_my_message'] == true;
     final int unreadCnt  = (contact['unread'] ?? 0) as int;
     final bool isUnread  = !isMyMsg && unreadCnt > 0;
-    final String name    = contact['name']?.toString() ?? 'مستخدم غير معروف';
+    final String name    = contact['name']?.toString() ?? (isAr ? 'مستخدم غير معروف' : 'Unknown User');
     final String initial = name.isNotEmpty ? name[0] : '؟';
     final String role    = contact['role']?.toString() ?? '';
-    final String lastMsg = contact['message']?.toString() ?? contact['last_message']?.toString() ?? 'انقر لبدء المحادثة...';
-    final String time    = contact['time']?.toString() ?? 'الآن';
+    final String lastMsg = contact['message']?.toString() ?? contact['last_message']?.toString() ?? (isAr ? 'انقر لبدء المحادثة...' : 'Tap to start conversation...');
+    final String time    = contact['time']?.toString() ?? (isAr ? 'الآن' : 'Now');
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -247,7 +275,7 @@ class _BossMessageViewState extends State<BossMessageView> {
                               border: Border.all(color: const Color(0xFFFFCC00).withAlpha(102), width: 0.5),
                             ),
                             child: Text(
-                              role,
+                              _translateRole(role),
                               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFFD4AC0D)),
                             ),
                           ),
@@ -315,27 +343,27 @@ class _BossMessageViewState extends State<BossMessageView> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
           ),
-          const Text("الرسائل", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(isAr ? "الرسائل" : "Messages", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           Row(
             children: [
               IconButton(
                 icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
-                tooltip: "محادثة جديدة",
+                tooltip: isAr ? "محادثة جديدة" : "New Chat",
                 onPressed: () => _showNewChatModal(context, context.read<ChatService>()),
               ),
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(userName: "أحمد عبدالله", userRole: "رئيس قسم"),
+                    builder: (context) => const SettingsScreen(),
                   ),
                 ),
                 child: Container(
-                  margin: const EdgeInsets.only(right: 8),
+                  margin: const EdgeInsets.only(right: 8, left: 8),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -369,98 +397,101 @@ class _BossMessageViewState extends State<BossMessageView> {
             final cardColor = Theme.of(context).cardColor;
             final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.75,
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'بدء محادثة جديدة (+)',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: textColor),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    onChanged: (val) => setModalState(() => query = val.trim()),
-                    textAlign: TextAlign.right,
-                    style: TextStyle(color: textColor),
-                    decoration: InputDecoration(
-                      hintText: "ابحث عن شخص لمراسلته...",
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Theme.of(context).scaffoldBackgroundColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
+            return Directionality(
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.75,
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? const Center(child: Text('لا توجد جهات اتصال مطابقة', style: TextStyle(color: Colors.grey)))
-                        : ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (context, index) {
-                              final contact = filtered[index];
-                              final name = contact['name']?.toString() ?? 'مجهول';
-                              final role = contact['role']?.toString() ?? '';
-                              final initial = name.isNotEmpty ? name[0] : '؟';
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isAr ? 'بدء محادثة جديدة (+)' : 'Start New Chat (+)',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: textColor),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      onChanged: (val) => setModalState(() => query = val.trim()),
+                      textAlign: isAr ? TextAlign.right : TextAlign.left,
+                      style: TextStyle(color: textColor),
+                      decoration: InputDecoration(
+                        hintText: isAr ? "ابحث عن شخص لمراسلته..." : "Search for a person to message...",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                        filled: true,
+                        fillColor: Theme.of(context).scaffoldBackgroundColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? Center(child: Text(isAr ? 'لا توجد جهات اتصال مطابقة' : 'No matching contacts', style: const TextStyle(color: Colors.grey)))
+                          : ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final contact = filtered[index];
+                                final name = contact['name']?.toString() ?? (isAr ? 'مجهول' : 'Unknown');
+                                final role = contact['role']?.toString() ?? '';
+                                final initial = name.isNotEmpty ? name[0] : '؟';
 
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).scaffoldBackgroundColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: const Color(0xFFFFCC00).withAlpha(40),
-                                    child: Text(initial, style: const TextStyle(color: Color(0xFFD4AC0D), fontWeight: FontWeight.bold)),
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).scaffoldBackgroundColor,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-                                  subtitle: role.isNotEmpty ? Text(role, style: const TextStyle(color: Colors.grey, fontSize: 12)) : null,
-                                  trailing: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFFFCC00)),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ChangeNotifierProvider.value(
-                                          value: chatService,
-                                          child: ChatRoomScreen(contact: contact['raw_contact'] ?? contact),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: const Color(0xFFFFCC00).withAlpha(40),
+                                      child: Text(initial, style: const TextStyle(color: Color(0xFFD4AC0D), fontWeight: FontWeight.bold)),
+                                    ),
+                                    title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                                    subtitle: role.isNotEmpty ? Text(_translateRole(role), style: const TextStyle(color: Colors.grey, fontSize: 12)) : null,
+                                    trailing: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFFFCC00)),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ChangeNotifierProvider.value(
+                                            value: chatService,
+                                            child: ChatRoomScreen(contact: contact['raw_contact'] ?? contact),
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             );
           },

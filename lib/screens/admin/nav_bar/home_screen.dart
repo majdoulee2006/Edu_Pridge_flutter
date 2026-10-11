@@ -4,7 +4,7 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_services_menu_screen.dart';
-
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 import 'profile_screen.dart';
@@ -23,12 +23,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Map<String, dynamic>? dashboardData;
   List<dynamic> latestNews = [];
   bool isLoading = true;
-  String offlineName = "المدير العام";
+  bool get isAr => AppSettings.language.value == 'ar';
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadDashboardData();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadDashboardData() async {
@@ -55,19 +66,21 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       context: context,
       builder: (context) {
         return Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
-            title: const Text(
-              "تأكيد الحذف",
-              style: TextStyle(fontWeight: FontWeight.bold),
+            title: Text(
+              isAr ? "تأكيد الحذف" : "Confirm Deletion",
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             content: Text(
-              "هل أنت تأكد من حذف الإعلان '${news['title'] ?? ''}'؟",
+              isAr
+                  ? "هل أنت متأكد من حذف الإعلان '${news['title'] ?? ''}'؟"
+                  : "Are you sure you want to delete the announcement '${news['title'] ?? ''}'?",
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("إلغاء"),
+                child: Text(isAr ? "إلغاء" : "Cancel"),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -80,22 +93,36 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       annId,
                     );
                     if (success) {
-                      if (!mounted || !context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("تم حذف الإعلان بنجاح")),
-                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isAr
+                                  ? "تم حذف الإعلان بنجاح"
+                                  : "Announcement deleted successfully",
+                            ),
+                          ),
+                        );
+                      }
                       _loadDashboardData();
                     } else {
-                      if (!mounted || !context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("فشل حذف الإعلان")),
-                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isAr
+                                  ? "فشل حذف الإعلان"
+                                  : "Failed to delete announcement",
+                            ),
+                          ),
+                        );
+                      }
                     }
                   }
                 },
-                child: const Text(
-                  "حذف الإعلان",
-                  style: TextStyle(
+                child: Text(
+                  isAr ? "حذف الإعلان" : "Delete Announcement",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -125,10 +152,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         ? theme.scaffoldBackgroundColor
         : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final primaryYellow = const Color(0xFFFFCC00);
+    const primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
@@ -138,7 +165,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             SafeArea(
               child: Column(
                 children: [
-                  _buildAdminHeader(isDark, offlineName),
+                  _buildAdminHeader(isDark),
 
                   Expanded(
                     child: isLoading
@@ -161,7 +188,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                               children: [
                                 // 1. قسم الإحصائيات والأجمليات (Dashboard Totals)
                                 _buildSectionTitle(
-                                  "لوحة التحكم والإحصائيات",
+                                  isAr
+                                      ? "لوحة التحكم والإحصائيات"
+                                      : "Dashboard & Statistics",
                                   Icons.analytics_outlined,
                                   isDark,
                                 ),
@@ -185,7 +214,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
                                 // 3. قسم أخبار المعهد والفعاليات
                                 _buildSectionTitle(
-                                  "أخبار المعهد والفعاليات",
+                                  isAr
+                                      ? "أخبار المعهد والفعاليات"
+                                      : "Institute News & Events",
                                   Icons.campaign_outlined,
                                   isDark,
                                 ),
@@ -217,7 +248,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             AiFloatingButton(
               userRole: 'admin',
-              userName: offlineName,
+              userName: (dashboardData?['user']?['full_name'] as String?) ?? 'Admin',
               bottom: 100,
               right: 20,
             ),
@@ -249,27 +280,38 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           ],
         ),
 
+        // زر إضافة منشور جديد
+        floatingActionButton: _buildCircularAddButton(),
+        floatingActionButtonLocation: isAr
+            ? FloatingActionButtonLocation.startFloat
+            : FloatingActionButtonLocation.endFloat,
       ),
     );
   }
 
   Widget _buildCircularAddButton() {
-    return FloatingActionButton(
-      heroTag: 'admin_add_post_fab',
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AddPostScreen()),
-        ).then((_) => _loadDashboardData());
-      },
-      backgroundColor: const Color(0xFFFFCC00),
-      elevation: 8,
-      shape: const CircleBorder(),
-      child: const Icon(Icons.add, color: Colors.black, size: 32),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: 95,
+        left: isAr ? 5 : 0,
+        right: isAr ? 0 : 5,
+      ),
+      child: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddPostScreen()),
+          ).then((_) => _loadDashboardData());
+        },
+        backgroundColor: const Color(0xFFFFCC00),
+        elevation: 8,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, color: Colors.black, size: 32),
+      ),
     );
   }
 
-  Widget _buildAdminHeader(bool isDark, String name) {
+  Widget _buildAdminHeader(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Row(
@@ -287,7 +329,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ),
               ),
               Text(
-                'مرحباً بك في لوحة الإدارة العامة 👋',
+                isAr
+                    ? 'مرحباً بك في لوحة الإدارة العامة 👋'
+                    : 'Welcome to General Administration 👋',
                 style: TextStyle(
                   fontSize: 13,
                   color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
@@ -354,7 +398,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       childAspectRatio: 1.5,
       children: [
         _buildStatCard(
-          "الطلاب المسجلين",
+          isAr ? "الطلاب المسجلين" : "Registered Students",
           studentsCount.toString(),
           Icons.school_outlined,
           Colors.blue,
@@ -362,7 +406,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           isDark,
         ),
         _buildStatCard(
-          "الكادر التدريسي",
+          isAr ? "الكادر التدريسي" : "Teaching Staff",
           teachersCount.toString(),
           Icons.people_outline,
           Colors.orange,
@@ -370,7 +414,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           isDark,
         ),
         _buildStatCard(
-          "المواد الدراسية",
+          isAr ? "المواد الدراسية" : "Courses",
           coursesCount.toString(),
           Icons.book_outlined,
           Colors.green,
@@ -378,7 +422,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           isDark,
         ),
         _buildStatCard(
-          "الأقسام الأكاديمية",
+          isAr ? "الأقسام الأكاديمية" : "Academic Departments",
           deptsCount.toString(),
           Icons.account_balance_outlined,
           Colors.purple,
@@ -455,11 +499,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   ) {
     final activeSemester = dashboardData?['active_semester'];
     final String semesterName =
-        activeSemester?['name'] ?? 'لا يوجد فصل دراسي نشط حالياً';
-    // التواريخ تأتي بصيغة ISO (2026-09-09T00:00:00.000000Z): نعرض اليوم فقط
-    String dayOnly(dynamic v) => (v ?? '').toString().split('T').first;
-    final String startDate = dayOnly(activeSemester?['start_date']);
-    final String endDate = dayOnly(activeSemester?['end_date']);
+        activeSemester?['name'] ??
+        (isAr
+            ? 'لا يوجد فصل دراسي نشط حالياً'
+            : 'No active semester currently');
+    final String startDate = activeSemester?['start_date'] ?? '';
+    final String endDate = activeSemester?['end_date'] ?? '';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -500,7 +545,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 Row(
                   children: [
                     Text(
-                      "الفصل الدراسي الحالي",
+                      isAr ? "الفصل الدراسي الحالي" : "Current Semester",
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
@@ -519,9 +564,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                           color: Colors.green.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          "نشط",
-                          style: TextStyle(
+                        child: Text(
+                          isAr ? "نشط" : "Active",
+                          style: const TextStyle(
                             color: Colors.green,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -542,7 +587,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 if (startDate.isNotEmpty || endDate.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
-                    "من $startDate إلى $endDate",
+                    isAr ? "من $startDate إلى $endDate" : "From $startDate to $endDate",
                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                 ],
@@ -578,7 +623,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              "لا توجد أخبار أو فعاليات منشورة حالياً",
+              isAr
+                  ? "لا توجد أخبار أو فعاليات منشورة حالياً"
+                  : "No news or events published currently",
               style: TextStyle(
                 fontSize: 14,
                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
@@ -587,7 +634,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              "يمكنك إضافة إعلان أو فعالية جديدة بالضغط على زر (+) الأصفر",
+              isAr
+                  ? "يمكنك إضافة إعلان أو فعالية جديدة بالضغط على زر (+) الأصفر"
+                  : "You can add an announcement or event by tapping the yellow (+) button",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
@@ -613,20 +662,25 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     Color cardColor,
     Color primaryYellow,
   ) {
-    final String title = news['title'] ?? 'إعلان جديد';
+    final String title =
+        news['title'] ?? (isAr ? 'إعلان جديد' : 'New Announcement');
     final String content = news['content'] ?? '';
-    final String category = news['category'] ?? news['type'] ?? 'إعلان عام';
+    final String category =
+        news['category'] ??
+        news['type'] ??
+        (isAr ? 'إعلان عام' : 'General Announcement');
     final String rawAuthor =
         news['author_name'] ??
         news['publisher_name'] ??
         news['created_by'] ??
-        'إدارة المعهد';
-    final String author = rawAuthor.startsWith('نشر')
-        ? rawAuthor
-        : 'نشر بواسطة: $rawAuthor';
+        (isAr ? 'إدارة المعهد' : 'Administration');
+    final String author = isAr
+        ? (rawAuthor.startsWith('نشر') ? rawAuthor : 'نشر بواسطة: $rawAuthor')
+        : (rawAuthor.toLowerCase().startsWith('posted')
+            ? rawAuthor
+            : 'Posted by: $rawAuthor');
     final String time = news['created_at'] ?? '';
 
-    // 🌟 دعم واستخراج كافة مسميات الصور القديمة والحديثة 🌟
     final String rawImg =
         news['image_url'] ??
         news['image_path'] ??
@@ -685,7 +739,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                             color: Colors.grey,
                           ),
                         ),
-                        // ازرار التعديل والحذف تظهر فقط على منشورات المدير نفسه
                         if (news['is_mine'] == true) ...[
                           const SizedBox(width: 8),
                           IconButton(
@@ -697,7 +750,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                             onPressed: () => _openEditAnnouncement(news),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            tooltip: "تعديل الإعلان",
+                            tooltip: isAr ? "تعديل الإعلان" : "Edit Announcement",
                           ),
                           const SizedBox(width: 10),
                           IconButton(
@@ -709,7 +762,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                             onPressed: () => _confirmDeleteAnnouncement(news),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            tooltip: "حذف الإعلان",
+                            tooltip: isAr ? "حذف الإعلان" : "Delete Announcement",
                           ),
                         ],
                       ],
@@ -789,11 +842,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     Color cardColor,
     Color primaryYellow,
   ) {
-    final String title = news['title'] ?? 'خبر إداري';
+    final String title =
+        news['title'] ?? (isAr ? 'خبر إداري' : 'Administrative News');
     final String content = news['content'] ?? '';
     final String time = news['created_at'] ?? '';
 
-    // 🌟 دعم واستخراج كافة مسميات الصور القديمة والحديثة 🌟
     final String rawImg =
         news['image_url'] ??
         news['image_path'] ??
@@ -801,6 +854,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         news['attachment'] ??
         '';
     final String? imageUrl = ApiService.fixMediaUrl(rawImg);
+
+    final String rawAuthor = news['author_name'] ??
+        news['publisher_name'] ??
+        news['created_by'] ??
+        (isAr ? 'الإدارة' : 'Admin');
+    final String authorText = isAr
+        ? "نشر بواسطة: $rawAuthor • $time"
+        : "Posted by: $rawAuthor • $time";
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -885,7 +946,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   ),
                 ),
               ),
-              // ازرار التعديل والحذف تظهر فقط على منشورات المدير نفسه
               if (news['is_mine'] == true)
                 Row(
                   children: [
@@ -898,7 +958,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       onPressed: () => _openEditAnnouncement(news),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      tooltip: "تعديل الإعلان",
+                      tooltip: isAr ? "تعديل الإعلان" : "Edit Announcement",
                     ),
                     const SizedBox(width: 8),
                     IconButton(
@@ -910,7 +970,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       onPressed: () => _confirmDeleteAnnouncement(news),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      tooltip: "حذف الإعلان",
+                      tooltip: isAr ? "حذف الإعلان" : "Delete Announcement",
                     ),
                   ],
                 ),
@@ -918,9 +978,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           ),
           if (time.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 6, right: 56),
+              padding: EdgeInsets.only(
+                top: 6,
+                right: isAr ? 56 : 0,
+                left: isAr ? 0 : 56,
+              ),
               child: Text(
-                "نشر بواسطة: ${news['author_name'] ?? news['publisher_name'] ?? news['created_by'] ?? 'الإدارة'} • $time",
+                authorText,
                 style: const TextStyle(fontSize: 10, color: Colors.grey),
               ),
             ),

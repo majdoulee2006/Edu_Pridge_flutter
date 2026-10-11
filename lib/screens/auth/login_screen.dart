@@ -16,6 +16,7 @@ import '../parents/nav_bar/parent_home.dart';
 import 'create_account_screen.dart';
 import '../Head of department/nav_bar/boss_home.dart';
 import '../Affairs_Officer/nav_bar/home_screen.dart';
+import '../shared/settings_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,6 +29,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _rememberMe = false;
+
+  bool get isAr => AppSettings.language.value == 'ar';
 
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -68,24 +71,29 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.devices_other_rounded, color: Colors.orange),
-              SizedBox(width: 10),
-              Text("تنبيه الحساب مقفل", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Icon(Icons.devices_other_rounded, color: Colors.orange),
+              const SizedBox(width: 10),
+              Text(
+                isAr ? "تنبيه الحساب مقفل" : "Account Locked Alert",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          content: const Text(
-            "هذا الحساب مسجّل على جهاز آخر.\nلا يمكنك تسجيل الدخول إلا من جهازك الأساسي، أو تقديم طلب لشؤون الطلاب لفك القفل عن جهازك القديم.",
-            style: TextStyle(fontSize: 14, height: 1.6),
+          content: Text(
+            isAr
+                ? "هذا الحساب مسجّل على جهاز آخر.\nلا يمكنك تسجيل الدخول إلا من جهازك الأساسي، أو تقديم طلب لشؤون الطلاب لفك القفل عن جهازك القديم."
+                : "This account is registered on another device.\nYou can only log in from your primary device or request a device unlock from student affairs.",
+            style: const TextStyle(fontSize: 14, height: 1.6),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("إلغاء", style: TextStyle(color: Colors.grey)),
+              child: Text(isAr ? "إلغاء" : "Cancel", style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -96,7 +104,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 Navigator.pop(context);
                 _showSubmitResetRequestDialog();
               },
-              child: const Text("تقديم طلب فك القفل", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+              child: Text(
+                isAr ? "تقديم طلب فك القفل" : "Request Unlock",
+                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -114,21 +125,28 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
           return Directionality(
-            textDirection: TextDirection.rtl,
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
             child: AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Text("طلب فك قفل الجهاز", style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                isAr ? "طلب فك قفل الجهاز" : "Request Device Unlock",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("يرجى كتابة سبب طلب فك قفل الجهاز (إجباري):", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  Text(
+                    isAr ? "يرجى كتابة سبب طلب فك قفل الجهاز (إجباري):" : "Please provide the reason for unlocking (required):",
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: reasonController,
                     maxLines: 3,
+                    textAlign: isAr ? TextAlign.right : TextAlign.left,
                     decoration: InputDecoration(
-                      hintText: "مثلاً: تم تغيير الجهاز / فقدان الهاتف السابق...",
+                      hintText: isAr ? "مثلاً: تم تغيير الجهاز / فقدان الهاتف السابق..." : "e.g. Device changed / lost previous phone...",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
                     ),
@@ -138,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
               actions: [
                 TextButton(
                   onPressed: isSubmitting ? null : () => Navigator.pop(context),
-                  child: const Text("إلغاء", style: TextStyle(color: Colors.grey)),
+                  child: Text(isAr ? "إلغاء" : "Cancel", style: const TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -150,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       : () async {
                           if (reasonController.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("سبب الطلب مطلوب إجبارياً")),
+                              SnackBar(content: Text(isAr ? "سبب الطلب مطلوب إجبارياً" : "Request reason is required")),
                             );
                             return;
                           }
@@ -168,13 +186,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             );
                             if (mounted && context.mounted) Navigator.pop(context);
                             if (response.data != null && response.data['success'] == true) {
-                              _showSnackBar(response.data['message'] ?? "تم إرسال الطلب بنجاح", isError: false);
+                              _showSnackBar(response.data['message'] ?? (isAr ? "تم إرسال الطلب بنجاح" : "Request submitted successfully"), isError: false);
                             } else {
-                              _showSnackBar(response.data['message'] ?? "حدث خطأ أثناء إرسال الطلب", isError: true);
+                              _showSnackBar(response.data['message'] ?? (isAr ? "حدث خطأ أثناء إرسال الطلب" : "Error submitting request"), isError: true);
                             }
                           } catch (e) {
-                            if (mounted && context.mounted) Navigator.pop(context);
-                            String errorMsg = "حدث خطأ أثناء تقديم الطلب";
+                            if (mounted) Navigator.pop(context);
+                            String errorMsg = isAr ? "حدث خطأ أثناء تقديم الطلب" : "Error submitting request";
                             if (e is DioException && e.response?.data != null && e.response?.data['message'] != null) {
                               errorMsg = e.response?.data['message'];
                             }
@@ -183,7 +201,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                   child: isSubmitting
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                      : const Text("إرسال الطلب", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                      : Text(
+                          isAr ? "إرسال الطلب" : "Submit Request",
+                          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ],
             ),
@@ -195,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleLogin() async {
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showSnackBar("يرجى إدخال البيانات المطلوبة", isError: true);
+      _showSnackBar(isAr ? "يرجى إدخال البيانات المطلوبة" : "Please enter required credentials", isError: true);
       return;
     }
 
@@ -292,7 +313,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (!mounted) return;
         _showSnackBar(
-          "تم تسجيل الدخول بنجاح، أهلاً بك $displayName",
+          isAr
+              ? "تم تسجيل الدخول بنجاح، أهلاً بك $displayName"
+              : "Logged in successfully, welcome $displayName",
           isError: false,
         );
 
@@ -302,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (e.response?.statusCode == 409 || (e.response?.statusCode == 403 && e.response?.data != null && e.response?.data['device_locked'] == true)) {
         if (mounted) _showDeviceConflictDialog();
       } else {
-        String msg = "تعذر الاتصال بالسيرفر (${ApiService.serverIp})";
+        String msg = isAr ? "تعذر الاتصال بالسيرفر (${ApiService.serverIp})" : "Unable to connect to server (${ApiService.serverIp})";
         if (e.response?.data != null && e.response?.data is Map) {
           msg = e.response?.data['message']?.toString() ?? msg;
         }
@@ -310,7 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       debugPrint("🚨 Error: $e");
-      _showSnackBar("حدث خطأ تقني: $e", isError: true);
+      _showSnackBar(isAr ? "حدث خطأ تقني: $e" : "Technical error: $e", isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -322,14 +345,14 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.dns_rounded, color: Color(0xFFFFCC00)),
-                SizedBox(width: 10),
-                Text("إعدادات السيرفر", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Icon(Icons.dns_rounded, color: Color(0xFFFFCC00)),
+                const SizedBox(width: 10),
+                Text(isAr ? "إعدادات السيرفر" : "Server Settings", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
             content: SingleChildScrollView(
@@ -337,24 +360,24 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "العنوان الحالي للسيرفر:",
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  Text(
+                    isAr ? "العنوان الحالي للسيرفر:" : "Current Server Address:",
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: ipCtrl,
                     style: const TextStyle(fontSize: 13),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: "127.0.0.1 أو رابط السيرفر",
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText: isAr ? "127.0.0.1 أو رابط السيرفر" : "127.0.0.1 or server URL",
                       isDense: true,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    "اختيار سريع للسيرفر:",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                  Text(
+                    isAr ? "اختيار سريع للسيرفر:" : "Quick Server Selection:",
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -364,7 +387,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ActionChip(
                         avatar: const Icon(Icons.usb, size: 16, color: Colors.black),
                         backgroundColor: const Color(0xFFFFCC00),
-                        label: const Text("USB محلي (127.0.0.1:8000)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
+                        label: Text(isAr ? "USB محلي (127.0.0.1:8000)" : "Local USB (127.0.0.1:8000)", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
                         onPressed: () {
                           setDialogState(() {
                             ipCtrl.text = "127.0.0.1";
@@ -373,7 +396,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       ActionChip(
                         avatar: const Icon(Icons.wifi, size: 16),
-                        label: const Text("WiFi شبكة (10.102.114.209:8000)", style: TextStyle(fontSize: 11)),
+                        label: Text(isAr ? "WiFi شبكة (10.102.114.209:8000)" : "Network WiFi (10.102.114.209:8000)", style: const TextStyle(fontSize: 11)),
                         onPressed: () {
                           setDialogState(() {
                             ipCtrl.text = "10.102.114.209";
@@ -382,7 +405,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       ActionChip(
                         avatar: const Icon(Icons.cloud_outlined, size: 16),
-                        label: const Text("السيرفر الخارجي (أونلاين)", style: TextStyle(fontSize: 11)),
+                        label: Text(isAr ? "السيرفر الخارجي (أونلاين)" : "External Online Server", style: const TextStyle(fontSize: 11)),
                         onPressed: () {
                           setDialogState(() {
                             ipCtrl.text = "http://82.137.250.43:8080/edu_bridge/public";
@@ -397,7 +420,7 @@ class _LoginScreenState extends State<LoginScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text("إلغاء"),
+                child: Text(isAr ? "إلغاء" : "Cancel"),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -409,14 +432,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   final newUrl = ipCtrl.text.trim();
                   if (newUrl.isNotEmpty) {
                     await ApiService.setServerIp(newUrl);
-                    if (mounted && ctx.mounted) {
-                      _showSnackBar("تم حفظ رابط السيرفر: $newUrl", isError: false);
+                    if (mounted) {
+                      _showSnackBar(isAr ? "تم حفظ رابط السيرفر: $newUrl" : "Server address saved: $newUrl", isError: false);
                       Navigator.pop(ctx);
                       setState(() {});
                     }
                   }
                 },
-                child: const Text("حفظ وتأكيد", style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(isAr ? "حفظ وتأكيد" : "Save & Confirm", style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -477,209 +500,260 @@ class _LoginScreenState extends State<LoginScreen> {
     const primaryYellow = Color(0xFFFFCC00);
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.dns_rounded, color: Colors.grey),
-                      tooltip: "إعدادات السيرفر",
-                      onPressed: _showServerConfigDialog,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? primaryYellow.withValues(alpha: 0.1)
-                          : const Color(0xFFFEF9E7),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.school_outlined,
-                      size: 60,
-                      color: isDark ? primaryYellow : const Color(0xFFD4AC0D),
-                    ),
-                  ),
-                  const SizedBox(height: 25),
-                  Text(
-                    "مرحباً بك في Edu-Bridge",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      fontFamily: 'Cairo',
-                    ),
-                  ),
-                  Text(
-                    "سجل دخولك للمتابعة",
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontFamily: 'Cairo',
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 45),
+    return ValueListenableBuilder<String>(
+      valueListenable: AppSettings.language,
+      builder: (context, lang, _) {
+        final isAr = lang == 'ar';
 
-                  // حقل اسم المستخدم (رقم جامعي / هاتف / بريد)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      "رقم الهاتف / الإيميل / الرقم الجامعي",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: textColor.withValues(alpha: 0.7),
-                        fontFamily: 'Cairo',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildTextField(
-                    hint: "أدخل رقم الهاتف أو الإيميل أو الرقم الجامعي",
-                    icon: Icons.person_outline_rounded,
-                    controller: _usernameController,
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      "كلمة المرور",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: textColor.withValues(alpha: 0.7),
-                        fontFamily: 'Cairo',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildTextField(
-                    hint: "********",
-                    icon: Icons.lock_outline,
-                    isPassword: true,
-                    controller: _passwordController,
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 15),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Top Row: Server Config & Language Switcher
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Checkbox(
-                            value: _rememberMe,
-                            activeColor: primaryYellow,
-                            checkColor: Colors.black,
-                            onChanged: (value) {
-                              setState(() {
-                                _rememberMe = value ?? false;
-                              });
-                            },
+                          IconButton(
+                            icon: const Icon(Icons.dns_rounded, color: Colors.grey),
+                            tooltip: isAr ? "إعدادات السيرفر" : "Server Config",
+                            onPressed: _showServerConfigDialog,
                           ),
-                          Text(
-                            "تذكرني",
-                            style: TextStyle(
-                              color: textColor.withValues(alpha: 0.8),
-                              fontSize: 13,
-                              fontFamily: 'Cairo',
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () {
+                                final nextLang = isAr ? 'en' : 'ar';
+                                AppSettings.setLanguage(nextLang);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.black.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isDark ? Colors.white24 : Colors.black12,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.language_rounded, size: 16, color: primaryYellow),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isAr ? "English" : "العربية",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: textColor,
+                                        fontFamily: 'Cairo',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ForgotPasswordScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          "نسيت كلمة المرور؟",
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? primaryYellow.withValues(alpha: 0.1)
+                              : const Color(0xFFFEF9E7),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.school_outlined,
+                          size: 60,
+                          color: isDark ? primaryYellow : const Color(0xFFD4AC0D),
+                        ),
+                      ),
+                      const SizedBox(height: 25),
+                      Text(
+                        isAr ? "مرحباً بك في Edu-Bridge" : "Welcome to Edu-Bridge",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
+                      Text(
+                        isAr ? "سجل دخولك للمتابعة" : "Sign in to continue",
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontFamily: 'Cairo',
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 45),
+
+                      // حقل اسم المستخدم (رقم جامعي / هاتف / بريد)
+                      Align(
+                        alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Text(
+                          isAr ? "رقم الهاتف / الإيميل / الرقم الجامعي" : "Phone / Email / University ID",
                           style: TextStyle(
-                            color: primaryYellow,
-                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: textColor.withValues(alpha: 0.7),
                             fontFamily: 'Cairo',
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        hint: isAr
+                            ? "أدخل رقم الهاتف أو الإيميل أو الرقم الجامعي"
+                            : "Enter phone, email or university ID",
+                        icon: Icons.person_outline_rounded,
+                        controller: _usernameController,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 20),
+                      Align(
+                        alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Text(
+                          isAr ? "كلمة المرور" : "Password",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: textColor.withValues(alpha: 0.7),
+                            fontFamily: 'Cairo',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        hint: "********",
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                        controller: _passwordController,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 15),
 
-                  const SizedBox(height: 30),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryYellow,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.black)
-                          : const Text(
-                        "تسجيل الدخول",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                          fontFamily: 'Cairo',
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CreateAccountScreen(),
-                      ),
-                    ),
-                    child: Text.rich(
-                      TextSpan(
-                        text: "ليس لديك حساب؟ ",
-                        style: TextStyle(
-                          color: textColor.withValues(alpha: 0.6),
-                          fontFamily: 'Cairo',
-                        ),
-                        children: const [
-                          TextSpan(
-                            text: "إنشاء حساب جديد",
-                            style: TextStyle(
-                              color: primaryYellow,
-                              fontWeight: FontWeight.bold,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                activeColor: primaryYellow,
+                                checkColor: Colors.black,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _rememberMe = value ?? false;
+                                  });
+                                },
+                              ),
+                              Text(
+                                isAr ? "تذكرني" : "Remember Me",
+                                style: TextStyle(
+                                  color: textColor.withValues(alpha: 0.8),
+                                  fontSize: 13,
+                                  fontFamily: 'Cairo',
+                                ),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ForgotPasswordScreen(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              isAr ? "نسيت كلمة المرور؟" : "Forgot Password?",
+                              style: const TextStyle(
+                                color: primaryYellow,
+                                fontSize: 12,
+                                fontFamily: 'Cairo',
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
+
+                      const SizedBox(height: 30),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _handleLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryYellow,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(color: Colors.black)
+                              : Text(
+                            isAr ? "تسجيل الدخول" : "Sign In",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              fontFamily: 'Cairo',
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateAccountScreen(),
+                          ),
+                        ),
+                        child: Text.rich(
+                          TextSpan(
+                            text: isAr ? "ليس لديك حساب؟ " : "Don't have an account? ",
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.6),
+                              fontFamily: 'Cairo',
+                            ),
+                            children: [
+                              TextSpan(
+                                text: isAr ? "إنشاء حساب جديد" : "Create New Account",
+                                style: const TextStyle(
+                                  color: primaryYellow,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                    ],
                   ),
-                  const SizedBox(height: 30),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

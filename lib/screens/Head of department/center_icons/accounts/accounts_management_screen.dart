@@ -23,6 +23,9 @@ class AccountsManagementScreen extends StatefulWidget {
 }
 
 class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   int _selectedIndex = 0;
   List<Map<String, dynamic>> _accounts = [];
   bool _isLoading = false;
@@ -34,13 +37,26 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
   ];
 
   static const _addScreens = [AddTrainerScreen(), AddStudentScreen(), AddParentScreen()];
-  static const _addLabels  = ["إضافة حساب مدرب جديد", "إضافة حساب طالب جديد", "إضافة حساب ولي أمر"];
-  static const _emptyLabels = ["لا يوجد مدربون مسجلون", "لا يوجد طلاب مسجلون", "لا يوجد أولياء أمور مسجلون"];
+
+  List<String> get _addLabels => isAr
+      ? ["إضافة حساب مدرب جديد", "إضافة حساب طالب جديد", "إضافة حساب ولي أمر"]
+      : ["Add New Trainer", "Add New Student", "Add New Parent"];
+
+  List<String> get _emptyLabels => isAr
+      ? ["لا يوجد مدربون مسجلون", "لا يوجد طلاب مسجلون", "لا يوجد أولياء أمور مسجلون"]
+      : ["No trainers registered", "No students registered", "No parents registered"];
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchAccounts();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _fetchAccounts() async {
@@ -88,8 +104,8 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
 
   String _detail(Map<String, dynamic> account) {
     if (_selectedIndex == 0) return account['email'] as String? ?? '';
-    if (_selectedIndex == 1) return "المستوى: ${account['level'] as String? ?? '-'}";
-    return "صلة القرابة: ${account['relation'] as String? ?? '-'}";
+    if (_selectedIndex == 1) return "${isAr ? "المستوى:" : "Level:"} ${account['level'] as String? ?? '-'}";
+    return "${isAr ? "صلة القرابة:" : "Relation:"} ${account['relation'] as String? ?? '-'}";
   }
 
   @override
@@ -102,7 +118,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: SafeArea(
           bottom: false,
           child: Stack(
@@ -176,7 +192,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
                                                 ],
                                               ),
                                             ),
-                                            Icon(Icons.arrow_back, size: 14, color: Colors.grey.withValues(alpha: 0.5)),
+                                            Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, size: 14, color: Colors.grey.withValues(alpha: 0.5)),
                                           ],
                                         ),
                                       );
@@ -248,9 +264,9 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
       ),
       child: Row(
         children: [
-          _tabItem("مدرب / معلم", 0, primary),
-          _tabItem("طالب",        1, primary),
-          _tabItem("أهل",         2, primary),
+          _tabItem(isAr ? "مدرب / معلم" : "Trainer / Teacher", 0, primary),
+          _tabItem(isAr ? "طالب" : "Student", 1, primary),
+          _tabItem(isAr ? "أهل" : "Parent", 2, primary),
         ],
       ),
     );
@@ -286,9 +302,17 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
         children: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen(userName: "رئيس القسم", userRole: "إدارة النظام"))),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SettingsScreen(
+                  userName: isAr ? "رئيس القسم" : "Dept Head",
+                  userRole: isAr ? "إدارة النظام" : "System Admin",
+                ),
+              ),
+            ),
           ),
-          Text("إدارة الحسابات", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+          Text(isAr ? "إدارة الحسابات" : "Account Management", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
           IconButton(
             icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),

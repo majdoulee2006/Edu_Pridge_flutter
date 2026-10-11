@@ -17,6 +17,12 @@ class ReportsScreen extends StatefulWidget {
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   List<dynamic> _reportsLog = [];
   bool isLoading = true;
 
@@ -35,7 +41,48 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadReports();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  String _getDeptLabel(String dept) {
+    if (!isAr) {
+      switch (dept) {
+        case "جميع الأقسام": return "All Departments";
+        case "نظم معلومات": return "Information Systems";
+        case "تجاري": return "Commercial";
+        case "طبي": return "Medical";
+        case "هندسي": return "Engineering";
+      }
+    }
+    return dept;
+  }
+
+  String _getYearLabel(String year) {
+    if (!isAr) {
+      switch (year) {
+        case "العام الدراسي 2024-2025": return "Academic Year 2024-2025";
+        case "العام الدراسي 2025-2026": return "Academic Year 2025-2026";
+      }
+    }
+    return year;
+  }
+
+  String _getSemesterLabel(String sem) {
+    if (!isAr) {
+      switch (sem) {
+        case "الفصل الدراسي الأول": return "First Semester";
+        case "الفصل الدراسي الثاني": return "Second Semester";
+        case "العام كامل": return "Full Year";
+      }
+    }
+    return sem;
   }
 
   Future<void> _loadReports() async {
@@ -77,21 +124,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Future<void> _download(int reportId, String format, String title) async {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("جاري تحميل $title بصيغة ${format.toUpperCase()}...")),
+      SnackBar(
+        content: Text(isAr ? "جاري تحميل $title بصيغة ${format.toUpperCase()}..." : "Downloading $title as ${format.toUpperCase()}..."),
+      ),
     );
     final filename = "${title.replaceAll(' ', '_')}.$format";
     final path = await AdminServices().downloadReport(reportId, format, filename);
     if (path != null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("تم تحميل التقرير بنجاح على جهازك ✓")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "تم تحميل التقرير بنجاح على جهازك ✓" : "Report downloaded successfully to your device ✓")),
+        );
+      }
       OpenFilex.open(path);
     } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("حدث خطأ أثناء تحميل التقرير")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "حدث خطأ أثناء تحميل التقرير" : "Error occurred while downloading report")),
+        );
+      }
     }
   }
 
@@ -103,7 +154,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       builder: (context) {
         return Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: Padding(
             padding: const EdgeInsets.all(22),
             child: Column(
@@ -114,15 +165,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(10)),
                 ),
                 const SizedBox(height: 15),
-                const Text(
-                  "تم توليد التقرير بنجاح 🎉",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  isAr ? "تم توليد التقرير بنجاح 🎉" : "Report Generated Successfully 🎉",
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  "اختر طريقة التنزيل لنقل التقرير وتخزينه على جهازك المحمول:",
+                Text(
+                  isAr
+                      ? "اختر طريقة التنزيل لنقل التقرير وتخزينه على جهازك المحمول:"
+                      : "Select download format to save report to your device:",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -134,7 +187,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           _download(reportId, 'pdf', title);
                         },
                         icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-                        label: const Text("تنزيل PDF", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        label: Text(isAr ? "تنزيل PDF" : "Download PDF", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent,
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -150,7 +203,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           _download(reportId, 'excel', title);
                         },
                         icon: const Icon(Icons.table_chart, color: Colors.white),
-                        label: const Text("تنزيل Excel", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        label: Text(isAr ? "تنزيل Excel" : "Download Excel", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -185,7 +238,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
               padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
               child: Directionality(
-                textDirection: TextDirection.rtl,
+                textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                 child: Column(
                   children: [
                     Container(
@@ -205,7 +258,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             Icon(Icons.post_add_rounded, color: primaryYellow, size: 28),
                             const SizedBox(width: 10),
                             Text(
-                              "إنشاء وتوليد تقرير جديد",
+                              isAr ? "إنشاء وتوليد تقرير جديد" : "Generate New Report",
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -227,13 +280,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("نوع التقرير", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            Text(isAr ? "نوع التقرير" : "Report Type", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 12),
                             Row(
                               children: [
                                 Expanded(
                                   child: _buildTypeCard(
-                                    "أداء الطلاب",
+                                    isAr ? "أداء الطلاب" : "Student Performance",
                                     Icons.bar_chart_rounded,
                                     selectedReportType == "أداء الطلاب",
                                     primaryYellow,
@@ -244,7 +297,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: _buildTypeCard(
-                                    "نسب الحضور",
+                                    isAr ? "نسب الحضور" : "Attendance Rates",
                                     Icons.person_search_outlined,
                                     selectedReportType == "نسب الحضور",
                                     primaryYellow,
@@ -255,7 +308,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               ],
                             ),
                             const SizedBox(height: 25),
-                            const Text("معايير التصفية والتاريخ", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            Text(isAr ? "معايير التصفية والتاريخ" : "Filter Criteria & Date", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.all(16),
@@ -267,34 +320,37 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               child: Column(
                                 children: [
                                   _buildFilterDropdown(
-                                    "القسم / المرحلة",
+                                    isAr ? "القسم / المرحلة" : "Department / Stage",
                                     departments,
                                     selectedDept,
                                     (v) => setModalState(() => selectedDept = v!),
                                     isDark,
+                                    labelMapper: _getDeptLabel,
                                   ),
                                   const SizedBox(height: 12),
                                   _buildFilterDropdown(
-                                    "الدورة / العام الدراسي",
+                                    isAr ? "الدورة / العام الدراسي" : "Program / Academic Year",
                                     years,
                                     selectedYear,
                                     (v) => setModalState(() => selectedYear = v!),
                                     isDark,
+                                    labelMapper: _getYearLabel,
                                   ),
                                   const SizedBox(height: 12),
                                   _buildFilterDropdown(
-                                    "الفصل الدراسي",
+                                    isAr ? "الفصل الدراسي" : "Semester",
                                     semesters,
                                     selectedSemester,
                                     (v) => setModalState(() => selectedSemester = v!),
                                     isDark,
+                                    labelMapper: _getSemesterLabel,
                                   ),
                                   const SizedBox(height: 16),
                                   Row(
                                     children: [
                                       Expanded(
                                         child: _buildDatePicker(
-                                          "من تاريخ",
+                                          isAr ? "من تاريخ" : "From Date",
                                           fromDate,
                                           (date) => setModalState(() => fromDate = date),
                                           isDark,
@@ -303,7 +359,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: _buildDatePicker(
-                                          "إلى تاريخ",
+                                          isAr ? "إلى تاريخ" : "To Date",
                                           toDate,
                                           (date) => setModalState(() => toDate = date),
                                           isDark,
@@ -322,23 +378,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ElevatedButton.icon(
                       onPressed: () {
                         final newId = DateTime.now().millisecondsSinceEpoch;
-                        final newTitle = "تقرير $selectedReportType - $selectedDept";
+                        final typeLabel = selectedReportType == "نسب الحضور"
+                            ? (isAr ? "نسب الحضور" : "Attendance")
+                            : (isAr ? "أداء الطلاب" : "Performance");
+                        final deptLabel = _getDeptLabel(selectedDept);
+                        final newTitle = isAr ? "تقرير $typeLabel - $deptLabel" : "$typeLabel Report - $deptLabel";
                         setState(() {
                           _reportsLog.insert(0, {
                             "id": newId,
                             "title": newTitle,
                             "report_type": selectedReportType == "نسب الحضور" ? "attendance" : "performance",
                             "created_at": "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}",
-                            "status": "مكتمل",
+                            "status": isAr ? "مكتمل" : "Completed",
                           });
                         });
                         Navigator.pop(context);
                         _showGeneratedReportOptions(newId, newTitle);
                       },
                       icon: const Icon(Icons.picture_as_pdf, color: Colors.black),
-                      label: const Text(
-                        "توليد التقرير وتنزيله",
-                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                      label: Text(
+                        isAr ? "توليد التقرير وتنزيله" : "Generate & Download Report",
+                        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryYellow,
@@ -363,17 +423,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("سجل التقارير والإحصائيات"),
+          title: Text(isAr ? "سجل التقارير والإحصائيات" : "Reports & Statistics Log"),
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_forward),
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back),
           ),
           actions: [
-            // 🌟 تفعيل زر الإعدادات بالكامل 🌟
             IconButton(
               onPressed: () {
                 Navigator.push(
@@ -382,7 +441,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 );
               },
               icon: Icon(Icons.settings_outlined, color: primaryYellow, size: 28),
-              tooltip: "الإعدادات",
+              tooltip: isAr ? "الإعدادات" : "Settings",
             ),
           ],
         ),
@@ -392,14 +451,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _reportsLog.isEmpty
-                      ? const Center(child: Text("لا يوجد تقارير محفوظة"))
+                      ? Center(child: Text(isAr ? "لا يوجد تقارير محفوظة" : "No saved reports"))
                       : SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(20, 15, 20, 140),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "التقارير المحفوظة (${_reportsLog.length})",
+                                isAr ? "التقارير المحفوظة (${_reportsLog.length})" : "Saved Reports (${_reportsLog.length})",
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -413,7 +472,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 itemCount: _reportsLog.length,
                                 itemBuilder: (context, index) {
                                   final item = _reportsLog[index];
-                                  final typeStr = item['report_type'] == 'attendance' ? 'نسب الحضور' : 'أداء الطلاب';
+                                  final typeStr = item['report_type'] == 'attendance'
+                                      ? (isAr ? 'نسب الحضور' : 'Attendance')
+                                      : (isAr ? 'أداء الطلاب' : 'Performance');
                                   final dateStr = item['created_at'].toString().split(' ')[0];
                                   return Container(
                                     margin: const EdgeInsets.only(bottom: 14),
@@ -457,16 +518,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                 color: Colors.blue.withValues(alpha: 0.15),
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
-                                              child: const Text(
-                                                "جاهز للتنزيل",
-                                                style: TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold),
+                                              child: Text(
+                                                isAr ? "جاهز للتنزيل" : "Ready to download",
+                                                style: const TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold),
                                               ),
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 10),
                                         Text(
-                                          item['title'] ?? 'بدون عنوان',
+                                          item['title'] ?? (isAr ? 'بدون عنوان' : 'Untitled'),
                                           style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
@@ -480,9 +541,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                             const SizedBox(width: 4),
                                             Text(dateStr, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                                             const Spacer(),
-                                            // 🌟 خيار التنزيل المباشر PDF و Excel 🌟
                                             ElevatedButton.icon(
-                                              onPressed: () => _download(item['id'], 'pdf', item['title']),
+                                              onPressed: () => _download(item['id'], 'pdf', item['title'] ?? ''),
                                               icon: const Icon(Icons.picture_as_pdf, size: 16, color: Colors.white),
                                               label: const Text("PDF", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                               style: ElevatedButton.styleFrom(
@@ -494,7 +554,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                             ),
                                             const SizedBox(width: 8),
                                             ElevatedButton.icon(
-                                              onPressed: () => _download(item['id'], 'excel', item['title']),
+                                              onPressed: () => _download(item['id'], 'excel', item['title'] ?? ''),
                                               icon: const Icon(Icons.table_chart, size: 16, color: Colors.white),
                                               label: const Text("Excel", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                               style: ElevatedButton.styleFrom(
@@ -516,10 +576,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
             ),
 
-            // 🌟 زر الزائد (+) العائم في أسفل اليسار 🌟
+            // 🌟 زر الزائد (+) العائم في أسفل الشاشة 🌟
             Positioned(
               bottom: 100,
-              left: 20,
+              left: isAr ? 20 : null,
+              right: isAr ? null : 20,
               child: GestureDetector(
                 onTap: () => _showCreateReportModal(context, isDark, primaryYellow),
                 child: Container(
@@ -590,7 +651,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           if (isSelected)
             Positioned(
               top: 8,
-              right: 8,
+              right: isAr ? 8 : null,
+              left: isAr ? null : 8,
               child: CircleAvatar(
                 radius: 10,
                 backgroundColor: yellow,
@@ -602,12 +664,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildFilterDropdown(String label, List<String> items, String value, ValueChanged<String?> onChanged, bool isDark) {
+  Widget _buildFilterDropdown(
+    String label,
+    List<String> items,
+    String value,
+    ValueChanged<String?> onChanged,
+    bool isDark, {
+    String Function(String)? labelMapper,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(right: 5, bottom: 4),
+          padding: const EdgeInsets.only(right: 5, left: 5, bottom: 4),
           child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ),
         Container(
@@ -619,9 +688,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: value,
+              value: items.contains(value) ? value : null,
               isExpanded: true,
-              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
+              items: items
+                  .map((e) => DropdownMenuItem(
+                        value: e,
+                        child: Text(labelMapper != null ? labelMapper(e) : e, style: const TextStyle(fontSize: 13)),
+                      ))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -632,7 +706,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildDatePicker(String label, DateTime? date, Function(DateTime) onPicked, bool isDark) {
     final formattedDate = date == null
-        ? "اختر التاريخ"
+        ? (isAr ? "اختر التاريخ" : "Select Date")
         : "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
     return Column(
@@ -642,12 +716,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
         const SizedBox(height: 4),
         GestureDetector(
           onTap: () async {
-            // 🌟 منع التواريخ المستقبلية واختيار تاريخ صحيح فقط 🌟
             DateTime? picked = await showDatePicker(
               context: context,
               initialDate: date ?? DateTime.now(),
               firstDate: DateTime(2020),
-              lastDate: DateTime.now(), // يمنع تحديد أي تاريخ مستقبلي
+              lastDate: DateTime.now(),
             );
             if (picked != null) onPicked(picked);
           },

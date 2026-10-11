@@ -24,17 +24,76 @@ class AccountsMainScreen extends StatefulWidget {
 }
 
 class _AccountsMainScreenState extends State<AccountsMainScreen> {
-  int selectedTab = 0; // 0: إنشاء, 1: حذف, 2: طلبات
+  int selectedTab = 0; // 0: إنشاء, 1: حذف
+
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
 
   final List<Map<String, dynamic>> accountTypes = [
-    {"title": "طالب", "icon": Icons.school_outlined, "color": Colors.blue, "id": "student"},
-    {"title": "ولي أمر", "icon": Icons.family_restroom_outlined, "color": Colors.orange, "id": "parent"},
-    {"title": "معلم", "icon": Icons.co_present_outlined, "color": Colors.green, "id": "teacher"},
-    {"title": "رئيس قسم", "icon": Icons.manage_accounts_outlined, "color": Colors.purple, "id": "dept_head"},
-    {"title": "موظف شؤون", "icon": Icons.badge_outlined, "color": Colors.red, "id": "staff"},
+    {"icon": Icons.school_outlined, "color": Colors.blue, "id": "student"},
+    {
+      "icon": Icons.family_restroom_outlined,
+      "color": Colors.orange,
+      "id": "parent",
+    },
+    {"icon": Icons.co_present_outlined, "color": Colors.green, "id": "teacher"},
+    {
+      "icon": Icons.manage_accounts_outlined,
+      "color": Colors.purple,
+      "id": "dept_head",
+    },
+    {"icon": Icons.badge_outlined, "color": Colors.red, "id": "staff"},
   ];
 
-  // دالة التنقل في الـ Bottom Nav
+  String _getTypeTitle(String id) {
+    if (isAr) {
+      switch (id) {
+        case 'student':
+          return "طالب";
+        case 'parent':
+          return "ولي أمر";
+        case 'teacher':
+          return "معلم";
+        case 'dept_head':
+          return "رئيس قسم";
+        case 'staff':
+          return "موظف شؤون";
+        default:
+          return id;
+      }
+    } else {
+      switch (id) {
+        case 'student':
+          return "Student";
+        case 'parent':
+          return "Parent";
+        case 'teacher':
+          return "Teacher";
+        case 'dept_head':
+          return "Department Head";
+        case 'staff':
+          return "Affairs Staff";
+        default:
+          return id;
+      }
+    }
+  }
+
   void _navigateToNavScreen(int index) {
     Widget screen;
     switch (index) {
@@ -63,13 +122,15 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF8F9FA);
+    final bgColor = isDark
+        ? Theme.of(context).scaffoldBackgroundColor
+        : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1C1E);
-    final primaryYellow = const Color(0xFFFFCC00);
+    const primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
@@ -83,14 +144,17 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
                   _buildCustomTabs(primaryYellow, cardColor, textColor),
                   const SizedBox(height: 20),
                   Expanded(
-                    child: _buildCategoriesGrid(cardColor, textColor, primaryYellow),
+                    child: _buildCategoriesGrid(
+                      cardColor,
+                      textColor,
+                      primaryYellow,
+                    ),
                   ),
                 ],
               ),
             ),
-            // شريط التنقل السفلي (محدث)
             CustomBottomNav(
-              currentIndex: 0, // نحن حالياً في صفحة الحسابات
+              currentIndex: 0,
               centerButton: const AdminSpeedDial(),
               onHomeTap: () => _navigateToNavScreen(0),
               onMessagesTap: () => _navigateToNavScreen(1),
@@ -103,7 +167,6 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
     );
   }
 
-  // باقي الدوال كما هي بدون تغيير
   Widget _buildHeader(Color textColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -111,14 +174,28 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor, size: 26),
+            icon: Icon(
+              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+              color: textColor,
+              size: 26,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
-          Text("الحسابات", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor)),
+          Text(
+            isAr ? "الحسابات" : "Accounts",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: textColor,
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: Color(0xFFFFCC00)),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
-            tooltip: "الإعدادات",
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            ),
+            tooltip: isAr ? "الإعدادات" : "Settings",
           ),
         ],
       ),
@@ -132,12 +209,17 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
+        ],
       ),
       child: Row(
         children: [
-          _buildTabItem("إنشاء", 0, yellow),
-          _buildTabItem("حذف", 1, yellow),
+          _buildTabItem(isAr ? "إنشاء" : "Create", 0, yellow),
+          _buildTabItem(isAr ? "حذف" : "Delete", 1, yellow),
         ],
       ),
     );
@@ -180,6 +262,7 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
       itemCount: accountTypes.length,
       itemBuilder: (context, index) {
         final type = accountTypes[index];
+        final String title = _getTypeTitle(type['id']);
         return GestureDetector(
           onTap: () => _navigateToManagement(type['id']),
           child: Container(
@@ -201,8 +284,12 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
                 ),
                 const SizedBox(height: 15),
                 Text(
-                  type['title'],
-                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontSize: 16),
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    fontSize: 16,
+                  ),
                 ),
               ],
             ),
@@ -219,15 +306,29 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
 
     Widget targetScreen;
     switch (id) {
-      case 'student': targetScreen = StudentManagementScreen(mode: mode); break;
-      case 'parent': targetScreen = ParentManagementScreen(mode: mode); break;
-      case 'teacher': targetScreen = TeacherManagementScreen(mode: mode); break;
-      case 'dept_head': targetScreen = DeptHeadManagementScreen(mode: mode); break;
-      case 'staff': targetScreen = StudentAffairsManagementScreen(mode: mode); break;
-      default: return;
+      case 'student':
+        targetScreen = StudentManagementScreen(mode: mode);
+        break;
+      case 'parent':
+        targetScreen = ParentManagementScreen(mode: mode);
+        break;
+      case 'teacher':
+        targetScreen = TeacherManagementScreen(mode: mode);
+        break;
+      case 'dept_head':
+        targetScreen = DeptHeadManagementScreen(mode: mode);
+        break;
+      case 'staff':
+        targetScreen = StudentAffairsManagementScreen(mode: mode);
+        break;
+      default:
+        return;
     }
 
-    Navigator.push(context, MaterialPageRoute(builder: (context) => targetScreen));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => targetScreen),
+    );
   }
 
   Widget _buildGridBackground() {
@@ -235,7 +336,10 @@ class _AccountsMainScreenState extends State<AccountsMainScreen> {
       opacity: 0.03,
       child: Container(
         decoration: const BoxDecoration(
-          image: DecorationImage(image: AssetImage("assets/images/grid.png"), repeat: ImageRepeat.repeat),
+          image: DecorationImage(
+            image: AssetImage("assets/images/grid.png"),
+            repeat: ImageRepeat.repeat,
+          ),
         ),
       ),
     );
