@@ -248,7 +248,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             AiFloatingButton(
               userRole: 'admin',
-              userName: offlineName,
+              userName: (dashboardData?['user']?['full_name'] as String?) ?? 'Admin',
               bottom: 100,
               right: 20,
             ),

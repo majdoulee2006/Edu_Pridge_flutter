@@ -15,6 +15,7 @@ import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../widgets/teacher_speed_dial.dart';
 import 'report_requests_screen.dart';
 import 'teacher_services_menu_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});

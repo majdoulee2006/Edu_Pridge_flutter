@@ -514,12 +514,12 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                       const SizedBox(height: 10),
                       loadingStudents
                           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
-                          : _programStudents.isEmpty
+                          : programStudents.isEmpty
                               ? Text(isAr ? 'لا يوجد طلاب' : 'No students found', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))
                               : DropdownButtonFormField<int>(
                                   decoration: _inputDec(isAr ? 'اختر الطالب' : 'Select Student'),
                                   value: selStudentId,
-                                  items: _programStudents.map((s) => DropdownMenuItem<int>(
+                                  items: programStudents.map((s) => DropdownMenuItem<int>(
                                     value: s['student_id'] as int,
                                     child: Text('${s['full_name']} - ${s['university_id'] ?? ''}'),
                                   )).toList(),

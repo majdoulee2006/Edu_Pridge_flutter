@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
-import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 class CreateTeacherScreen extends StatefulWidget {
   const CreateTeacherScreen({super.key});
@@ -20,6 +19,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String _selectedGender = 'ذكر';
+  String? _selectedSystem;
   final TextEditingController _specializationController = TextEditingController();
 
   bool get isAr => AppSettings.language.value == 'ar';
@@ -346,9 +346,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
+                    child: DropdownButton<String>(
                       isExpanded: true,
-                      value: _selectedDepartmentId,
+                      value: _selectedSystem,
                       hint: Text(
                         isAr ? 'نظام المعلومات' : 'Information System',
                         style: TextStyle(
@@ -370,9 +370,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                           child: Text(label),
                         );
                       }).toList(),
-                      onChanged: (int? newValue) {
+                      onChanged: (String? newValue) {
                         setState(() {
-                          _selectedDepartmentId = newValue;
+                          _selectedSystem = newValue;
                         });
                       },
                     ),

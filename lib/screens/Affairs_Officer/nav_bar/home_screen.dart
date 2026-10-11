@@ -13,6 +13,7 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/nav_bar/notifications
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/affairs_student_services_menu_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 
 
 

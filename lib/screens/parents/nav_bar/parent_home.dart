@@ -15,6 +15,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/parent_services.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import '../../../widgets/parents_center_icon.dart';
+import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 
 
 class ParentsHomeScreen extends StatefulWidget {
