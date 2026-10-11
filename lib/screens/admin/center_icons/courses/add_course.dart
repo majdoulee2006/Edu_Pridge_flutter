@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
 
 class AddCourseScreen extends StatefulWidget {
@@ -9,6 +10,12 @@ class AddCourseScreen extends StatefulWidget {
 }
 
 class _AddCourseScreenState extends State<AddCourseScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
@@ -32,7 +39,24 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadMetadata();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    nameController.dispose();
+    descriptionController.dispose();
+    super.dispose();
+  }
+
+  String _getLevelLabel(String lvl) {
+    if (!isAr) {
+      if (lvl == "السنة الأولى") return "First Year";
+      if (lvl == "السنة الثانية") return "Second Year";
+    }
+    return lvl;
   }
 
   Future<void> _loadMetadata() async {
@@ -64,7 +88,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     final desc = descriptionController.text.trim();
 
     if (title.isEmpty) {
-      _showSnackBar("يرجى إدخال اسم الدورة/المادة");
+      _showSnackBar(isAr ? "يرجى إدخال اسم الدورة/المادة" : "Please enter course / subject name");
       return;
     }
 
@@ -78,10 +102,6 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       };
 
       if (selectedTeacherId != null) {
-        // Teacher profile ID vs User ID. 
-        // In the backend, teacher_ids.* must exist in teachers.teacher_id.
-        // Let's check how the user object is structured.
-        // If the user object has a nested teacher profile, we extract the teacher_id.
         final selectedTeacher = teachers.firstWhere((t) => t['user_id'] == selectedTeacherId, orElse: () => null);
         if (selectedTeacher != null && selectedTeacher['teacher'] != null) {
           final teacherId = selectedTeacher['teacher']['teacher_id'];
@@ -91,16 +111,24 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
       final success = await AdminServices().createCourse(data);
       if (success) {
-        _showSnackBar("تمت إضافة الدورة بنجاح", isError: false);
-        Navigator.pop(context);
+        if (mounted) {
+          _showSnackBar(isAr ? "تمت إضافة الدورة بنجاح" : "Course added successfully", isError: false);
+          Navigator.pop(context);
+        }
       } else {
-        _showSnackBar("فشل إضافة الدورة");
+        if (mounted) {
+          _showSnackBar(isAr ? "فشل إضافة الدورة" : "Failed to add course");
+        }
       }
     } catch (e) {
       debugPrint("Error creating course: $e");
-      _showSnackBar("حدث خطأ أثناء إضافة الدورة");
+      if (mounted) {
+        _showSnackBar(isAr ? "حدث خطأ أثناء إضافة الدورة" : "An error occurred while adding course");
+      }
     } finally {
-      setState(() => isSubmitting = false);
+      if (mounted) {
+        setState(() => isSubmitting = false);
+      }
     }
   }
 
@@ -114,13 +142,6 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   }
 
   @override
-  void dispose() {
-    nameController.dispose();
-    descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -129,14 +150,14 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          title: const Text("إضافة دورة جديدة", style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(isAr ? "إضافة دورة جديدة" : "Add New Course", style: const TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
           leading: IconButton(
-            icon: Icon(Icons.arrow_forward, color: textColor),
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -149,31 +170,31 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel("اسم المادة / الدورة (إجباري)", textColor),
+                        _buildLabel(isAr ? "اسم المادة / الدورة (إجباري)" : "Subject / Course Name (Required)", textColor),
                         _buildTextField(
                           controller: nameController,
-                          hint: "مثال: البرمجة غرضية التوجه",
+                          hint: isAr ? "مثال: البرمجة غرضية التوجه" : "e.g. Object-Oriented Programming",
                           icon: Icons.edit,
                           cardColor: cardColor,
                         ),
                         const SizedBox(height: 20),
 
-                        _buildLabel("السنة الأكاديمية", textColor),
-                        _buildDropdownField(levels, selectedLevel, (val) => setState(() => selectedLevel = val!), cardColor, textColor),
+                        _buildLabel(isAr ? "السنة الأكاديمية" : "Academic Year", textColor),
+                        _buildDropdownField(levels, selectedLevel, (val) => setState(() => selectedLevel = val!), cardColor, textColor, labelMapper: _getLevelLabel),
                         const SizedBox(height: 20),
 
-                        _buildLabel("الفصل الدراسي", textColor),
+                        _buildLabel(isAr ? "الفصل الدراسي" : "Semester", textColor),
                         _buildSemesterDropdown(cardColor, textColor),
                         const SizedBox(height: 20),
 
-                        _buildLabel("مدرس المادة", textColor),
+                        _buildLabel(isAr ? "مدرس المادة" : "Course Teacher", textColor),
                         _buildTeacherDropdown(cardColor, textColor),
                         const SizedBox(height: 20),
 
-                        _buildLabel("وصف الدورة", textColor),
+                        _buildLabel(isAr ? "وصف الدورة" : "Course Description", textColor),
                         _buildTextField(
                           controller: descriptionController,
-                          hint: "اكتب وصفاً محتوياً على المنهج الدراسي والأهداف...",
+                          hint: isAr ? "اكتب وصفاً محتوياً على المنهج الدراسي والأهداف..." : "Write a description including curriculum and goals...",
                           maxLines: 4,
                           icon: Icons.description,
                           cardColor: cardColor,
@@ -189,13 +210,15 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                               backgroundColor: primaryYellow,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text("إضافة الدورة",
-                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-                                SizedBox(width: 8),
-                                Icon(Icons.add, color: Colors.black),
+                                Text(
+                                  isAr ? "إضافة الدورة" : "Add Course",
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.add, color: Colors.black),
                               ],
                             ),
                           ),
@@ -209,7 +232,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
   Widget _buildLabel(String text, Color textColor) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8, right: 5),
+      padding: const EdgeInsets.only(bottom: 8, right: 5, left: 5),
       child: Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
     );
   }
@@ -237,7 +260,14 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
-  Widget _buildDropdownField(List<String> items, String value, ValueChanged<String?> onChanged, Color cardColor, Color textColor) {
+  Widget _buildDropdownField(
+    List<String> items,
+    String value,
+    ValueChanged<String?> onChanged,
+    Color cardColor,
+    Color textColor, {
+    String Function(String)? labelMapper,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
@@ -247,7 +277,12 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           isExpanded: true,
           dropdownColor: cardColor,
           style: TextStyle(color: textColor, fontFamily: 'Cairo'),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items
+              .map((e) => DropdownMenuItem(
+                    value: e,
+                    child: Text(labelMapper != null ? labelMapper(e) : e),
+                  ))
+              .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -261,12 +296,14 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: selectedSemesterId,
-          hint: const Text("اختر الفصل الدراسي للربط"),
+          hint: Text(isAr ? "اختر الفصل الدراسي للربط" : "Select semester to link"),
           isExpanded: true,
           dropdownColor: cardColor,
           style: TextStyle(color: textColor, fontFamily: 'Cairo'),
           items: semesters.map((e) {
-            final activeLabel = e['is_active'] == 1 || e['is_active'] == true ? ' (نشط)' : '';
+            final activeLabel = (e['is_active'] == 1 || e['is_active'] == true)
+                ? (isAr ? ' (نشط)' : ' (Active)')
+                : '';
             return DropdownMenuItem<int>(
               value: e['semester_id'],
               child: Text("${e['name']}$activeLabel"),
@@ -285,7 +322,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: selectedTeacherId,
-          hint: const Text("تعيين مدرس للدورة"),
+          hint: Text(isAr ? "تعيين مدرس للدورة" : "Assign teacher to course"),
           isExpanded: true,
           dropdownColor: cardColor,
           style: TextStyle(color: textColor, fontFamily: 'Cairo'),

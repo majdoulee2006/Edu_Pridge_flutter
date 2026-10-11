@@ -14,7 +14,6 @@ import 'package:edu_pridge_flutter/screens/parents/parent_services_menu_screen.d
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/parent_services.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 import '../../../widgets/parents_center_icon.dart';
 
 
@@ -174,99 +173,107 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   }
 
   void _showAddStudentDialog() {
+    final isAr = AppSettings.language.value == 'ar';
     TextEditingController codeController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("ربط ابن جديد", textAlign: TextAlign.right),
-        content: TextField(
-          controller: codeController,
-          decoration: const InputDecoration(hintText: "أدخل الرقم الجامعي للطالب"),
-          textAlign: TextAlign.right,
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
-          ElevatedButton(
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              final token = prefs.getString('token') ?? '';
-              if (token.isEmpty) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("خطأ: يرجى إعادة تسجيل الدخول")),
-                  );
-                }
-                return;
-              }
-              try {
-                await Dio().post(
-                  "${ApiService().baseUrl}/parent/add-student",
-                  data: {"student_code": codeController.text},
-                  options: Options(headers: {
-                    "Accept": "application/json",
-                    "Authorization": "Bearer $token",
-                  }),
-                );
-                if (context.mounted) Navigator.pop(context);
-                _refreshChildren();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("✅ تم ربط الابن بنجاح")),
-                  );
-                }
-              } on DioException catch (e) {
-                final msg = e.response?.data['message'] ?? "فشل الربط: تأكد من الكود";
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-                }
-              }
-            },
-            child: const Text("إضافة"),
+      builder: (context) => Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          title: Text(isAr ? "ربط ابن جديد" : "Link New Child"),
+          content: TextField(
+            controller: codeController,
+            decoration: InputDecoration(hintText: isAr ? "أدخل الرقم الجامعي للطالب" : "Enter student university ID"),
+            keyboardType: TextInputType.number,
           ),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(isAr ? "إلغاء" : "Cancel")),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final token = prefs.getString('token') ?? '';
+                if (token.isEmpty) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isAr ? "خطأ: يرجى إعادة تسجيل الدخول" : "Error: Please sign in again")),
+                    );
+                  }
+                  return;
+                }
+                try {
+                  await Dio().post(
+                    "${ApiService().baseUrl}/parent/add-student",
+                    data: {"student_code": codeController.text},
+                    options: Options(headers: {
+                      "Accept": "application/json",
+                      "Authorization": "Bearer $token",
+                    }),
+                  );
+                  if (context.mounted) Navigator.pop(context);
+                  _refreshChildren();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isAr ? "✅ تم ربط الابن بنجاح" : "✅ Child linked successfully")),
+                    );
+                  }
+                } on DioException catch (e) {
+                  final msg = e.response?.data['message'] ?? (isAr ? "فشل الربط: تأكد من الكود" : "Linking failed: verify code");
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
+                  }
+                }
+              },
+              child: Text(isAr ? "إضافة" : "Add"),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void _confirmUnlinkStudent(int studentId, String studentName) {
+    final isAr = AppSettings.language.value == 'ar';
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("إلغاء ربط الابن", textAlign: TextAlign.right),
-        content: Text("هل أنت تأكد من إلغاء ربط ($studentName) من قائمة أبنائك؟", textAlign: TextAlign.right),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("إلغاء"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final success = await ParentService().unlinkChild(studentId);
-              if (mounted) {
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("✅ تم إلغاء ربط $studentName بنجاح")),
-                  );
-                  _refreshChildren();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("⚠️ فشل إلغاء الربط")),
-                  );
+      builder: (ctx) => Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          title: Text(isAr ? "إلغاء ربط الابن" : "Unlink Child"),
+          content: Text(isAr ? "هل أنت متأكد من إلغاء ربط ($studentName) من قائمة أبنائك؟" : "Are you sure you want to unlink ($studentName) from your children?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(isAr ? "إلغاء" : "Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final success = await ParentService().unlinkChild(studentId);
+                if (mounted) {
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isAr ? "✅ تم إلغاء ربط $studentName بنجاح" : "✅ $studentName unlinked successfully")),
+                    );
+                    _refreshChildren();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isAr ? "⚠️ فشل إلغاء الربط" : "⚠️ Failed to unlink")),
+                    );
+                  }
                 }
-              }
-            },
-            child: const Text("إلغاء الربط", style: TextStyle(color: Colors.white)),
-          ),
-        ],
+              },
+              child: Text(isAr ? "إلغاء الربط" : "Unlink", style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
@@ -274,7 +281,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: AppSettings.language.value == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: Stack(
           children: [
             Column(
@@ -289,7 +296,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                         const SizedBox(height: 10),
                         _buildHeader(context, textColor, cardColor),
                         const SizedBox(height: 14),
-                        _buildSectionTitle(AppSettings.language.value == 'ar' ? "الأبناء" : "Children", textColor),
+                        _buildSectionTitle(isAr ? "الأبناء" : "Children", textColor),
                         const SizedBox(height: 10),
                       ],
                     ),
@@ -325,7 +332,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                                 if (firstId != null) {
                                   await prefs.setInt('selected_student_id', firstId);
                                 }
-                                await prefs.setString('selected_student_name', first['full_name'] ?? "بدون اسم");
+                                await prefs.setString('selected_student_name', first['full_name'] ?? (isAr ? "بدون اسم" : "Unnamed"));
                               });
                             }
 
@@ -353,11 +360,11 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                                         if (studentId != null) {
                                           await prefs.setInt('selected_student_id', studentId);
                                         }
-                                        await prefs.setString('selected_student_name', child['full_name'] ?? "بدون اسم");
+                                        await prefs.setString('selected_student_name', child['full_name'] ?? (isAr ? "بدون اسم" : "Unnamed"));
                                         if (!mounted) return;
                                         messenger.showSnackBar(
                                           SnackBar(
-                                            content: Text("تم اختيار: ${child['full_name']}"),
+                                            content: Text(isAr ? "تم اختيار: ${child['full_name']}" : "Selected: ${child['full_name']}"),
                                             duration: const Duration(seconds: 1),
                                           ),
                                         );
@@ -365,8 +372,8 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                                       child: Stack(
                                         children: [
                                           _buildStudentCard(
-                                            child['full_name'] ?? "بدون اسم",
-                                            child['level'] ?? child['academic_year'] ?? "غير محدد",
+                                            child['full_name'] ?? (isAr ? "بدون اسم" : "Unnamed"),
+                                            child['level'] ?? child['academic_year'] ?? (isAr ? "غير محدد" : "Not specified"),
                                             child['semester'] ?? child['active_semester'] ?? "",
                                             gpa,
                                             attendance,
@@ -419,7 +426,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                           },
                         ),
                         const SizedBox(height: 20),
-                        _buildSectionTitle(AppSettings.language.value == 'ar' ? "أخبار المعهد والفعاليات" : "News & Events", textColor),
+                        _buildSectionTitle(isAr ? "أخبار المعهد والفعاليات" : "News & Events", textColor),
                         _buildNewsSection(cardColor, textColor),
                       ],
                     ),
@@ -506,6 +513,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
 
   Widget _buildStudentCard(String name, String level, String semester, String gpa, String attendance,
       Color cardColor, Color textColor, {bool isSelected = false}) {
+    final isAr = AppSettings.language.value == 'ar';
     return Container(
       width: 220,
       margin: const EdgeInsets.all(8),
@@ -531,10 +539,10 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                child: Text("حضور $attendance%", style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                child: Text("${isAr ? 'حضور' : 'Att.'} $attendance%", style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 6),
-              Text("معدل: $gpa", style: const TextStyle(color: Colors.grey, fontSize: 10)),
+              Text("${isAr ? 'معدل' : 'GPA'}: $gpa", style: const TextStyle(color: Colors.grey, fontSize: 10)),
             ],
           ),
         ],
@@ -543,6 +551,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   }
 
   Widget _buildAddButton(Color cardColor) {
+    final isAr = AppSettings.language.value == 'ar';
     return GestureDetector(
       onTap: () => _showAddStudentDialog(),
       child: Column(
@@ -555,7 +564,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
             child: const Icon(Icons.add, size: 30, color: Colors.black),
           ),
           const SizedBox(height: 8),
-          const Text("إضافة", style: TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(isAr ? "إضافة" : "Add", style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
     );
@@ -581,12 +590,13 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
   }
 
   Widget _buildNewsSection(Color cardColor, Color textColor) {
+    final isAr = AppSettings.language.value == 'ar';
     if (_announcements.isEmpty) {
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         padding: const EdgeInsets.all(30),
         decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(25)),
-        child: Center(child: Text("لا توجد أخبار حالياً", style: TextStyle(color: textColor.withValues(alpha: 0.4)))),
+        child: Center(child: Text(isAr ? "لا توجد أخبار حالياً" : "No news currently", style: TextStyle(color: textColor.withValues(alpha: 0.4)))),
       );
     }
 
@@ -642,7 +652,7 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                                 ],
                               ),
                               child: Text(
-                                _formatTargetAudience(ann),
+                                _formatTargetAudience(ann, isAr),
                                 style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -667,8 +677,8 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text("نشر بواسطة: ${ann['author_name'] ?? ann['publisher_name'] ?? ann['created_by'] ?? 'الإدارة'} • ${ann['time_ago'] ?? ann['created_at'] ?? ''}", style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                              Icon(Icons.arrow_back, size: 13, color: textColor.withValues(alpha: 0.4)),
+                              Text("${isAr ? 'نشر بواسطة' : 'Published by'}: ${ann['author_name'] ?? ann['publisher_name'] ?? ann['created_by'] ?? (isAr ? 'الإدارة' : 'Admin')} • ${ann['time_ago'] ?? ann['created_at'] ?? ''}", style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                              Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, size: 13, color: textColor.withValues(alpha: 0.4)),
                             ],
                           ),
                         ],
@@ -683,21 +693,22 @@ class _ParentsHomeScreenState extends State<ParentsHomeScreen> {
       }),
     );
   }
-  String _formatTargetAudience(Map<String, dynamic> data) {
+
+  String _formatTargetAudience(Map<String, dynamic> data, bool isAr) {
     final target = data['target_audience']?.toString() ?? 'all';
     final dept = data['department_name']?.toString() ?? data['department']?.toString();
     final course = data['course_name']?.toString() ?? data['course']?.toString();
 
     String label = switch (target) {
-      'students' => 'طلاب',
-      'teachers' => 'معلمين',
-      'heads'    => 'رؤساء أقسام',
-      _          => 'الجميع',
+      'students' => isAr ? 'طلاب' : 'Students',
+      'teachers' => isAr ? 'معلمين' : 'Teachers',
+      'heads'    => isAr ? 'رؤساء أقسام' : 'Dept Heads',
+      _          => isAr ? 'الجميع' : 'All',
     };
 
     List<String> details = [];
-    if (dept != null && dept.isNotEmpty) details.add('قسم: $dept');
-    if (course != null && course.isNotEmpty) details.add('دورة: $course');
+    if (dept != null && dept.isNotEmpty) details.add('${isAr ? 'قسم: ' : 'Dept: '}$dept');
+    if (course != null && course.isNotEmpty) details.add('${isAr ? 'دورة: ' : 'Course: '}$course');
 
     if (details.isNotEmpty) {
       label += ' (${details.join(" | ")})';

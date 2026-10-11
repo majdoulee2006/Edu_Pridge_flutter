@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import '../../../../widgets/teacher_speed_dial.dart';
 import '../../messages_screen.dart';
 import '../../notifications_screen.dart';
@@ -24,10 +25,21 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   bool _isLoading = false;
   List<Map<String, dynamic>> _assignments = [];
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchAssignments();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _autoOpenSubmissions() async {
@@ -61,23 +73,31 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     } catch (e) {
       debugPrint('⛔ Assignments Error: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _deleteAssignment(String assignmentId) async {
+    final isAr = AppSettings.language.value == 'ar';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('حذف الواجب', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: const Text('هل أنت متأكد من حذف هذا الواجب؟ لا يمكن التراجع عن هذا الإجراء.'),
+          title: Text(
+            isAr ? 'حذف الواجب' : 'Delete Assignment',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            isAr
+                ? 'هل أنت متأكد من حذف هذا الواجب؟ لا يمكن التراجع عن هذا الإجراء.'
+                : 'Are you sure you want to delete this assignment? This action cannot be undone.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+              child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -85,7 +105,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                 backgroundColor: Colors.redAccent,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('حذف', style: TextStyle(color: Colors.white)),
+              child: Text(isAr ? 'حذف' : 'Delete', style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -103,14 +123,20 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       _fetchAssignments();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم حذف الواجب بنجاح'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(isAr ? '✅ تم حذف الواجب بنجاح' : '✅ Assignment deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       debugPrint('⛔ Delete Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ أثناء الحذف'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(isAr ? 'حدث خطأ أثناء الحذف' : 'An error occurred while deleting'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -126,8 +152,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   }
 
   void _showSubmissions(BuildContext context, Map<String, dynamic> assignment) async {
+    final isAr            = AppSettings.language.value == 'ar';
     final assignmentId    = assignment['id'];
-    final assignmentTitle = assignment['title'] as String? ?? 'الواجب';
+    final assignmentTitle = assignment['title'] as String? ?? (isAr ? 'الواجب' : 'Assignment');
     final courseName      = assignment['course_name'] as String? ?? '';
     final textColor       = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor       = Theme.of(context).cardColor;
@@ -150,16 +177,47 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'نشط':           return Colors.green;
-      case 'قيد الإنتظار': return Colors.orange;
-      case 'قيد التصحيح':  return Colors.blue;
-      case 'مكتمل':        return Colors.grey;
-      default:              return Colors.grey;
+      case 'نشط':
+      case 'active':
+        return Colors.green;
+      case 'قيد الإنتظار':
+      case 'قيد الانتظار':
+      case 'pending':
+        return Colors.orange;
+      case 'قيد التصحيح':
+      case 'grading':
+        return Colors.blue;
+      case 'مكتمل':
+      case 'completed':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _statusLabel(String status, bool isAr) {
+    switch (status) {
+      case 'نشط':
+      case 'active':
+        return isAr ? 'نشط' : 'Active';
+      case 'قيد الإنتظار':
+      case 'قيد الانتظار':
+      case 'pending':
+        return isAr ? 'قيد الانتظار' : 'Pending';
+      case 'قيد التصحيح':
+      case 'grading':
+        return isAr ? 'قيد التصحيح' : 'Grading';
+      case 'مكتمل':
+      case 'completed':
+        return isAr ? 'مكتمل' : 'Completed';
+      default:
+        return status;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isAr          = AppSettings.language.value == 'ar';
     const Color yellow  = Color(0xFFFFCC00);
     final bgColor       = Theme.of(context).scaffoldBackgroundColor;
     final cardColor     = Theme.of(context).cardColor;
@@ -167,7 +225,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     final isDark        = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
@@ -180,8 +238,10 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               icon: Icon(Icons.arrow_back, color: textColor, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
-            title: Text('الواجبات والمشاريع',
-                style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+            title: Text(
+              isAr ? 'الواجبات والمشاريع' : 'Assignments & Projects',
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
             centerTitle: true,
             bottom: TabBar(
               indicatorColor: yellow,
@@ -189,7 +249,10 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               labelColor: isDark ? yellow : Colors.black,
               unselectedLabelColor: Colors.grey,
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              tabs: const [Tab(text: 'قائمة الواجبات'), Tab(text: 'ردود الطلاب')],
+              tabs: [
+                Tab(text: isAr ? 'قائمة الواجبات' : 'Assignments List'),
+                Tab(text: isAr ? 'ردود الطلاب' : 'Student Responses'),
+              ],
             ),
           ),
           body: Stack(
@@ -210,7 +273,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                     builder: (_, w) => tabController.index == 0
                         ? Positioned(
                             bottom: 100,
-                            left: 20,
+                            left: isAr ? 20 : null,
+                            right: isAr ? null : 20,
                             child: FloatingActionButton(
                               heroTag: "add_assignment_btn",
                               onPressed: () => Navigator.push(
@@ -249,35 +313,44 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   }
 
   Widget _buildAssignmentsList(Color cardColor, Color textColor, bool isDark) {
+    final isAr = AppSettings.language.value == 'ar';
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)));
     }
     if (_assignments.isEmpty) {
-      return const Center(
-        child: Text('لا توجد واجبات', style: TextStyle(color: Colors.grey, fontSize: 15)),
+      return Center(
+        child: Text(
+          isAr ? 'لا توجد واجبات' : 'No assignments',
+          style: const TextStyle(color: Colors.grey, fontSize: 15),
+        ),
       );
     }
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       itemCount: _assignments.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final a = _assignments[index];
         final status = a['status'] as String? ?? '';
+        final count = a['submissions_count'] ?? 0;
+        final progress = isAr
+            ? '$count طالب قدم الحل'
+            : '$count ${count == 1 ? 'student submitted' : 'students submitted'}';
+
         return _buildCard(
           context,
           assignment:  a,
           title:       a['title'] as String? ?? '',
           subject:     a['course_name'] as String? ?? '',
           date:        a['due_date'] as String? ?? '',
-          progress:    '${a['submissions_count'] ?? 0} طالب قدم الحل',
-          statusText:  status,
+          progress:    progress,
+          statusText:  _statusLabel(status, isAr),
           statusColor: _statusColor(status),
           cardColor:   cardColor,
           textColor:   textColor,
           isDark:      isDark,
-          hasGlow:     status == 'نشط',
+          hasGlow:     status == 'نشط' || status == 'active',
         );
       },
     );
@@ -480,8 +553,9 @@ class _SubmissionsBottomSheetState extends State<_SubmissionsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Container(
         height: MediaQuery.of(context).size.height * 0.75,
         decoration: BoxDecoration(
@@ -513,8 +587,12 @@ class _SubmissionsBottomSheetState extends State<_SubmissionsBottomSheet> {
                       color: const Color(0xFFFFCC00).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text('${_submissions.length} تقديم',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFFCC00))),
+                    child: Text(
+                      isAr
+                          ? '${_submissions.length} تقديم'
+                          : '${_submissions.length} ${_submissions.length == 1 ? 'submission' : 'submissions'}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFFCC00)),
+                    ),
                   ),
                 ],
               ),
@@ -525,12 +603,17 @@ class _SubmissionsBottomSheetState extends State<_SubmissionsBottomSheet> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                   : _submissions.isEmpty
-                      ? const Center(child: Text('لا توجد تقديمات بعد', style: TextStyle(color: Colors.grey)))
+                      ? Center(
+                          child: Text(
+                            isAr ? 'لا توجد تقديمات بعد' : 'No submissions yet',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        )
                       : ListView.builder(
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           itemCount: _submissions.length,
-                          itemBuilder: (ctx, i) => _buildSubmissionTile(ctx, _submissions[i]),
+                          itemBuilder: (ctx, i) => _buildSubmissionTile(ctx, _submissions[i], isAr),
                         ),
             ),
           ],
@@ -539,7 +622,7 @@ class _SubmissionsBottomSheetState extends State<_SubmissionsBottomSheet> {
     );
   }
 
-  Widget _buildSubmissionTile(BuildContext context, Map<String, dynamic> s) {
+  Widget _buildSubmissionTile(BuildContext context, Map<String, dynamic> s, bool isAr) {
     final isGraded   = s['is_graded'] == true || s['grade'] != null;
     final statusColor = isGraded ? Colors.green : Colors.orange;
     final name        = s['student_name'] as String? ?? '---';
@@ -584,11 +667,13 @@ class _SubmissionsBottomSheetState extends State<_SubmissionsBottomSheet> {
                   color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('بانتظار التصحيح',
-                    style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold)),
+                child: Text(
+                  isAr ? 'بانتظار التصحيح' : 'Pending Grading',
+                  style: const TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold),
+                ),
               ),
             const SizedBox(width: 8),
-            Icon(Icons.arrow_back, size: 13, color: widget.textColor.withValues(alpha: 0.3)),
+            Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, size: 14, color: widget.textColor.withValues(alpha: 0.3)),
           ],
         ),
         onTap: () {

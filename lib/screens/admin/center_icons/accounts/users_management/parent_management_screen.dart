@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:edu_pridge_flutter/services/admin_services.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class ParentManagementScreen extends StatefulWidget {
   final String mode; // 'create', 'delete', 'request'
@@ -19,7 +20,9 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
   final _passwordController = TextEditingController();
 
   int _selectedChildrenCount = 1;
-  final List<TextEditingController> _childIdControllers = [TextEditingController()];
+  final List<TextEditingController> _childIdControllers = [
+    TextEditingController(),
+  ];
 
   String selectedGender = "ذكر";
 
@@ -27,6 +30,8 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
   List<dynamic> allStudents = [];
   String? filterDept;
   String? filterBranch;
+
+  bool get isAr => AppSettings.language.value == 'ar';
 
   final Map<String, List<String>> _departmentData = {
     'نظم معلومات': ['ذكاء صنعي', 'الكترون', 'معلوماتية', 'اتصالات'],
@@ -41,8 +46,78 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     if (widget.mode == 'delete' || widget.mode == 'request') {
       _loadUsers();
+    }
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _telegramController.dispose();
+    _passwordController.dispose();
+    for (var c in _childIdControllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  String _getDeptLabel(String key) {
+    if (isAr) return key;
+    switch (key) {
+      case 'نظم معلومات':
+        return 'Information Systems';
+      case 'طبي':
+        return 'Medical';
+      case 'تجاري':
+        return 'Commercial';
+      case 'هندسي':
+        return 'Engineering';
+      default:
+        return key;
+    }
+  }
+
+  String _getBranchLabel(String key) {
+    if (isAr) return key;
+    switch (key) {
+      case 'ذكاء صنعي':
+        return 'AI';
+      case 'الكترون':
+        return 'Electronics';
+      case 'معلوماتية':
+        return 'Informatics';
+      case 'اتصالات':
+        return 'Communications';
+      case 'مساعد صيدلي':
+        return 'Pharmacy Assistant';
+      case 'مساعد مخبري':
+        return 'Lab Assistant';
+      case 'محاسبة':
+        return 'Accounting';
+      case 'مصارف':
+        return 'Banking';
+      case 'إدارة اعمال':
+        return 'Business Admin';
+      case 'تجارة الكترونية':
+        return 'E-Commerce';
+      case 'مساعد مهندس ديكور':
+        return 'Interior Design Asst.';
+      case 'مساعد مهندس مدني':
+        return 'Civil Eng. Asst.';
+      case 'ديكور واعلان':
+        return 'Decor & Advertising';
+      default:
+        return key;
     }
   }
 
@@ -50,8 +125,10 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
     setState(() => isLoading = true);
     try {
       if (widget.mode == 'delete') {
-        final all = await AdminServices().getUsers(roleId: 4, status: 'active', all: true);
-        final students = await AdminServices().getUsers(roleId: 3, status: 'active', all: true);
+        final all = await AdminServices()
+            .getUsers(roleId: 4, status: 'active', all: true);
+        final students = await AdminServices()
+            .getUsers(roleId: 3, status: 'active', all: true);
         if (all != null) {
           setState(() {
             users = all;
@@ -62,7 +139,10 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
         final pending = await AdminServices().getPendingAccounts();
         if (pending != null) {
           setState(() {
-            users = pending.where((u) => u['role_id'] == 4 || u['role']?['name'] == 'parent').toList();
+            users = pending
+                .where((u) =>
+                    u['role_id'] == 4 || u['role']?['name'] == 'parent')
+                .toList();
           });
         }
       }
@@ -82,14 +162,28 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
     final telegram = _telegramController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (firstName.isEmpty || lastName.isEmpty || phone.isEmpty || password.isEmpty) {
-      _showSnackBar("يرجى ملء الحقول الإجبارية (الاسم الأول، الكنية، الهاتف، كلمة المرور)");
+    if (firstName.isEmpty ||
+        lastName.isEmpty ||
+        phone.isEmpty ||
+        password.isEmpty) {
+      _showSnackBar(
+        isAr
+            ? "يرجى ملء الحقول الإجبارية (الاسم الأول، الكنية، الهاتف، كلمة المرور)"
+            : "Please fill in required fields (first name, last name, phone, password)",
+      );
       return;
     }
 
-    final childrenList = _childIdControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+    final childrenList = _childIdControllers
+        .map((c) => c.text.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
     if (childrenList.isEmpty) {
-      _showSnackBar("يرجى إدخال الرقم الجامعي لطفل واحد على الأقل");
+      _showSnackBar(
+        isAr
+            ? "يرجى إدخال الرقم الجامعي لطفل واحد على الأقل"
+            : "Please enter the student ID of at least one child",
+      );
       return;
     }
 
@@ -110,7 +204,10 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
       });
 
       if (success) {
-        _showSnackBar("تم تسجيل ولي الأمر بنجاح", isError: false);
+        _showSnackBar(
+          isAr ? "تم تسجيل ولي الأمر بنجاح" : "Parent registered successfully",
+          isError: false,
+        );
         _firstNameController.clear();
         _lastNameController.clear();
         _emailController.clear();
@@ -121,11 +218,17 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
           c.clear();
         }
       } else {
-        _showSnackBar("فشل إضافة ولي الأمر");
+        _showSnackBar(
+          isAr ? "فشل إضافة ولي الأمر" : "Failed to add parent",
+        );
       }
     } catch (e) {
       debugPrint("Error creating parent: $e");
-      _showSnackBar("حدث خطأ، قد يكون رقم الهاتف أو البريد مسجلاً مسبقاً");
+      _showSnackBar(
+        isAr
+            ? "حدث خطأ، قد يكون رقم الهاتف أو البريد مسجلاً مسبقاً"
+            : "An error occurred, phone or email may already be registered",
+      );
     } finally {
       setState(() => isSubmitting = false);
     }
@@ -134,13 +237,29 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
   Future<void> _onDeleteParent(int id) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("تأكيد الحذف"),
-        content: const Text("هل تريد حذف حساب ولي الأمر هذا نهائياً؟"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("إلغاء")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("نعم، احذف", style: TextStyle(color: Colors.red))),
-        ],
+      builder: (context) => Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          title: Text(isAr ? "تأكيد الحذف" : "Confirm Deletion"),
+          content: Text(
+            isAr
+                ? "هل تريد حذف حساب ولي الأمر هذا نهائياً؟"
+                : "Do you want to permanently delete this parent account?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(isAr ? "إلغاء" : "Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(
+                isAr ? "نعم، احذف" : "Yes, Delete",
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -150,13 +269,16 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
     try {
       final success = await AdminServices().deleteUser(id);
       if (success) {
-        _showSnackBar("تم حذف ولي الأمر بنجاح", isError: false);
+        _showSnackBar(
+          isAr ? "تم حذف ولي الأمر بنجاح" : "Parent deleted successfully",
+          isError: false,
+        );
         _loadUsers();
       } else {
-        _showSnackBar("فشل الحذف");
+        _showSnackBar(isAr ? "فشل الحذف" : "Deletion failed");
       }
     } catch (e) {
-      _showSnackBar("حدث خطأ");
+      _showSnackBar(isAr ? "حدث خطأ" : "An error occurred");
     } finally {
       setState(() => isSubmitting = false);
     }
@@ -167,13 +289,18 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
     try {
       final success = await AdminServices().approveAccount(id);
       if (success) {
-        _showSnackBar("تم قبول وتفعيل حساب ولي الأمر بنجاح", isError: false);
+        _showSnackBar(
+          isAr
+              ? "تم قبول وتفعيل حساب ولي الأمر بنجاح"
+              : "Parent account approved and activated successfully",
+          isError: false,
+        );
         _loadUsers();
       } else {
-        _showSnackBar("فشل التفعيل");
+        _showSnackBar(isAr ? "فشل التفعيل" : "Activation failed");
       }
     } catch (e) {
-      _showSnackBar("حدث خطأ");
+      _showSnackBar(isAr ? "حدث خطأ" : "An error occurred");
     } finally {
       setState(() => isSubmitting = false);
     }
@@ -184,13 +311,18 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
     try {
       final success = await AdminServices().rejectAccount(id);
       if (success) {
-        _showSnackBar("تم رفض الطلب وحذفه بنجاح", isError: false);
+        _showSnackBar(
+          isAr
+              ? "تم رفض الطلب وحذفه بنجاح"
+              : "Request rejected and deleted successfully",
+          isError: false,
+        );
         _loadUsers();
       } else {
-        _showSnackBar("فشل الرفض");
+        _showSnackBar(isAr ? "فشل الرفض" : "Rejection failed");
       }
     } catch (e) {
-      _showSnackBar("حدث خطأ");
+      _showSnackBar(isAr ? "حدث خطأ" : "An error occurred");
     } finally {
       setState(() => isSubmitting = false);
     }
@@ -199,49 +331,62 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
   void _showSnackBar(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Cairo')),
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'Cairo'),
+        ),
         backgroundColor: isError ? Colors.redAccent : Colors.green,
       ),
     );
   }
 
   @override
-  void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _telegramController.dispose();
-    _passwordController.dispose();
-    for (var c in _childIdControllers) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryYellow = const Color(0xFFFFCC00);
+    const primaryYellow = Color(0xFFFFCC00);
     final cardColor = isDark ? Colors.white10 : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
 
+    final title = widget.mode == 'create'
+        ? (isAr ? 'إضافة ولي أمر' : 'Add Parent')
+        : widget.mode == 'delete'
+            ? (isAr ? 'إزالة حساب' : 'Remove Account')
+            : (isAr
+                ? 'طلبات الانضمام (أولياء الأمور)'
+                : 'Join Requests (Parents)');
+
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.mode == 'create' ? 'إضافة ولي أمر' : widget.mode == 'delete' ? 'إزالة حساب' : 'طلبات الانضمام (أولياء الأمور)'),
+          title: Text(title),
           centerTitle: true,
+          leading: IconButton(
+            icon: Icon(
+              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         body: isSubmitting
-            ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.amber),
+              )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    if (widget.mode == 'create') _buildCreateForm(isDark, primaryYellow, cardColor, textColor),
+                    if (widget.mode == 'create')
+                      _buildCreateForm(
+                        isDark,
+                        primaryYellow,
+                        cardColor,
+                        textColor,
+                      ),
                     if (widget.mode == 'delete') _buildDeleteView(isDark),
-                    if (widget.mode == 'request') _buildRequestsList(isDark, cardColor),
+                    if (widget.mode == 'request')
+                      _buildRequestsList(isDark, cardColor),
                   ],
                 ),
               ),
@@ -249,74 +394,169 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
     );
   }
 
-  Widget _buildCreateForm(bool isDark, Color yellow, Color cardColor, Color textColor) {
+  Widget _buildCreateForm(
+    bool isDark,
+    Color yellow,
+    Color cardColor,
+    Color textColor,
+  ) {
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _buildTextField("الاسم الأول (إجباري)", Icons.person_outline, _firstNameController, isDark)),
+            Expanded(
+              child: _buildTextField(
+                isAr ? "الاسم الأول (إجباري)" : "First Name (Required)",
+                Icons.person_outline,
+                _firstNameController,
+                isDark,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildTextField("الاسم الثاني / الكنية (إجباري)", Icons.person_outline, _lastNameController, isDark)),
+            Expanded(
+              child: _buildTextField(
+                isAr
+                    ? "الاسم الثاني / الكنية (إجباري)"
+                    : "Last Name (Required)",
+                Icons.person_outline,
+                _lastNameController,
+                isDark,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 15),
-        _buildTextField("رقم الهاتف الشخصي (إجباري)", Icons.phone_enabled_outlined, _phoneController, isDark),
+        _buildTextField(
+          isAr ? "رقم الهاتف الشخصي (إجباري)" : "Personal Phone (Required)",
+          Icons.phone_enabled_outlined,
+          _phoneController,
+          isDark,
+        ),
         const SizedBox(height: 15),
-        _buildTextField("البريد الإلكتروني", Icons.email_outlined, _emailController, isDark),
+        _buildTextField(
+          isAr ? "البريد الإلكتروني" : "Email Address",
+          Icons.email_outlined,
+          _emailController,
+          isDark,
+        ),
         const SizedBox(height: 15),
-        _buildTextField("معرف التليجرام (Telegram ID)", Icons.send_outlined, _telegramController, isDark),
+        _buildTextField(
+          isAr ? "معرف التليجرام (Telegram ID)" : "Telegram ID",
+          Icons.send_outlined,
+          _telegramController,
+          isDark,
+        ),
         const SizedBox(height: 15),
 
-        _buildSectionTitle("تفاصيل إضافية"),
+        _buildSectionTitle(isAr ? "تفاصيل إضافية" : "Additional Details"),
         Row(
           children: [
-            Expanded(child: _buildGenderCard("ذكر", Icons.male, selectedGender == "ذكر", yellow, isDark)),
+            Expanded(
+              child: _buildGenderCard(
+                isAr ? "ذكر" : "Male",
+                Icons.male,
+                selectedGender == "ذكر",
+                yellow,
+                isDark,
+                onSelect: () => setState(() => selectedGender = "ذكر"),
+              ),
+            ),
             const SizedBox(width: 15),
-            Expanded(child: _buildGenderCard("أنثى", Icons.female, selectedGender == "أنثى", yellow, isDark)),
+            Expanded(
+              child: _buildGenderCard(
+                isAr ? "أنثى" : "Female",
+                Icons.female,
+                selectedGender == "أنثى",
+                yellow,
+                isDark,
+                onSelect: () => setState(() => selectedGender = "أنثى"),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 15),
 
-        _buildDropdown("عدد الأبناء المرتبطين", ['1', '2', '3', '4'], _selectedChildrenCount.toString(), (val) {
-          if (val != null) {
-            setState(() {
-              int newCount = int.parse(val);
-              if (newCount > _childIdControllers.length) {
-                for (int i = _childIdControllers.length; i < newCount; i++) {
-                  _childIdControllers.add(TextEditingController());
+        _buildDropdown(
+          isAr ? "عدد الأبناء المرتبطين" : "Linked Children Count",
+          ['1', '2', '3', '4'],
+          _selectedChildrenCount.toString(),
+          (val) {
+            if (val != null) {
+              setState(() {
+                int newCount = int.parse(val);
+                if (newCount > _childIdControllers.length) {
+                  for (int i = _childIdControllers.length;
+                      i < newCount;
+                      i++) {
+                    _childIdControllers.add(TextEditingController());
+                  }
+                } else {
+                  for (int i = _childIdControllers.length - 1;
+                      i >= newCount;
+                      i--) {
+                    _childIdControllers.removeAt(i);
+                  }
                 }
-              } else {
-                for (int i = _childIdControllers.length - 1; i >= newCount; i--) {
-                  _childIdControllers.removeAt(i);
-                }
-              }
-              _selectedChildrenCount = newCount;
-            });
-          }
-        }, isDark),
+                _selectedChildrenCount = newCount;
+              });
+            }
+          },
+          isDark,
+        ),
 
         const SizedBox(height: 15),
 
-        ...List.generate(_selectedChildrenCount, (index) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: _buildTextField("الرقم الجامعي للابن ${index + 1} (إجباري)", Icons.badge_outlined, _childIdControllers[index], isDark),
-        )),
+        ...List.generate(
+          _selectedChildrenCount,
+          (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _buildTextField(
+              isAr
+                  ? "الرقم الجامعي للابن ${index + 1} (إجباري)"
+                  : "Student ID of Child ${index + 1} (Required)",
+              Icons.badge_outlined,
+              _childIdControllers[index],
+              isDark,
+            ),
+          ),
+        ),
 
         const SizedBox(height: 15),
-        _buildTextField("كلمة مرور الحساب (إجباري)", Icons.lock_outline, _passwordController, isDark, isPassword: true),
+        _buildTextField(
+          isAr ? "كلمة مرور الحساب (إجباري)" : "Password (Required)",
+          Icons.lock_outline,
+          _passwordController,
+          isDark,
+          isPassword: true,
+        ),
 
         const SizedBox(height: 30),
         ElevatedButton(
           onPressed: _onCreateParent,
-          style: ElevatedButton.styleFrom(backgroundColor: yellow, minimumSize: const Size(double.infinity, 55), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-          child: const Text("إنشاء حساب ولي الأمر", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-        )
+          style: ElevatedButton.styleFrom(
+            backgroundColor: yellow,
+            minimumSize: const Size(double.infinity, 55),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+          child: Text(
+            isAr ? "إنشاء حساب ولي الأمر" : "Create Parent Account",
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildDeleteView(bool isDark) {
-    if (isLoading) return const Center(child: CircularProgressIndicator());
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     List<String> branches = [];
     if (filterDept != null && _departmentData.containsKey(filterDept)) {
@@ -346,8 +586,10 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
           orElse: () => null,
         );
         if (studentObj != null) {
-          bool deptMatch = (filterDept == null || studentObj['department'] == filterDept);
-          bool branchMatch = (filterBranch == null || studentObj['branch'] == filterBranch);
+          bool deptMatch =
+              (filterDept == null || studentObj['department'] == filterDept);
+          bool branchMatch =
+              (filterBranch == null || studentObj['branch'] == filterBranch);
           if (deptMatch && branchMatch) {
             matches = true;
             break;
@@ -363,7 +605,7 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
           children: [
             Expanded(
               child: _buildDropdown(
-                "تصفية بالقسم للابن",
+                isAr ? "تصفية بالقسم للابن" : "Filter by Child's Dept",
                 ["الكل", ..._departmentData.keys],
                 filterDept ?? "الكل",
                 (val) {
@@ -373,12 +615,14 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
                   });
                 },
                 isDark,
+                labelMapper: (k) =>
+                    k == "الكل" ? (isAr ? "الكل" : "All") : _getDeptLabel(k),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _buildDropdown(
-                "تصفية بالدورة للابن",
+                isAr ? "تصفية بالدورة للابن" : "Filter by Child's Branch",
                 ["الكل", ...branches],
                 filterBranch ?? "الكل",
                 (val) {
@@ -387,13 +631,24 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
                   });
                 },
                 isDark,
+                labelMapper: (k) =>
+                    k == "الكل" ? (isAr ? "الكل" : "All") : _getBranchLabel(k),
               ),
             ),
           ],
         ),
         const SizedBox(height: 20),
         if (filteredUsers.isEmpty)
-          const Center(child: Padding(padding: EdgeInsets.only(top: 50), child: Text("لا يوجد أولياء أمور مطابقين للتصفية")))
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 50),
+              child: Text(
+                isAr
+                    ? "لا يوجد أولياء أمور مطابقين للتصفية"
+                    : "No parents match the filter",
+              ),
+            ),
+          )
         else
           ListView.builder(
             shrinkWrap: true,
@@ -409,9 +664,15 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
                 elevation: 2,
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.family_restroom)),
-                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("الهاتف: $phone"),
+                  leading:
+                      const CircleAvatar(child: Icon(Icons.family_restroom)),
+                  title: Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    isAr ? "الهاتف: $phone" : "Phone: $phone",
+                  ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: () => _onDeleteParent(id),
@@ -425,8 +686,21 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
   }
 
   Widget _buildRequestsList(bool isDark, Color cardColor) {
-    if (isLoading) return const Center(child: CircularProgressIndicator());
-    if (users.isEmpty) return const Center(child: Padding(padding: EdgeInsets.only(top: 50), child: Text("لا توجد طلبات معلقة من أولياء الأمور")));
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (users.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 50),
+          child: Text(
+            isAr
+                ? "لا توجد طلبات معلقة من أولياء الأمور"
+                : "No pending requests from parents",
+          ),
+        ),
+      );
+    }
 
     return ListView.builder(
       shrinkWrap: true,
@@ -449,26 +723,39 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const CircleAvatar(child: Icon(Icons.person_pin)),
-                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("هاتف: $phone"),
+                  title: Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(isAr ? "هاتف: $phone" : "Phone: $phone"),
                 ),
                 const Divider(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
                       onPressed: () => _onApproveRequest(id),
-                      child: const Text("قبول وتفعيل", style: TextStyle(color: Colors.white)),
+                      child: Text(
+                        isAr ? "قبول وتفعيل" : "Approve",
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                      ),
                       onPressed: () => _onRejectRequest(id),
-                      child: const Text("رفض وحذف", style: TextStyle(color: Colors.white)),
+                      child: Text(
+                        isAr ? "رفض وحذف" : "Reject",
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -479,37 +766,74 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, top: 15, right: 5),
+      padding: EdgeInsets.only(
+        bottom: 10,
+        top: 15,
+        right: isAr ? 5 : 0,
+        left: isAr ? 0 : 5,
+      ),
       child: Align(
-        alignment: Alignment.centerRight,
-        child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.blueGrey,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildGenderCard(String label, IconData icon, bool isSelected, Color yellow, bool isDark) {
+  Widget _buildGenderCard(
+    String label,
+    IconData icon,
+    bool isSelected,
+    Color yellow,
+    bool isDark, {
+    required VoidCallback onSelect,
+  }) {
     return GestureDetector(
-      onTap: () => setState(() => selectedGender = label),
+      onTap: onSelect,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? yellow : (isDark ? Colors.white.withAlpha(12) : Colors.grey.shade100),
+          color: isSelected
+              ? yellow
+              : (isDark ? Colors.white.withAlpha(12) : Colors.grey.shade100),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? Colors.black : Colors.grey, size: 20),
+            Icon(
+              icon,
+              color: isSelected ? Colors.black : Colors.grey,
+              size: 20,
+            ),
             const SizedBox(width: 8),
-            Text(label, style: TextStyle(color: isSelected ? Colors.black : Colors.grey, fontWeight: FontWeight.bold)),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.black : Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField(String hint, IconData icon, TextEditingController controller, bool isDark, {bool isPassword = false}) {
+  Widget _buildTextField(
+    String hint,
+    IconData icon,
+    TextEditingController controller,
+    bool isDark, {
+    bool isPassword = false,
+  }) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
@@ -518,12 +842,22 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
         hintText: hint,
         filled: true,
         fillColor: isDark ? Colors.white.withAlpha(12) : Colors.grey.shade100,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }
 
-  Widget _buildDropdown(String hint, List<String> items, String? value, Function(String?) onChanged, bool isDark) {
+  Widget _buildDropdown(
+    String hint,
+    List<String> items,
+    String? value,
+    Function(String?) onChanged,
+    bool isDark, {
+    String Function(String)? labelMapper,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -535,7 +869,16 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
           value: value,
           hint: Text(hint),
           isExpanded: true,
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(
+                    labelMapper != null ? labelMapper(e) : e,
+                  ),
+                ),
+              )
+              .toList(),
           onChanged: onChanged,
         ),
       ),

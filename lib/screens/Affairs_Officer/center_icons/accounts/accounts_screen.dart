@@ -26,14 +26,22 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
 
   late TabController _mainTabController;
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _mainTabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _mainTabController.dispose();
     super.dispose();
   }
@@ -47,7 +55,7 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
     final Color subColor = isDark ? Colors.grey.shade400 : Colors.grey;
 
     return Directionality(
-      textDirection: ui.TextDirection.rtl,
+      textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
@@ -64,7 +72,7 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                       alignment: Alignment.center,
                       children: [
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: isAr ? Alignment.centerLeft : Alignment.centerRight,
                           child: IconButton(
                             icon: Icon(Icons.settings, color: textColor, size: 26),
                             onPressed: () {
@@ -76,7 +84,7 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                           ),
                         ),
                         Text(
-                          "الحسابات",
+                          isAr ? "الحسابات" : "Accounts",
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -85,9 +93,9 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                           ),
                         ),
                         Align(
-                          alignment: Alignment.centerRight,
+                          alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                           child: IconButton(
-                            icon: Icon(Icons.arrow_back, color: textColor, size: 26),
+                            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor, size: 26),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
@@ -131,9 +139,9 @@ class _AffairsOfficerAccountsScreenState extends State<AffairsOfficerAccountsScr
                       ),
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: Colors.transparent,
-                      tabs: const [
-                        Tab(text: 'الطلبات المعلقة'),
-                        Tab(text: 'طلبات الصورة'),
+                      tabs: [
+                        Tab(text: isAr ? 'الطلبات المعلقة' : 'Pending Requests'),
+                        Tab(text: isAr ? 'طلبات الصورة' : 'Photo Requests'),
                       ],
                     ),
                   ),

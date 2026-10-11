@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final int receiverId;
@@ -27,9 +28,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ChatService>().startSmartPolling(widget.receiverId.toString());
     });
@@ -37,15 +43,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     context.read<ChatService>().stopSmartPolling();
     _messageController.dispose();
     super.dispose();
   }
 
-  String _formatTime(DateTime dt) {
+  String _formatTime(DateTime dt, bool isAr) {
     final localDt = dt.toLocal();
     final hour = localDt.hour > 12 ? localDt.hour - 12 : (localDt.hour == 0 ? 12 : localDt.hour);
-    final amPm = localDt.hour >= 12 ? 'م' : 'ص';
+    final amPm = localDt.hour >= 12 ? (isAr ? 'م' : 'PM') : (isAr ? 'ص' : 'AM');
     final minute = localDt.minute.toString().padLeft(2, '0');
     return '$hour:$minute $amPm';
   }
@@ -67,6 +74,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _showAttachmentOptions(BuildContext context) {
+    final bool isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -75,27 +83,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('إرفاق ملف', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildAttachmentOption(Icons.image, 'صورة', Colors.purple, isDark, textColor, 'image'),
-                  _buildAttachmentOption(Icons.videocam, 'فيديو', Colors.pink, isDark, textColor, 'video'),
-                  _buildAttachmentOption(Icons.insert_drive_file, 'مستند', Colors.blue, isDark, textColor, 'file'),
-                ],
-              ),
-              const SizedBox(height: 10),
-            ],
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isAr ? 'إرفاق ملف' : 'Attach File',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildAttachmentOption(Icons.image, isAr ? 'صورة' : 'Image', Colors.purple, isDark, textColor, 'image'),
+                    _buildAttachmentOption(Icons.videocam, isAr ? 'فيديو' : 'Video', Colors.pink, isDark, textColor, 'video'),
+                    _buildAttachmentOption(Icons.insert_drive_file, isAr ? 'مستند' : 'Document', Colors.blue, isDark, textColor, 'file'),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         );
       },
@@ -168,6 +182,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC);
     final appBarColor = isDark ? Theme.of(context).cardColor : Colors.white;
@@ -178,7 +193,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final isLoading = chatService.isLoading;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
@@ -206,7 +221,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      widget.isGroup ? 'مجموعة دراسية' : 'متصل الآن',
+                      widget.isGroup
+                          ? (isAr ? 'مجموعة دراسية' : 'Study Group')
+                          : (isAr ? 'متصل الآن' : 'Online'),
                       style: TextStyle(color: widget.isGroup ? Colors.grey : Colors.green, fontSize: 11),
                     ),
                   ],
@@ -228,14 +245,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       itemBuilder: (context, index) {
                         final msg = messages[index];
                         bool isMe = widget.isGroup ? false : msg.isMe;
-                        return _buildMessageBubble(msg.text, isMe, _formatTime(msg.timestamp), isDark);
+                        return _buildMessageBubble(msg.text, isMe, _formatTime(msg.timestamp, isAr), isDark);
                       },
                     ),
             ),
             if (widget.isGroup)
-              _buildReadOnlyBanner(isDark)
+              _buildReadOnlyBanner(isDark, isAr)
             else
-              _buildMessageInput(isDark),
+              _buildMessageInput(isDark, isAr),
           ],
         ),
       ),
@@ -276,7 +293,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildReadOnlyBanner(bool isDark) {
+  Widget _buildReadOnlyBanner(bool isDark, bool isAr) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
@@ -284,10 +301,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         color: isDark ? Theme.of(context).cardColor : Colors.white,
         boxShadow: [BoxShadow(color: isDark ? Colors.black45 : Colors.black12, blurRadius: 10)],
       ),
-      child: const Center(
+      child: Center(
         child: Text(
-          'هذه المجموعة مغلقة ولا يمكنك إرسال رسائل فيها',
-          style: TextStyle(
+          isAr
+              ? 'هذه المجموعة مغلقة ولا يمكنك إرسال رسائل فيها'
+              : 'This group is closed; messaging is disabled',
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
             color: Colors.grey,
@@ -324,14 +343,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Widget _buildMessageInput(bool isDark) {
+  Widget _buildMessageInput(bool isDark, bool isAr) {
     final bgColor = isDark ? Theme.of(context).cardColor : Colors.white;
     final inputBgColor = isDark ? Colors.grey.shade800 : const Color(0xFFF2F2F2);
     final textColor = isDark ? Colors.white : Colors.black;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      // 🌟 الإصلاح هنا: وضعنا الـ color والـ boxShadow بداخل BoxDecoration
       decoration: BoxDecoration(
         color: bgColor,
         boxShadow: [BoxShadow(color: isDark ? Colors.black45 : Colors.black12, blurRadius: 10)],
@@ -350,7 +368,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   controller: _messageController,
                   style: TextStyle(color: textColor),
                   decoration: InputDecoration(
-                    hintText: 'اكتب رسالتك...',
+                    hintText: isAr ? 'اكتب رسالتك...' : 'Type a message...',
                     hintStyle: TextStyle(
                       fontSize: 14,
                       color: isDark ? Colors.grey.shade500 : Colors.grey,

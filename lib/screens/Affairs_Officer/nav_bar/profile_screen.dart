@@ -39,7 +39,20 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
   void initState() {
     super.initState();
     _loadProfile();
+    AppSettings.language.addListener(_onLangChange);
   }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  bool get isAr => AppSettings.language.value == 'ar';
 
   Future<void> _loadProfile() async {
     if (!mounted) return;
@@ -105,7 +118,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
     final Color subColor  = isDark ? Colors.grey.shade400 : Colors.grey;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
@@ -120,10 +133,10 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                       alignment: Alignment.center,
                       children: [
                         Align(
-                          alignment: Alignment.centerRight,
+                          alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                           child: IconButton(
                             icon: Icon(
-                              Icons.arrow_back,
+                              isAr ? Icons.arrow_back : Icons.arrow_forward,
                               color: textColor,
                               size: 26,
                             ),
@@ -131,17 +144,17 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                           ),
                         ),
                         Text(
-                          "الملف الشخصي",
+                          isAr ? "الملف الشخصي" : "Profile",
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
                         ),
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: isAr ? Alignment.centerLeft : Alignment.centerRight,
                           child: IconButton(
                             icon: Icon(Icons.settings_outlined, color: textColor, size: 22),
                             onPressed: () => Navigator.push(context,
                                 MaterialPageRoute(builder: (_) => SettingsScreen(
                                   userName: officerData['name'] as String? ?? '',
-                                  userRole: officerData['role'] as String? ?? 'موظف شؤون',
+                                  userRole: officerData['role'] as String? ?? (isAr ? 'موظف شؤون' : 'Affairs Officer'),
                                   onProfileTap: () => Navigator.pop(context),
                                 ))).then((_) => _loadProfile()),
                           ),
@@ -230,7 +243,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
-                                        officerData['role'],
+                                        isAr ? (officerData['role'] ?? 'موظف شؤون') : 'Affairs Officer',
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.bold,
@@ -247,9 +260,9 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      _buildStatBox("الإجازات المراجعة", _reviewedLeaves.toString(), Colors.blue, cardColor, textColor, subColor),
+                                      _buildStatBox(isAr ? "الإجازات المراجعة" : "Reviewed Leaves", _reviewedLeaves.toString(), Colors.blue, cardColor, textColor, subColor),
                                       const SizedBox(width: 16),
-                                      _buildStatBox("الرسائل المرسلة", _sentMessages.toString(), Colors.purple, cardColor, textColor, subColor),
+                                      _buildStatBox(isAr ? "الرسائل المرسلة" : "Sent Messages", _sentMessages.toString(), Colors.purple, cardColor, textColor, subColor),
                                     ],
                                   ),
 
@@ -258,7 +271,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                   // ═══════════════════════════════════════
                                   // القسم الأول: البيانات الشخصية
                                   // ═══════════════════════════════════════
-                                  _buildSectionTitle("البيانات الشخصية", subColor),
+                                  _buildSectionTitle(isAr ? "البيانات الشخصية" : "Personal Information", subColor),
                                   const SizedBox(height: 12),
                                   _buildInfoCard(
                                     cardColor: cardColor,
@@ -267,7 +280,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                       _buildInfoRow(
                                         icon: Icons.person_outline,
                                         iconColor: Colors.orange,
-                                        label: 'الاسم',
+                                        label: isAr ? 'الاسم' : 'Name',
                                         value: officerData['name'],
                                         textColor: textColor,
                                         trailingIcon: Icons.lock_outline,
@@ -275,7 +288,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                       _buildInfoRow(
                                         icon: Icons.email_outlined,
                                         iconColor: Colors.blue,
-                                        label: 'البريد الإلكتروني',
+                                        label: isAr ? 'البريد الإلكتروني' : 'Email',
                                         value: officerData['email'],
                                         textColor: textColor,
                                         trailingIcon: Icons.lock_outline,
@@ -283,7 +296,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                       _buildEditableRow(
                                         icon: Icons.phone_android,
                                         iconColor: Colors.green,
-                                        label: 'رقم الهاتف',
+                                        label: isAr ? 'رقم الهاتف' : 'Phone Number',
                                         value: officerData['phone'],
                                         textColor: textColor,
                                         onTap: () async {
@@ -297,7 +310,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                       _buildInfoRow(
                                         icon: Icons.cake_outlined,
                                         iconColor: Colors.pink,
-                                        label: 'تاريخ الميلاد',
+                                        label: isAr ? 'تاريخ الميلاد' : 'Birth Date',
                                         value: officerData['birthDate'],
                                         textColor: textColor,
                                         trailingIcon: Icons.lock_outline,
@@ -305,8 +318,10 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                       _buildInfoRow(
                                         icon: Icons.male,
                                         iconColor: Colors.purple,
-                                        label: 'الجنس',
-                                        value: officerData['gender'],
+                                        label: isAr ? 'الجنس' : 'Gender',
+                                        value: officerData['gender'] == 'ذكر'
+                                            ? (isAr ? 'ذكر' : 'Male')
+                                            : (isAr ? 'أنثى' : 'Female'),
                                         textColor: textColor,
                                         trailingIcon: Icons.lock_outline,
                                       ),
@@ -318,7 +333,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                   // ═══════════════════════════════════════
                                   // القسم الثاني: الصلاحيات والنظام
                                   // ═══════════════════════════════════════
-                                  _buildSectionTitle("الصلاحيات والنظام", subColor),
+                                  _buildSectionTitle(isAr ? "الصلاحيات والنظام" : "Permissions & System", subColor),
                                   const SizedBox(height: 12),
                                   _buildInfoCard(
                                     cardColor: cardColor,
@@ -327,15 +342,15 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                       _buildInfoRow(
                                         icon: Icons.badge_outlined,
                                         iconColor: Colors.teal,
-                                        label: 'نوع الحساب',
-                                        value: officerData['role'],
+                                        label: isAr ? 'نوع الحساب' : 'Account Type',
+                                        value: isAr ? (officerData['role'] ?? 'موظف شؤون') : 'Affairs Officer',
                                         textColor: textColor,
                                         trailingIcon: Icons.lock_outline,
                                       ),
                                       _buildInfoRow(
                                         icon: Icons.access_time,
                                         iconColor: Colors.amber,
-                                        label: 'آخر تسجيل دخول',
+                                        label: isAr ? 'آخر تسجيل دخول' : 'Last Login',
                                         value: officerData['lastLogin'],
                                         textColor: textColor,
                                         trailingIcon: Icons.lock_outline,
@@ -348,12 +363,13 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
                                   // ═══════════════════════════════════════
                                   // القسم الثالث: الإعدادات والأمان
                                   // ═══════════════════════════════════════
-                                  _buildSectionTitle("الإعدادات والأمان", subColor),
+                                  _buildSectionTitle(isAr ? "الإعدادات والأمان" : "Settings & Security", subColor),
                                   const SizedBox(height: 12),
                                   _buildSettingsItem(
                                     cardColor: cardColor,
                                     textColor: textColor,
                                     isDark: isDark,
+                                    isAr: isAr,
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(builder: (_) => const EditPasswordScreen()),
@@ -449,9 +465,9 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
 
   Widget _buildSectionTitle(String title, Color subColor) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, right: 8),
+      padding: EdgeInsets.only(bottom: 12, right: isAr ? 8 : 0, left: isAr ? 0 : 8),
       child: Align(
-        alignment: Alignment.centerRight,
+        alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
         child: Text(
           title,
           style: TextStyle(
@@ -636,6 +652,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
     required Color cardColor,
     required Color textColor,
     required bool isDark,
+    required bool isAr,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -670,7 +687,7 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
             ),
             const SizedBox(width: 15),
             Text(
-              'تغيير كلمة المرور',
+              isAr ? 'تغيير كلمة المرور' : 'Change Password',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -679,8 +696,8 @@ class _AffairsOfficerProfileScreenState extends State<AffairsOfficerProfileScree
               ),
             ),
             const Spacer(),
-            const Icon(
-              Icons.arrow_back,
+            Icon(
+              isAr ? Icons.arrow_back_ios_rounded : Icons.arrow_forward_ios_rounded,
               size: 16,
               color: Colors.grey,
             ),

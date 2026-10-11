@@ -1,7 +1,8 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class CreateNewScheduleScreen extends StatefulWidget {
   const CreateNewScheduleScreen({super.key});
@@ -11,6 +12,9 @@ class CreateNewScheduleScreen extends StatefulWidget {
 }
 
 class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final List<String> days = const [
@@ -28,12 +32,30 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
     'معلوماتية 4',
   ];
 
+  String _dayLabel(String d) {
+    if (isAr) return d;
+    return switch (d) {
+      'الأحد' => 'Sunday',
+      'الاثنين' => 'Monday',
+      'الثلاثاء' => 'Tuesday',
+      'الأربعاء' => 'Wednesday',
+      'الخميس' => 'Thursday',
+      _ => d,
+    };
+  }
+
+  String _classLabel(String c) {
+    if (isAr) return c;
+    return c.replaceAll('معلوماتية', 'IT');
+  }
+
   late final List<List<TextEditingController>> gridControllers;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     gridControllers = List.generate(
       days.length,
       (_) => List.generate(classNames.length, (_) => TextEditingController()),
@@ -42,6 +64,7 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     for (final row in gridControllers) {
       for (final c in row) {
         c.dispose();
@@ -69,7 +92,7 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
 
     if (entries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('عبّي خلية واحدة على الأقل قبل الحفظ')),
+        SnackBar(content: Text(isAr ? 'عبّي خلية واحدة على الأقل قبل الحفظ' : 'Fill at least one cell before saving')),
       );
       return;
     }
@@ -85,13 +108,16 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم حفظ الجدول الدراسي بنجاح'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(isAr ? '✅ تم حفظ الجدول الدراسي بنجاح' : '✅ Study schedule saved successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       debugPrint('⛔ Create Schedule Error: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again';
       if (e is DioException && e.response?.data is Map) {
         msg = e.response!.data['message'] ?? msg;
       }
@@ -109,7 +135,7 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
     const Color primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
@@ -118,7 +144,7 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
           centerTitle: true,
           iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
           title: Text(
-            'إنشاء الجدول الدراسي',
+            isAr ? 'إنشاء الجدول الدراسي' : 'Create Study Schedule',
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
           ),
         ),
@@ -137,9 +163,13 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
                     border: Border.all(color: primaryYellow.withValues(alpha: 0.45)),
                   ),
                   child: Text(
-                    'القالب مثل الجدول الورقي: الأيام عموديًا (الأحد - الخميس) '
-                    'والشعب أفقيًا جنب بعض.\n'
-                    'كل خلية: اكتب الحصص أو المواد الخاصة بهذا اليوم لهذه الشعبة.',
+                    isAr
+                        ? 'القالب مثل الجدول الورقي: الأيام عموديًا (الأحد - الخميس) '
+                            'والشعب أفقيًا جنب بعض.\n'
+                            'كل خلية: اكتب الحصص أو المواد الخاصة بهذا اليوم لهذه الشعبة.'
+                        : 'Template matches paper schedule: Days vertically (Sun - Thu) '
+                            'and classes horizontally side-by-side.\n'
+                            'Each cell: Enter classes or subjects for this day and section.',
                     style: TextStyle(color: textColor.withValues(alpha: 0.85), fontSize: 12.5, fontFamily: 'Cairo'),
                   ),
                 ),
@@ -167,7 +197,10 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
                     ),
                     child: _isLoading
                         ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                        : const Text('حفظ الجدول', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+                        : Text(
+                            isAr ? 'حفظ الجدول' : 'Save Schedule',
+                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
+                          ),
                   ),
                 ),
               ),
@@ -191,15 +224,15 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
         children: [
           Row(
             children: [
-              _headerCell('اليوم', dayColWidth, primaryYellow),
-              for (final name in classNames) _headerCell(name, classColWidth, primaryYellow),
+              _headerCell(isAr ? 'اليوم' : 'Day', dayColWidth, primaryYellow),
+              for (final name in classNames) _headerCell(_classLabel(name), classColWidth, primaryYellow),
             ],
           ),
           for (int dayIndex = 0; dayIndex < days.length; dayIndex++)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _dayCell(days[dayIndex], dayColWidth),
+                _dayCell(_dayLabel(days[dayIndex]), dayColWidth),
                 for (int classIndex = 0; classIndex < classNames.length; classIndex++)
                   _scheduleCell(gridControllers[dayIndex][classIndex], classColWidth),
               ],
@@ -262,11 +295,13 @@ class _CreateNewScheduleScreenState extends State<CreateNewScheduleScreen> {
         maxLines: 4,
         textAlignVertical: TextAlignVertical.top,
         style: const TextStyle(fontFamily: 'Cairo', fontSize: 12),
-        decoration: const InputDecoration(
-          hintText: 'الحصص / المواد\n(مثال: ح1 رياضيات\nح2 برمجة...)',
-          hintStyle: TextStyle(fontSize: 11, fontFamily: 'Cairo'),
-          border: OutlineInputBorder(),
-          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: InputDecoration(
+          hintText: isAr
+              ? 'الحصص / المواد\n(مثال: ح1 رياضيات\nح2 برمجة...)'
+              : 'Classes / Subjects\n(e.g., P1 Math\nP2 Coding...)',
+          hintStyle: const TextStyle(fontSize: 11, fontFamily: 'Cairo'),
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           isDense: true,
         ),
       ),

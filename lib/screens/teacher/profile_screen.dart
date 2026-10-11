@@ -85,14 +85,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         data: formData,
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
-      if (res.statusCode == 200 && res.data['success'] == true) {
+        if (res.statusCode == 200 && res.data['success'] == true) {
         if (mounted) {
+          final bool isAr = AppSettings.language.value == 'ar';
           setState(() => _avatarUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?));
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('تم تحديث الصورة الشخصية',
-                  style: TextStyle(fontFamily: 'Cairo')),
-              backgroundColor: Color(0xFFFFCC00),
+            SnackBar(
+              content: Text(isAr ? 'تم تحديث الصورة الشخصية' : 'Profile photo updated',
+                  style: const TextStyle(fontFamily: 'Cairo')),
+              backgroundColor: const Color(0xFFFFCC00),
             ),
           );
         }
@@ -100,10 +101,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       debugPrint('⛔ Avatar upload error: $e');
       if (mounted) {
+        final bool isAr = AppSettings.language.value == 'ar';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('فشل رفع الصورة، حاول مجدداً',
-                style: TextStyle(fontFamily: 'Cairo')),
+          SnackBar(
+            content: Text(isAr ? 'فشل رفع الصورة، حاول مجدداً' : 'Failed to upload photo, please try again',
+                style: const TextStyle(fontFamily: 'Cairo')),
             backgroundColor: Colors.red,
           ),
         );
@@ -140,9 +142,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bgColor   = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         extendBody: true,
@@ -150,7 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          title: Text('الملف الشخصي',
+          title: Text(isAr ? 'الملف الشخصي' : 'Profile',
               style: TextStyle(
                   color: textColor,
                   fontWeight: FontWeight.bold,
@@ -166,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => SettingsScreen(
                     userName: _fullName,
-                    userRole: _specialization.isNotEmpty ? _specialization : 'مدرس',
+                    userRole: _specialization.isNotEmpty ? _specialization : (isAr ? 'مدرس' : 'Teacher'),
                     profileImageUrl: _avatarUrl ?? '',
                     onProfileTap: () => Navigator.pop(context),
                   ))),
@@ -184,15 +187,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         horizontal: 20, vertical: 10),
                     child: Column(
                       children: [
-                        _buildProfileHeader(textColor),
+                        _buildProfileHeader(textColor, isAr),
                         const SizedBox(height: 30),
 
                         // ── معلومات التواصل ──
-                        _buildSectionTitle("معلومات التواصل", textColor),
+                        _buildSectionTitle(isAr ? "معلومات التواصل" : "Contact Information", textColor, isAr),
                         _buildInfoCard(cardColor, [
                           _buildClickableRow(
-                            label: "رقم الهاتف",
-                            value: _phone.isNotEmpty ? _phone : 'غير محدد',
+                            label: isAr ? "رقم الهاتف" : "Phone Number",
+                            value: _phone.isNotEmpty ? _phone : (isAr ? 'غير محدد' : 'Not set'),
                             icon: Icons.phone_android_rounded,
                             color: Colors.green,
                             textColor: textColor,
@@ -207,8 +210,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           _buildDivider(textColor),
                           _buildStaticRow(
-                            label: "البريد الإلكتروني",
-                            value: _email.isNotEmpty ? _email : 'غير محدد',
+                            label: isAr ? "البريد الإلكتروني" : "Email Address",
+                            value: _email.isNotEmpty ? _email : (isAr ? 'غير محدد' : 'Not set'),
                             icon: Icons.alternate_email_rounded,
                             color: Colors.blue,
                             textColor: textColor,
@@ -218,33 +221,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 25),
 
                         // ── البيانات الأكاديمية (مقفولة) ──
-                        _buildSectionTitle("البيانات الأكاديمية", textColor),
+                        _buildSectionTitle(isAr ? "البيانات الأكاديمية" : "Academic Information", textColor, isAr),
                         _buildInfoCard(cardColor, [
                           _buildStaticRow(
-                            label: "التخصص",
+                            label: isAr ? "التخصص" : "Specialization",
                             value: _specialization.isNotEmpty
                                 ? _specialization
-                                : 'غير محدد',
+                                : (isAr ? 'غير محدد' : 'Not set'),
                             icon: Icons.school_rounded,
                             color: Colors.purple,
                             textColor: textColor,
                           ),
                           if (_courseNames.isNotEmpty) ...[
                             _buildDivider(textColor),
-                            _buildCoursesRow(textColor),
+                            _buildCoursesRow(textColor, isAr),
                           ],
                         ]),
 
                         const SizedBox(height: 25),
 
                         // ── الأمان والإعدادات ──
-                        _buildSectionTitle("الأمان والإعدادات", textColor),
+                        _buildSectionTitle(isAr ? "الأمان والإعدادات" : "Security & Settings", textColor, isAr),
                         _buildClickableSettingCard(
-                          title: "تغيير كلمة المرور",
+                          title: isAr ? "تغيير كلمة المرور" : "Change Password",
                           icon: Icons.lock_reset_rounded,
                           color: Colors.redAccent,
                           cardColor: cardColor,
                           textColor: textColor,
+                          isAr: isAr,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -279,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // WIDGETS
   // ─────────────────────────────────────────────
 
-  Widget _buildProfileHeader(Color textColor) {
+  Widget _buildProfileHeader(Color textColor, bool isAr) {
     return Column(
       children: [
         Stack(
@@ -326,7 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontFamily: 'Cairo'),
         ),
         Text(
-          _specialization.isNotEmpty ? _specialization : 'مدرس',
+          _specialization.isNotEmpty ? _specialization : (isAr ? 'مدرس' : 'Teacher'),
           style: const TextStyle(
               color: Colors.grey, fontSize: 14, fontFamily: 'Cairo'),
         ),
@@ -334,11 +338,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, Color textColor) {
+  Widget _buildSectionTitle(String title, Color textColor, bool isAr) {
     return Align(
-      alignment: Alignment.centerRight,
+      alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(right: 5, bottom: 10),
+        padding: EdgeInsets.only(right: isAr ? 5 : 0, left: isAr ? 0 : 5, bottom: 10),
         child: Text(title,
             style: TextStyle(
                 fontSize: 15,
@@ -451,7 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildCoursesRow(Color textColor) {
+  Widget _buildCoursesRow(Color textColor, bool isAr) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -464,12 +468,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("المواد الدراسية",
-                        style: TextStyle(
+                    Text(isAr ? "المواد الدراسية" : "Courses",
+                        style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
                             fontFamily: 'Cairo')),
-                    Text("الفصل الحالي",
+                    Text(isAr ? "الفصل الحالي" : "Current Semester",
                         style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -516,6 +520,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required Color color,
     required Color cardColor,
     required Color textColor,
+    required bool isAr,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -536,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: textColor,
                     fontFamily: 'Cairo')),
             const Spacer(),
-            const Icon(Icons.arrow_back,
+            Icon(isAr ? Icons.arrow_back : Icons.arrow_forward,
                 size: 16, color: Colors.grey),
           ],
         ),

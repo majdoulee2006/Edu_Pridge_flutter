@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:dio/dio.dart';
 
 class CreateAnnouncementScreen extends StatefulWidget {
@@ -22,12 +22,19 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   final TextEditingController _linkController = TextEditingController();
 
   String _selectedAudience = 'all';
-  final Map<String, String> _audiences = {
-    'all': 'كل المعهد (عام)',
-    'students': 'الطلاب في قسم/دورة',
-    'teachers': 'المعلمين في قسم/دورة',
-    'heads': 'رؤساء الأقسام',
-    'department': 'قسم معين',
+
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  Map<String, String> get _audiences => {
+    'all': isAr ? 'كل المعهد (عام)' : 'Entire Institute (Public)',
+    'students': isAr ? 'الطلاب في قسم/دورة' : 'Students in Dept/Course',
+    'teachers': isAr ? 'المعلمين في قسم/دورة' : 'Teachers in Dept/Course',
+    'heads': isAr ? 'رؤساء الأقسام' : 'Department Heads',
+    'department': isAr ? 'قسم معين' : 'Specific Department',
   };
 
   List<dynamic> _departments = [];
@@ -44,6 +51,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchMetadata();
   }
 
@@ -63,10 +71,10 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
             _departments = fetchedDepts;
           } else {
             _departments = [
-              {'department_id': 1, 'name': 'قسم نظم المعلومات'},
-              {'department_id': 2, 'name': 'قسم تجاري'},
-              {'department_id': 3, 'name': 'قسم طبي'},
-              {'department_id': 4, 'name': 'قسم هندسي'},
+              {'department_id': 1, 'name': isAr ? 'قسم نظم المعلومات' : 'Information Systems Dept'},
+              {'department_id': 2, 'name': isAr ? 'قسم تجاري' : 'Business Dept'},
+              {'department_id': 3, 'name': isAr ? 'قسم طبي' : 'Medical Dept'},
+              {'department_id': 4, 'name': isAr ? 'قسم هندسي' : 'Engineering Dept'},
             ];
           }
           _courses = res.data['data']['courses'] ?? [];
@@ -78,10 +86,10 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
       if (mounted && _departments.isEmpty) {
         setState(() {
           _departments = [
-            {'department_id': 1, 'name': 'قسم نظم المعلومات'},
-            {'department_id': 2, 'name': 'قسم تجاري'},
-            {'department_id': 3, 'name': 'قسم طبي'},
-            {'department_id': 4, 'name': 'قسم هندسي'},
+            {'department_id': 1, 'name': isAr ? 'قسم نظم المعلومات' : 'Information Systems Dept'},
+            {'department_id': 2, 'name': isAr ? 'قسم تجاري' : 'Business Dept'},
+            {'department_id': 3, 'name': isAr ? 'قسم طبي' : 'Medical Dept'},
+            {'department_id': 4, 'name': isAr ? 'قسم هندسي' : 'Engineering Dept'},
           ];
         });
       }
@@ -90,6 +98,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _titleController.dispose();
     _contentController.dispose();
     _locationController.dispose();
@@ -164,11 +173,11 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
     final content = _contentController.text.trim();
 
     if (title.isEmpty) {
-      _showSnackBar("يرجى إدخال عنوان الإعلان");
+      _showSnackBar(isAr ? "يرجى إدخال عنوان الإعلان" : "Please enter announcement title");
       return;
     }
     if (content.isEmpty) {
-      _showSnackBar("يرجى إدخال تفاصيل الإعلان");
+      _showSnackBar(isAr ? "يرجى إدخال تفاصيل الإعلان" : "Please enter announcement content");
       return;
     }
 
@@ -182,7 +191,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
       Map<String, dynamic> mapData = {
         'title': title,
         'content': content,
-        'category': _categoryController.text.trim().isNotEmpty ? _categoryController.text.trim() : 'عام',
+        'category': _categoryController.text.trim().isNotEmpty ? _categoryController.text.trim() : (isAr ? 'عام' : 'General'),
         'target_audience': _selectedAudience,
         if (_selectedDate != null) 'event_date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
         if (_selectedTime != null) 'event_time': "${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00",
@@ -216,16 +225,16 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
       if (mounted) {
         setState(() => isSubmitting = false);
         if (response.statusCode == 200 && response.data['success'] == true) {
-          _showSnackBar("تم نشر الإعلان بنجاح", isError: false);
+          _showSnackBar(isAr ? "تم نشر الإعلان بنجاح" : "Announcement published successfully", isError: false);
           Navigator.pop(context, true);
         } else {
-          _showSnackBar("فشل نشر الإعلان، يرجى المحاولة لاحقاً");
+          _showSnackBar(isAr ? "فشل نشر الإعلان، يرجى المحاولة لاحقاً" : "Failed to publish announcement, please try again later");
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => isSubmitting = false);
-        _showSnackBar("حدث خطأ أثناء الاتصال بالخادم");
+        _showSnackBar(isAr ? "حدث خطأ أثناء الاتصال بالخادم" : "Server connection error occurred");
       }
     }
   }
@@ -233,7 +242,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   void _showSnackBar(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+        content: Text(message, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Cairo')),
         backgroundColor: isError ? Colors.redAccent : Colors.green,
       ),
     );
@@ -242,25 +251,25 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryYellow = const Color(0xFFFFCC00);
+    const primaryYellow = Color(0xFFFFCC00);
     final textColor = isDark ? Colors.white : Colors.black;
     final cardColor = isDark ? const Color(0xFF1E2633) : Colors.white;
 
     return Directionality(
-      textDirection: ui.TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
         appBar: AppBar(
           backgroundColor: isDark ? const Color(0xFF101922) : const Color(0xFFF6F7F8),
           elevation: 0,
-          title: const Text(
-            "نشر إعلان جديد",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, fontFamily: 'Noto Sans Arabic'),
+          title: Text(
+            isAr ? "نشر إعلان جديد" : "Post New Announcement",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
           ),
         ),
         body: isSubmitting
@@ -274,11 +283,11 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                     // عنوان الإعلان
                     TextField(
                       controller: _titleController,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
-                      decoration: const InputDecoration(
-                        hintText: "عنوان الإعلان (مثال: تنبيه هامي للمؤهلات)",
-                        hintStyle: TextStyle(fontSize: 18, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
-                        border: UnderlineInputBorder(),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                      decoration: InputDecoration(
+                        hintText: isAr ? "عنوان الإعلان (مثال: تنبيه هام للمؤهلات)" : "Announcement title (e.g., Important Notice)",
+                        hintStyle: const TextStyle(fontSize: 18, color: Colors.grey),
+                        border: const UnderlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -291,8 +300,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "الجمهور المستهدف:",
-                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                                isAr ? "الجمهور المستهدف:" : "Target Audience:",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                               ),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
@@ -305,7 +314,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                                 ),
                                 dropdownColor: cardColor,
-                                style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                style: TextStyle(color: textColor, fontSize: 13),
                                 items: _audiences.entries.map((entry) {
                                   return DropdownMenuItem<String>(
                                     value: entry.key,
@@ -327,16 +336,16 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "تصنيف الإعلان:",
-                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                                isAr ? "تصنيف الإعلان:" : "Category:",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                               ),
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _categoryController,
-                                style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                style: TextStyle(color: textColor, fontSize: 13),
                                 decoration: InputDecoration(
-                                  hintText: "مثال: إداري، تنبيه...",
-                                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                                  hintText: isAr ? "مثال: إداري، تنبيه..." : "e.g., Administrative, Notice...",
+                                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                                   fillColor: cardColor,
                                   filled: true,
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
@@ -356,8 +365,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "القسم (اختياري):",
-                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                                isAr ? "القسم (اختياري):" : "Department (Optional):",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                               ),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
@@ -370,15 +379,18 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                                 ),
                                 dropdownColor: cardColor,
-                                style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                style: TextStyle(color: textColor, fontSize: 13),
                                 items: [
-                                  const DropdownMenuItem<String>(value: null, child: Text("كل الأقسام", overflow: TextOverflow.ellipsis)),
+                                  DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text(isAr ? "كل الأقسام" : "All Departments", overflow: TextOverflow.ellipsis),
+                                  ),
                                   ..._departments.map((dept) {
                                     return DropdownMenuItem<String>(
                                       value: dept['department_id'].toString(),
                                       child: Text(dept['name'].toString(), overflow: TextOverflow.ellipsis),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                                 onChanged: (val) {
                                   setState(() {
@@ -396,8 +408,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "الدورة (اختياري):",
-                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                                isAr ? "الدورة (اختياري):" : "Course (Optional):",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                               ),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
@@ -410,15 +422,18 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                                 ),
                                 dropdownColor: cardColor,
-                                style: TextStyle(color: textColor, fontFamily: 'Noto Sans Arabic', fontSize: 13),
+                                style: TextStyle(color: textColor, fontSize: 13),
                                 items: [
-                                  const DropdownMenuItem<String>(value: null, child: Text("كل الدورات", overflow: TextOverflow.ellipsis)),
+                                  DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text(isAr ? "كل الدورات" : "All Courses", overflow: TextOverflow.ellipsis),
+                                  ),
                                   ..._courses.map((c) {
                                     return DropdownMenuItem<String>(
                                       value: (c['course_id'] ?? c['id']).toString(),
                                       child: Text((c['title'] ?? c['name'] ?? '').toString(), overflow: TextOverflow.ellipsis),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                                 onChanged: (val) {
                                   setState(() => _selectedCourse = val);
@@ -439,8 +454,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "التاريخ (اختياري):",
-                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                                isAr ? "التاريخ (اختياري):" : "Date (Optional):",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                               ),
                               const SizedBox(height: 8),
                               InkWell(
@@ -455,8 +470,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        _selectedDate == null ? 'اختر التاريخ' : DateFormat('yyyy-MM-dd').format(_selectedDate!),
-                                        style: TextStyle(color: _selectedDate == null ? Colors.grey : textColor, fontSize: 13, fontFamily: 'Noto Sans Arabic'),
+                                        _selectedDate == null ? (isAr ? 'اختر التاريخ' : 'Select Date') : DateFormat('yyyy-MM-dd').format(_selectedDate!),
+                                        style: TextStyle(color: _selectedDate == null ? Colors.grey : textColor, fontSize: 13),
                                       ),
                                       Icon(Icons.calendar_today, color: Colors.grey.shade400, size: 20),
                                     ],
@@ -472,8 +487,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "الوقت (اختياري):",
-                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                                isAr ? "الوقت (اختياري):" : "Time (Optional):",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                               ),
                               const SizedBox(height: 8),
                               InkWell(
@@ -488,8 +503,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        _selectedTime == null ? 'اختر الوقت' : _selectedTime!.format(context),
-                                        style: TextStyle(color: _selectedTime == null ? Colors.grey : textColor, fontSize: 13, fontFamily: 'Noto Sans Arabic'),
+                                        _selectedTime == null ? (isAr ? 'اختر الوقت' : 'Select Time') : _selectedTime!.format(context),
+                                        style: TextStyle(color: _selectedTime == null ? Colors.grey : textColor, fontSize: 13),
                                       ),
                                       Icon(Icons.access_time, color: Colors.grey.shade400, size: 20),
                                     ],
@@ -505,8 +520,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
 
                     // تفاصيل الإعلان
                     Text(
-                      "تفاصيل الإعلان:",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                      isAr ? "تفاصيل الإعلان:" : "Announcement Details:",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -519,10 +534,10 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                       child: TextField(
                         controller: _contentController,
                         maxLines: 5,
-                        style: TextStyle(fontSize: 16, color: textColor, fontFamily: 'Noto Sans Arabic'),
-                        decoration: const InputDecoration(
-                          hintText: "اكتب تفاصيل الإعلان هنا...",
-                          hintStyle: TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                        style: TextStyle(fontSize: 16, color: textColor),
+                        decoration: InputDecoration(
+                          hintText: isAr ? "اكتب تفاصيل الإعلان هنا..." : "Write announcement details here...",
+                          hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
                           border: InputBorder.none,
                         ),
                       ),
@@ -531,16 +546,16 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
 
                     // الموقع (اختياري)
                     Text(
-                      "الموقع (اختياري):",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                      isAr ? "الموقع (اختياري):" : "Location (Optional):",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _locationController,
-                      style: TextStyle(fontSize: 16, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                      style: TextStyle(fontSize: 16, color: textColor),
                       decoration: InputDecoration(
-                        hintText: "مثال: المسرح الجامعي",
-                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                        hintText: isAr ? "مثال: المسرح الجامعي" : "e.g., Campus Auditorium",
+                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
                         fillColor: cardColor,
                         filled: true,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -550,17 +565,17 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
 
                     // رابط خارجي (اختياري)
                     Text(
-                      "رابط خارجي (اختياري):",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                      isAr ? "رابط خارجي (اختياري):" : "External Link (Optional):",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _linkController,
                       keyboardType: TextInputType.url,
-                      style: TextStyle(fontSize: 16, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                      style: TextStyle(fontSize: 16, color: textColor),
                       decoration: InputDecoration(
                         hintText: "https://...",
-                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Noto Sans Arabic'),
+                        hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
                         fillColor: cardColor,
                         filled: true,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -573,13 +588,13 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "إرفاق صور للإعلان (اختياري):",
-                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Noto Sans Arabic'),
+                          isAr ? "إرفاق صور للإعلان (اختياري):" : "Attach Images (Optional):",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                         ),
                         if (selectedImagePaths.isNotEmpty)
                           Text(
-                            "${selectedImagePaths.length} صور محدّدة",
-                            style: const TextStyle(color: Color(0xFFFFCC00), fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
+                            isAr ? "${selectedImagePaths.length} صور محدّدة" : "${selectedImagePaths.length} images selected",
+                            style: const TextStyle(color: Color(0xFFFFCC00), fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                       ],
                     ),
@@ -600,7 +615,10 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                 children: [
                                   Icon(Icons.add_photo_alternate_outlined, size: 42, color: Colors.amber.shade700),
                                   const SizedBox(height: 8),
-                                  Text("اضغط لاختيار صور للإعلان (يمكن اختيار أكثر من صورة)", style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontFamily: 'Noto Sans Arabic')),
+                                  Text(
+                                    isAr ? "اضغط لاختيار صور للإعلان (يمكن اختيار أكثر من صورة)" : "Tap to select photos (multiple allowed)",
+                                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                  ),
                                 ],
                               ),
                             ),
@@ -616,7 +634,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                     onTap: _pickMultiImages,
                                     child: Container(
                                       width: 100,
-                                      margin: const EdgeInsets.only(left: 8),
+                                      margin: EdgeInsetsDirectional.only(end: 8),
                                       decoration: BoxDecoration(
                                         color: cardColor,
                                         borderRadius: BorderRadius.circular(15),
@@ -627,7 +645,10 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                         children: [
                                           const Icon(Icons.add_a_photo, color: Color(0xFFFFCC00), size: 30),
                                           const SizedBox(height: 4),
-                                          const Text("إضافة المزيد", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic')),
+                                          Text(
+                                            isAr ? "إضافة المزيد" : "Add more",
+                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -637,7 +658,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                   children: [
                                     Container(
                                       width: 120,
-                                      margin: const EdgeInsets.only(left: 10),
+                                      margin: EdgeInsetsDirectional.only(end: 10),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(15),
                                         image: DecorationImage(
@@ -646,9 +667,9 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                                         ),
                                       ),
                                     ),
-                                    Positioned(
+                                    PositionedDirectional(
                                       top: 4,
-                                      right: 14,
+                                      end: 14,
                                       child: GestureDetector(
                                         onTap: () {
                                           setState(() {
@@ -689,15 +710,15 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                       ),
                       elevation: 8,
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "نشر الإعلان",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Noto Sans Arabic'),
+                          isAr ? "نشر الإعلان" : "Publish Announcement",
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(width: 10),
-                        Icon(Icons.campaign, size: 22),
+                        const SizedBox(width: 10),
+                        const Icon(Icons.campaign, size: 22),
                       ],
                     ),
                   ),

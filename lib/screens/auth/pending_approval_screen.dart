@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'login_screen.dart';
 
 class PendingApprovalScreen extends StatelessWidget {
@@ -9,9 +10,10 @@ class PendingApprovalScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isAr = AppSettings.language.value == 'ar';
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: SafeArea(
@@ -20,7 +22,6 @@ class PendingApprovalScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // أيقونة الصح الخضراء
                 Container(
                   width: 120,
                   height: 120,
@@ -43,9 +44,8 @@ class PendingApprovalScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // العنوان
                 Text(
-                  'تم إنشاء الحساب بنجاح ✓',
+                  isAr ? 'تم إنشاء الحساب بنجاح ✓' : 'Account Created Successfully ✓',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -56,9 +56,10 @@ class PendingApprovalScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // الوصف
                 Text(
-                  'تم استلام طلب تسجيلك بنجاح.\nطلبك الآن قيد المراجعة، يرجى انتظار التفعيل وإشعار القبول من قِبل موظف الشؤون.',
+                  isAr
+                      ? 'تم استلام طلب تسجيلك بنجاح.\nطلبك الآن قيد المراجعة، يرجى انتظار التفعيل وإشعار القبول من قِبل موظف الشؤون.'
+                      : 'Your registration request has been received.\nYour request is under review, please await activation and approval notification from Student Affairs.',
                   style: TextStyle(
                     fontSize: 15,
                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
@@ -69,7 +70,6 @@ class PendingApprovalScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 48),
 
-                // زر العودة لتسجيل الدخول
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -86,9 +86,9 @@ class PendingApprovalScreen extends StatelessWidget {
                       MaterialPageRoute(builder: (_) => const LoginScreen()),
                       (_) => false,
                     ),
-                    child: const Text(
-                      'الذهاب لتسجيل الدخول',
-                      style: TextStyle(
+                    child: Text(
+                      isAr ? 'الذهاب لتسجيل الدخول' : 'Go to Sign In',
+                      style: const TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

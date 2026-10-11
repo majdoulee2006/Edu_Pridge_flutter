@@ -22,6 +22,12 @@ class ClassesScreen extends StatefulWidget {
 }
 
 class _ClassesScreenState extends State<ClassesScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   // 🌟 الأقسام الأربعة المطلوبة بالتحديد 🌟
   final List<String> departments = [
     "جميع الأقسام",
@@ -57,7 +63,49 @@ class _ClassesScreenState extends State<ClassesScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  String _getDeptLabel(String dept) {
+    if (!isAr) {
+      switch (dept) {
+        case "جميع الأقسام": return "All Departments";
+        case "نظم معلومات": return "Information Systems";
+        case "طبي": return "Medical";
+        case "هندسي": return "Engineering";
+        case "تجاري": return "Commercial";
+      }
+    }
+    return dept;
+  }
+
+  String _getYearLabel(String year) {
+    if (!isAr) {
+      switch (year) {
+        case "جميع السنوات": return "All Years";
+        case "سنة اولى": return "First Year";
+        case "سنة تانية": return "Second Year";
+      }
+    }
+    return year;
+  }
+
+  String _getSemesterLabel(String sem) {
+    if (!isAr) {
+      switch (sem) {
+        case "جميع الفصول": return "All Semesters";
+        case "فصل أول": return "1st Semester";
+        case "فصل ثاني": return "2nd Semester";
+      }
+    }
+    return sem;
   }
 
   Future<void> _loadData() async {
@@ -137,7 +185,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
   Future<void> _downloadFile(String fileUrl, String fileName) async {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("جاري تحميل $fileName...")),
+        SnackBar(content: Text(isAr ? "جاري تحميل $fileName..." : "Downloading $fileName...")),
       );
 
       final fullUrl = ApiService.fixMediaUrl(fileUrl) ?? fileUrl;
@@ -147,14 +195,18 @@ class _ClassesScreenState extends State<ClassesScreen> {
       final dio = Dio();
       await dio.download(fullUrl, savePath);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("تم التحميل بنجاح")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "تم التحميل بنجاح" : "Downloaded successfully")),
+        );
+      }
       OpenFilex.open(savePath);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("فشل تحميل الملف: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? "فشل تحميل الملف: $e" : "Failed to download file: $e")),
+        );
+      }
     }
   }
 
@@ -213,7 +265,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
               ),
               padding: EdgeInsets.fromLTRB(20, 15, 20, MediaQuery.of(context).viewInsets.bottom + 20),
               child: Directionality(
-                textDirection: TextDirection.rtl,
+                textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                 child: Column(
                   children: [
                     Center(
@@ -235,7 +287,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                             Icon(Icons.add_circle, color: primaryYellow, size: 28),
                             const SizedBox(width: 10),
                             Text(
-                              "إضافة مادة جديدة",
+                              isAr ? "إضافة مادة جديدة" : "Add New Subject",
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -257,11 +309,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel("اسم المادة", isDark ? Colors.white : Colors.black),
+                            _buildLabel(isAr ? "اسم المادة" : "Subject Name", isDark ? Colors.white : Colors.black),
                             TextField(
                               controller: titleController,
                               decoration: InputDecoration(
-                                hintText: "أدخل اسم المادة (مثال: برمجيات 1)",
+                                hintText: isAr ? "أدخل اسم المادة (مثال: برمجيات 1)" : "Enter subject name (e.g. Software 1)",
                                 filled: true,
                                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -269,12 +321,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
                             ),
                             const SizedBox(height: 15),
 
-                            _buildLabel("وصف المادة", isDark ? Colors.white : Colors.black),
+                            _buildLabel(isAr ? "وصف المادة" : "Subject Description", isDark ? Colors.white : Colors.black),
                             TextField(
                               controller: descriptionController,
                               maxLines: 2,
                               decoration: InputDecoration(
-                                hintText: "أدخل وصف مختصر للمادة",
+                                hintText: isAr ? "أدخل وصف مختصر للمادة" : "Enter brief description",
                                 filled: true,
                                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -282,12 +334,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
                             ),
                             const SizedBox(height: 15),
 
-                            _buildLabel("عدد الساعات المخصصة", isDark ? Colors.white : Colors.black),
+                            _buildLabel(isAr ? "عدد الساعات المخصصة" : "Credit / Allocated Hours", isDark ? Colors.white : Colors.black),
                             TextField(
                               controller: hoursController,
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
-                                hintText: "مثال: 30",
+                                hintText: isAr ? "مثال: 30" : "e.g. 30",
                                 filled: true,
                                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -301,11 +353,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _buildLabel("القسم", isDark ? Colors.white : Colors.black),
+                                      _buildLabel(isAr ? "القسم" : "Department", isDark ? Colors.white : Colors.black),
                                       _buildDropdown(
-                                        hint: "اختر القسم",
+                                        hint: isAr ? "اختر القسم" : "Select Department",
                                         value: modalDept,
                                         items: formDepartments,
+                                        labelMapper: _getDeptLabel,
                                         onChanged: (val) {
                                           if (val != null) {
                                             modalDept = val;
@@ -323,9 +376,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _buildLabel("الدورة", isDark ? Colors.white : Colors.black),
+                                      _buildLabel(isAr ? "الدورة" : "Program / Course", isDark ? Colors.white : Colors.black),
                                       _buildDropdown(
-                                        hint: "اختر الدورة",
+                                        hint: isAr ? "اختر الدورة" : "Select Program",
                                         value: modalProgramName,
                                         items: modalFilteredPrograms.map((p) => p['name'].toString()).toList(),
                                         onChanged: (val) {
@@ -351,11 +404,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _buildLabel("السنة الدراسية", isDark ? Colors.white : Colors.black),
+                                      _buildLabel(isAr ? "السنة الدراسية" : "Academic Year", isDark ? Colors.white : Colors.black),
                                       _buildDropdown(
-                                        hint: "اختر السنة",
+                                        hint: isAr ? "اختر السنة" : "Select Year",
                                         value: modalYear,
                                         items: formYears,
+                                        labelMapper: _getYearLabel,
                                         onChanged: (val) {
                                           if (val != null) setModalState(() => modalYear = val);
                                         },
@@ -370,11 +424,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _buildLabel("الفصل الدراسي", isDark ? Colors.white : Colors.black),
+                                      _buildLabel(isAr ? "الفصل الدراسي" : "Semester", isDark ? Colors.white : Colors.black),
                                       _buildDropdown(
-                                        hint: "اختر الفصل",
+                                        hint: isAr ? "اختر الفصل" : "Select Semester",
                                         value: modalSemester,
                                         items: formSemesters,
+                                        labelMapper: _getSemesterLabel,
                                         onChanged: (val) {
                                           if (val != null) setModalState(() => modalSemester = val);
                                         },
@@ -397,7 +452,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                           : () async {
                               if (titleController.text.trim().isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("يرجى إدخال اسم المادة")),
+                                  SnackBar(content: Text(isAr ? "يرجى إدخال اسم المادة" : "Please enter subject name")),
                                 );
                                 return;
                               }
@@ -417,16 +472,20 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                 });
 
                                 if (success) {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("تم إضافة المادة الجديدة بنجاح")),
-                                  );
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(isAr ? "تم إضافة المادة الجديدة بنجاح" : "New subject added successfully")),
+                                    );
+                                  }
                                   _loadData();
                                 }
                               } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("حدث خطأ أثناء إضافة المادة: $e")),
-                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(isAr ? "حدث خطأ أثناء إضافة المادة: $e" : "An error occurred while adding subject: $e")),
+                                  );
+                                }
                               } finally {
                                 setModalState(() => isSaving = false);
                               }
@@ -435,7 +494,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                           : const Icon(Icons.check, color: Colors.black),
                       label: Text(
-                        isSaving ? "جاري الحفظ..." : "إضافة المادة وحفظها",
+                        isSaving
+                            ? (isAr ? "جاري الحفظ..." : "Saving...")
+                            : (isAr ? "إضافة المادة وحفظها" : "Add & Save Subject"),
                         style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -470,7 +531,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
           ),
           padding: const EdgeInsets.all(20),
           child: Directionality(
-            textDirection: TextDirection.rtl,
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -497,7 +558,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            course['title'] ?? 'بدون عنوان',
+                            course['title'] ?? (isAr ? 'بدون عنوان' : 'Untitled'),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -505,7 +566,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
                             ),
                           ),
                           Text(
-                            "المعلم: ${course['teacher_name'] ?? 'غير معين'} • ${course['semester_name'] ?? ''}",
+                            isAr
+                                ? "المعلم: ${course['teacher_name'] ?? 'غير معين'} • ${course['semester_name'] ?? ''}"
+                                : "Teacher: ${course['teacher_name'] ?? 'Not Assigned'} • ${course['semester_name'] ?? ''}",
                             style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
@@ -519,20 +582,20 @@ class _ClassesScreenState extends State<ClassesScreen> {
                 ),
                 const Divider(height: 25),
                 Text(
-                  "المحاضرات والملفات المرفوعة (${lessons.length})",
+                  isAr ? "المحاضرات والملفات المرفوعة (${lessons.length})" : "Lectures & Uploaded Files (${lessons.length})",
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
                 Expanded(
                   child: lessons.isEmpty
-                      ? const Center(child: Text("لا توجد محاضرات مرفوعة لهذه المادة"))
+                      ? Center(child: Text(isAr ? "لا توجد محاضرات مرفوعة لهذه المادة" : "No lectures uploaded for this subject"))
                       : ListView.builder(
                           itemCount: lessons.length,
                           itemBuilder: (context, index) {
                             final lesson = lessons[index];
-                            final title = lesson['title'] ?? 'محاضرة بدون عنوان';
+                            final title = lesson['title'] ?? (isAr ? 'محاضرة بدون عنوان' : 'Untitled lecture');
                             final fileUrl = lesson['file_path'] ?? lesson['content_url'] ?? '';
-                            final fileName = lesson['file_name'] ?? 'ملف_$index';
+                            final fileName = lesson['file_name'] ?? (isAr ? 'ملف_$index' : 'file_$index');
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
@@ -571,7 +634,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                     IconButton(
                                       onPressed: () => _downloadFile(fileUrl, fileName),
                                       icon: const Icon(Icons.download_rounded, color: Colors.amber),
-                                      tooltip: "معاينة وتحميل",
+                                      tooltip: isAr ? "معاينة وتحميل" : "Preview & Download",
                                     ),
                                 ],
                               ),
@@ -596,13 +659,16 @@ class _ClassesScreenState extends State<ClassesScreen> {
     final primaryYellow = const Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          title: const Text("الفصول الدراسية والمواد", style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(isAr ? "الفصول الدراسية والمواد" : "Classes & Subjects", style: const TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
-          leading: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_forward)),
+          leading: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back),
+          ),
           actions: [
             IconButton(
               onPressed: () {
@@ -612,7 +678,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                 );
               },
               icon: const Icon(Icons.settings_outlined),
-              tooltip: "الإعدادات",
+              tooltip: isAr ? "الإعدادات" : "Settings",
             ),
           ],
         ),
@@ -634,11 +700,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildLabel("القسم", textColor),
+                          _buildLabel(isAr ? "القسم" : "Department", textColor),
                           _buildDropdown(
-                            hint: "اختر القسم",
+                            hint: isAr ? "اختر القسم" : "Select Department",
                             value: selectedDept,
                             items: departments,
+                            labelMapper: _getDeptLabel,
                             onChanged: (val) {
                               if (val != null) {
                                 setState(() {
@@ -659,11 +726,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildLabel("السنة", textColor),
+                                    _buildLabel(isAr ? "السنة" : "Year", textColor),
                                     _buildDropdown(
-                                      hint: "اختر السنة",
+                                      hint: isAr ? "اختر السنة" : "Select Year",
                                       value: selectedYear,
                                       items: academicYears,
+                                      labelMapper: _getYearLabel,
                                       onChanged: (val) {
                                         if (val != null) {
                                           setState(() => selectedYear = val);
@@ -681,9 +749,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildLabel("الدورة", textColor),
+                                    _buildLabel(isAr ? "الدورة" : "Program / Course", textColor),
                                     _buildDropdown(
-                                      hint: "اختر الدورة",
+                                      hint: isAr ? "اختر الدورة" : "Select Program",
                                       value: selectedProgramName,
                                       items: filteredPrograms.map((p) => p['name'].toString()).toList(),
                                       onChanged: (val) {
@@ -721,9 +789,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
                       ),
                       child: Row(
                         children: [
-                          _buildSemesterTab("جميع الفصول", 0, primaryYellow),
-                          _buildSemesterTab("فصل أول", 1, primaryYellow),
-                          _buildSemesterTab("فصل ثاني", 2, primaryYellow),
+                          _buildSemesterTab(isAr ? "جميع الفصول" : "All Semesters", 0, primaryYellow),
+                          _buildSemesterTab(isAr ? "فصل أول" : "1st Semester", 1, primaryYellow),
+                          _buildSemesterTab(isAr ? "فصل ثاني" : "2nd Semester", 2, primaryYellow),
                         ],
                       ),
                     ),
@@ -733,8 +801,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("المواد الدراسية", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-                        Text("${coursesList.length} مادة", style: TextStyle(color: Colors.blue.shade400, fontSize: 13, fontWeight: FontWeight.bold)),
+                        Text(isAr ? "المواد الدراسية" : "Academic Subjects", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                        Text(
+                          isAr ? "${coursesList.length} مادة" : "${coursesList.length} Subjects",
+                          style: TextStyle(color: Colors.blue.shade400, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
 
@@ -743,7 +814,15 @@ class _ClassesScreenState extends State<ClassesScreen> {
                     if (isLoading)
                       const Center(child: Padding(padding: EdgeInsets.all(30), child: CircularProgressIndicator()))
                     else if (coursesList.isEmpty)
-                      const Center(child: Padding(padding: EdgeInsets.all(30), child: Text("لا توجد مواد مطابقة للفلتر المحدد")))
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(30),
+                          child: Text(
+                            isAr ? "لا توجد مواد مطابقة للفلتر المحدد" : "No subjects match the selected filter",
+                            style: TextStyle(color: Colors.grey.shade600),
+                          ),
+                        ),
+                      )
                     else
                       ListView.builder(
                         shrinkWrap: true,
@@ -751,8 +830,8 @@ class _ClassesScreenState extends State<ClassesScreen> {
                         itemCount: coursesList.length,
                         itemBuilder: (context, index) {
                           final course = Map<String, dynamic>.from(coursesList[index]);
-                          final title = course['title'] ?? 'مادة بدون عنوان';
-                          final teacher = course['teacher_name'] ?? 'لم يتم تعيين معلم';
+                          final title = course['title'] ?? (isAr ? 'مادة بدون عنوان' : 'Untitled subject');
+                          final teacher = course['teacher_name'] ?? (isAr ? 'لم يتم تعيين معلم' : 'No teacher assigned');
                           final lessonsCount = (course['lessons_list'] as List<dynamic>?)?.length ?? 0;
 
                           return GestureDetector(
@@ -768,28 +847,6 @@ class _ClassesScreenState extends State<ClassesScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.arrow_back_ios_new, size: 14, color: Colors.grey),
-                                  const Spacer(),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          Text(teacher, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                          const SizedBox(width: 5),
-                                          const Icon(Icons.person_outline, size: 14, color: Colors.grey),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "$lessonsCount محاضرة مرفوعة",
-                                        style: TextStyle(color: primaryYellow, fontSize: 11, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 15),
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
@@ -798,6 +855,29 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                     ),
                                     child: const Icon(Icons.book_outlined, color: Colors.black),
                                   ),
+                                  const SizedBox(width: 15),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.person_outline, size: 14, color: Colors.grey),
+                                            const SizedBox(width: 5),
+                                            Text(teacher, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          isAr ? "$lessonsCount محاضرة مرفوعة" : "$lessonsCount lectures uploaded",
+                                          style: TextStyle(color: primaryYellow, fontSize: 11, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(isAr ? Icons.arrow_back_ios_new : Icons.arrow_forward_ios, size: 14, color: Colors.grey),
                                 ],
                               ),
                             ),
@@ -809,10 +889,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
               ),
             ),
 
-            // 🌟 زر الزائد (+) العائم في أسفل اليسار لإضافة مادة جديدة 🌟
+            // 🌟 زر الزائد (+) العائم في أسفل الشاشة لإضافة مادة جديدة 🌟
             Positioned(
               bottom: 100,
-              left: 20,
+              left: isAr ? 20 : null,
+              right: isAr ? null : 20,
               child: GestureDetector(
                 onTap: () => _showAddSubjectModal(context, isDark, primaryYellow),
                 child: Container(
@@ -850,9 +931,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
   }
 
   Widget _buildLabel(String text, Color textColor) => Padding(
-        padding: const EdgeInsets.only(bottom: 5, right: 5),
+        padding: const EdgeInsets.only(bottom: 5, right: 5, left: 5),
         child: Align(
-          alignment: Alignment.centerRight,
+          alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
           child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
         ),
       );
@@ -864,6 +945,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
     required ValueChanged<String?> onChanged,
     required bool isDark,
     required Color cardColor,
+    String Function(String)? labelMapper,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -878,7 +960,15 @@ class _ClassesScreenState extends State<ClassesScreen> {
           hint: Text(hint, style: const TextStyle(fontSize: 13)),
           isExpanded: true,
           dropdownColor: cardColor,
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
+          items: items
+              .map((e) => DropdownMenuItem(
+                    value: e,
+                    child: Text(
+                      labelMapper != null ? labelMapper(e) : e,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ))
+              .toList(),
           onChanged: onChanged,
         ),
       ),

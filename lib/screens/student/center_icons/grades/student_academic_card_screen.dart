@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class StudentAcademicCardScreen extends StatefulWidget {
   final String? universityId;
@@ -22,10 +23,22 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchCardData();
   }
 
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _fetchCardData() async {
+    final isAr = AppSettings.language.value == 'ar';
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -41,7 +54,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
           });
         } else {
           setState(() {
-            _errorMessage = res?['message'] ?? "تعذر جلب كشف علامات الطالب بالرقم الجامعي أدناه.";
+            _errorMessage = res?['message'] ?? (isAr ? "تعذر جلب كشف علامات الطالب بالرقم الجامعي أدناه." : "Could not retrieve student transcript.");
             _isLoading = false;
           });
         }
@@ -49,7 +62,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = "حدث خطأ أثناء تحميل البيانات، يرجى إعادة المحاولة.";
+          _errorMessage = isAr ? "حدث خطأ أثناء تحميل البيانات، يرجى إعادة المحاولة." : "An error occurred while loading data, please try again.";
           _isLoading = false;
         });
       }
@@ -59,72 +72,77 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF4F6F9);
     final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
     final subColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        title: const Text(
-          "بطاقة كشف العلامات والأداء الأكاديمي",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, fontFamily: 'Tajawal'),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: cardBg,
-        foregroundColor: textColor,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: "تحديث",
-            onPressed: _fetchCardData,
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          title: Text(
+            isAr ? "بطاقة كشف العلامات والأداء الأكاديمي" : "Academic Report & Performance Card",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, fontFamily: 'Tajawal'),
           ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppColors.accent),
-                  SizedBox(height: 16),
-                  Text("جاري تحضير بطاقة الطالب وكشف العلامات...", style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
-          : _errorMessage != null
-              ? _buildErrorView(textColor)
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      // 1. Header Student Card (بطاقة التعريف الأكاديمية)
-                      _buildStudentCardHeader(cardBg, textColor, subColor, isDark),
-
-
-
-                      const SizedBox(height: 20),
-
-                      // 2. Grades Breakdown Table / Cards (جدول المقررات والعلامات)
-                      _buildCoursesGradesSection(cardBg, textColor, subColor, isDark),
-
-                      const SizedBox(height: 20),
-
-                      // 3. Summary & Performance (المعدل التراكمي والحضور والغياب)
-                      _buildSummarySection(cardBg, textColor, isDark),
-
-                      const SizedBox(height: 30),
-                    ],
-                  ),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: cardBg,
+          foregroundColor: textColor,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: isAr ? "تحديث" : "Refresh",
+              onPressed: _fetchCardData,
+            ),
+          ],
+        ),
+        body: _isLoading
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(color: AppColors.accent),
+                    const SizedBox(height: 16),
+                    Text(
+                      isAr ? "جاري تحضير بطاقة الطالب وكشف العلامات..." : "Preparing student card and transcript...",
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
                 ),
+              )
+            : _errorMessage != null
+                ? _buildErrorView(textColor, isAr)
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      children: [
+                        // 1. Header Student Card (بطاقة التعريف الأكاديمية)
+                        _buildStudentCardHeader(cardBg, textColor, subColor, isDark, isAr),
+
+                        const SizedBox(height: 20),
+
+                        // 2. Grades Breakdown Table / Cards (جدول المقررات والعلامات)
+                        _buildCoursesGradesSection(cardBg, textColor, subColor, isDark, isAr),
+
+                        const SizedBox(height: 20),
+
+                        // 3. Summary & Performance (المعدل التراكمي والحضور والغياب)
+                        _buildSummarySection(cardBg, textColor, isDark, isAr),
+
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
+      ),
     );
   }
 
-  Widget _buildErrorView(Color textColor) {
+  Widget _buildErrorView(Color textColor, bool isAr) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -142,7 +160,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
             ElevatedButton.icon(
               onPressed: _fetchCardData,
               icon: const Icon(Icons.refresh),
-              label: const Text("إعادة المحاولة"),
+              label: Text(isAr ? "إعادة المحاولة" : "Try Again"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: Colors.white,
@@ -156,14 +174,14 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
   }
 
   // ─── 1. Student Card Header ────────────────────────────────────────────────
-  Widget _buildStudentCardHeader(Color cardBg, Color textColor, Color subColor, bool isDark) {
+  Widget _buildStudentCardHeader(Color cardBg, Color textColor, Color subColor, bool isDark, bool isAr) {
     final info = _cardData?['student_info'] ?? {};
-    final studentName = info['student_name'] ?? 'طالب غير معرف';
-    final universityId = info['university_id'] ?? widget.universityId;
-    final level = info['level'] ?? 'السنة الأولى';
-    final semester = info['semester'] ?? 'الفصل الأول والثاني';
-    final department = info['department'] ?? 'تكنولوجيا المعلومات';
-    final institution = info['institution'] ?? 'مؤسسة Edu Bridge الأكاديمية';
+    final studentName = info['student_name'] ?? (isAr ? 'طالب غير معرف' : 'Unidentified Student');
+    final universityId = info['university_id'] ?? widget.universityId ?? '';
+    final level = info['level'] ?? (isAr ? 'السنة الأولى' : 'First Year');
+    final semester = info['semester'] ?? (isAr ? 'الفصل الأول والثاني' : 'First & Second Semester');
+    final department = info['department'] ?? (isAr ? 'تكنولوجيا المعلومات' : 'Information Technology');
+    final institution = info['institution'] ?? (isAr ? 'مؤسسة Edu Bridge الأكاديمية' : 'Edu Bridge Academic Institution');
     final issueDate = info['issue_date'] ?? '2026-08-05';
 
     return Container(
@@ -183,7 +201,8 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
         children: [
           // Background subtle pattern watermark
           Positioned(
-            left: -20,
+            left: isAr ? -20 : null,
+            right: isAr ? null : -20,
             top: -20,
             child: Icon(
               Icons.school_rounded,
@@ -230,7 +249,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "بطاقة كشف العلامات والسجل الأكاديمي الرسمي",
+                            isAr ? "بطاقة كشف العلامات والسجل الأكاديمي الرسمي" : "Official Academic Transcript & Record Card",
                             style: TextStyle(fontSize: 11, color: subColor),
                           ),
                         ],
@@ -243,13 +262,13 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: Colors.green.withOpacity(0.3)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.verified_rounded, color: Colors.green, size: 14),
-                          SizedBox(width: 4),
+                          const Icon(Icons.verified_rounded, color: Colors.green, size: 14),
+                          const SizedBox(width: 4),
                           Text(
-                            "وثيقة معتمدة",
-                            style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold),
+                            isAr ? "وثيقة معتمدة" : "Certified",
+                            style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -302,10 +321,10 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.badge_outlined, size: 14, color: AppColors.accent),
+                              const Icon(Icons.badge_outlined, size: 14, color: AppColors.accent),
                               const SizedBox(width: 4),
                               Text(
-                                "الرقم الجامعي: ",
+                                isAr ? "الرقم الجامعي: " : "University ID: ",
                                 style: TextStyle(fontSize: 12, color: subColor),
                               ),
                               Text(
@@ -337,15 +356,15 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                     children: [
                       Row(
                         children: [
-                          Expanded(child: _buildInfoItem("المستوى / السنة", level, Icons.military_tech_outlined, textColor, subColor)),
-                          Expanded(child: _buildInfoItem("القسم / التخصص", department, Icons.domain_rounded, textColor, subColor)),
+                          Expanded(child: _buildInfoItem(isAr ? "المستوى / السنة" : "Level / Year", level, Icons.military_tech_outlined, textColor, subColor)),
+                          Expanded(child: _buildInfoItem(isAr ? "القسم / التخصص" : "Department / Major", department, Icons.domain_rounded, textColor, subColor)),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          Expanded(child: _buildInfoItem("الفصل الدراسي", semester, Icons.date_range_rounded, textColor, subColor)),
-                          Expanded(child: _buildInfoItem("تاريخ الإصدار", issueDate, Icons.event_available_rounded, textColor, subColor)),
+                          Expanded(child: _buildInfoItem(isAr ? "الفصل الدراسي" : "Semester", semester, Icons.date_range_rounded, textColor, subColor)),
+                          Expanded(child: _buildInfoItem(isAr ? "تاريخ الإصدار" : "Issue Date", issueDate, Icons.event_available_rounded, textColor, subColor)),
                         ],
                       ),
                     ],
@@ -384,7 +403,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
   }
 
   // ─── 2. Courses Grades Breakdown Section ───────────────────────────────────
-  Widget _buildCoursesGradesSection(Color cardBg, Color textColor, Color subColor, bool isDark) {
+  Widget _buildCoursesGradesSection(Color cardBg, Color textColor, Color subColor, bool isDark, bool isAr) {
     final List courses = _cardData?['courses'] ?? [];
 
     return Column(
@@ -398,7 +417,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                 const Icon(Icons.assignment_rounded, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  "كشف درجات المقررات الدراسية",
+                  isAr ? "كشف درجات المقررات الدراسية" : "Course Grades Transcript",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -409,7 +428,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
               ],
             ),
             Text(
-              "${courses.length} مواد",
+              isAr ? "${courses.length} مواد" : "${courses.length} Courses",
               style: TextStyle(fontSize: 12, color: subColor, fontWeight: FontWeight.bold),
             ),
           ],
@@ -429,7 +448,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                 Icon(Icons.folder_open_rounded, size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 10),
                 Text(
-                  "لا توجد علامات مرصودة لهذا الرقم الجامعي حتى الآن",
+                  isAr ? "لا توجد علامات مرصودة لهذا الرقم الجامعي حتى الآن" : "No grades recorded for this university ID yet",
                   style: TextStyle(color: subColor, fontSize: 13),
                 ),
               ],
@@ -442,7 +461,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
             itemCount: courses.length,
             itemBuilder: (context, index) {
               final c = courses[index] as Map<String, dynamic>;
-              final title = c['course_title'] ?? 'مادة دراسية';
+              final title = c['course_title'] ?? (isAr ? 'مادة دراسية' : 'Course');
               final quiz = c['quiz_score'];
               final oral = c['oral_score'];
               final finalExam = c['final_score'];
@@ -484,17 +503,17 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                         ),
                         Builder(
                           builder: (context) {
-                            final statusStr = (c['status'] ?? (total >= 50 ? 'ناجح' : 'راسب')).toString();
-                            Color bgStatusColor = Colors.orange.withOpacity(0.12);
-                            Color textStatusColor = Colors.orange.shade800;
-
-                            if (statusStr == 'ناجح') {
-                              bgStatusColor = Colors.green.withOpacity(0.12);
-                              textStatusColor = Colors.green.shade700;
-                            } else if (statusStr == 'راسب') {
-                              bgStatusColor = Colors.red.withOpacity(0.12);
-                              textStatusColor = Colors.red.shade700;
-                            }
+                            final rawStatus = (c['status'] ?? (total >= 50 ? 'ناجح' : 'راسب')).toString();
+                            final isPassed = rawStatus == 'ناجح' || rawStatus.toLowerCase() == 'passed';
+                            final statusStr = isAr 
+                                ? (isPassed ? 'ناجح' : 'راسب')
+                                : (isPassed ? 'Passed' : 'Failed');
+                            final bgStatusColor = isPassed 
+                                ? Colors.green.withOpacity(0.12)
+                                : Colors.red.withOpacity(0.12);
+                            final textStatusColor = isPassed 
+                                ? Colors.green.shade700
+                                : Colors.red.shade700;
 
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -522,9 +541,9 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildMarkBox("المذاكرة / الأعمال", quiz, textColor, subColor),
-                        _buildMarkBox("الشفهي / العملي", oral, textColor, subColor),
-                        _buildMarkBox("الامتحان النهائي", finalExam, textColor, subColor),
+                        _buildMarkBox(isAr ? "المذاكرة / الأعمال" : "Coursework", quiz, textColor, subColor, isAr),
+                        _buildMarkBox(isAr ? "الشفهي / العملي" : "Oral / Practical", oral, textColor, subColor, isAr),
+                        _buildMarkBox(isAr ? "الامتحان النهائي" : "Final Exam", finalExam, textColor, subColor, isAr),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -539,9 +558,9 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "مجموع المادة النهائي:",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          Text(
+                            isAr ? "مجموع المادة النهائي:" : "Final Course Total:",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                           Text(
                             "$total / $maxScore",
@@ -561,7 +580,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "التثقيل:",
+                          isAr ? "التثقيل:" : "Weight:",
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: subColor),
                         ),
                         Container(
@@ -586,7 +605,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
     );
   }
 
-  Widget _buildMarkBox(String label, dynamic score, Color textColor, Color subColor) {
+  Widget _buildMarkBox(String label, dynamic score, Color textColor, Color subColor, bool isAr) {
     return Column(
       children: [
         Text(
@@ -595,7 +614,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          score != null ? "$score" : "غير مرصود",
+          score != null ? "$score" : (isAr ? "غير مرصود" : "Not Set"),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -607,7 +626,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
   }
 
   // ─── 3. Overall Summary & Attendance Section ──────────────────────────────
-  Widget _buildSummarySection(Color cardBg, Color textColor, bool isDark) {
+  Widget _buildSummarySection(Color cardBg, Color textColor, bool isDark, bool isAr) {
     final summary = _cardData?['summary'] ?? {};
     final double overallGpa = (summary['overall_gpa'] ?? 0).toDouble();
     final double attendanceRate = (summary['attendance_rate'] ?? 100).toDouble();
@@ -616,19 +635,19 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
     final int presentCount = summary['present_count'] ?? 0;
     final int absentCount = summary['absent_count'] ?? 0;
 
-    String gpaStatus = "ممتاز";
+    String gpaStatus = isAr ? "ممتاز" : "Excellent";
     Color gpaColor = Colors.green;
     if (overallGpa < 50) {
-      gpaStatus = "ضعيف";
+      gpaStatus = isAr ? "ضعيف" : "Poor";
       gpaColor = Colors.red;
     } else if (overallGpa < 65) {
-      gpaStatus = "مقبول";
+      gpaStatus = isAr ? "مقبول" : "Pass";
       gpaColor = Colors.orange;
     } else if (overallGpa < 75) {
-      gpaStatus = "جيد";
+      gpaStatus = isAr ? "جيد" : "Good";
       gpaColor = Colors.blue;
     } else if (overallGpa < 85) {
-      gpaStatus = "جيد جداً";
+      gpaStatus = isAr ? "جيد جداً" : "Very Good";
       gpaColor = Colors.teal;
     }
 
@@ -648,13 +667,13 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.analytics_rounded, color: AppColors.accent, size: 22),
-              SizedBox(width: 8),
+              const Icon(Icons.analytics_rounded, color: AppColors.accent, size: 22),
+              const SizedBox(width: 8),
               Text(
-                "الخلاصة الكلية ونسبة الحضور والغياب",
-                style: TextStyle(
+                isAr ? "الخلاصة الكلية ونسبة الحضور والغياب" : "Overall Summary & Attendance Rate",
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Tajawal',
@@ -670,8 +689,8 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [gpaColor.withOpacity(0.12), gpaColor.withOpacity(0.05)],
-                begin: Alignment.centerRight,
-                end: Alignment.centerLeft,
+                begin: isAr ? Alignment.centerRight : Alignment.centerLeft,
+                end: isAr ? Alignment.centerLeft : Alignment.centerRight,
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: gpaColor.withOpacity(0.3)),
@@ -682,9 +701,9 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "المعدل التراكمي العام:",
-                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                    Text(
+                      isAr ? "المعدل التراكمي العام:" : "Overall Cumulative GPA:",
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -732,14 +751,24 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                     children: [
                       const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 16),
                       const SizedBox(width: 4),
-                      Text("نسبة الحضور: $attendanceRate% ($presentCount حصة)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text(
+                        isAr 
+                            ? "نسبة الحضور: $attendanceRate% ($presentCount حصة)"
+                            : "Attendance: $attendanceRate% ($presentCount sessions)",
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                   Row(
                     children: [
                       const Icon(Icons.cancel_outlined, color: Colors.red, size: 16),
                       const SizedBox(width: 4),
-                      Text("نسبة الغياب: $absenceRate% ($absentCount حصة)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text(
+                        isAr 
+                            ? "نسبة الغياب: $absenceRate% ($absentCount حصة)"
+                            : "Absence: $absenceRate% ($absentCount sessions)",
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ],
@@ -756,7 +785,9 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "إجمالي الجلسات والمحاضرات المرصودة: $totalSessions جلسات",
+                isAr 
+                    ? "إجمالي الجلسات والمحاضرات المرصودة: $totalSessions جلسات"
+                    : "Total recorded sessions: $totalSessions sessions",
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ],

@@ -21,6 +21,12 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
   late TabController _tabController;
   final AffairsServices _affairsServices = AffairsServices();
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   bool _isLoading = true;
   List<dynamic> _allLeaves = [];
   List<dynamic> _pendingLeaves = [];
@@ -29,12 +35,14 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _tabController = TabController(length: 2, vsync: this);
     _loadLeaves();
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _tabController.dispose();
     super.dispose();
   }
@@ -63,7 +71,9 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
 
   Future<void> _handleUpdateStatus(int leaveId, String status) async {
     final bool isApprove = status == 'approved';
-    final String label = isApprove ? 'موافقة' : 'رفض';
+    final String label = isApprove
+        ? (isAr ? 'الموافقة' : 'approval')
+        : (isAr ? 'الرفض' : 'rejection');
 
     showDialog(
       context: context,
@@ -83,7 +93,10 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تم تسجيل الـ $label بنجاح ✓', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+          content: Text(
+            isAr ? 'تم تسجيل الـ $label بنجاح ✓' : 'Leave $label recorded successfully ✓',
+            style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+          ),
           backgroundColor: isApprove ? Colors.green : Colors.orange,
         ),
       );
@@ -91,7 +104,10 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('فشل تسجيل الـ $label، يرجى المحاولة لاحقاً', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+          content: Text(
+            isAr ? 'فشل تسجيل الـ $label، يرجى المحاولة لاحقاً' : 'Failed to record $label, please try again later',
+            style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -107,7 +123,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
     final Color subColor = isDark ? Colors.grey.shade400 : Colors.grey;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
@@ -122,7 +138,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                       alignment: Alignment.center,
                       children: [
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: isAr ? Alignment.centerLeft : Alignment.centerRight,
                           child: IconButton(
                             icon: Icon(
                               Icons.settings,
@@ -138,7 +154,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                           ),
                         ),
                         Text(
-                          "طلبات إجازة الطلاب",
+                          isAr ? "طلبات إجازة الطلاب" : "Student Leave Requests",
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -147,10 +163,10 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                           ),
                         ),
                         Align(
-                          alignment: Alignment.centerRight,
+                          alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                           child: IconButton(
                             icon: Icon(
-                              Icons.arrow_back,
+                              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
                               color: textColor,
                               size: 26,
                             ),
@@ -175,7 +191,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFFCC00).withOpacity(0.4),
+                            color: const Color(0xFFFFCC00).withValues(alpha: 0.4),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -195,9 +211,9 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                       ),
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: Colors.transparent,
-                      tabs: const [
-                        Tab(text: 'طلبات معلقة'),
-                        Tab(text: 'سجل الإجازات'),
+                      tabs: [
+                        Tab(text: isAr ? 'طلبات معلقة' : 'Pending Requests'),
+                        Tab(text: isAr ? 'سجل الإجازات' : 'Leave History'),
                       ],
                     ),
                   ),
@@ -241,7 +257,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
             // شريط التنقل السفلي
             CustomBottomNav(
               currentIndex: 0,
-              centerButton: AffairsOfficerSpeedDial(),
+              centerButton: const AffairsOfficerSpeedDial(),
               onHomeTap: () {
                 Navigator.pushReplacement(
                   context,
@@ -284,7 +300,9 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
     if (leaves.isEmpty) {
       return Center(
         child: Text(
-          isHistory ? "سجل الإجازات فارغ" : "لا توجد طلبات إجازة معلقة حالياً",
+          isHistory
+              ? (isAr ? "سجل الإجازات فارغ" : "Leave history is empty")
+              : (isAr ? "لا توجد طلبات إجازة معلقة حالياً" : "No pending leave requests currently"),
           style: TextStyle(color: subColor, fontSize: 14, fontFamily: 'Noto Sans Arabic'),
         ),
       );
@@ -321,18 +339,18 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
   }) {
     final String initial = data['student_name'] != null && data['student_name'].isNotEmpty
         ? data['student_name'][0]
-        : 'ط';
+        : (isAr ? 'ط' : 'S');
     final int leaveId = data['id'] ?? 0;
     final String status = data['status'] ?? 'pending';
 
     Color statusColor = Colors.orange;
-    String statusLabel = 'قيد المراجعة';
+    String statusLabel = isAr ? 'قيد المراجعة' : 'Pending';
     if (status == 'approved') {
       statusColor = Colors.green;
-      statusLabel = 'مقبول';
+      statusLabel = isAr ? 'مقبول' : 'Approved';
     } else if (status == 'rejected') {
       statusColor = Colors.red;
-      statusLabel = 'مرفوض';
+      statusLabel = isAr ? 'مرفوض' : 'Rejected';
     }
 
     return Container(
@@ -355,6 +373,45 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
           children: [
             Row(
               children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: statusColor.withValues(alpha: 0.1),
+                  child: Text(
+                    initial,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                      fontFamily: 'Noto Sans Arabic',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data['student_name'] ?? (isAr ? 'طالب غير معروف' : 'Unknown Student'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          fontFamily: 'Noto Sans Arabic',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isAr ? 'معرف الطالب: ${data['student_id'] ?? ''}' : 'Student ID: ${data['student_id'] ?? ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: subColor,
+                          fontFamily: 'Noto Sans Arabic',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -366,44 +423,6 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                     style: TextStyle(
                       fontSize: 11,
                       color: subColor,
-                      fontFamily: 'Noto Sans Arabic',
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      data['student_name'] ?? 'طالب غير معروف',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        fontFamily: 'Noto Sans Arabic',
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'معرف الطالب: ${data['student_id']}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: subColor,
-                        fontFamily: 'Noto Sans Arabic',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: statusColor.withOpacity(0.1),
-                  child: Text(
-                    initial,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: statusColor,
                       fontFamily: 'Noto Sans Arabic',
                     ),
                   ),
@@ -432,7 +451,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'التاريخ المستهدف: ',
+                        isAr ? 'التاريخ المستهدف: ' : 'Target Date: ',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -441,7 +460,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                         ),
                       ),
                       Text(
-                        data['date'] ?? 'غير محدد',
+                        data['date'] ?? (isAr ? 'غير محدد' : 'Not specified'),
                         style: TextStyle(
                           fontSize: 13,
                           color: textColor,
@@ -462,7 +481,7 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'السبب: ${data['reason']}',
+                          isAr ? 'السبب: ${data['reason'] ?? ''}' : 'Reason: ${data['reason'] ?? ''}',
                           style: TextStyle(
                             fontSize: 13,
                             color: subColor,
@@ -484,12 +503,12 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withOpacity(0.3)),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Text(
-                    'الحالة: $statusLabel',
+                    isAr ? 'الحالة: $statusLabel' : 'Status: $statusLabel',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -506,9 +525,9 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                     child: OutlinedButton.icon(
                       onPressed: () => _handleUpdateStatus(leaveId, 'rejected'),
                       icon: const Icon(Icons.close, color: Colors.red, size: 18),
-                      label: const Text(
-                        'رفض الإجازة',
-                        style: TextStyle(
+                      label: Text(
+                        isAr ? 'رفض الإجازة' : 'Reject Leave',
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: Colors.red,
@@ -529,9 +548,9 @@ class _AffairsOfficerVacationsScreenState extends State<AffairsOfficerVacationsS
                     child: ElevatedButton.icon(
                       onPressed: () => _handleUpdateStatus(leaveId, 'approved'),
                       icon: const Icon(Icons.check, color: Colors.white, size: 18),
-                      label: const Text(
-                        'قبول الإجازة',
-                        style: TextStyle(
+                      label: Text(
+                        isAr ? 'قبول الإجازة' : 'Approve Leave',
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,

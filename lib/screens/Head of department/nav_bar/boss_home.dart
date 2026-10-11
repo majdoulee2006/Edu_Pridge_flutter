@@ -17,7 +17,6 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_m
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/create_announcement_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/boss_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 import '../../../widgets/boss_center_icon.dart';
 
 class DeptHeadHomeScreen extends StatefulWidget {
@@ -28,7 +27,9 @@ class DeptHeadHomeScreen extends StatefulWidget {
 }
 
 class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
-  String _bossName = "جارِ التحميل...";
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  String _bossName = "";
   List<Map<String, dynamic>> _announcements = [];
   bool _hasUnread = false;
 
@@ -53,12 +54,12 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
       final isMsg = n['type'] == 'message' || n['type'] == 'chat';
       showInAppBanner(
         context,
-        n['title']?.toString() ?? 'إشعار جديد',
+        n['title']?.toString() ?? (isAr ? 'إشعار جديد' : 'New Notification'),
         n['message']?.toString() ?? n['body']?.toString() ?? '',
         onTap: () {
           if (isMsg) {
             final senderId = n['sender_id'] ?? n['related_id'];
-            final senderName = n['sender_name'] ?? n['sender'] ?? (n['title']?.toString().replaceFirst('رسالة جديدة من ', '') ?? 'المستخدم');
+            final senderName = n['sender_name'] ?? n['sender'] ?? (n['title']?.toString().replaceFirst(isAr ? 'رسالة جديدة من ' : 'New message from ', '') ?? (isAr ? 'المستخدم' : 'User'));
             final notifId = (n['id'] as num?)?.toInt() ?? 0;
             if (notifId > 0) ApiService().deleteNotification(notifId);
             if (senderId != null) ApiService().deleteChatNotifications(senderId);
@@ -82,6 +83,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _bossName = isAr ? "جارِ التحميل..." : "Loading...";
     _fetchDashboard();
     NotificationPolling.start('/department-head/notifications');
     NotificationPolling.unreadCount.addListener(_onUnreadChanged);
@@ -110,7 +112,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
         final d = res.data['data'] as Map<String, dynamic>;
         if (mounted) {
           setState(() {
-            _bossName = d['name'] as String? ?? prefs.getString('user_name') ?? "رئيس القسم";
+            _bossName = d['name'] as String? ?? prefs.getString('user_name') ?? (isAr ? "رئيس القسم" : "Department Head");
             _announcements = List<Map<String, dynamic>>.from(d['announcements'] ?? []);
           });
         }
@@ -118,7 +120,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     } catch (e) {
       debugPrint('⛔ Boss Dashboard Error: $e');
       final prefs = await SharedPreferences.getInstance();
-      if (mounted) setState(() => _bossName = prefs.getString('user_name') ?? "رئيس القسم");
+      if (mounted) setState(() => _bossName = prefs.getString('user_name') ?? (isAr ? "رئيس القسم" : "Department Head"));
     }
   }
 
@@ -132,7 +134,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: AppSettings.language.value == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: Stack(
           children: [
             Column(
@@ -147,7 +149,7 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                         const SizedBox(height: 10),
                         _buildHeader(context, textColor, cardColor, primaryYellow),
                         const SizedBox(height: 14),
-                        _buildSectionTitle(AppSettings.language.value == 'ar' ? "آخر الأخبار" : "Latest News", textColor),
+                        _buildSectionTitle(isAr ? "آخر الأخبار" : "Latest News", textColor),
                         const SizedBox(height: 10),
                       ],
                     ),
@@ -159,7 +161,12 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                     onRefresh: _fetchDashboard,
                     color: primaryYellow,
                     child: _announcements.isEmpty
-                        ? Center(child: Text(AppSettings.language.value == 'ar' ? "لا توجد أخبار حالياً" : "No news yet", style: const TextStyle(color: Colors.grey, fontSize: 15)))
+                        ? Center(
+                            child: Text(
+                              isAr ? "لا توجد أخبار حالياً" : "No news yet",
+                              style: const TextStyle(color: Colors.grey, fontSize: 15),
+                            ),
+                          )
                         : ListView.builder(
                             physics: const BouncingScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(0, 12, 0, 140),
@@ -177,7 +184,8 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
             // ─── زر نشر إعلان طائر ───
             Positioned(
               bottom: 100,
-              left: 20,
+              left: isAr ? 20 : null,
+              right: isAr ? null : 20,
               child: GestureDetector(
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const CreateAnnouncementScreen()))
@@ -194,14 +202,6 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                 ),
               ),
             ),
-
-            // زر الذكاء الاصطناعي العائم على اليمين (EduBridge AI)
-            // AiFloatingButton(
-            //   userRole: 'boss',
-            //   userName: _bossName,
-            //   bottom: 100,
-            //   right: 20,
-            // ),
 
             CustomBottomNav(
               currentIndex: 0,
@@ -222,7 +222,6 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
   }
 
   Widget _buildHeader(BuildContext context, Color textColor, Color cardColor, Color primaryYellow) {
-    final isAr = AppSettings.language.value == 'ar';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -241,24 +240,25 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                     ],
                   ),
                 ),
-                Text(isAr ? "لوحة تحكم إدارة القسم" : "Department Dashboard",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(
+                  isAr ? "لوحة تحكم إدارة القسم" : "Department Dashboard",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
               ],
             ),
           ),
           IconButton(
             icon: const Icon(Icons.menu_rounded, color: Color(0xFFF1C40F), size: 28),
+            tooltip: isAr ? "الخدمات" : "Services",
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const BossServicesMenuScreen()),
             ),
           ),
-
         ],
       ),
     );
   }
-
 
   Widget _buildSectionTitle(String title, Color textColor) {
     return Padding(
@@ -284,16 +284,22 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
   Future<void> _deleteAnnouncement(int id) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('حذف الإعلان'),
-        content: const Text('هل أنت متأكد من حذف هذا الإعلان؟'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('حذف', style: TextStyle(color: Colors.red)),
-          ),
-        ],
+      builder: (_) => Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          title: Text(isAr ? 'حذف الإعلان' : 'Delete Announcement'),
+          content: Text(isAr ? 'هل أنت متأكد من حذف هذا الإعلان؟' : 'Are you sure you want to delete this announcement?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(isAr ? 'إلغاء' : 'Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(isAr ? 'حذف' : 'Delete', style: const TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true) return;
@@ -305,14 +311,16 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حذف الإعلان'), backgroundColor: Colors.green),
+          SnackBar(content: Text(isAr ? 'تم حذف الإعلان' : 'Announcement deleted'), backgroundColor: Colors.green),
         );
         _fetchDashboard();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('حدث خطأ أثناء الحذف'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isAr ? 'حدث خطأ أثناء الحذف' : 'Error deleting announcement'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -363,7 +371,8 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                       ),
                       Positioned(
                         top: 12,
-                        left: 12,
+                        left: isAr ? 12 : null,
+                        right: isAr ? null : 12,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
@@ -411,8 +420,26 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                                 if (v == 'delete') _deleteAnnouncement(a['id'] as int);
                               },
                               itemBuilder: (_) => [
-                                const PopupMenuItem(value: 'edit',   child: Row(children: [Icon(Icons.edit_outlined,  size: 18), SizedBox(width: 8), Text('تعديل')])),
-                                const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text('حذف', style: TextStyle(color: Colors.red))])),
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.edit_outlined, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text(isAr ? 'تعديل' : 'Edit'),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                      const SizedBox(width: 8),
+                                      Text(isAr ? 'حذف' : 'Delete', style: const TextStyle(color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                         ],
@@ -426,11 +453,14 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                              "نشر بواسطة: ${a['author_name'] as String? ?? a['publisher_name'] as String? ?? a['created_by'] as String? ?? 'الإدارة'} • ${a['time_ago'] as String? ?? a['created_at'] as String? ?? ''}",
-                              style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                            isAr
+                                ? "نشر بواسطة: ${a['author_name'] as String? ?? a['publisher_name'] as String? ?? a['created_by'] as String? ?? 'الإدارة'} • ${a['time_ago'] as String? ?? a['created_at'] as String? ?? ''}"
+                                : "Posted by: ${a['author_name'] as String? ?? a['publisher_name'] as String? ?? a['created_by'] as String? ?? 'Admin'} • ${a['time_ago'] as String? ?? a['created_at'] as String? ?? ''}",
+                            style: const TextStyle(color: Colors.grey, fontSize: 11),
+                          ),
                           Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Icon(Icons.arrow_back, size: 13, color: textColor.withValues(alpha: 0.4)),
+                            padding: const EdgeInsets.only(left: 8, right: 8),
+                            child: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, size: 13, color: textColor.withValues(alpha: 0.4)),
                           ),
                         ],
                       ),
@@ -451,11 +481,16 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
       child: Stack(
         children: [
           Positioned(
-            top: 12, right: 12,
+            top: 12,
+            right: isAr ? 12 : null,
+            left: isAr ? null : 12,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-              child: const Text('إعلان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
+              child: Text(
+                isAr ? 'إعلان' : 'Notice',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black),
+              ),
             ),
           ),
           const Center(child: Icon(Icons.campaign_outlined, size: 45, color: Colors.white60)),
@@ -470,15 +505,15 @@ class _DeptHeadHomeScreenState extends State<DeptHeadHomeScreen> {
     final course = data['course_name']?.toString() ?? data['course']?.toString();
 
     String label = switch (target) {
-      'students' => 'طلاب',
-      'teachers' => 'معلمين',
-      'heads'    => 'رؤساء أقسام',
-      _          => 'الجميع',
+      'students' => isAr ? 'طلاب' : 'Students',
+      'teachers' => isAr ? 'معلمين' : 'Teachers',
+      'heads'    => isAr ? 'رؤساء أقسام' : 'Dept Heads',
+      _          => isAr ? 'الجميع' : 'All',
     };
 
     List<String> details = [];
-    if (dept != null && dept.isNotEmpty) details.add('قسم: $dept');
-    if (course != null && course.isNotEmpty) details.add('دورة: $course');
+    if (dept != null && dept.isNotEmpty) details.add(isAr ? 'قسم: $dept' : 'Dept: $dept');
+    if (course != null && course.isNotEmpty) details.add(isAr ? 'دورة: $course' : 'Course: $course');
 
     if (details.isNotEmpty) {
       label += ' (${details.join(" | ")})';
@@ -499,6 +534,8 @@ class _EditAnnouncementSheet extends StatefulWidget {
 }
 
 class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
+  bool get isAr => AppSettings.language.value == 'ar';
+
   late final TextEditingController _titleCtrl;
   late final TextEditingController _contentCtrl;
   late final TextEditingController _linkCtrl;
@@ -529,7 +566,7 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
         aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'قص الصورة',
+            toolbarTitle: isAr ? 'قص الصورة' : 'Crop Image',
             toolbarColor: const Color(0xFFFFCC00),
             toolbarWidgetColor: Colors.black,
             activeControlsWidgetColor: const Color(0xFFFFCC00),
@@ -537,7 +574,7 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
             lockAspectRatio: true,
           ),
           IOSUiSettings(
-            title: 'قص الصورة',
+            title: isAr ? 'قص الصورة' : 'Crop Image',
             aspectRatioLockEnabled: true,
           ),
         ],
@@ -577,7 +614,7 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
       if (mounted) widget.onUpdated();
     } catch (e) {
       debugPrint('Edit announcement error: $e');
-      String msg = 'حدث خطأ أثناء التحديث';
+      String msg = isAr ? 'حدث خطأ أثناء التحديث' : 'Error updating announcement';
       if (e is DioException && e.response?.data != null) {
         final d = e.response!.data;
         if (d is Map && d['message'] != null) { msg = d['message'].toString(); }
@@ -600,7 +637,7 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
     const yellow    = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Container(
         decoration: BoxDecoration(
           color: cardColor,
@@ -620,15 +657,17 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
                     decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2))),
               ),
               const SizedBox(height: 16),
-              Text('تعديل الإعلان',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+              Text(
+                isAr ? 'تعديل الإعلان' : 'Edit Announcement',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+              ),
               const SizedBox(height: 16),
 
-              _field('العنوان', _titleCtrl, 'عنوان الإعلان', isDark, textColor),
+              _field(isAr ? 'العنوان' : 'Title', _titleCtrl, isAr ? 'عنوان الإعلان' : 'Announcement title', isDark, textColor),
               const SizedBox(height: 12),
-              _field('المحتوى', _contentCtrl, 'تفاصيل الإعلان...', isDark, textColor, maxLines: 4),
+              _field(isAr ? 'المحتوى' : 'Content', _contentCtrl, isAr ? 'تفاصيل الإعلان...' : 'Announcement details...', isDark, textColor, maxLines: 4),
               const SizedBox(height: 12),
-              _field('الرابط (اختياري)', _linkCtrl, 'https://...', isDark, textColor),
+              _field(isAr ? 'الرابط (اختياري)' : 'Link (Optional)', _linkCtrl, 'https://...', isDark, textColor),
               const SizedBox(height: 12),
 
               GestureDetector(
@@ -650,7 +689,7 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
                           children: [
                             Icon(Icons.image_outlined, color: Colors.grey.shade500),
                             const SizedBox(width: 8),
-                            Text('تغيير الصورة', style: TextStyle(color: Colors.grey.shade500)),
+                            Text(isAr ? 'تغيير الصورة' : 'Change Image', style: TextStyle(color: Colors.grey.shade500)),
                           ],
                         ),
                 ),
@@ -666,8 +705,10 @@ class _EditAnnouncementSheetState extends State<_EditAnnouncementSheet> {
                   child: Center(
                     child: _isSaving
                         ? const CircularProgressIndicator(color: Colors.black)
-                        : const Text('حفظ التعديلات',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
+                        : Text(
+                            isAr ? 'حفظ التعديلات' : 'Save Changes',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black),
+                          ),
                   ),
                 ),
               ),

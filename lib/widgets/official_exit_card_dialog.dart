@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class OfficialExitCardDialog extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -22,6 +23,7 @@ class OfficialExitCardDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final bgColor = isDark ? const Color(0xFF141417) : Colors.white;
@@ -31,14 +33,15 @@ class OfficialExitCardDialog extends StatelessWidget {
     final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
     final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
-    final String studentName = data['student_name'] ?? data['name'] ?? 'محمود غنام';
+    final String studentName = data['student_name'] ?? data['name'] ?? (isAr ? 'طالب' : 'Student');
     final String studentCode = data['student_code'] ?? data['university_id'] ?? '202601';
-    final String department  = data['department'] ?? 'نظم معلومات';
+    final String department  = data['department'] ?? (isAr ? 'نظم معلومات' : 'Information Systems');
     final String permitNumber= data['permit_number'] ?? "EX-${(data['id'] ?? 1).toString().padLeft(5, '0')}#";
     final String date        = data['formatted_date'] ?? data['date'] ?? '2026-08-15';
+    final String defaultType = isAr ? 'إذن يومي' : 'Daily Permit';
     final String reasonText  = (data['reason'] != null && data['reason'].toString().isNotEmpty)
-        ? "[${data['type'] ?? 'إذن يومي'}] - ${data['reason']}"
-        : "[${data['type'] ?? 'إذن يومي'}]";
+        ? "[${data['type'] ?? defaultType}] - ${data['reason']}"
+        : "[${data['type'] ?? defaultType}]";
     final String? avatarPath = ApiService.fixMediaUrl(data['avatar'] as String?);
 
     final bool isApproved = data['status'] == 'approved' || data['affairs_approved'] == true;
@@ -49,7 +52,7 @@ class OfficialExitCardDialog extends StatelessWidget {
     final String qrContent = "EDU-BRIDGE-VERIFY:${data['id'] ?? 1}:$studentCode:$date";
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Dialog(
         backgroundColor: bgColor,
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -96,17 +99,17 @@ class OfficialExitCardDialog extends StatelessWidget {
                           RichText(
                             textAlign: TextAlign.center,
                             text: TextSpan(
-                              style: TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
-                              children: const [
-                                TextSpan(text: 'Edu-Bridge ', style: TextStyle(color: Color(0xFFFFCC00))),
-                                TextSpan(text: '| بطاقة خروج رسمية'),
+                              style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter', fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+                              children: [
+                                const TextSpan(text: 'Edu-Bridge ', style: TextStyle(color: Color(0xFFFFCC00))),
+                                TextSpan(text: isAr ? '| بطاقة خروج رسمية' : '| Official Exit Pass'),
                               ],
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'نظام التراخيص والتصاريح الأكاديمية',
-                            style: TextStyle(fontFamily: 'Cairo', fontSize: 11, color: subTextColor),
+                            isAr ? 'نظام التراخيص والتصاريح الأكاديمية' : 'Academic Licensing & Permits System',
+                            style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter', fontSize: 11, color: subTextColor),
                           ),
                         ],
                       ),
@@ -141,10 +144,10 @@ class OfficialExitCardDialog extends StatelessWidget {
                             Flexible(
                               child: Text(
                                 isApproved
-                                    ? 'تصريح خروج معتمد نهائياً - يُسمح بالمغادرة ✓'
-                                    : (data['status_text'] ?? 'طلب الإذن قيد المراجعة الإدارية'),
-                                style: const TextStyle(
-                                  fontFamily: 'Cairo',
+                                    ? (isAr ? 'تصريح خروج معتمد نهائياً - يُسمح بالمغادرة ✓' : 'Exit permit officially approved - Departure allowed ✓')
+                                    : (data['status_text'] ?? (isAr ? 'طلب الإذن قيد المراجعة الإدارية' : 'Exit permit request is under administrative review')),
+                                style: TextStyle(
+                                  fontFamily: isAr ? 'Cairo' : 'Inter',
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black,
@@ -189,7 +192,7 @@ class OfficialExitCardDialog extends StatelessWidget {
                                   Text(
                                     studentName,
                                     style: TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: isAr ? 'Cairo' : 'Inter',
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                       color: textColor,
@@ -197,18 +200,18 @@ class OfficialExitCardDialog extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    'الرقم الجامعي $studentCode',
+                                    '${isAr ? "الرقم الجامعي" : "University ID"}: $studentCode',
                                     style: TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: isAr ? 'Cairo' : 'Inter',
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: subTextColor,
                                     ),
                                   ),
                                   Text(
-                                    'القسم الأكاديمي $department',
+                                    '${isAr ? "القسم الأكاديمي" : "Department"}: $department',
                                     style: TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: isAr ? 'Cairo' : 'Inter',
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: subTextColor,
@@ -232,11 +235,11 @@ class OfficialExitCardDialog extends StatelessWidget {
                         ),
                         child: Column(
                           children: [
-                            _buildInfoRow('تاريخ الإذن:', date, Icons.calendar_today_rounded, textColor, subTextColor),
+                            _buildInfoRow(isAr ? 'تاريخ الإذن:' : 'Permit Date:', date, Icons.calendar_today_rounded, textColor, subTextColor, isAr),
                             const Divider(height: 16, thickness: 0.5),
-                            _buildInfoRow('سبب الخروج:', reasonText, Icons.sticky_note_2_outlined, textColor, subTextColor),
+                            _buildInfoRow(isAr ? 'سبب الخروج:' : 'Exit Reason:', reasonText, Icons.sticky_note_2_outlined, textColor, subTextColor, isAr),
                             const Divider(height: 16, thickness: 0.5),
-                            _buildInfoRow('رقم التصريح:', permitNumber, Icons.tag_rounded, textColor, subTextColor),
+                            _buildInfoRow(isAr ? 'رقم التصريح:' : 'Permit Number:', permitNumber, Icons.tag_rounded, textColor, subTextColor, isAr),
                           ],
                         ),
                       ),
@@ -259,9 +262,9 @@ class OfficialExitCardDialog extends StatelessWidget {
                                 const Icon(Icons.verified_user_rounded, color: Color(0xFFFFCC00), size: 18),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'تسلسل الاعتمادات الرسمية:',
+                                  isAr ? 'تسلسل الاعتمادات الرسمية:' : 'Official Approvals Chain:',
                                   style: TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: isAr ? 'Cairo' : 'Inter',
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: textColor,
@@ -270,11 +273,11 @@ class OfficialExitCardDialog extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            _buildApprovalStep('موافقة ولي الأمر:', parentApproved, isDark),
+                            _buildApprovalStep(isAr ? 'موافقة ولي الأمر:' : 'Parent Approval:', parentApproved, isDark, isAr: isAr),
                             const SizedBox(height: 6),
-                            _buildApprovalStep('موافقة رئيس القسم:', hodApproved, isDark),
+                            _buildApprovalStep(isAr ? 'موافقة رئيس القسم:' : 'Head of Dept Approval:', hodApproved, isDark, isAr: isAr),
                             const SizedBox(height: 6),
-                            _buildApprovalStep('اعتماد شؤون الطلاب:', affairsApproved, isDark, isFinal: true),
+                            _buildApprovalStep(isAr ? 'اعتماد شؤون الطلاب:' : 'Student Affairs Approval:', affairsApproved, isDark, isFinal: true, isAr: isAr),
                           ],
                         ),
                       ),
@@ -301,9 +304,9 @@ class OfficialExitCardDialog extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'رمز التحقق الأمني المعتمد لحراس البوابة الإلكترونية',
+                            isAr ? 'رمز التحقق الأمني المعتمد لحراس البوابة الإلكترونية' : 'Approved security QR verification for e-gate guards',
                             style: TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: isAr ? 'Cairo' : 'Inter',
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: subTextColor,
@@ -333,9 +336,9 @@ class OfficialExitCardDialog extends StatelessWidget {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          'إغلاق',
-                          style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 14),
+                        child: Text(
+                          isAr ? 'إغلاق' : 'Close',
+                          style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter', fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                       ),
                     ),
@@ -345,14 +348,14 @@ class OfficialExitCardDialog extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('جاري تجهيز بطاقة الخروج للطباعة...', style: TextStyle(fontFamily: 'Cairo')),
+                            SnackBar(
+                              content: Text(isAr ? 'جاري تجهيز بطاقة الخروج للطباعة...' : 'Preparing exit pass for printing...', style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter')),
                               backgroundColor: Colors.green,
                             ),
                           );
                         },
                         icon: const Icon(Icons.print_rounded, size: 18),
-                        label: const Text('طباعة البطاقة', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13)),
+                        label: Text(isAr ? 'طباعة البطاقة' : 'Print Pass', style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter', fontWeight: FontWeight.bold, fontSize: 13)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: textColor,
                           side: BorderSide(color: borderColor),
@@ -371,7 +374,7 @@ class OfficialExitCardDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, IconData icon, Color textColor, Color subTextColor) {
+  Widget _buildInfoRow(String label, String value, IconData icon, Color textColor, Color subTextColor, bool isAr) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -381,14 +384,14 @@ class OfficialExitCardDialog extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(fontFamily: 'Cairo', fontSize: 12, fontWeight: FontWeight.w600, color: subTextColor),
+              style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter', fontSize: 12, fontWeight: FontWeight.w600, color: subTextColor),
             ),
           ],
         ),
         Flexible(
           child: Text(
             value,
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
+            style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter', fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -396,11 +399,11 @@ class OfficialExitCardDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildApprovalStep(String label, bool isDone, bool isDark, {bool isFinal = false}) {
+  Widget _buildApprovalStep(String label, bool isDone, bool isDark, {bool isFinal = false, bool isAr = true}) {
     final color = isDone ? const Color(0xFF10B981) : (isDark ? Colors.grey.shade600 : Colors.grey.shade400);
     final text = isDone
-        ? (isFinal ? 'تمت الموافقة وتثبيت الخروج' : 'تمت بنجاح')
-        : 'قيد الانتظار';
+        ? (isFinal ? (isAr ? 'تمت الموافقة وتثبيت الخروج' : 'Approved & exit recorded') : (isAr ? 'تمت بنجاح' : 'Approved'))
+        : (isAr ? 'قيد الانتظار' : 'Pending');
 
     return Row(
       children: [
@@ -412,11 +415,11 @@ class OfficialExitCardDialog extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           '$label ',
-          style: TextStyle(fontFamily: 'Cairo', fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+          style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter', fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
         ),
         Text(
           text,
-          style: TextStyle(fontFamily: 'Cairo', fontSize: 12, fontWeight: FontWeight.bold, color: color),
+          style: TextStyle(fontFamily: isAr ? 'Cairo' : 'Inter', fontSize: 12, fontWeight: FontWeight.bold, color: color),
         ),
       ],
     );

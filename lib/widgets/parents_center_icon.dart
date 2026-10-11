@@ -1,5 +1,6 @@
 import 'package:edu_pridge_flutter/screens/parents/center_icons/permissions_screen/permissions_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/reports_screen/reports_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
@@ -23,6 +24,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     // 🌟 التوقيت التدريجي المريح (400ms) 🌟
     _animationController = AnimationController(
       vsync: this,
@@ -30,8 +32,13 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
     );
   }
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _animationController.dispose();
     super.dispose();
   }
@@ -49,6 +56,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
 
   @override
   Widget build(BuildContext context) {
+    final bool isAr = AppSettings.language.value == 'ar';
     // 🌟 التحقق من الثيم لتحديد الألوان بدقة 🌟
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -64,7 +72,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
         : Colors.grey.shade300;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -108,7 +116,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                           children: [
                             // 🌟 إضافة أزرار الأهل مع تمرير لون النص المتجاوب 🌟
                             _buildMenuItem(
-                              'تقارير',
+                              isAr ? 'تقارير' : 'Reports',
                               Icons.description_outlined,
                               Colors.greenAccent,
                               18.0,
@@ -125,7 +133,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               },
                             ),
                             _buildMenuItem(
-                              'أذونات',
+                              isAr ? 'أذونات' : 'Permits',
                               Icons.verified_outlined,
                               Colors.purpleAccent,
                               54.0,
@@ -150,7 +158,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               },
                             ),
                             _buildMenuItem(
-                              'مواعيد',
+                              isAr ? 'مواعيد' : 'Appts',
                               Icons.calendar_month_outlined,
                               Colors.tealAccent,
                               90.0, // بالمنتصف تماماً للأعلى
@@ -167,7 +175,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               },
                             ),
                             _buildMenuItem(
-                              'واجبات',
+                              isAr ? 'واجبات' : 'Homework',
                               Icons.assignment_turned_in_outlined,
                               Colors.blueAccent,
                               126.0,
@@ -185,7 +193,7 @@ class _Parents_Center_IconState extends State<Parents_Center_Icon>
                               },
                             ),
                             _buildMenuItem(
-                              'أداء',
+                              isAr ? 'أداء' : 'Progress',
                               Icons.trending_up_rounded,
                               Colors.orangeAccent,
                               162.0,

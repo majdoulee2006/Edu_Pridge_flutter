@@ -28,9 +28,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   bool _isLoadingHistory = true;
   List<Map<String, dynamic>> _history = [];
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     if (widget.studentName != null) {
       studentName = widget.studentName;
       studentId = widget.studentId;
@@ -38,6 +41,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
       _loadSelectedStudent();
     }
     _fetchHistory();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   Future<String> _getToken() async {
@@ -48,7 +61,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _loadSelectedStudent() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      studentName = prefs.getString('selected_student_name') ?? "لم يتم اختيار طالب";
+      studentName = prefs.getString('selected_student_name') ?? (isAr ? "لم يتم اختيار طالب" : "No student selected");
       studentId = prefs.getInt('selected_student_id');
     });
   }
@@ -95,7 +108,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _sendReportRequest(String selectedReport) async {
     if (studentId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("يرجى اختيار طالب من القائمة الرئيسية أولاً")),
+        SnackBar(content: Text(isAr ? "يرجى اختيار طالب من القائمة الرئيسية أولاً" : "Please select a student first")),
       );
       return;
     }
@@ -107,20 +120,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
         "${ApiService().baseUrl}/parent/request-report",
         data: {
           "student_id": studentId,
-          "report_type": selectedReport == "أكاديمي" ? "academic" : "behavioral",
+          "report_type": selectedReport == "academic" ? "academic" : "behavioral",
         },
         options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
       );
       if (response.statusCode == 200) {
         messenger.showSnackBar(SnackBar(
-          content: Text("✅ تم إرسال طلب التقرير للابن: $studentName بنجاح"),
+          content: Text(isAr ? "✅ تم إرسال طلب التقرير للابن: $studentName بنجاح" : "✅ Report request sent for: $studentName successfully"),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 3),
         ));
         _fetchHistory();
       }
     } on DioException catch (e) {
-      final msg = e.response?.data['message'] ?? "حدث خطأ أثناء طلب التقرير";
+      final msg = e.response?.data['message'] ?? (isAr ? "حدث خطأ أثناء طلب التقرير" : "Error requesting report");
       messenger.showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.redAccent));
       _fetchHistory();
     } finally {
@@ -129,7 +142,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   void _showRequestDialog(BuildContext context) {
-    String selectedReport = "أكاديمي";
+    String selectedReport = "academic";
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
@@ -139,7 +152,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: Container(
             decoration: BoxDecoration(
               color: cardColor,
@@ -160,30 +173,38 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text("طلب تقرير جديد", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+                Text(
+                  isAr ? "طلب تقرير جديد" : "Request New Report",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+                ),
                 const SizedBox(height: 8),
-                Text("الابن: ${studentName ?? 'غير محدد'}",
-                    style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6))),
+                Text(
+                  "${isAr ? 'الابن:' : 'Child:'} ${studentName ?? (isAr ? 'غير محدد' : 'Not specified')}",
+                  style: TextStyle(fontSize: 14, color: textColor.withValues(alpha: 0.6)),
+                ),
                 const SizedBox(height: 20),
-                Text("نوع التقرير", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor)),
+                Text(
+                  isAr ? "نوع التقرير" : "Report Type",
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor),
+                ),
                 const SizedBox(height: 12),
                 _buildReportOptionTile(
-                  title: "تقرير أكاديمي",
-                  subtitle: "يشمل الدرجات، الحضور، والملاحظات الأكاديمية — يُصدر تلقائياً",
+                  title: isAr ? "تقرير أكاديمي" : "Academic Report",
+                  subtitle: isAr ? "يشمل الدرجات، الحضور، والملاحظات الأكاديمية — يُصدر تلقائياً" : "Includes grades, attendance, and academic notes — generated automatically",
                   icon: Icons.school_rounded,
                   color: Colors.blueAccent,
-                  isSelected: selectedReport == "أكاديمي",
-                  onTap: () => setModalState(() => selectedReport = "أكاديمي"),
+                  isSelected: selectedReport == "academic",
+                  onTap: () => setModalState(() => selectedReport = "academic"),
                   cardColor: cardColor,
                   textColor: textColor,
                 ),
                 _buildReportOptionTile(
-                  title: "تقرير سلوك",
-                  subtitle: "يشمل الالتزام، المشاركة، والتقييم السلوكي — يُحوَّل إلى المعلم",
+                  title: isAr ? "تقرير سلوك" : "Behavior Report",
+                  subtitle: isAr ? "يشمل الالتزام، المشاركة، والتقييم السلوكي — يُحوَّل إلى المعلم" : "Includes discipline, participation, and behavioral evaluation — sent to teacher",
                   icon: Icons.psychology_outlined,
                   color: Colors.purpleAccent,
-                  isSelected: selectedReport == "سلوك",
-                  onTap: () => setModalState(() => selectedReport = "سلوك"),
+                  isSelected: selectedReport == "behavioral",
+                  onTap: () => setModalState(() => selectedReport = "behavioral"),
                   cardColor: cardColor,
                   textColor: textColor,
                 ),
@@ -201,7 +222,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          "يمكنك طلب تقرير جديد لكل طالب مرة واحدة كل 15 يومًا.",
+                          isAr ? "يمكنك طلب تقرير جديد لكل طالب مرة واحدة كل 15 يومًا." : "You can request a new report for each student once every 15 days.",
                           style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.6)),
                         ),
                       ),
@@ -223,7 +244,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
                     ),
-                    child: const Text("إرسال الطلب", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: Text(
+                      isAr ? "إرسال الطلب" : "Submit Request",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
                   ),
                 ),
               ],
@@ -241,76 +265,86 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: _buildAppBar(context, textColor),
         body: SizedBox.expand(
           child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeaderInfo(textColor, cardColor),
-                  const SizedBox(height: 25),
-                  Text("سجل التقارير", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
-                  const SizedBox(height: 12),
-                  if (_isLoadingHistory)
-                    const Center(child: Padding(
-                      padding: EdgeInsets.all(30),
-                      child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
-                    ))
-                  else if (_history.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(30),
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.assignment_outlined, size: 40, color: textColor.withValues(alpha: 0.2)),
-                          const SizedBox(height: 10),
-                          Text("لا توجد تقارير سابقة", style: TextStyle(color: textColor.withValues(alpha: 0.4))),
-                          const SizedBox(height: 4),
-                          Text("اضغط + لطلب تقرير جديد", style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.3))),
-                        ],
-                      ),
-                    )
-                  else
-                    ..._history.map((report) => _buildHistoryCard(report, cardColor, textColor)),
-                ],
+            children: [
+              SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeaderInfo(textColor, cardColor),
+                    const SizedBox(height: 25),
+                    Text(
+                      isAr ? "سجل التقارير" : "Reports History",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const SizedBox(height: 12),
+                    if (_isLoadingHistory)
+                      const Center(child: Padding(
+                        padding: EdgeInsets.all(30),
+                        child: CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                      ))
+                    else if (_history.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(30),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.assignment_outlined, size: 40, color: textColor.withValues(alpha: 0.2)),
+                            const SizedBox(height: 10),
+                            Text(
+                              isAr ? "لا توجد تقارير سابقة" : "No previous reports",
+                              style: TextStyle(color: textColor.withValues(alpha: 0.4)),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              isAr ? "اضغط + لطلب تقرير جديد" : "Tap + to request a new report",
+                              style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.3)),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ..._history.map((report) => _buildHistoryCard(report, cardColor, textColor)),
+                  ],
+                ),
               ),
-            ),
-            if (_isLoading)
-              Container(
-                color: Colors.black.withValues(alpha: 0.3),
-                child: const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00))),
+              if (_isLoading)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  child: const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00))),
+                ),
+              CustomBottomNav(
+                currentIndex: 0,
+                centerButton: const Parents_Center_Icon(),
+                onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
+                onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
+                onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
+                onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
               ),
-            CustomBottomNav(
-              currentIndex: 0,
-              centerButton: const Parents_Center_Icon(),
-              onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
-              onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
-              onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),
-              onMessagesTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsMessagesScreen())),
-            ),
-            Positioned(
-              bottom: 100,
-              left: 20,
-              child: FloatingActionButton(
-                heroTag: "add_report_btn",
-                onPressed: () => _showRequestDialog(context),
-                backgroundColor: const Color(0xFFFFCC00),
-                foregroundColor: Colors.black,
-                child: const Icon(Icons.add),
+              Positioned(
+                bottom: 100,
+                left: isAr ? 20 : null,
+                right: isAr ? null : 20,
+                child: FloatingActionButton(
+                  heroTag: "add_report_btn",
+                  onPressed: () => _showRequestDialog(context),
+                  backgroundColor: const Color(0xFFFFCC00),
+                  foregroundColor: Colors.black,
+                  child: const Icon(Icons.add),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -336,9 +370,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("تقارير الابن:", style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.6))),
-                Text(studentName ?? "جاري التحميل...",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                Text(
+                  isAr ? "تقارير الابن:" : "Child's Reports:",
+                  style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.6)),
+                ),
+                Text(
+                  studentName ?? (isAr ? "جاري التحميل..." : "Loading..."),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                ),
               ],
             ),
           ),
@@ -352,14 +391,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      title: const Text("تقارير الأبناء", style: TextStyle(fontWeight: FontWeight.bold)),
+      title: Text(
+        isAr ? "تقارير الأبناء" : "Children Reports",
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
       leading: IconButton(
         icon: Icon(Icons.settings_outlined, color: textColor.withValues(alpha: 0.6)),
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor),
+          icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ],
@@ -378,7 +420,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(color: cardColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(30))),
@@ -393,17 +435,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   child: Icon(isAcademic ? Icons.school_rounded : Icons.psychology_outlined, color: color, size: 22)),
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(isAcademic ? "تقرير أكاديمي" : "تقرير سلوك",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                  Text(
+                    isAcademic ? (isAr ? "تقرير أكاديمي" : "Academic Report") : (isAr ? "تقرير سلوك" : "Behavior Report"),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+                  ),
                   Text(report['student_name'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 ]),
               ]),
               const SizedBox(height: 20),
               if (isAcademic) ...[
                 Row(children: [
-                  Expanded(child: _detailChip("المعدل", "${report['average_grade'] ?? '—'}%", Colors.blue)),
+                  Expanded(child: _detailChip(isAr ? "المعدل" : "Average", "${report['average_grade'] ?? '—'}%", Colors.blue)),
                   const SizedBox(width: 10),
-                  Expanded(child: _detailChip("الحضور", "${report['attendance_rate'] ?? '—'}%", Colors.green)),
+                  Expanded(child: _detailChip(isAr ? "الحضور" : "Attendance", "${report['attendance_rate'] ?? '—'}%", Colors.green)),
                 ]),
                 const SizedBox(height: 16),
               ],
@@ -412,7 +456,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   children: [
                     Icon(Icons.person_outline, size: 18, color: color),
                     const SizedBox(width: 6),
-                    Text("تقييم وملاحظات المدرب:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                    Text(
+                      isAr ? "تقييم وملاحظات المدرب:" : "Teacher Evaluation & Notes:",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -421,15 +468,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: color.withValues(alpha: 0.15))),
-                  child: Text(report['teacher_notes'] ?? 'لا توجد ملاحظات',
-                      style: TextStyle(fontSize: 14, height: 1.6, color: textColor)),
+                  child: Text(
+                    report['teacher_notes'] ?? (isAr ? 'لا توجد ملاحظات' : 'No notes available'),
+                    style: TextStyle(fontSize: 14, height: 1.6, color: textColor),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     const Icon(Icons.school_outlined, size: 18, color: Colors.amber),
                     const SizedBox(width: 6),
-                    Text("رأي وتوجيهات رئيس القسم:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                    Text(
+                      isAr ? "رأي وتوجيهات رئيس القسم:" : "HOD Feedback & Guidance:",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -445,15 +497,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       style: TextStyle(fontSize: 14, height: 1.6, color: textColor, fontWeight: FontWeight.w600)),
                 ),
               ] else ...[
-                Text("الملاحظات:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                Text(
+                  isAr ? "الملاحظات:" : "Notes:",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                ),
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: color.withValues(alpha: 0.15))),
-                  child: Text(report['recommendations'] ?? 'لا توجد ملاحظات',
-                      style: TextStyle(fontSize: 14, height: 1.6, color: textColor)),
+                  child: Text(
+                    report['recommendations'] ?? (isAr ? 'لا توجد ملاحظات' : 'No notes available'),
+                    style: TextStyle(fontSize: 14, height: 1.6, color: textColor),
+                  ),
                 ),
               ],
               const SizedBox(height: 24),
@@ -484,69 +541,73 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return GestureDetector(
       onTap: isPending ? null : () => _showReportDetail(report),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(25),
-        border: isPending ? Border.all(color: Colors.orange.withValues(alpha: 0.3)) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: (isPending ? Colors.orange : color).withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(25),
+          border: isPending ? Border.all(color: Colors.orange.withValues(alpha: 0.3)) : null,
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5)],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: (isPending ? Colors.orange : color).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isPending ? Icons.hourglass_top_rounded : (isAcademic ? Icons.school_rounded : Icons.psychology_outlined),
+                color: isPending ? Colors.orange : color,
+                size: 22,
+              ),
             ),
-            child: Icon(
-              isPending ? Icons.hourglass_top_rounded : (isAcademic ? Icons.school_rounded : Icons.psychology_outlined),
-              color: isPending ? Colors.orange : color,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(isAcademic ? "تقرير أكاديمي" : "تقرير سلوك",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-                Text(report['student_name'] ?? '', style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5))),
-                if (isPending) ...[
-                  const SizedBox(height: 3),
-                  const Text("قيد المراجعة عند المعلم",
-                      style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isAcademic ? (isAr ? "تقرير أكاديمي" : "Academic Report") : (isAr ? "تقرير سلوك" : "Behavior Report"),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                  ),
+                  Text(report['student_name'] ?? '', style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5))),
+                  if (isPending) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      isAr ? "قيد المراجعة عند المعلم" : "Under review by teacher",
+                      style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(date, style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.4))),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: (isPending ? Colors.orange : Colors.green).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  isPending ? "معلق" : "مكتمل",
-                  style: TextStyle(
-                    color: isPending ? Colors.orange : Colors.green,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(date, style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.4))),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: (isPending ? Colors.orange : Colors.green).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    isPending ? (isAr ? "معلق" : "Pending") : (isAr ? "مكتمل" : "Completed"),
+                    style: TextStyle(
+                      color: isPending ? Colors.orange : Colors.green,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 

@@ -46,10 +46,22 @@ class _LecturesScreenState extends State<LecturesScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchLectures();
   }
 
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _fetchLectures() async {
+    final isAr = AppSettings.language.value == 'ar';
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -87,11 +99,14 @@ class _LecturesScreenState extends State<LecturesScreen> {
             bool expanded = isMatch ||
                 (targetLessonId == null && targetCourseId == null && i == 0);
 
+            final filesCount = course['total_files'] ?? 0;
+            final filesLabel = isAr ? '$filesCount ملفات' : '$filesCount files';
+
             return {
               'course_id': courseId,
               'title': course['course_name'] as String? ?? '',
               'subtitle':
-                  '${course['teacher_name'] ?? ''} • ${course['total_files'] ?? 0} ملفات',
+                  '${course['teacher_name'] ?? ''} • $filesLabel',
               'icon': style['icon'],
               'iconColor': style['iconColor'],
               'iconBgColor': style['iconBgColor'],
@@ -196,6 +211,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
         ? Theme.of(context).scaffoldBackgroundColor
@@ -209,7 +225,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
     }).toList();
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
@@ -220,7 +236,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'المحاضرات',
+            isAr ? 'المحاضرات' : 'Lectures',
             style: TextStyle(
               color: textColor,
               fontWeight: FontWeight.bold,
@@ -244,7 +260,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
           children: [
             Column(
               children: [
-                _buildSearchBar(),
+                _buildSearchBar(isAr),
                 Expanded(
                   child: _isLoading
                       ? const Center(
@@ -256,8 +272,8 @@ class _LecturesScreenState extends State<LecturesScreen> {
                           ? Center(
                               child: Text(
                                 _allSubjects.isEmpty
-                                    ? 'لا توجد محاضرات حالياً'
-                                    : 'لا توجد مواد مطابقة لبحثك',
+                                    ? (isAr ? 'لا توجد محاضرات حالياً' : 'No lectures available currently')
+                                    : (isAr ? 'لا توجد مواد مطابقة لبحثك' : 'No courses match your search'),
                                 style: TextStyle(
                                   color: isDark
                                       ? Colors.grey.shade400
@@ -323,7 +339,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(bool isAr) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
 
@@ -346,7 +362,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
         style: TextStyle(color: isDark ? Colors.white : Colors.black),
         onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
-          hintText: 'ابحث عن مادة...',
+          hintText: isAr ? 'ابحث عن مادة...' : 'Search for a course...',
           hintStyle: TextStyle(
             color: isDark ? Colors.grey.shade500 : Colors.grey,
             fontSize: 13,
@@ -403,8 +419,19 @@ class _SubjectCardState extends State<_SubjectCard> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     isExpanded = widget.initiallyExpanded;
     _checkDownloadedFiles();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   Widget _buildFilterChip(String label, int filterIndex, IconData? icon, bool isDark) {
@@ -485,11 +512,12 @@ class _SubjectCardState extends State<_SubjectCard> {
   }
 
   Future<void> _launchURL(String urlString) async {
+    final isAr = AppSettings.language.value == 'ar';
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('عذراً، لا يمكن فتح الرابط حالياً')),
+          SnackBar(content: Text(isAr ? 'عذراً، لا يمكن فتح الرابط حالياً' : 'Sorry, cannot open the link currently')),
         );
       }
     }
@@ -523,11 +551,12 @@ class _SubjectCardState extends State<_SubjectCard> {
   }
 
   Future<void> _download(String url) async {
+    final isAr = AppSettings.language.value == 'ar';
     if (url.trim().isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('⚠️ لا يوجد ملف أو رابط مرفق لهذه المحاضرة'),
+          SnackBar(
+            content: Text(isAr ? '⚠️ لا يوجد ملف أو رابط مرفق لهذه المحاضرة' : '⚠️ No file or link attached to this lecture'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -621,15 +650,15 @@ class _SubjectCardState extends State<_SubjectCard> {
       if (success && mounted) {
         setState(() => _downloaded[url] = true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم التحميل بنجاح ✓ — محفوظ في مجلد التنزيلات'),
+          SnackBar(
+            content: Text(isAr ? 'تم التحميل بنجاح ✓ — محفوظ في مجلد التنزيلات' : 'Downloaded successfully ✓ — Saved in downloads'),
             backgroundColor: Colors.green,
           ),
         );
       } else if (mounted) {
-        String msg = 'فشل التحميل، تأكد من الاتصال بالسيرفر';
+        String msg = isAr ? 'فشل التحميل، تأكد من الاتصال بالسيرفر' : 'Download failed, check connection to server';
         if (lastError.contains('404')) {
-          msg = '⚠️ الملف غير موجود على السيرفر (404)';
+          msg = isAr ? '⚠️ الملف غير موجود على السيرفر (404)' : '⚠️ File not found on server (404)';
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -642,8 +671,8 @@ class _SubjectCardState extends State<_SubjectCard> {
       debugPrint('⛔ Download error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('فشل التحميل، تأكد من الاتصال بالسيرفر'),
+          SnackBar(
+            content: Text(isAr ? 'فشل التحميل، تأكد من الاتصال بالسيرفر' : 'Download failed, check connection to server'),
             backgroundColor: Colors.red,
           ),
         );
@@ -676,10 +705,11 @@ class _SubjectCardState extends State<_SubjectCard> {
       if (bytes.length < 50 || headerStr.contains('<!DOCTYPE') || headerStr.contains('<html') || headerStr.contains('404 Not Found')) {
         await file.delete();
         if (mounted) {
+          final isAr = AppSettings.language.value == 'ar';
           setState(() => _downloaded[url] = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('⚠️ الملف المحفوظ غير مكتمل، جارٍ إعادة التنزيل...'),
+            SnackBar(
+              content: Text(isAr ? '⚠️ الملف المحفوظ غير مكتمل، جارٍ إعادة التنزيل...' : '⚠️ Incomplete file, re-downloading...'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -714,6 +744,7 @@ class _SubjectCardState extends State<_SubjectCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? Theme.of(context).cardColor : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -798,11 +829,11 @@ class _SubjectCardState extends State<_SubjectCard> {
             const SizedBox(height: 15),
             Row(
               children: [
-                _buildFilterChip('الكل', 0, null, isDark),
+                _buildFilterChip(isAr ? 'الكل' : 'All', 0, null, isDark),
                 const SizedBox(width: 8),
-                _buildFilterChip('محاضرات', 1, Icons.picture_as_pdf, isDark),
+                _buildFilterChip(isAr ? 'محاضرات' : 'Lectures', 1, Icons.picture_as_pdf, isDark),
                 const SizedBox(width: 8),
-                _buildFilterChip('فيديو', 2, Icons.play_circle_fill, isDark),
+                _buildFilterChip(isAr ? 'فيديو' : 'Videos', 2, Icons.play_circle_fill, isDark),
               ],
             ),
             const SizedBox(height: 15),
@@ -811,7 +842,7 @@ class _SubjectCardState extends State<_SubjectCard> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
-                  'لا توجد ملفات من هذا النوع',
+                  isAr ? 'لا توجد ملفات من هذا النوع' : 'No files of this type',
                   style: TextStyle(
                     color: isDark ? Colors.grey.shade500 : Colors.grey,
                     fontSize: 12,
@@ -930,9 +961,9 @@ class _SubjectCardState extends State<_SubjectCard> {
                             color: const Color(0xFFFFCC00),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text(
-                            'المستهدفة',
-                            style: TextStyle(
+                          child: Text(
+                            AppSettings.language.value == 'ar' ? 'المستهدفة' : 'Targeted',
+                            style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black),
@@ -982,7 +1013,9 @@ class _SubjectCardState extends State<_SubjectCard> {
                   ),
                   onPressed: isDownloaded ? null : onDownload,
                   splashRadius: 22,
-                  tooltip: isDownloaded ? 'محمّل' : 'تحميل',
+                  tooltip: isDownloaded
+                      ? (AppSettings.language.value == 'ar' ? 'محمّل' : 'Downloaded')
+                      : (AppSettings.language.value == 'ar' ? 'تحميل' : 'Download'),
                 ),
                 if (isDownloaded)
                   IconButton(
@@ -990,7 +1023,7 @@ class _SubjectCardState extends State<_SubjectCard> {
                         color: Color(0xFFFFCC00), size: 22),
                     onPressed: onOpen,
                     splashRadius: 22,
-                    tooltip: 'فتح',
+                    tooltip: AppSettings.language.value == 'ar' ? 'فتح' : 'Open',
                   ),
               ],
             ),

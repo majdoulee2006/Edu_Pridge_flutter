@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class TableViewScreen extends StatefulWidget {
   const TableViewScreen({super.key});
@@ -11,13 +12,37 @@ class TableViewScreen extends StatefulWidget {
 }
 
 class _TableViewScreenState extends State<TableViewScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   List<Map<String, dynamic>> _rows = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchSchedule();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
+  }
+
+  String _formatDay(String d) {
+    if (isAr) return d;
+    return switch (d) {
+      'الأحد' => 'Sunday',
+      'الاثنين' => 'Monday',
+      'الثلاثاء' => 'Tuesday',
+      'الأربعاء' => 'Wednesday',
+      'الخميس' => 'Thursday',
+      'الجمعة' => 'Friday',
+      'السبت' => 'Saturday',
+      _ => d,
+    };
   }
 
   Future<void> _fetchSchedule() async {
@@ -49,7 +74,7 @@ class _TableViewScreenState extends State<TableViewScreen> {
     const primaryYellow = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
@@ -58,7 +83,7 @@ class _TableViewScreenState extends State<TableViewScreen> {
           centerTitle: true,
           iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
           title: Text(
-            'عرض الجدول الدراسي',
+            isAr ? 'عرض الجدول الدراسي' : 'View Study Schedule',
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
           ),
         ),
@@ -80,7 +105,9 @@ class _TableViewScreenState extends State<TableViewScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'يمكنك مراجعة واستعراض الخطة الأسبوعية للقسم.',
+                        isAr
+                            ? 'يمكنك مراجعة واستعراض الخطة الأسبوعية للقسم.'
+                            : 'You can review and view the department weekly schedule.',
                         style: TextStyle(
                           color: isDark ? Colors.white70 : Colors.black87,
                           fontSize: 12.5,
@@ -105,7 +132,7 @@ class _TableViewScreenState extends State<TableViewScreen> {
                                     child: Padding(
                                       padding: const EdgeInsets.only(top: 60),
                                       child: Text(
-                                        'لا يوجد جدول حتى الآن',
+                                        isAr ? 'لا يوجد جدول حتى الآن' : 'No schedule available yet',
                                         style: TextStyle(
                                           color: isDark ? Colors.white70 : Colors.black54,
                                           fontFamily: 'Cairo',
@@ -120,6 +147,7 @@ class _TableViewScreenState extends State<TableViewScreen> {
                                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                                 itemBuilder: (context, index) {
                                   final row = _rows[index];
+                                  final dayRaw = row['day'] as String? ?? '';
                                   return Container(
                                     padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
@@ -145,7 +173,7 @@ class _TableViewScreenState extends State<TableViewScreen> {
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
                                               child: Text(
-                                                row['day'] as String? ?? '',
+                                                _formatDay(dayRaw),
                                                 style: const TextStyle(
                                                   color: Colors.black,
                                                   fontWeight: FontWeight.bold,
@@ -156,10 +184,10 @@ class _TableViewScreenState extends State<TableViewScreen> {
                                           ],
                                         ),
                                         const SizedBox(height: 10),
-                                        _line('المادة', row['subject'] as String? ?? '-', textColor),
-                                        _line('المدرس', row['doctor'] as String? ?? row['teacher'] as String? ?? '-', textColor),
-                                        _line('الوقت', row['time'] as String? ?? '-', textColor),
-                                        _line('القاعة', row['hall'] as String? ?? '-', textColor),
+                                        _line(isAr ? 'المادة' : 'Subject', row['subject'] as String? ?? '-', textColor),
+                                        _line(isAr ? 'المدرس' : 'Teacher', row['doctor'] as String? ?? row['teacher'] as String? ?? '-', textColor),
+                                        _line(isAr ? 'الوقت' : 'Time', row['time'] as String? ?? '-', textColor),
+                                        _line(isAr ? 'القاعة' : 'Hall', row['hall'] as String? ?? '-', textColor),
                                       ],
                                     ),
                                   );

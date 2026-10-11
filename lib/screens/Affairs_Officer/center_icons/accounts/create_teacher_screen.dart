@@ -21,15 +21,21 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
   String _selectedGender = 'ذكر';
   String? _selectedSystem;
 
-  final List<String> _systems = [
-    'نظام المعلومات',
-    'نظام المحاسبة',
-    'نظام الموارد البشرية',
-    'نظام التعليم الإلكتروني',
-  ];
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _nameController.dispose();
     _idController.dispose();
     _emailController.dispose();
@@ -38,6 +44,13 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
+
+  List<Map<String, String>> get _systems => [
+    {'ar': 'نظام المعلومات', 'en': 'Information Systems'},
+    {'ar': 'نظام المحاسبة', 'en': 'Accounting System'},
+    {'ar': 'نظام الموارد البشرية', 'en': 'Human Resources System'},
+    {'ar': 'نظام التعليم الإلكتروني', 'en': 'E-Learning System'},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +62,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
     final Color fieldColor = isDark ? const Color(0xFF2A2A2A) : Colors.grey.shade100;
 
     return Directionality(
-      textDirection: ui.TextDirection.rtl,
+      textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         body: SafeArea(
@@ -66,7 +79,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                   alignment: Alignment.center,
                   children: [
                     Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: isAr ? Alignment.centerLeft : Alignment.centerRight,
                       child: IconButton(
                         icon: Icon(Icons.settings, color: textColor, size: 26),
                         onPressed: () {
@@ -78,7 +91,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                       ),
                     ),
                     Text(
-                      "إضافة معلم جديد",
+                      isAr ? "إضافة معلم جديد" : "Add New Teacher",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -87,9 +100,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                       ),
                     ),
                     Align(
-                      alignment: Alignment.centerRight,
+                      alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                       child: IconButton(
-                        icon: Icon(Icons.arrow_back, color: textColor, size: 26),
+                        icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor, size: 26),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
@@ -102,9 +115,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 // عنوان "البيانات الشخصية"
                 // ═══════════════════════════════════════
                 Align(
-                  alignment: Alignment.centerRight,
+                  alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                   child: Text(
-                    'البيانات الشخصية',
+                    isAr ? 'البيانات الشخصية' : 'Personal Information',
                     style: TextStyle(
                       fontSize: 14,
                       color: subColor,
@@ -120,7 +133,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _nameController,
-                  hint: 'الاسم الكامل',
+                  hint: isAr ? 'الاسم الكامل' : 'Full Name',
                   icon: Icons.person_outline,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -134,7 +147,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _idController,
-                  hint: 'رقم الهاتف',
+                  hint: isAr ? 'رقم الهاتف' : 'Phone Number',
                   icon: Icons.phone_android_outlined,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -149,7 +162,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _emailController,
-                  hint: 'البريد الإلكتروني',
+                  hint: isAr ? 'البريد الإلكتروني' : 'Email Address',
                   icon: Icons.email_outlined,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -163,9 +176,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 // عنوان "تفاصيل إضافية"
                 // ═══════════════════════════════════════
                 Align(
-                  alignment: Alignment.centerRight,
+                  alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                   child: Text(
-                    'تفاصيل إضافية',
+                    isAr ? 'تفاصيل إضافية' : 'Additional Details',
                     style: TextStyle(
                       fontSize: 14,
                       color: subColor,
@@ -205,7 +218,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'أنثى',
+                                isAr ? 'أنثى' : 'Female',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -245,7 +258,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'ذكر',
+                                isAr ? 'ذكر' : 'Male',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -299,7 +312,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                   child: AbsorbPointer(
                     child: _buildTextField(
                       controller: _birthDateController,
-                      hint: 'تاريخ الميلاد',
+                      hint: isAr ? 'تاريخ الميلاد' : 'Date of Birth',
                       icon: Icons.calendar_today_outlined,
                       fieldColor: fieldColor,
                       textColor: textColor,
@@ -324,7 +337,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                       isExpanded: true,
                       value: _selectedSystem,
                       hint: Text(
-                        'نظام المعلومات',
+                        isAr ? 'نظام المعلومات' : 'Information System',
                         style: TextStyle(
                           color: subColor,
                           fontFamily: 'Noto Sans Arabic',
@@ -336,10 +349,12 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                         color: textColor,
                         fontFamily: 'Noto Sans Arabic',
                       ),
-                      items: _systems.map((String value) {
+                      items: _systems.map((item) {
+                        final key = item['ar']!;
+                        final label = isAr ? item['ar']! : item['en']!;
                         return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
+                          value: key,
+                          child: Text(label),
                         );
                       }).toList(),
                       onChanged: (String? newValue) {
@@ -357,9 +372,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 // عنوان "أمان الحساب"
                 // ═══════════════════════════════════════
                 Align(
-                  alignment: Alignment.centerRight,
+                  alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
                   child: Text(
-                    'أمان الحساب',
+                    isAr ? 'أمان الحساب' : 'Account Security',
                     style: TextStyle(
                       fontSize: 14,
                       color: subColor,
@@ -375,7 +390,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _passwordController,
-                  hint: 'كلمة المرور',
+                  hint: isAr ? 'كلمة المرور' : 'Password',
                   icon: Icons.lock_outline,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -390,7 +405,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 // ═══════════════════════════════════════
                 _buildTextField(
                   controller: _confirmPasswordController,
-                  hint: 'تأكيد كلمة المرور',
+                  hint: isAr ? 'تأكيد كلمة المرور' : 'Confirm Password',
                   icon: Icons.verified_user_outlined,
                   fieldColor: fieldColor,
                   textColor: textColor,
@@ -409,7 +424,12 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                     onPressed: () {
                       // TODO: حفظ بيانات المعلم
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('حفظ بيانات المعلم - قريباً')),
+                        SnackBar(
+                          content: Text(
+                            isAr ? 'حفظ بيانات المعلم - قريباً' : 'Saving Teacher Data - Coming soon',
+                            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+                          ),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -419,9 +439,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text(
-                      'حفظ بيانات المعلم',
-                      style: TextStyle(
+                    child: Text(
+                      isAr ? 'حفظ بيانات المعلم' : 'Save Teacher Data',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -458,7 +478,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
       ),
       child: TextField(
         controller: controller,
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         keyboardType: keyboardType,
         obscureText: isPassword,
         style: TextStyle(

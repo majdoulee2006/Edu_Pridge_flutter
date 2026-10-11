@@ -12,7 +12,7 @@ import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_h
 
 class LeaveRequestsScreen extends StatefulWidget {
   final String fromSource;
-  final int? highlightId; // ID الإجازة المراد تحديدها
+  final int? highlightId;
 
   const LeaveRequestsScreen({super.key, this.fromSource = "home", this.highlightId});
 
@@ -26,11 +26,17 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
   List<Map<String, dynamic>> allRequests = [];
   final ScrollController _scrollController = ScrollController();
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   void _handleBackNavigation(BuildContext context) {
     if (widget.fromSource == "profile") {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const BossProfileScreen()));
     } else if (widget.fromSource == "notification") {
-      Navigator.pop(context, true); // إرجاع true لتحديث الإشعارات
+      Navigator.pop(context, true);
     } else {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen()));
     }
@@ -39,11 +45,13 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchLeaveRequests();
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _scrollController.dispose();
     super.dispose();
   }
@@ -69,19 +77,18 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
             final isDaily = typeVal == 'full_day' || typeVal == 'daily' || typeVal == 'يوم كامل' || typeVal.isEmpty;
             return {
               'id': r['id'],
-              'name': r['requester_name'] ?? r['user_name'] ?? r['name'] ?? 'غير معروف',
+              'name': r['requester_name'] ?? r['user_name'] ?? r['name'] ?? '',
               'role': r['requester_type'] ?? r['role'] ?? '',
               'date': r['date'] ?? '',
-              'reason': r['reason'] ?? 'لا يوجد سبب',
+              'reason': r['reason'] ?? '',
               'status': r['status'] ?? 'pending',
-              'type': isDaily ? 'يوم كامل' : 'ساعية',
+              'type': isDaily ? 'daily' : 'hourly',
               'isDaily': isDaily,
               'image': r['avatar'] ?? '',
             };
           }).toList();
         });
 
-        // إذا في highlightId، حدد التبويب الصح ثم اسكرول
         if (widget.highlightId != null) {
           _jumpToHighlighted();
         }
@@ -100,13 +107,11 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
     );
     if (req.isEmpty) return;
 
-    // فتح التبويب الصح
     final isDaily = req['isDaily'] as bool? ?? true;
     if (isDailyLeave != isDaily) {
       setState(() => isDailyLeave = isDaily);
     }
 
-    // اسكرول بعد بناء الـ UI
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final filtered = allRequests.where((r) => r['isDaily'] == isDaily).toList();
       final idx = filtered.indexWhere((r) => r['id'] == widget.highlightId);
@@ -129,16 +134,18 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (mounted) {
-        // تحديث فوري بدون إعادة تحميل
         setState(() {
           final idx = allRequests.indexWhere((r) => r['id'] == requestId);
           if (idx != -1) {
             allRequests[idx] = {...allRequests[idx], 'status': status};
           }
         });
+        final msg = status == 'approved'
+            ? (isAr ? '✅ تمت الموافقة' : '✅ Approved')
+            : (isAr ? '❌ تم الرفض' : '❌ Rejected');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(status == 'approved' ? '✅ تمت الموافقة' : '❌ تم الرفض'),
+            content: Text(msg),
             backgroundColor: status == 'approved' ? Colors.green : Colors.red,
           ),
         );
@@ -147,7 +154,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
       debugPrint('⛔ Respond Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ، حاول مجدداً')),
+          SnackBar(content: Text(isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, please try again')),
         );
       }
     }
@@ -165,7 +172,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: SafeArea(
           bottom: false,
           child: Stack(
@@ -180,7 +187,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
                     child: _isLoading
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFFCCAA00)))
                         : filteredRequests.isEmpty
-                            ? Center(child: Text("لا توجد طلبات حالياً", style: TextStyle(color: textColor)))
+                            ? Center(child: Text(isAr ? "لا توجد طلبات حالياً" : "No requests found", style: TextStyle(color: textColor)))
                             : RefreshIndicator(
                                 onRefresh: _fetchLeaveRequests,
                                 color: const Color(0xFFCCAA00),
@@ -228,15 +235,18 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
             icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white : Colors.black),
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsScreen(
-                userName: "رئيس القسم",
-                userRole: "رئيس القسم الأكاديمي",
+                userName: isAr ? "رئيس القسم" : "Department Head",
+                userRole: isAr ? "رئيس القسم الأكاديمي" : "Academic Department Head",
                 onProfileTap: () => Navigator.pop(context),
               )));
             },
           ),
-          Text("طلبات الإجازة", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(
+            isAr ? "طلبات الإجازة" : "Leave Requests",
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
           IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => _handleBackNavigation(context),
           ),
         ],
@@ -255,8 +265,8 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
       ),
       child: Row(
         children: [
-          _buildTabButton("إجازات يومية", isDailyLeave, () => setState(() => isDailyLeave = true)),
-          _buildTabButton("إجازات ساعية", !isDailyLeave, () => setState(() => isDailyLeave = false)),
+          _buildTabButton(isAr ? "إجازات يومية" : "Daily Leaves", isDailyLeave, () => setState(() => isDailyLeave = true)),
+          _buildTabButton(isAr ? "إجازات ساعية" : "Hourly Leaves", !isDailyLeave, () => setState(() => isDailyLeave = false)),
         ],
       ),
     );
@@ -281,11 +291,14 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
   }
 
   Widget _buildLeaveCard(bool isDark, Color cardColor, Color textColor, Map<String, dynamic> data, bool isHighlighted) {
-    final String name = (data['name'] ?? 'غير معروف').toString();
+    final String rawName = (data['name'] ?? '').toString();
+    final String name = rawName.isNotEmpty ? rawName : (isAr ? 'غير معروف' : 'Unknown');
     final String role = (data['role'] ?? '').toString();
     final String image = (data['image'] ?? '').toString();
-    final String reason = (data['reason'] ?? 'لا يوجد سبب').toString();
-    final String type = (data['type'] ?? 'يوم كامل').toString();
+    final String rawReason = (data['reason'] ?? '').toString();
+    final String reason = rawReason.isNotEmpty ? rawReason : (isAr ? 'لا يوجد سبب' : 'No reason provided');
+    final bool isDaily = data['isDaily'] as bool? ?? true;
+    final String type = isDaily ? (isAr ? 'يوم كامل' : 'Full Day') : (isAr ? 'ساعية' : 'Hourly');
     final String status = (data['status'] ?? 'pending').toString();
     final int requestId = int.tryParse(data['id']?.toString() ?? '0') ?? 0;
     final bool isPending = status == 'pending_hod' || status == 'pending' || status == 'pending_parent';
@@ -357,7 +370,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text("موافقة", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    child: Text(isAr ? "موافقة" : "Approve", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 15),
@@ -368,7 +381,7 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: Text("رفض", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+                    child: Text(isAr ? "رفض" : "Reject", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
                   ),
                 ),
               ],
@@ -385,7 +398,9 @@ class _LeaveRequestsScreenState extends State<LeaveRequestsScreen> {
               ),
               child: Center(
                 child: Text(
-                  isRejected ? '❌ تم رفض الطلب' : '✅ تمت الموافقة',
+                  isRejected
+                      ? (isAr ? '❌ تم رفض الطلب' : '❌ Request Rejected')
+                      : (isAr ? '✅ تمت الموافقة' : '✅ Approved'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: isRejected ? Colors.red : Colors.green,

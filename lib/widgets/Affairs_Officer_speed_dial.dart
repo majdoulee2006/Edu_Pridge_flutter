@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/activiti
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/vacations/vacations_screen.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/accounts/accounts_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AffairsOfficerSpeedDial extends StatefulWidget {
   const AffairsOfficerSpeedDial({super.key});
@@ -16,12 +17,19 @@ class AffairsOfficerSpeedDial extends StatefulWidget {
 
 class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
     with SingleTickerProviderStateMixin {
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   bool _isOpen = false;
   late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -30,6 +38,7 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _animationController.dispose();
     super.dispose();
   }
@@ -53,7 +62,7 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
     final Color separatorColor = isDark ? Colors.grey.shade800 : Colors.grey.shade200;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -92,7 +101,7 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
                           children: [
                             // 1. التقويم
                             _buildMenuItem(
-                              'التقويم',
+                              isAr ? 'التقويم' : 'Calendar',
                               Icons.calendar_month_outlined,
                               Colors.orange,
                               18.0, 0.0, 0.3, itemTextColor,
@@ -105,7 +114,7 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
                             ),
                             // 2. الأنشطة
                             _buildMenuItem(
-                              'الأنشطة',
+                              isAr ? 'الأنشطة' : 'Activities',
                               Icons.local_activity_outlined,
                               Colors.green,
                               54.0, 0.2, 0.5, itemTextColor,
@@ -118,7 +127,7 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
                             ),
                             // 3. المواعيد (في منتصف القائمة نصف الدائرية تماماً)
                             _buildMenuItem(
-                              'المواعيد',
+                              isAr ? 'المواعيد' : 'Appointments',
                               Icons.calendar_today_rounded,
                               Colors.teal,
                               90.0, 0.4, 0.7, itemTextColor,
@@ -131,7 +140,7 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
                             ),
                             // 4. الأذون
                             _buildMenuItem(
-                              'الأذون',
+                              isAr ? 'الأذون' : 'Leaves',
                               Icons.assignment_turned_in_outlined,
                               Colors.blue,
                               126.0, 0.6, 0.9, itemTextColor,
@@ -144,7 +153,7 @@ class _AffairsOfficerSpeedDialState extends State<AffairsOfficerSpeedDial>
                             ),
                             // 5. الحسابات
                             _buildMenuItem(
-                              'الحسابات',
+                              isAr ? 'الحسابات' : 'Accounts',
                               Icons.manage_accounts_outlined,
                               Colors.purple,
                               162.0, 0.7, 1.0, itemTextColor,

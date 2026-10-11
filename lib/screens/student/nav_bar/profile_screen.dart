@@ -30,6 +30,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _fetchUserProfile();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _fetchUserProfile() async {
@@ -93,27 +104,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 800);
     if (picked == null || !mounted) return;
 
+    final bool isAr = AppSettings.language.value == 'ar';
     // أظهر dialog للتأكيد
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('طلب تغيير الصورة', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
-          content: const Text(
-            'سيتم إرسال طلب لموظف الشؤون لمراجعة صورتك الجديدة والموافقة عليها.\nهل تريد المتابعة؟',
-            style: TextStyle(fontFamily: 'Cairo'),
+          title: Text(isAr ? 'طلب تغيير الصورة' : 'Change Photo Request', style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+          content: Text(
+            isAr
+                ? 'سيتم إرسال طلب لموظف الشؤون لمراجعة صورتك الجديدة والموافقة عليها.\nهل تريد المتابعة؟'
+                : 'A request will be sent to Student Affairs to review and approve your new photo.\nDo you want to continue?',
+            style: const TextStyle(fontFamily: 'Cairo'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('إلغاء', style: TextStyle(color: Colors.grey, fontFamily: 'Cairo')),
+              child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(color: Colors.grey, fontFamily: 'Cairo')),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFCC00)),
-              child: const Text('إرسال الطلب', style: TextStyle(color: Colors.black, fontFamily: 'Cairo')),
+              child: Text(isAr ? 'إرسال الطلب' : 'Send Request', style: const TextStyle(color: Colors.black, fontFamily: 'Cairo')),
             ),
           ],
         ),
@@ -137,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-            res.data['message'] ?? 'تم إرسال الطلب بنجاح',
+            res.data['message'] ?? (isAr ? 'تم إرسال الطلب بنجاح' : 'Request sent successfully'),
             style: const TextStyle(fontFamily: 'Cairo'),
           ),
           backgroundColor: const Color(0xFFFFCC00),
@@ -146,8 +160,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       debugPrint('Photo request error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('فشل إرسال الطلب', style: TextStyle(fontFamily: 'Cairo')),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(isAr ? 'فشل إرسال الطلب' : 'Failed to send request', style: const TextStyle(fontFamily: 'Cairo')),
           backgroundColor: Colors.red,
         ));
       }
@@ -161,9 +175,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         extendBody: true,
@@ -171,10 +186,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          title: Text('الملف الشخصي',
+          title: Text(isAr ? 'الملف الشخصي' : 'Profile',
               style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_back_ios_new, color: textColor),
             onPressed: () => Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (_) => const StudentHomeScreen())),
           ),
@@ -184,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => SettingsScreen(
                     userName: userData?['name'] as String? ?? userData?['full_name'] as String? ?? '',
-                    userRole: 'طالب',
+                    userRole: isAr ? 'طالب' : 'Student',
                     profileImageUrl: userData?['avatar'] as String? ?? '',
                     onProfileTap: () => Navigator.pop(context),
                   ))),
@@ -200,14 +215,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     child: Column(
                       children: [
-                        _buildProfileHeader(textColor),
+                        _buildProfileHeader(textColor, isAr),
                         const SizedBox(height: 30),
 
-                        _buildSectionTitle("معلومات التواصل", textColor),
+                        _buildSectionTitle(isAr ? "معلومات التواصل" : "Contact Information", textColor, isAr),
                         _buildInfoCard(cardColor, [
                           _buildClickableRow(
-                            label: "رقم الهاتف",
-                            value: userData?['phone'] ?? 'غير محدد',
+                            label: isAr ? "رقم الهاتف" : "Phone Number",
+                            value: userData?['phone'] ?? (isAr ? 'غير محدد' : 'N/A'),
                             icon: Icons.phone_android_rounded,
                             color: Colors.green,
                             textColor: textColor,
@@ -219,8 +234,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           _buildDivider(textColor),
                           _buildClickableRow(
-                            label: "البريد الإلكتروني",
-                            value: userData?['email'] ?? 'غير محدد',
+                            label: isAr ? "البريد الإلكتروني" : "Email Address",
+                            value: userData?['email'] ?? (isAr ? 'غير محدد' : 'N/A'),
                             icon: Icons.alternate_email_rounded,
                             color: Colors.blue,
                             textColor: textColor,
@@ -233,50 +248,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ]),
 
                         const SizedBox(height: 25),
-                        _buildSectionTitle("البيانات الأكاديمية", textColor),
+                        _buildSectionTitle(isAr ? "البيانات الأكاديمية" : "Academic Information", textColor, isAr),
                         _buildInfoCard(cardColor, [
                           _buildStaticRow(
-                            label: "القسم",
+                            label: isAr ? "القسم" : "Department",
                             value: (userData?['department'] != null && userData!['department'] != 'غير محدد')
                                 ? userData!['department']
-                                : 'قسم تكنولوجيا المعلومات والبرمجيات',
+                                : (isAr ? 'قسم تكنولوجيا المعلومات والبرمجيات' : 'IT & Software Department'),
                             icon: Icons.account_balance_rounded,
                             color: Colors.purple,
                             textColor: textColor,
                           ),
                           _buildDivider(textColor),
                           _buildStaticRow(
-                            label: "الدورة",
+                            label: isAr ? "الدورة" : "Program / Group",
                             value: (userData?['program'] != null && userData!['program'] != 'غير محدد')
                                 ? userData!['program'].toString()
-                                : 'غير محدد',
+                                : (isAr ? 'غير محدد' : 'N/A'),
                             icon: Icons.groups_rounded,
                             color: Colors.deepPurple,
                             textColor: textColor,
                           ),
                           _buildDivider(textColor),
                           _buildStaticRow(
-                            label: "السنة الدراسية",
+                            label: isAr ? "السنة الدراسية" : "Academic Year",
                             value: (userData?['academic_year'] != null && userData!['academic_year'] != 'غير محدد')
                                 ? userData!['academic_year'].toString()
-                                : (userData?['level'] != null && userData!['level'] != 'غير محدد' ? userData!['level'].toString() : 'السنة الثانية'),
+                                : (userData?['level'] != null && userData!['level'] != 'غير محدد' ? userData!['level'].toString() : (isAr ? 'السنة الثانية' : 'Year 2')),
                             icon: Icons.auto_awesome_mosaic_rounded,
                             color: Colors.orange,
                             textColor: textColor,
                           ),
                           _buildDivider(textColor),
                           _buildStaticRow(
-                            label: "الفصل الدراسي النشط",
+                            label: isAr ? "الفصل الدراسي النشط" : "Active Semester",
                             value: (userData?['semester'] != null && userData!['semester'] != 'غير محدد' && userData!['semester'] != 'لا يوجد فصل نشط حالياً')
                                 ? userData!['semester'].toString()
-                                : (userData?['active_semester'] != null && userData!['active_semester'] != 'غير محدد' ? userData!['active_semester'].toString() : 'الفصل الدراسي الأول (2025/2026)'),
+                                : (userData?['active_semester'] != null && userData!['active_semester'] != 'غير محدد' ? userData!['active_semester'].toString() : (isAr ? 'الفصل الدراسي الأول (2025/2026)' : 'Semester 1 (2025/2026)')),
                             icon: Icons.calendar_month_rounded,
                             color: Colors.indigo,
                             textColor: textColor,
                           ),
                           _buildDivider(textColor),
                           _buildStaticRow(
-                            label: "تاريخ الميلاد",
+                            label: isAr ? "تاريخ الميلاد" : "Birth Date",
                             value: (userData?['birth_date'] != null && userData!['birth_date'] != 'غير محدد')
                                 ? userData!['birth_date'].toString().split('T')[0]
                                 : '2003-05-15',
@@ -286,10 +301,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           _buildDivider(textColor),
                           _buildStaticRow(
-                            label: "الجنس",
+                            label: isAr ? "الجنس" : "Gender",
                             value: (userData?['gender'] != null && userData!['gender'] != 'غير محدد')
-                                ? userData!['gender']
-                                : 'ذكر',
+                                ? (userData!['gender'] == 'ذكر' ? (isAr ? 'ذكر' : 'Male') : (userData!['gender'] == 'أنثى' ? (isAr ? 'أنثى' : 'Female') : userData!['gender']))
+                                : (isAr ? 'ذكر' : 'Male'),
                             icon: Icons.people_outline_rounded,
                             color: Colors.teal,
                             textColor: textColor,
@@ -297,7 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (userData?['advisor_teacher'] != null) ...[
                             _buildDivider(textColor),
                             _buildStaticRow(
-                              label: "مرشد / مربي الدورة",
+                              label: isAr ? "مرشد / مربي الدورة" : "Academic Advisor",
                               value: "${userData!['advisor_teacher']['name']} (${userData!['advisor_teacher']['phone'] ?? ''})",
                               icon: Icons.person_pin_rounded,
                               color: const Color(0xFFFFCC00),
@@ -307,13 +322,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ]),
 
                         const SizedBox(height: 25),
-                        _buildSectionTitle("الأمان والإعدادات", textColor),
+                        _buildSectionTitle(isAr ? "الأمان والإعدادات" : "Security & Settings", textColor, isAr),
                         _buildClickableSettingCard(
-                          title: "تغيير كلمة المرور",
+                          title: isAr ? "تغيير كلمة المرور" : "Change Password",
                           icon: Icons.lock_reset_rounded,
                           color: Colors.redAccent,
                           cardColor: cardColor,
                           textColor: textColor,
+                          isAr: isAr,
                           onTap: () => Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const EditPasswordScreen())),
                         ),
@@ -340,7 +356,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(Color textColor) {
+  Widget _buildProfileHeader(Color textColor, bool isAr) {
     final avatarUrl = ApiService.fixMediaUrl(userData?['avatar'] as String?);
     return Column(
       children: [
@@ -387,7 +403,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildChip('طالب', const Color(0xFF263238), Colors.white70),
+            _buildChip(isAr ? 'طالب' : 'Student', const Color(0xFF263238), Colors.white70),
             _buildChip(
               'ID: ${userData?['student_code'] ?? userData?['username'] ?? '—'}',
               const Color(0xFFFFCC00).withValues(alpha: 0.2),
@@ -420,11 +436,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, Color textColor) {
+  Widget _buildSectionTitle(String title, Color textColor, bool isAr) {
     return Align(
-      alignment: Alignment.centerRight,
+      alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(right: 5, bottom: 10),
+        padding: EdgeInsets.only(right: isAr ? 5 : 0, left: isAr ? 0 : 5, bottom: 10),
         child: Text(title,
             style: TextStyle(
                 fontSize: 15, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo')),
@@ -520,6 +536,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required Color color,
     required Color cardColor,
     required Color textColor,
+    required bool isAr,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -536,7 +553,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 15, color: textColor, fontFamily: 'Cairo')),
             const Spacer(),
-            const Icon(Icons.arrow_back, size: 16, color: Colors.grey),
+            Icon(isAr ? Icons.arrow_back : Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),
       ),

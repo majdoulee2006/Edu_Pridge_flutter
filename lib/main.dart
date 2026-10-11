@@ -6,7 +6,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_service.dart';
-import 'screens/onboarding/onboarding_one.dart';
+import 'screens/onboarding/language_selection_screen.dart';
+import 'screens/auth/login_screen.dart';
 import 'screens/student/nav_bar/student_home_screen.dart';
 import 'screens/teacher/teacher_home.dart';
 import 'screens/parents/nav_bar/parent_home.dart';
@@ -81,7 +82,8 @@ class _AppRouterState extends State<_AppRouter> {
 
     final Widget dest;
     if (token.isEmpty) {
-      dest = const OnboardingOne();
+      final languageSelected = prefs.getBool('language_selected') ?? false;
+      dest = languageSelected ? const LoginScreen() : const LanguageSelectionScreen();
     } else {
       dest = switch (role.toLowerCase()) {
         'student' => const StudentHomeScreen(),
@@ -90,7 +92,7 @@ class _AppRouterState extends State<_AppRouter> {
         'admin' => const AdminHomeScreen(),
         'department_head' || 'boss' || 'head' => const DeptHeadHomeScreen(),
         'affairs_officer' || 'affairs' => const AffairsOfficerHomeScreen(),
-        _ => const OnboardingOne(),
+        _ => const LoginScreen(),
       };
     }
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => dest));

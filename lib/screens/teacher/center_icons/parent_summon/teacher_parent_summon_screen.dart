@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import '../../../../widgets/teacher_speed_dial.dart';
 import '../../messages_screen.dart';
 import '../../notifications_screen.dart';
@@ -31,9 +32,14 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
   List<dynamic> _summonsHistory = [];
   String _currentFilter = 'all'; // all, pending, completed
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -50,6 +56,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _reasonController.dispose();
     _detailsController.dispose();
     _tabController.dispose();
@@ -85,134 +92,164 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
+          final isAr = AppSettings.language.value == 'ar';
           final isDark = Theme.of(context).brightness == Brightness.dark;
           final sheetBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
           final textClr = isDark ? Colors.white : AppColors.textDark;
 
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: sheetBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          return Directionality(
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              padding: const EdgeInsets.all(20),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade400,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      "استدعاء ولي أمر طالب",
-                      style: TextStyle(color: textClr, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    _isLoadingStudents
-                        ? const Center(child: CircularProgressIndicator())
-                        : DropdownButtonFormField<dynamic>(
-                            value: _selectedStudent,
-                            decoration: InputDecoration(
-                              labelText: "اختر الطالب (من دوراتي/مجموعاتي)",
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            items: _students.map((st) {
-                              return DropdownMenuItem<dynamic>(
-                                value: st,
-                                child: Text("${st['student_name']} (${st['department_name'] ?? ''})"),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              setModalState(() => _selectedStudent = val);
-                              setState(() => _selectedStudent = val);
-                            },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: sheetBg,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade400,
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _reasonController,
-                      decoration: InputDecoration(
-                        labelText: "سبب الاستدعاء (العنوان)",
-                        hintText: "مثال: مراجعة بخصوص تحصيل الطالب الأكاديمي",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _detailsController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: "التفاصيل والملاحظات لمربي الدورة / رئيس القسم",
-                        hintText: "اكتب التفاصيل الكاملة هنا...",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFCC00),
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        onPressed: _isSubmitting
-                            ? null
-                            : () async {
-                                if (_selectedStudent == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("يرجى اختيار طالب أولاً")),
-                                  );
-                                  return;
-                                }
-                                if (_reasonController.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("يرجى كتابة سبب الاستدعاء")),
-                                  );
-                                  return;
-                                }
-
-                                setModalState(() => _isSubmitting = true);
-                                final ok = await _apiService.requestTeacherParentSummon(
-                                  _selectedStudent['student_id'],
-                                  _reasonController.text.trim(),
-                                  _detailsController.text.trim(),
+                      ),
+                      Text(
+                        isAr ? "استدعاء ولي أمر طالب" : "Summon Student's Parent",
+                        style: TextStyle(color: textClr, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      _isLoadingStudents
+                          ? const Center(child: CircularProgressIndicator())
+                          : DropdownButtonFormField<dynamic>(
+                              value: _selectedStudent,
+                              decoration: InputDecoration(
+                                labelText: isAr
+                                    ? "اختر الطالب (من دوراتي/مجموعاتي)"
+                                    : "Select Student (From my courses/groups)",
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              items: _students.map((st) {
+                                return DropdownMenuItem<dynamic>(
+                                  value: st,
+                                  child: Text("${st['student_name']} (${st['department_name'] ?? ''})"),
                                 );
-                                setModalState(() => _isSubmitting = false);
-
-                                if (ok && mounted) {
-                                  Navigator.pop(context);
-                                  _reasonController.clear();
-                                  _detailsController.clear();
-                                  _selectedStudent = null;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("تم إرسال الطلب إلى رئيس القسم بنجاح")),
-                                  );
-                                  _fetchHistory();
-                                }
+                              }).toList(),
+                              onChanged: (val) {
+                                setModalState(() => _selectedStudent = val);
+                                setState(() => _selectedStudent = val);
                               },
-                        icon: _isSubmitting
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                            : const Icon(Icons.send, color: Colors.black),
-                        label: Text(
-                          _isSubmitting ? "جاري الإرسال..." : "إرسال لرئيس القسم",
-                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _reasonController,
+                        decoration: InputDecoration(
+                          labelText: isAr ? "سبب الاستدعاء (العنوان)" : "Summon Reason (Title)",
+                          hintText: isAr
+                              ? "مثال: مراجعة بخصوص تحصيل الطالب الأكاديمي"
+                              : "e.g. Review regarding academic progress",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _detailsController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: isAr
+                              ? "التفاصيل والملاحظات لمربي الدورة / رئيس القسم"
+                              : "Details & notes for course advisor / dept head",
+                          hintText: isAr ? "اكتب التفاصيل الكاملة هنا..." : "Write full details here...",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFCC00),
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: _isSubmitting
+                              ? null
+                              : () async {
+                                  if (_selectedStudent == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          isAr ? "يرجى اختيار طالب أولاً" : "Please select a student first",
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (_reasonController.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          isAr ? "يرجى كتابة سبب الاستدعاء" : "Please enter summon reason",
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  setModalState(() => _isSubmitting = true);
+                                  final ok = await _apiService.requestTeacherParentSummon(
+                                    _selectedStudent['student_id'],
+                                    _reasonController.text.trim(),
+                                    _detailsController.text.trim(),
+                                  );
+                                  setModalState(() => _isSubmitting = false);
+
+                                  if (ok && mounted) {
+                                    Navigator.pop(context);
+                                    _reasonController.clear();
+                                    _detailsController.clear();
+                                    _selectedStudent = null;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          isAr
+                                              ? "تم إرسال الطلب إلى رئيس القسم بنجاح"
+                                              : "Summon request sent to Department Head successfully",
+                                        ),
+                                      ),
+                                    );
+                                    _fetchHistory();
+                                  }
+                                },
+                          icon: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                                )
+                              : const Icon(Icons.send, color: Colors.black),
+                          label: Text(
+                            _isSubmitting
+                                ? (isAr ? "جاري الإرسال..." : "Sending...")
+                                : (isAr ? "إرسال لرئيس القسم" : "Send to Dept Head"),
+                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -222,27 +259,44 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
     );
   }
 
-  Map<String, dynamic> _getStatusConfig(String status) {
+  Map<String, dynamic> _getStatusConfig(String status, bool isAr) {
     if (status == 'sent' || status == 'approved' || status == 'completed') {
-      return {'color': Colors.green, 'icon': Icons.check_circle, 'text': 'تم الإرسال للأهل'};
+      return {
+        'color': Colors.green,
+        'icon': Icons.check_circle,
+        'text': isAr ? 'تم الإرسال للأهل' : 'Sent to Parents',
+      };
     } else if (status == 'pending_affairs') {
-      return {'color': Colors.blue, 'icon': Icons.sync, 'text': 'محوّل للشؤون'};
+      return {
+        'color': Colors.blue,
+        'icon': Icons.sync,
+        'text': isAr ? 'محوّل للشؤون' : 'Referred to Affairs',
+      };
     } else if (status == 'rejected' || status == 'cancelled') {
-      return {'color': Colors.red, 'icon': Icons.cancel, 'text': 'ملغى'};
+      return {
+        'color': Colors.red,
+        'icon': Icons.cancel,
+        'text': isAr ? 'ملغى' : 'Cancelled',
+      };
     } else {
-      return {'color': Colors.orange, 'icon': Icons.hourglass_empty, 'text': 'بانتظار موافقة رئيس القسم'};
+      return {
+        'color': Colors.orange,
+        'icon': Icons.hourglass_empty,
+        'text': isAr ? 'بانتظار موافقة رئيس القسم' : 'Awaiting Dept Head Approval',
+      };
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF121212) : AppColors.background;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.textDark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
@@ -250,11 +304,14 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
           elevation: 0,
           centerTitle: true,
           title: Text(
-            "استدعاء أولياء الأمور (مربي الدورة)",
+            isAr ? "استدعاء أولياء الأمور (مربي الدورة)" : "Parent Summon (Course Advisor)",
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(
+              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+              color: textColor,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           bottom: TabBar(
@@ -262,10 +319,10 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
             labelColor: const Color(0xFFFFCC00),
             unselectedLabelColor: Colors.grey,
             indicatorColor: const Color(0xFFFFCC00),
-            tabs: const [
-              Tab(text: "الكل"),
-              Tab(text: "المعلقة"),
-              Tab(text: "المنتهية"),
+            tabs: [
+              Tab(text: isAr ? "الكل" : "All"),
+              Tab(text: isAr ? "المعلقة" : "Pending"),
+              Tab(text: isAr ? "المنتهية" : "Completed"),
             ],
           ),
         ),
@@ -281,7 +338,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                             Icon(Icons.assignment_ind_outlined, size: 70, color: Colors.grey.shade400),
                             const SizedBox(height: 12),
                             Text(
-                              "لا توجد استدعاءات في هذا الفلتر",
+                              isAr ? "لا توجد استدعاءات في هذا الفلتر" : "No summon requests found in this filter",
                               style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
                             ),
                           ],
@@ -295,7 +352,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                           itemCount: _summonsHistory.length,
                           itemBuilder: (context, index) {
                             final item = _summonsHistory[index];
-                            final st = _getStatusConfig(item['status'] ?? '');
+                            final st = _getStatusConfig(item['status'] ?? '', isAr);
 
                             return Card(
                               color: cardColor,
@@ -312,14 +369,14 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            "الطالب: ${item['student_name'] ?? 'غير محدد'}",
+                                            "${isAr ? "الطالب: " : "Student: "}${item['student_name'] ?? (isAr ? 'غير محدد' : 'Unspecified')}",
                                             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15),
                                           ),
                                         ),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: st['color'].withOpacity(0.12),
+                                            color: st['color'].withValues(alpha: 0.12),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Row(
@@ -338,8 +395,8 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      "السبب: ${item['reason_title'] ?? ''}",
-                                      style: TextStyle(color: textColor.withOpacity(0.85), fontSize: 13, fontWeight: FontWeight.w600),
+                                      "${isAr ? "السبب: " : "Reason: "}${item['reason_title'] ?? ''}",
+                                      style: TextStyle(color: textColor.withValues(alpha: 0.85), fontSize: 13, fontWeight: FontWeight.w600),
                                     ),
                                     if (item['details'] != null && item['details'].toString().isNotEmpty) ...[
                                       const SizedBox(height: 4),
@@ -350,7 +407,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                                     ],
                                     const SizedBox(height: 8),
                                     Text(
-                                      "تاريخ الطلب: ${item['created_at'] ?? ''}",
+                                      "${isAr ? "تاريخ الطلب: " : "Request Date: "}${item['created_at'] ?? ''}",
                                       style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
                                     ),
                                   ],
@@ -385,7 +442,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
             child: const Icon(Icons.add, color: Colors.black, size: 28),
           ),
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+        floatingActionButtonLocation: isAr ? FloatingActionButtonLocation.startFloat : FloatingActionButtonLocation.endFloat,
       ),
     );
   }

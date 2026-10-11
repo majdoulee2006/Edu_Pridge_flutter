@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'pending_approval_screen.dart';
@@ -27,8 +28,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   DateTime? selectedBirthDate;
   Uint8List? _profileImageBytes;
 
-    List<double>? _extractedFaceEmbedding;
-static const Color primaryYellow = Color(0xFFF6E300);
+  List<double>? _extractedFaceEmbedding;
+  static const Color primaryYellow = Color(0xFFF6E300);
+
+  bool get isAr => AppSettings.language.value == 'ar';
 
   final Map<String, List<String>> _departmentData = {
     'نظم معلومات': ['معلوماتية', 'اتصالات'],
@@ -56,7 +59,63 @@ static const Color primaryYellow = Color(0xFFF6E300);
   int _selectedChildrenCount = 1;
   final List<TextEditingController> _parentChildIdControllers = [TextEditingController()];
 
-  // فتح المعرض/الكاميرا لالتقاط صورة البروفايل (متوافق مع الويب والموبايل)
+  @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    _studentFirstNameController.dispose();
+    _studentLastNameController.dispose();
+    _studentTelegramIdController.dispose();
+    _studentEmailController.dispose();
+    _studentPhoneController.dispose();
+    _studentPasswordController.dispose();
+    _studentConfirmPasswordController.dispose();
+    _parentFirstNameController.dispose();
+    _parentLastNameController.dispose();
+    _parentTelegramIdController.dispose();
+    _parentEmailController.dispose();
+    _parentPhoneController.dispose();
+    _parentPasswordController.dispose();
+    _parentConfirmPasswordController.dispose();
+    for (var c in _parentChildIdControllers) { c.dispose(); }
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  String _getDeptName(String deptKey) {
+    if (isAr) return deptKey;
+    switch (deptKey) {
+      case 'نظم معلومات': return 'Information Systems';
+      case 'طبي': return 'Medical';
+      case 'تجاري': return 'Commercial';
+      case 'هندسي': return 'Engineering';
+      default: return deptKey;
+    }
+  }
+
+  String _getBranchName(String branchKey) {
+    if (isAr) return branchKey;
+    switch (branchKey) {
+      case 'معلوماتية': return 'Informatics';
+      case 'اتصالات': return 'Communications';
+      case 'صيدلة': return 'Pharmacy';
+      case 'مخابر': return 'Laboratories';
+      case 'ادارة اعمال': return 'Business Administration';
+      case 'محاسبة': return 'Accounting';
+      case 'هندسة عمارة': return 'Architecture';
+      case 'ديكور': return 'Interior Design';
+      default: return branchKey;
+    }
+  }
+
   Future<void> _pickProfilePhoto() async {
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -64,44 +123,58 @@ static const Color primaryYellow = Color(0xFFF6E300);
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'التقاط صورة الوجه (سيلفي الحضور)',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'يرجى التقاط سيلفي واضح ومواجه للكاميرا لاعتماد بصمة الحضور',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontFamily: 'Cairo'),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: primaryYellow.withOpacity(0.2), shape: BoxShape.circle),
-                  child: const Icon(Icons.camera_alt, color: Colors.black),
+      builder: (ctx) => Directionality(
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isAr ? 'التقاط صورة الوجه (سيلفي الحضور)' : 'Take Face Photo (Attendance Selfie)',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
                 ),
-                title: const Text('التقاط سيلفي بالكاميرا', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-                subtitle: const Text('موصى به لاعتماد بصمة الوجه بدقة', style: TextStyle(fontFamily: 'Cairo', fontSize: 11)),
-                onTap: () => Navigator.pop(ctx, ImageSource.camera),
-              ),
-              const Divider(),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle),
-                  child: const Icon(Icons.photo_library, color: Colors.black87),
+                const SizedBox(height: 8),
+                Text(
+                  isAr
+                      ? 'يرجى التقاط سيلفي واضح ومواجه للكاميرا لاعتماد بصمة الحضور'
+                      : 'Please take a clear selfie facing the camera for attendance recognition',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontFamily: 'Cairo'),
+                  textAlign: TextAlign.center,
                 ),
-                title: const Text('اختيار صورة من المعرض', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-              ),
-            ],
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: primaryYellow.withValues(alpha: 0.2), shape: BoxShape.circle),
+                    child: const Icon(Icons.camera_alt, color: Colors.black),
+                  ),
+                  title: Text(
+                    isAr ? 'التقاط سيلفي بالكاميرا' : 'Take selfie with camera',
+                    style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    isAr ? 'موصى به لاعتماد بصمة الوجه بدقة' : 'Recommended for accurate face recognition',
+                    style: const TextStyle(fontFamily: 'Cairo', fontSize: 11),
+                  ),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle),
+                    child: const Icon(Icons.photo_library, color: Colors.black87),
+                  ),
+                  title: Text(
+                    isAr ? 'اختيار صورة من المعرض' : 'Choose photo from gallery',
+                    style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+                  ),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -122,7 +195,6 @@ static const Color primaryYellow = Color(0xFFF6E300);
       final bytes = await photo.readAsBytes();
       setState(() => _profileImageBytes = bytes);
 
-      // استخراج بصمة الوجه وحفظها محلياً في الجوال
       try {
         final inputImage = InputImage.fromFilePath(photo.path);
         final faceDetector = FaceDetector(
@@ -140,16 +212,19 @@ static const Color primaryYellow = Color(0xFFF6E300);
           if (embedding.isNotEmpty) {
             _extractedFaceEmbedding = embedding;
 
-            // حفظ البصمة محلياً على الجوال فوراً
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('local_face_embedding', jsonEncode(embedding));
 
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم رصد ملامح وجهك وحفظ بصمة الحضور محلياً بنجاح ✅', textDirection: TextDirection.rtl),
+                SnackBar(
+                  content: Text(
+                    isAr
+                        ? 'تم رصد ملامح وجهك وحفظ بصمة الحضور محلياً بنجاح ✅'
+                        : 'Face features detected and attendance biometric saved successfully ✅',
+                  ),
                   backgroundColor: Colors.green,
-                  duration: Duration(seconds: 3),
+                  duration: const Duration(seconds: 3),
                 ),
               );
             }
@@ -157,10 +232,14 @@ static const Color primaryYellow = Color(0xFFF6E300);
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('تنبيه: لم يتم كشف وجه واضح. يرجى التأكد من وضوح السيلفي لاعتماد الحضور.', textDirection: TextDirection.rtl),
+              SnackBar(
+                content: Text(
+                  isAr
+                      ? 'تنبيه: لم يتم كشف وجه واضح. يرجى التأكد من وضوح السيلفي لاعتماد الحضور.'
+                      : 'Warning: No clear face detected. Ensure selfie is clear for attendance.',
+                ),
                 backgroundColor: Colors.orange,
-                duration: Duration(seconds: 4),
+                duration: const Duration(seconds: 4),
               ),
             );
           }
@@ -198,22 +277,35 @@ static const Color primaryYellow = Color(0xFFF6E300);
     String p1 = isStudent ? _studentPasswordController.text : _parentPasswordController.text;
     String p2 = isStudent ? _studentConfirmPasswordController.text : _parentConfirmPasswordController.text;
 
-    if (p1 != p2) { _showSnackBar('كلمات المرور غير متطابقة!'); return; }
+    if (p1 != p2) {
+      _showSnackBar(isAr ? 'كلمات المرور غير متطابقة!' : 'Passwords do not match!');
+      return;
+    }
 
     String phone = isStudent ? _studentPhoneController.text.trim() : _parentPhoneController.text.trim();
 
     if (isStudent) {
       final firstName = _studentFirstNameController.text.trim();
       final lastName  = _studentLastNameController.text.trim();
-      if (firstName.isEmpty || lastName.isEmpty) { _showSnackBar('يرجى إدخال الاسم الكامل'); return; }
+      if (firstName.isEmpty || lastName.isEmpty) {
+        _showSnackBar(isAr ? 'يرجى إدخال الاسم الكامل' : 'Please enter full name');
+        return;
+      }
 
       final email = _studentEmailController.text.trim();
-      if (email.isEmpty) { _showSnackBar('يرجى إدخال البريد الإلكتروني'); return; }
+      if (email.isEmpty) {
+        _showSnackBar(isAr ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter email address');
+        return;
+      }
 
-      if (phone.isEmpty) { _showSnackBar('يرجى إدخال رقم الهاتف'); return; }
+      if (phone.isEmpty) {
+        _showSnackBar(isAr ? 'يرجى إدخال رقم الهاتف' : 'Please enter phone number');
+        return;
+      }
 
       if (selectedGender == null || selectedBirthDate == null) {
-        _showSnackBar('يرجى إكمال كافة البيانات المطلوبة'); return;
+        _showSnackBar(isAr ? 'يرجى إكمال كافة البيانات المطلوبة' : 'Please complete all required fields');
+        return;
       }
 
       final fullName = '$firstName $lastName';
@@ -221,7 +313,6 @@ static const Color primaryYellow = Color(0xFFF6E300);
 
       setState(() => isLoading = true);
       try {
-        // إعداد الـ FormData لإرسال الصورة مع البيانات
         FormData formData = FormData.fromMap({
           "full_name":         fullName,
           "first_name":        firstName,
@@ -257,7 +348,7 @@ static const Color primaryYellow = Color(0xFFF6E300);
             (route) => false);
         }
       } on DioException catch (e) {
-        _showSnackBar(e.response?.data['message'] ?? "خطأ في تسجيل البيانات");
+        _showSnackBar(e.response?.data['message'] ?? (isAr ? "خطأ في تسجيل البيانات" : "Registration failed"));
       } finally {
         if (mounted) setState(() => isLoading = false);
       }
@@ -267,14 +358,26 @@ static const Color primaryYellow = Color(0xFFF6E300);
     // ولي أمر
     final firstName = _parentFirstNameController.text.trim();
     final lastName  = _parentLastNameController.text.trim();
-    if (firstName.isEmpty || lastName.isEmpty) { _showSnackBar('يرجى إدخال الاسم الأول والأخير'); return; }
+    if (firstName.isEmpty || lastName.isEmpty) {
+      _showSnackBar(isAr ? 'يرجى إدخال الاسم الأول والأخير' : 'Please enter first and last name');
+      return;
+    }
 
     final email = _parentEmailController.text.trim();
-    if (email.isEmpty) { _showSnackBar('يرجى إدخال البريد الإلكتروني'); return; }
-    if (phone.isEmpty) { _showSnackBar('يرجى إدخال رقم الهاتف'); return; }
+    if (email.isEmpty) {
+      _showSnackBar(isAr ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter email address');
+      return;
+    }
+    if (phone.isEmpty) {
+      _showSnackBar(isAr ? 'يرجى إدخال رقم الهاتف' : 'Please enter phone number');
+      return;
+    }
 
     final childrenIds = _parentChildIdControllers.map((c) => c.text.trim()).toList();
-    if (childrenIds.any((id) => id.isEmpty)) { _showSnackBar('يرجى إدخال الرقم الجامعي لجميع الأبناء'); return; }
+    if (childrenIds.any((id) => id.isEmpty)) {
+      _showSnackBar(isAr ? 'يرجى إدخال الرقم الجامعي لجميع الأبناء' : 'Please enter student ID for all children');
+      return;
+    }
 
     final parentTelegramId = _parentTelegramIdController.text.trim();
 
@@ -301,7 +404,7 @@ static const Color primaryYellow = Color(0xFFF6E300);
           (route) => false);
       }
     } on DioException catch (e) {
-      _showSnackBar(e.response?.data['message'] ?? "خطأ في تسجيل البيانات");
+      _showSnackBar(e.response?.data['message'] ?? (isAr ? "خطأ في تسجيل البيانات" : "Registration failed"));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -325,7 +428,7 @@ static const Color primaryYellow = Color(0xFFF6E300);
     final cardColor = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         body: Container(
           decoration: BoxDecoration(
@@ -343,6 +446,57 @@ static const Color primaryYellow = Color(0xFFF6E300);
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
               child: Column(
                 children: [
+                  // Top Navigation & Language switcher
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            AppSettings.setLanguage(isAr ? 'en' : 'ar');
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.black.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isDark ? Colors.white24 : Colors.black12,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.language_rounded, size: 16, color: primaryYellow),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isAr ? "English" : "العربية",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                    fontFamily: 'Cairo',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Role toggle (طالب / ولي أمر)
                   Container(
                     height: 50,
                     decoration: BoxDecoration(
@@ -351,8 +505,8 @@ static const Color primaryYellow = Color(0xFFF6E300);
                     ),
                     child: Row(
                       children: [
-                        _toggleItem('طالب', isStudent, () => setState(() => isStudent = true)),
-                        _toggleItem('ولي أمر', !isStudent, () => setState(() => isStudent = false)),
+                        _toggleItem(isAr ? 'طالب' : 'Student', isStudent, () => setState(() => isStudent = true)),
+                        _toggleItem(isAr ? 'ولي أمر' : 'Parent', !isStudent, () => setState(() => isStudent = false)),
                       ],
                     ),
                   ),
@@ -401,7 +555,7 @@ static const Color primaryYellow = Color(0xFFF6E300);
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'اضغط لالتقاط صورتك',
+                      isAr ? 'اضغط لالتقاط صورتك' : 'Tap to take your photo',
                       style: TextStyle(
                         color: Colors.grey.shade500,
                         fontSize: 12,
@@ -410,12 +564,14 @@ static const Color primaryYellow = Color(0xFFF6E300);
                     ),
                     const SizedBox(height: 20),
                   ] else ...[
-                    Icon(Icons.family_restroom, size: 60, color: primaryYellow),
+                    const Icon(Icons.family_restroom, size: 60, color: primaryYellow),
                     const SizedBox(height: 15),
                   ],
 
                   Text(
-                    isStudent ? 'بيانات الطالب' : 'بيانات ولي الأمر',
+                    isStudent
+                        ? (isAr ? 'بيانات الطالب' : 'Student Information')
+                        : (isAr ? 'بيانات ولي الأمر' : 'Parent Information'),
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo'),
                   ),
                   const SizedBox(height: 25),
@@ -435,17 +591,23 @@ static const Color primaryYellow = Color(0xFFF6E300);
                       ),
                       child: isLoading
                           ? const CircularProgressIndicator(color: Colors.black)
-                          : const Text('إنشاء حساب', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black, fontFamily: 'Cairo')),
+                          : Text(
+                              isAr ? 'إنشاء حساب' : 'Create Account',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black, fontFamily: 'Cairo'),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 15),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text.rich(TextSpan(
-                      text: 'لديك حساب بالفعل؟ ',
+                      text: isAr ? 'لديك حساب بالفعل؟ ' : 'Already have an account? ',
                       style: TextStyle(color: textColor.withValues(alpha: 0.6), fontFamily: 'Cairo', fontSize: 14),
-                      children: const [
-                        TextSpan(text: 'تسجيل الدخول', style: TextStyle(color: primaryYellow, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                      children: [
+                        TextSpan(
+                          text: isAr ? 'تسجيل الدخول' : 'Sign In',
+                          style: const TextStyle(color: primaryYellow, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                        ),
                       ],
                     )),
                   ),
@@ -480,48 +642,131 @@ static const Color primaryYellow = Color(0xFFF6E300);
         // الاسم الأول والأخير
         Row(
           children: [
-            Expanded(child: _buildInputField(label: 'الاسم الأول', hint: 'مثال: أحمد', icon: Icons.person_outline, controller: _studentFirstNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
+            Expanded(child: _buildInputField(
+              label: isAr ? 'الاسم الأول' : 'First Name',
+              hint: isAr ? 'مثال: أحمد' : 'e.g. John',
+              icon: Icons.person_outline,
+              controller: _studentFirstNameController,
+              textColor: textColor, cardColor: cardColor, isDark: isDark,
+            )),
             const SizedBox(width: 10),
-            Expanded(child: _buildInputField(label: 'الاسم الأخير', hint: 'مثال: محمد', icon: Icons.person_outline, controller: _studentLastNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
+            Expanded(child: _buildInputField(
+              label: isAr ? 'الاسم الأخير' : 'Last Name',
+              hint: isAr ? 'مثال: محمد' : 'e.g. Doe',
+              icon: Icons.person_outline,
+              controller: _studentLastNameController,
+              textColor: textColor, cardColor: cardColor, isDark: isDark,
+            )),
           ],
         ),
 
         // معرّف تيليجرام
-        _buildInputField(label: 'معرّف تيليجرام (Telegram ID)', hint: '7821980919', icon: Icons.send_outlined, controller: _studentTelegramIdController, keyboardType: TextInputType.number, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        _buildInputField(
+          label: isAr ? 'معرّف تيليجرام (Telegram ID)' : 'Telegram ID',
+          hint: '7821980919',
+          icon: Icons.send_outlined,
+          controller: _studentTelegramIdController,
+          keyboardType: TextInputType.number,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
 
         // الجنس
-        _buildInputField(label: 'الجنس', hint: 'اختر', isDropdown: true, dropdownItems: ['ذكر', 'أنثى'], value: selectedGender, onChanged: (val) => setState(() => selectedGender = val), textColor: textColor, cardColor: cardColor, isDark: isDark),
+        _buildInputField(
+          label: isAr ? 'الجنس' : 'Gender',
+          hint: isAr ? 'اختر' : 'Select',
+          isDropdown: true,
+          dropdownItems: ['ذكر', 'أنثى'],
+          dropdownItemLabels: {'ذكر': isAr ? 'ذكر' : 'Male', 'أنثى': isAr ? 'أنثى' : 'Female'},
+          value: selectedGender,
+          onChanged: (val) => setState(() => selectedGender = val),
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
 
-        // تاريخ الميلاد (بدون تحديد عمر)
+        // تاريخ الميلاد
         GestureDetector(
           onTap: _pickDate,
           child: AbsorbPointer(
             child: _buildInputField(
-              label: 'تاريخ الميلاد',
-              hint: selectedBirthDate == null ? 'حدد التاريخ' : "${selectedBirthDate!.toLocal()}".split(' ')[0],
+              label: isAr ? 'تاريخ الميلاد' : 'Birth Date',
+              hint: selectedBirthDate == null
+                  ? (isAr ? 'حدد التاريخ' : 'Select Date')
+                  : "${selectedBirthDate!.toLocal()}".split(' ')[0],
               icon: Icons.calendar_today_outlined,
               textColor: textColor, cardColor: cardColor, isDark: isDark,
             ),
           ),
         ),
 
-        // رقم الهاتف بدون تعليق 10 أرقام
-        _buildInputField(label: 'رقم الهاتف', hint: '09xxxxxxxx', icon: Icons.phone_enabled_outlined, controller: _studentPhoneController, keyboardType: TextInputType.phone, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        // رقم الهاتف
+        _buildInputField(
+          label: isAr ? 'رقم الهاتف' : 'Phone Number',
+          hint: '09xxxxxxxx',
+          icon: Icons.phone_enabled_outlined,
+          controller: _studentPhoneController,
+          keyboardType: TextInputType.phone,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
 
-        // البريد الإلكتروني الشخصي
-        _buildInputField(label: 'البريد الإلكتروني', hint: 'student@example.com', icon: Icons.email_outlined, controller: _studentEmailController, keyboardType: TextInputType.emailAddress, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        // البريد الإلكتروني
+        _buildInputField(
+          label: isAr ? 'البريد الإلكتروني' : 'Email Address',
+          hint: 'student@example.com',
+          icon: Icons.email_outlined,
+          controller: _studentEmailController,
+          keyboardType: TextInputType.emailAddress,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
 
         // القسم والفرع
         Row(
           children: [
-            Expanded(child: _buildInputField(label: 'القسم', hint: 'اختر القسم', isDropdown: true, dropdownItems: _departmentData.keys.toList(), value: selectedDept, onChanged: (val) { setState(() { selectedDept = val; selectedBranch = null; }); }, textColor: textColor, cardColor: cardColor, isDark: isDark)),
+            Expanded(child: _buildInputField(
+              label: isAr ? 'القسم' : 'Department',
+              hint: isAr ? 'اختر القسم' : 'Select Dept',
+              isDropdown: true,
+              dropdownItems: _departmentData.keys.toList(),
+              dropdownItemLabels: { for (var k in _departmentData.keys) k : _getDeptName(k) },
+              value: selectedDept,
+              onChanged: (val) {
+                setState(() {
+                  selectedDept = val;
+                  selectedBranch = null;
+                });
+              },
+              textColor: textColor, cardColor: cardColor, isDark: isDark,
+            )),
             const SizedBox(width: 10),
-            Expanded(child: _buildInputField(label: 'الفرع', hint: 'اختر الفرع', isDropdown: true, dropdownItems: selectedDept == null ? [] : _departmentData[selectedDept!], value: selectedBranch, onChanged: (val) => setState(() => selectedBranch = val), textColor: textColor, cardColor: cardColor, isDark: isDark)),
+            Expanded(child: _buildInputField(
+              label: isAr ? 'الفرع' : 'Branch',
+              hint: isAr ? 'اختر الفرع' : 'Select Branch',
+              isDropdown: true,
+              dropdownItems: selectedDept == null ? [] : _departmentData[selectedDept!],
+              dropdownItemLabels: selectedDept == null
+                  ? {}
+                  : { for (var b in _departmentData[selectedDept!]!) b : _getBranchName(b) },
+              value: selectedBranch,
+              onChanged: (val) => setState(() => selectedBranch = val),
+              textColor: textColor, cardColor: cardColor, isDark: isDark,
+            )),
           ],
         ),
 
-        _buildInputField(label: 'كلمة المرور', hint: '........', icon: Icons.lock_outline, controller: _studentPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
-        _buildInputField(label: 'تأكيد كلمة المرور', hint: '........', icon: Icons.check_circle_outline, controller: _studentConfirmPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        _buildInputField(
+          label: isAr ? 'كلمة المرور' : 'Password',
+          hint: '........',
+          icon: Icons.lock_outline,
+          controller: _studentPasswordController,
+          isPassword: true,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
+        _buildInputField(
+          label: isAr ? 'تأكيد كلمة المرور' : 'Confirm Password',
+          hint: '........',
+          icon: Icons.check_circle_outline,
+          controller: _studentConfirmPasswordController,
+          isPassword: true,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
       ],
     );
   }
@@ -531,16 +776,49 @@ static const Color primaryYellow = Color(0xFFF6E300);
       children: [
         Row(
           children: [
-            Expanded(child: _buildInputField(label: 'الاسم الأول', hint: 'مثال: أحمد', icon: Icons.person_outline, controller: _parentFirstNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
+            Expanded(child: _buildInputField(
+              label: isAr ? 'الاسم الأول' : 'First Name',
+              hint: isAr ? 'مثال: أحمد' : 'e.g. John',
+              icon: Icons.person_outline,
+              controller: _parentFirstNameController,
+              textColor: textColor, cardColor: cardColor, isDark: isDark,
+            )),
             const SizedBox(width: 10),
-            Expanded(child: _buildInputField(label: 'الاسم الأخير', hint: 'مثال: محمد', icon: Icons.person_outline, controller: _parentLastNameController, textColor: textColor, cardColor: cardColor, isDark: isDark)),
+            Expanded(child: _buildInputField(
+              label: isAr ? 'الاسم الأخير' : 'Last Name',
+              hint: isAr ? 'مثال: محمد' : 'e.g. Doe',
+              icon: Icons.person_outline,
+              controller: _parentLastNameController,
+              textColor: textColor, cardColor: cardColor, isDark: isDark,
+            )),
           ],
         ),
-        _buildInputField(label: 'معرّف تيليجرام (Telegram ID)', hint: '7821980919', icon: Icons.send_outlined, controller: _parentTelegramIdController, keyboardType: TextInputType.number, textColor: textColor, cardColor: cardColor, isDark: isDark),
-        _buildInputField(label: 'البريد الإلكتروني', hint: 'parent@example.com', icon: Icons.email_outlined, controller: _parentEmailController, textColor: textColor, cardColor: cardColor, isDark: isDark),
-        _buildInputField(label: 'رقم الهاتف', hint: 'رقم الموبايل الشخصي', icon: Icons.phone_enabled_outlined, controller: _parentPhoneController, textColor: textColor, cardColor: cardColor, isDark: isDark),
         _buildInputField(
-          label: 'عدد الأبناء', hint: 'العدد', isDropdown: true,
+          label: isAr ? 'معرّف تيليجرام (Telegram ID)' : 'Telegram ID',
+          hint: '7821980919',
+          icon: Icons.send_outlined,
+          controller: _parentTelegramIdController,
+          keyboardType: TextInputType.number,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
+        _buildInputField(
+          label: isAr ? 'البريد الإلكتروني' : 'Email Address',
+          hint: 'parent@example.com',
+          icon: Icons.email_outlined,
+          controller: _parentEmailController,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
+        _buildInputField(
+          label: isAr ? 'رقم الهاتف' : 'Phone Number',
+          hint: isAr ? 'رقم الموبايل الشخصي' : 'Personal mobile number',
+          icon: Icons.phone_enabled_outlined,
+          controller: _parentPhoneController,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
+        _buildInputField(
+          label: isAr ? 'عدد الأبناء' : 'Number of Children',
+          hint: isAr ? 'العدد' : 'Count',
+          isDropdown: true,
           dropdownItems: ['1', '2', '3', '4'],
           value: _selectedChildrenCount.toString(),
           textColor: textColor, cardColor: cardColor, isDark: isDark,
@@ -561,15 +839,29 @@ static const Color primaryYellow = Color(0xFFF6E300);
         ),
         ...List.generate(_selectedChildrenCount, (i) => _buildInputField(
           label: _selectedChildrenCount == 1
-              ? 'الرقم الجامعي لابنك/ابنتك'
-              : 'الرقم الجامعي للابن ${i + 1}',
-          hint: 'الرقم الذي أعطاه موظف الشؤون',
+              ? (isAr ? 'الرقم الجامعي لابنك/ابنتك' : 'Student ID of your child')
+              : (isAr ? 'الرقم الجامعي للابن ${i + 1}' : 'Student ID for child ${i + 1}'),
+          hint: isAr ? 'الرقم الذي أعطاه موظف الشؤون' : 'ID provided by student affairs',
           icon: Icons.badge_outlined,
           controller: _parentChildIdControllers[i],
           textColor: textColor, cardColor: cardColor, isDark: isDark,
         )),
-        _buildInputField(label: 'كلمة المرور', hint: '........', icon: Icons.lock_outline, controller: _parentPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
-        _buildInputField(label: 'تأكيد كلمة المرور', hint: '........', icon: Icons.check_circle_outline, controller: _parentConfirmPasswordController, isPassword: true, textColor: textColor, cardColor: cardColor, isDark: isDark),
+        _buildInputField(
+          label: isAr ? 'كلمة المرور' : 'Password',
+          hint: '........',
+          icon: Icons.lock_outline,
+          controller: _parentPasswordController,
+          isPassword: true,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
+        _buildInputField(
+          label: isAr ? 'تأكيد كلمة المرور' : 'Confirm Password',
+          hint: '........',
+          icon: Icons.check_circle_outline,
+          controller: _parentConfirmPasswordController,
+          isPassword: true,
+          textColor: textColor, cardColor: cardColor, isDark: isDark,
+        ),
       ],
     );
   }
@@ -582,6 +874,7 @@ static const Color primaryYellow = Color(0xFFF6E300);
     bool isPassword = false,
     bool isDropdown = false,
     List<String>? dropdownItems,
+    Map<String, String>? dropdownItemLabels,
     String? value,
     Function(String?)? onChanged,
     TextInputType? keyboardType,
@@ -594,16 +887,40 @@ static const Color primaryYellow = Color(0xFFF6E300);
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor.withValues(alpha: 0.7), fontFamily: 'Cairo')),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: textColor.withValues(alpha: 0.7),
+              fontFamily: 'Cairo',
+            ),
+          ),
           const SizedBox(height: 6),
           Container(
-            decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(30), border: Border.all(color: textColor.withValues(alpha: 0.1))),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: textColor.withValues(alpha: 0.1)),
+            ),
             child: isDropdown
                 ? DropdownButtonFormField<String>(
                     initialValue: value,
-                    items: (dropdownItems ?? []).map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13, fontFamily: 'Cairo')))).toList(),
+                    items: (dropdownItems ?? []).map((e) {
+                      final display = dropdownItemLabels != null && dropdownItemLabels.containsKey(e)
+                          ? dropdownItemLabels[e]!
+                          : e;
+                      return DropdownMenuItem(
+                        value: e,
+                        child: Text(display, style: const TextStyle(fontSize: 13, fontFamily: 'Cairo')),
+                      );
+                    }).toList(),
                     onChanged: onChanged,
-                    decoration: InputDecoration(prefixIcon: Icon(icon, size: 18), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 10)),
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(icon, size: 18),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
                     dropdownColor: isDark ? Colors.grey[900] : Colors.white,
                     style: TextStyle(color: textColor, fontSize: 13),
                   )
@@ -611,12 +928,13 @@ static const Color primaryYellow = Color(0xFFF6E300);
                     controller: controller,
                     obscureText: isPassword,
                     keyboardType: keyboardType,
+                    textAlign: isAr ? TextAlign.right : TextAlign.left,
                     decoration: InputDecoration(
                       hintText: hint,
                       hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontFamily: 'Cairo'),
                       prefixIcon: Icon(icon, size: 18),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     style: TextStyle(color: textColor, fontSize: 13),
                   ),
@@ -624,25 +942,5 @@ static const Color primaryYellow = Color(0xFFF6E300);
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _studentFirstNameController.dispose();
-    _studentLastNameController.dispose();
-    _studentTelegramIdController.dispose();
-    _studentEmailController.dispose();
-    _studentPhoneController.dispose();
-    _studentPasswordController.dispose();
-    _studentConfirmPasswordController.dispose();
-    _parentFirstNameController.dispose();
-    _parentLastNameController.dispose();
-    _parentTelegramIdController.dispose();
-    _parentEmailController.dispose();
-    _parentPhoneController.dispose();
-    _parentPasswordController.dispose();
-    _parentConfirmPasswordController.dispose();
-    for (var c in _parentChildIdControllers) { c.dispose(); }
-    super.dispose();
   }
 }

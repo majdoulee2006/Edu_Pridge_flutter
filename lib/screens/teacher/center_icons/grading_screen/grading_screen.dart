@@ -28,9 +28,14 @@ class _GradingScreenState extends State<GradingScreen> {
   final TextEditingController _feedbackController = TextEditingController();
   bool _isSaving = false;
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     final grade    = widget.submission['grade'];
     final feedback = widget.submission['feedback'];
     if (grade    != null) _gradeController.text    = '$grade';
@@ -39,6 +44,7 @@ class _GradingScreenState extends State<GradingScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _gradeController.dispose();
     _feedbackController.dispose();
     super.dispose();
@@ -56,17 +62,24 @@ class _GradingScreenState extends State<GradingScreen> {
   }
 
   Future<void> _submitGrade() async {
+    final isAr = AppSettings.language.value == 'ar';
     final gradeVal = double.tryParse(_gradeController.text.trim());
     if (gradeVal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل درجة صحيحة')),
+        SnackBar(content: Text(isAr ? 'أدخل درجة صحيحة' : 'Enter a valid grade')),
       );
       return;
     }
     final maxPoints = double.tryParse(widget.submission['max_points']?.toString() ?? '') ?? 100.0;
     if (gradeVal < 0 || gradeVal > maxPoints) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('الدرجة يجب أن تكون بين 0 و ${maxPoints % 1 == 0 ? maxPoints.toInt() : maxPoints}')),
+        SnackBar(
+          content: Text(
+            isAr
+                ? 'الدرجة يجب أن تكون بين 0 و ${maxPoints % 1 == 0 ? maxPoints.toInt() : maxPoints}'
+                : 'Grade must be between 0 and ${maxPoints % 1 == 0 ? maxPoints.toInt() : maxPoints}',
+          ),
+        ),
       );
       return;
     }
@@ -82,20 +95,22 @@ class _GradingScreenState extends State<GradingScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم حفظ التصحيح بنجاح')),
+          SnackBar(
+            content: Text(isAr ? '✅ تم حفظ التصحيح بنجاح' : '✅ Grading saved successfully'),
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       debugPrint('⛔ Grade Error: $e');
-      String errorMsg = 'حدث خطأ، حاول مجدداً';
+      String errorMsg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, please try again';
       try {
         if (e is DioException && e.response != null) {
           final status = e.response!.statusCode;
           final data = e.response!.data;
           String? msg;
           if (data is Map) msg = data['message']?.toString();
-          errorMsg = 'خطأ $status: ${msg ?? errorMsg}';
+          errorMsg = isAr ? 'خطأ $status: ${msg ?? errorMsg}' : 'Error $status: ${msg ?? errorMsg}';
           debugPrint('⛔ Status: $status | Data type: ${data.runtimeType}');
         }
       } catch (_) {}
@@ -111,6 +126,7 @@ class _GradingScreenState extends State<GradingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     // الألوان
     const Color primaryYellow = Color(0xFFFFCC00);
 
@@ -122,7 +138,7 @@ class _GradingScreenState extends State<GradingScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         extendBody: true,
@@ -131,11 +147,11 @@ class _GradingScreenState extends State<GradingScreen> {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_back_ios_new, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'تفاصيل الرد',
+            isAr ? 'تفاصيل الرد' : 'Submission Details',
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
@@ -155,12 +171,12 @@ class _GradingScreenState extends State<GradingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStudentHeaderCard(context, cardColor, textColor, isDark),
+                  _buildStudentHeaderCard(context, cardColor, textColor, isDark, isAr),
                   const SizedBox(height: 15),
                   // ملاحظات/رسالة الطالب المعادة مع الحل
                   if (widget.submission['student_notes'] != null &&
                       widget.submission['student_notes'].toString().trim().isNotEmpty) ...[
-                    _buildSectionTitle("ملاحظات الطالب مع الحل", textColor),
+                    _buildSectionTitle(isAr ? "ملاحظات الطالب مع الحل" : "Student Notes with Solution", textColor, isAr),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
@@ -177,7 +193,7 @@ class _GradingScreenState extends State<GradingScreen> {
                     const SizedBox(height: 15),
                   ],
                   if ((widget.submission['file_path'] as String?) != null) ...[
-                    _buildSectionTitle("الملفات والمرفقات", textColor),
+                    _buildSectionTitle(isAr ? "الملفات والمرفقات" : "Files & Attachments", textColor, isAr),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -193,7 +209,10 @@ class _GradingScreenState extends State<GradingScreen> {
                             children: [
                               const Icon(Icons.attach_file, color: Colors.blue, size: 20),
                               const SizedBox(width: 8),
-                              Text('الملف المرفق من الطالب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
+                              Text(
+                                isAr ? 'الملف المرفق من الطالب' : 'Student Attached File',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 12),
@@ -214,7 +233,7 @@ class _GradingScreenState extends State<GradingScreen> {
                   ],
                   if (widget.submission['solution_text'] != null &&
                       (widget.submission['solution_text'] as String).trim().isNotEmpty) ...[
-                    _buildSectionTitle("إجابة الطالب النصية", textColor),
+                    _buildSectionTitle(isAr ? "إجابة الطالب النصية" : "Student Written Answer", textColor, isAr),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -230,7 +249,10 @@ class _GradingScreenState extends State<GradingScreen> {
                             children: [
                               const Icon(Icons.edit_note_rounded, color: Colors.green, size: 22),
                               const SizedBox(width: 8),
-                              Text('نص الحل المكتوب:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
+                              Text(
+                                isAr ? 'نص الحل المكتوب:' : 'Written solution text:',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 10),
@@ -238,39 +260,6 @@ class _GradingScreenState extends State<GradingScreen> {
                           const SizedBox(height: 8),
                           Text(
                             widget.submission['solution_text'] as String,
-                            style: TextStyle(color: textColor, fontSize: 13, height: 1.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                  ],
-                  if (widget.submission['student_notes'] != null &&
-                      (widget.submission['student_notes'] as String).trim().isNotEmpty) ...[
-                    _buildSectionTitle("ملاحظات من الطالب", textColor),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.blueGrey.withAlpha(20) : Colors.blueGrey.withAlpha(10),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.blueGrey.withAlpha(40)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.notes_rounded, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700, size: 18),
-                              const SizedBox(width: 8),
-                              Text('ملاحظات الطالب المرفقة:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Divider(color: isDark ? Colors.white.withAlpha(20) : Colors.grey.shade300),
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.submission['student_notes'] as String,
                             style: TextStyle(color: textColor, fontSize: 13, height: 1.5),
                           ),
                         ],
@@ -293,13 +282,15 @@ class _GradingScreenState extends State<GradingScreen> {
                       onPressed: _isSaving ? null : _submitGrade,
                       child: _isSaving
                           ? const CircularProgressIndicator(color: Colors.black)
-                          : const Row(
+                          : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_circle_outline, color: Colors.black),
-                                SizedBox(width: 10),
-                                Text('اعتماد وحفظ التصحيح',
-                                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                                const Icon(Icons.check_circle_outline, color: Colors.black),
+                                const SizedBox(width: 10),
+                                Text(
+                                  isAr ? 'اعتماد وحفظ التصحيح' : 'Approve & Save Grade',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
                               ],
                             ),
                     ),
@@ -330,6 +321,7 @@ class _GradingScreenState extends State<GradingScreen> {
     Color cardColor,
     Color textColor,
     bool isDark,
+    bool isAr,
   ) {
     final desc = widget.submission['assignment_description']?.toString() ??
         widget.submission['description']?.toString();
@@ -342,7 +334,10 @@ class _GradingScreenState extends State<GradingScreen> {
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
         ],
-        border: const Border(right: BorderSide(color: Colors.orange, width: 5)),
+        border: Border(
+          right: BorderSide(color: Colors.orange, width: isAr ? 5 : 0),
+          left: BorderSide(color: Colors.orange, width: isAr ? 0 : 5),
+        ),
       ),
       child: Column(
         children: [
@@ -363,9 +358,9 @@ class _GradingScreenState extends State<GradingScreen> {
             ),
           ),
           const Divider(),
-          const Text(
-            "الواجب المطلوب",
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+          Text(
+            isAr ? "الواجب المطلوب" : "Assignment",
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
           const SizedBox(height: 1),
           Row(
@@ -399,13 +394,13 @@ class _GradingScreenState extends State<GradingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.orange),
-                      SizedBox(width: 6),
+                      const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                      const SizedBox(width: 6),
                       Text(
-                        "معطيات / وصف التمرين:",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange),
+                        isAr ? "معطيات / وصف التمرين:" : "Assignment Info / Description:",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange),
                       ),
                     ],
                   ),
@@ -423,9 +418,9 @@ class _GradingScreenState extends State<GradingScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, Color textColor) {
+  Widget _buildSectionTitle(String title, Color textColor, [bool isAr = true]) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, right: 5),
+      padding: EdgeInsets.only(bottom: 10, right: isAr ? 5 : 0, left: isAr ? 0 : 5),
       child: Row(
         children: [
           Container(
@@ -460,6 +455,7 @@ class _GradingScreenState extends State<GradingScreen> {
     Color cardColor,
     Color textColor,
   ) {
+    final isAr = AppSettings.language.value == 'ar';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -504,7 +500,7 @@ class _GradingScreenState extends State<GradingScreen> {
               Icons.visibility_outlined,
               color: Colors.blue,
             ),
-            tooltip: 'عرض الملف',
+            tooltip: isAr ? 'عرض الملف' : 'View File',
             onPressed: () async {
               final uri = Uri.parse(url);
               if (await canLaunchUrl(uri)) {
@@ -517,7 +513,7 @@ class _GradingScreenState extends State<GradingScreen> {
               Icons.download_rounded,
               color: Colors.green,
             ),
-            tooltip: 'تنزيل الملف',
+            tooltip: isAr ? 'تنزيل الملف' : 'Download File',
             onPressed: () async {
               final uri = Uri.parse(url);
               if (await canLaunchUrl(uri)) {
@@ -537,6 +533,7 @@ class _GradingScreenState extends State<GradingScreen> {
     Color textColor,
     bool isDark,
   ) {
+    final isAr = AppSettings.language.value == 'ar';
     final inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(15),
       borderSide: BorderSide(
@@ -555,7 +552,7 @@ class _GradingScreenState extends State<GradingScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "الدرجة المستحقة (من ${widget.submission['max_points'] ?? 100})",
+          "${isAr ? "الدرجة المستحقة (من " : "Earned Grade (Out of "}${widget.submission['max_points'] ?? 100})",
           style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
         ),
         const SizedBox(height: 8),
@@ -591,7 +588,7 @@ class _GradingScreenState extends State<GradingScreen> {
         ),
         const SizedBox(height: 15),
         Text(
-          "ملاحظات المعلم",
+          isAr ? "ملاحظات المعلم" : "Teacher Feedback",
           style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
         ),
         const SizedBox(height: 8),
@@ -600,7 +597,7 @@ class _GradingScreenState extends State<GradingScreen> {
           maxLines: 3,
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
-            hintText: "اكتب ملاحظاتك للطالب هنا...",
+            hintText: isAr ? "اكتب ملاحظاتك للطالب هنا..." : "Write your feedback to the student here...",
             filled: true,
             fillColor: cardColor,
             border: inputBorder,

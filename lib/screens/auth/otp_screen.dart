@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'login_screen.dart';
@@ -29,7 +30,8 @@ class _OTPScreenState extends State<OTPScreen> {
   bool _isLoading = false;
   bool _isResending = false;
 
-  // 6 مربعات OTP
+  bool get isAr => AppSettings.language.value == 'ar';
+
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
@@ -37,7 +39,25 @@ class _OTPScreenState extends State<OTPScreen> {
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _startTimer();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    _timer?.cancel();
+    for (var c in _controllers) {
+      c.dispose();
+    }
+    for (var n in _focusNodes) {
+      n.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   void _startTimer() {
@@ -57,11 +77,13 @@ class _OTPScreenState extends State<OTPScreen> {
         _controllers.map((c) => c.text).join().trim();
 
     if (otpCode.length < 6) {
-      _showMessage("يرجى إدخال الرمز كاملاً (6 أرقام)", isError: true);
+      _showMessage(
+        isAr ? "يرجى إدخال الرمز كاملاً (6 أرقام)" : "Please enter the full 6-digit code",
+        isError: true,
+      );
       return;
     }
 
-    // وضع استعادة كلمة السر: روح مباشرة لشاشة إعادة التعيين بدون استدعاء API
     if (widget.isPasswordReset) {
       Navigator.pushReplacement(
         context,
@@ -90,7 +112,7 @@ class _OTPScreenState extends State<OTPScreen> {
       if (response.statusCode != null &&
           response.statusCode! >= 200 &&
           response.statusCode! < 300) {
-        _showMessage("تم التحقق بنجاح!", isError: false);
+        _showMessage(isAr ? "تم التحقق بنجاح!" : "Verified successfully!", isError: false);
         await Future.delayed(const Duration(milliseconds: 800));
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(
@@ -101,11 +123,11 @@ class _OTPScreenState extends State<OTPScreen> {
       }
     } on DioException catch (e) {
       final msg = e.response?.data['message']?.toString() ??
-          "الرمز الذي أدخلته غير صحيح";
+          (isAr ? "الرمز الذي أدخلته غير صحيح" : "The code entered is incorrect");
       _showMessage(msg, isError: true);
     } catch (e) {
       debugPrint("OTP verify error: $e");
-      _showMessage("حدث خطأ تقني، حاول مجدداً", isError: true);
+      _showMessage(isAr ? "حدث خطأ تقني، حاول مجدداً" : "A technical error occurred, try again", isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -122,7 +144,7 @@ class _OTPScreenState extends State<OTPScreen> {
           "Content-Type": "application/json",
         }),
       );
-      _showMessage("تم إعادة إرسال الرمز إلى بريدك", isError: false);
+      _showMessage(isAr ? "تم إعادة إرسال الرمز إلى بريدك" : "Verification code resent to your email", isError: false);
       _startTimer();
       for (var c in _controllers) {
         c.clear();
@@ -130,7 +152,7 @@ class _OTPScreenState extends State<OTPScreen> {
       _focusNodes[0].requestFocus();
     } on DioException catch (e) {
       final msg =
-          e.response?.data['message']?.toString() ?? "تعذّر إعادة الإرسال";
+          e.response?.data['message']?.toString() ?? (isAr ? "تعذّر إعادة الإرسال" : "Could not resend code");
       _showMessage(msg, isError: true);
     } finally {
       if (mounted) setState(() => _isResending = false);
@@ -149,43 +171,41 @@ class _OTPScreenState extends State<OTPScreen> {
   }
 
   @override
-  void dispose() {
-    _timer?.cancel();
-    for (var c in _controllers) {
-      c.dispose();
-    }
-    for (var n in _focusNodes) {
-      n.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
     const primaryYellow = Color(0xFFFFCC00);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(widget.appBarTitle,
-            style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                fontFamily: 'Cairo')),
-        leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
-            onPressed: () => Navigator.pop(context)),
-      ),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: SingleChildScrollView(
+    final titleText = widget.appBarTitle == "التحقق من الحساب"
+        ? (isAr ? "التحقق من الحساب" : "Account Verification")
+        : (widget.appBarTitle == "تحقق من بريدك"
+            ? (isAr ? "تحقق من بريدك" : "Verify Email")
+            : widget.appBarTitle);
+
+    final messageText = widget.message == "تم إرسال رمز التحقق إلى بريدك الإلكتروني"
+        ? (isAr ? "تم إرسال رمز التحقق إلى بريدك الإلكتروني" : "Verification code sent to your email")
+        : widget.message;
+
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(titleText,
+              style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  fontFamily: 'Cairo')),
+          leading: IconButton(
+              icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
+              onPressed: () => Navigator.pop(context)),
+        ),
+        body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 25),
           child: Column(
             children: [
@@ -194,15 +214,17 @@ class _OTPScreenState extends State<OTPScreen> {
                   size: 80,
                   color: isDark ? primaryYellow : const Color(0xFFD4AC0D)),
               const SizedBox(height: 30),
-              Text("أدخل رمز التحقق",
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      fontFamily: 'Cairo')),
+              Text(
+                isAr ? "أدخل رمز التحقق" : "Enter Verification Code",
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    fontFamily: 'Cairo'),
+              ),
               const SizedBox(height: 15),
               Text(
-                "${widget.message}\n${widget.email}",
+                "$messageText\n${widget.email}",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -212,7 +234,6 @@ class _OTPScreenState extends State<OTPScreen> {
               ),
               const SizedBox(height: 40),
 
-              // ── 6 مربعات OTP ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(6, (i) => _otpBox(i, isDark)),
@@ -234,12 +255,14 @@ class _OTPScreenState extends State<OTPScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.black)
-                      : const Text("تأكيد الرمز",
-                          style: TextStyle(
+                      : Text(
+                          isAr ? "تأكيد الرمز" : "Confirm Code",
+                          style: const TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              fontFamily: 'Cairo')),
+                              fontFamily: 'Cairo'),
+                        ),
                 ),
               ),
               const SizedBox(height: 30),
@@ -253,11 +276,13 @@ class _OTPScreenState extends State<OTPScreen> {
   Widget _buildResendSection(bool isDark, Color primaryYellow, Color textColor) {
     return Column(
       children: [
-        Text("لم يصلك الرمز؟",
-            style: TextStyle(
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
-                fontSize: 13,
-                fontFamily: 'Cairo')),
+        Text(
+          isAr ? "لم يصلك الرمز؟" : "Didn't receive code?",
+          style: TextStyle(
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              fontSize: 13,
+              fontFamily: 'Cairo'),
+        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -271,7 +296,7 @@ class _OTPScreenState extends State<OTPScreen> {
               TextButton(
                 onPressed: _counter == 0 ? _handleResend : null,
                 child: Text(
-                  "إعادة إرسال الرمز",
+                  isAr ? "إعادة إرسال الرمز" : "Resend Code",
                   style: TextStyle(
                       color: _counter == 0
                           ? (isDark ? primaryYellow : Colors.black)

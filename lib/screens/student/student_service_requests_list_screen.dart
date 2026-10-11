@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class StudentServiceRequestsListScreen extends StatefulWidget {
   final String serviceType; // 'mercy', 'document', 'makeup'
@@ -25,10 +26,21 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
   List<dynamic> _requests = [];
   final ApiService _apiService = ApiService();
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchRequests();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _fetchRequests() async {
@@ -67,17 +79,15 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
 
   @override
   Widget build(BuildContext context) {
-    // يمكن ربطها بـ AppSettings للغة والوضع المظلم، سنستخدم القيم الثابتة للتوضيح هنا
-    // أو يمكنك استيراد AppSettings إذا كانت متوفرة
-    bool isAr = true; // يفترض أن تكون مرتبطة بـ AppSettings.language
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isAr = AppSettings.language.value == 'ar';
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     final bgColor = isDark ? const Color(0xFF121212) : AppColors.background;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.textDark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
@@ -85,7 +95,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
           elevation: 0,
           centerTitle: true,
           title: Text(
-            widget.titleAr,
+            isAr ? widget.titleAr : widget.titleEn,
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           leading: IconButton(
@@ -103,7 +113,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
                         Icon(Icons.inbox_rounded, size: 80, color: Colors.grey.shade400),
                         const SizedBox(height: 16),
                         Text(
-                          "لا توجد طلبات سابقة",
+                          isAr ? "لا توجد طلبات سابقة" : "No previous requests",
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                         ),
                       ],
@@ -166,13 +176,16 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
                                     decoration: BoxDecoration(
                                       color: Colors.grey.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border(right: BorderSide(color: statusConfig['color'], width: 3)),
+                                      border: Border(
+                                        right: isAr ? BorderSide(color: statusConfig['color'], width: 3) : BorderSide.none,
+                                        left: !isAr ? BorderSide(color: statusConfig['color'], width: 3) : BorderSide.none,
+                                      ),
                                     ),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "رد الإدارة:",
+                                          isAr ? "رد الإدارة:" : "Admin Response:",
                                           style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 12),
                                         ),
                                         const SizedBox(height: 4),
@@ -207,7 +220,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
           },
           icon: const Icon(Icons.add, color: Colors.white),
           label: Text(
-            "طلب جديد",
+            isAr ? "طلب جديد" : "New Request",
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),

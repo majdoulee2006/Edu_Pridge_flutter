@@ -42,8 +42,6 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   // مفتاح مدمج للدورة والسنة: "programId_year"
   String? _selectedProgramYearKey;
 
-  // حالة التبويبات الداخلية في صفحة "تسجيل الحضور"
-  String _attendanceTabFilter = "إعداد الجلسة";
   
   // فلترة سجل الحضور
   String _historyScope = 'my_courses'; // my_courses, advisor_class
@@ -80,16 +78,18 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   // التقارير المولدة محلياً
   List<File> _generatedReports = [];
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _attendanceTabController = TabController(length: 2, vsync: this);
     _attendanceTabController.addListener(() {
       if (!_attendanceTabController.indexIsChanging) {
-        setState(() {
-          _attendanceTabFilter =
-              _attendanceTabController.index == 0 ? 'إعداد الجلسة' : 'سجل الحضور';
-        });
+        setState(() {});
       }
     });
     _loadData();
@@ -98,6 +98,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _attendanceTabController.dispose();
     _stopTimers();
     super.dispose();
@@ -148,7 +149,8 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         if (res.data['session_ended'] == true) {
           _stopTimers();
           if (mounted) setState(() { _sessionActive = false; _qrToken = null; _sessionId = null; });
-          _showSnack('انتهت مدة الجلسة (10 دقائق) ✅');
+          final isAr = AppSettings.language.value == 'ar';
+          _showSnack(isAr ? 'انتهت مدة الجلسة (10 دقائق) ✅' : 'Session duration ended (10 minutes) ✅');
           return;
         }
         if (mounted) setState(() => _qrToken = res.data['data']['qr_token'] as String?);
@@ -243,8 +245,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   }
 
   Future<void> _startSession() async {
+    final isAr = AppSettings.language.value == 'ar';
     if (_selectedCourseId == null) {
-      _showSnack('اختر المادة والدورة أولاً');
+      _showSnack(isAr ? 'اختر المادة والدورة أولاً' : 'Select course and program first');
       return;
     }
     setState(() => _isStarting = true);
@@ -269,11 +272,11 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         });
         _startTimers();
       } else {
-        _showSnack('فشل بدء الجلسة، حاول مجدداً');
+        _showSnack(isAr ? 'فشل بدء الجلسة، حاول مجدداً' : 'Failed to start session, please try again');
       }
     } catch (e) {
       debugPrint('⛔ Start Session Error: $e');
-      _showSnack('حدث خطأ، حاول مجدداً');
+      _showSnack(isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, please try again');
     } finally {
       if (mounted) setState(() => _isStarting = false);
     }
@@ -281,6 +284,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   Future<void> _fetchAbsentList([String initialFilter = 'all']) async {
     if (_sessionId == null) return;
+    final isAr = AppSettings.language.value == 'ar';
     try {
       final token = await _getToken();
       final res = await Dio().get(
@@ -305,12 +309,13 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       }
     } catch (e) {
       debugPrint('⛔ Absent List Error: $e');
-      _showSnack('تعذر جلب القائمة');
+      _showSnack(isAr ? 'تعذر جلب القائمة' : 'Unable to fetch student list');
     }
   }
 
   Future<void> _endSession() async {
     if (_sessionId == null) return;
+    final isAr = AppSettings.language.value == 'ar';
     setState(() => _isEnding = true);
     try {
       final token = await _getToken();
@@ -327,10 +332,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         _sessionId = null;
         _absentStudents = [];
       });
-      _showSnack('تم إنهاء الجلسة وتسجيل الغياب بنجاح ✅');
+      _showSnack(isAr ? 'تم إنهاء الجلسة وتسجيل الغياب بنجاح ✅' : 'Session ended and absence recorded successfully ✅');
     } catch (e) {
       debugPrint('⛔ End Session Error: $e');
-      _showSnack('حدث خطأ أثناء إنهاء الجلسة');
+      _showSnack(isAr ? 'حدث خطأ أثناء إنهاء الجلسة' : 'An error occurred while ending the session');
     } finally {
       if (mounted) setState(() => _isEnding = false);
     }
@@ -338,9 +343,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   // تصدير كشف الحضور كملف Excel ومشاركته
   Future<void> _exportExcel() async {
+    final isAr = AppSettings.language.value == 'ar';
     final sid = _sessionId ?? _lastSessionId;
     if (sid == null) {
-      _showSnack('لا توجد جلسة للتصدير');
+      _showSnack(isAr ? 'لا توجد جلسة للتصدير' : 'No session available to export');
       return;
     }
 
@@ -353,7 +359,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       );
 
       if (res.statusCode != 200 || res.data['success'] != true) {
-        _showSnack('تعذر جلب بيانات الكشف');
+        _showSnack(isAr ? 'تعذر جلب بيانات الكشف' : 'Failed to fetch attendance data');
         return;
       }
 
@@ -364,11 +370,13 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
       // بناء ملف Excel
       final excel = xl.Excel.createExcel();
-      final sheet = excel['كشف الحضور'];
+      final sheet = excel[isAr ? 'كشف الحضور' : 'Attendance'];
       excel.delete('Sheet1');
 
       // رأس الجدول
-      final headers = ['اسم الطالب', 'القسم', 'المادة', 'التاريخ', 'الحالة'];
+      final headers = isAr
+          ? ['اسم الطالب', 'القسم', 'المادة', 'التاريخ', 'الحالة']
+          : ['Student Name', 'Department', 'Course', 'Date', 'Status'];
       final headerStyle = xl.CellStyle(
         bold: true,
         horizontalAlign: xl.HorizontalAlign.Center,
@@ -386,18 +394,18 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       final dateStr = '${today.year}/${today.month.toString().padLeft(2, '0')}/${today.day.toString().padLeft(2, '0')}';
       final courseName = _filteredCourses.firstWhere(
         (c) => c['id'] == _selectedCourseId,
-        orElse: () => {'title': 'غير محدد'},
-      )['title'] as String? ?? 'غير محدد';
+        orElse: () => {'title': isAr ? 'غير محدد' : 'N/A'},
+      )['title'] as String? ?? (isAr ? 'غير محدد' : 'N/A');
 
       for (int i = 0; i < allStudents.length; i++) {
         final student = allStudents[i];
         final isPresent = student['status'] == 'present';
         final rowData = [
           student['name'] ?? '',
-          'غير محدد',
+          isAr ? 'غير محدد' : 'N/A',
           courseName,
           dateStr,
-          isPresent ? 'حاضر' : 'غائب',
+          isPresent ? (isAr ? 'حاضر' : 'Present') : (isAr ? 'غائب' : 'Absent'),
         ];
 
         for (int j = 0; j < rowData.length; j++) {
@@ -412,7 +420,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       // حفظ الملف
       final bytes = excel.save();
       if (bytes == null) {
-        _showSnack('فشل إنشاء الملف');
+        _showSnack(isAr ? 'فشل إنشاء الملف' : 'Failed to create file');
         return;
       }
 
@@ -420,7 +428,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       final fileName = 'Attendance_$safeDate.xlsx';
 
       final savedPath = await FilePicker.platform.saveFile(
-        dialogTitle: 'حفظ كشف الحضور',
+        dialogTitle: isAr ? 'حفظ كشف الحضور' : 'Save Attendance Sheet',
         fileName: fileName,
         type: FileType.custom,
         allowedExtensions: ['xlsx'],
@@ -428,21 +436,22 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       );
 
       if (savedPath != null) {
-        _showSnack('✅ تم الحفظ بنجاح');
+        _showSnack(isAr ? '✅ تم الحفظ بنجاح' : '✅ Saved successfully');
       }
     } catch (e) {
       debugPrint('⛔ Excel Export Error: $e');
-      _showSnack('حدث خطأ أثناء التصدير');
+      _showSnack(isAr ? 'حدث خطأ أثناء التصدير' : 'An error occurred while exporting');
     }
   }
 
   // تصدير PDF للمادة المحددة طوال الفصل
   Future<void> _exportPdf() async {
+    final isAr = AppSettings.language.value == 'ar';
     if (_selectedCourseId == null) {
-      _showSnack('اختر المادة أولاً لتصدير كشف PDF الشامل');
+      _showSnack(isAr ? 'اختر المادة أولاً لتصدير كشف PDF الشامل' : 'Select a course first to export PDF');
       return;
     }
-    _showSnack('جاري تجهيز التقرير، يرجى الانتظار...');
+    _showSnack(isAr ? 'جاري تجهيز التقرير، يرجى الانتظار...' : 'Preparing report, please wait...');
 
     try {
       final token = await _getToken();
@@ -460,7 +469,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       if (res.statusCode == 200) {
         final safeDate = DateTime.now().toString().split(' ')[0];
         final savedPath = await FilePicker.platform.saveFile(
-          dialogTitle: 'حفظ كشف الحضور PDF',
+          dialogTitle: isAr ? 'حفظ كشف الحضور PDF' : 'Save Attendance PDF Report',
           fileName: 'attendance_report_$safeDate.pdf',
           type: FileType.custom,
           allowedExtensions: ['pdf'],
@@ -468,14 +477,14 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         );
 
         if (savedPath != null) {
-          _showSnack('✅ تم الحفظ بنجاح');
+          _showSnack(isAr ? '✅ تم الحفظ بنجاح' : '✅ Saved successfully');
         }
       } else {
-        _showSnack('فشل تحميل التقرير');
+        _showSnack(isAr ? 'فشل تحميل التقرير' : 'Failed to download report');
       }
     } catch (e) {
       debugPrint('⛔ PDF Export Error: $e');
-      _showSnack('حدث خطأ أثناء تحميل التقرير');
+      _showSnack(isAr ? 'حدث خطأ أثناء تحميل التقرير' : 'An error occurred while downloading report');
     }
   }
 
@@ -485,7 +494,8 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   // تصدير PDF مفلتر بناءً على تبويب "سجل الحضور"
   Future<void> _exportHistoryPdf() async {
-    _showSnack('جاري تجهيز التقرير، يرجى الانتظار...');
+    final isAr = AppSettings.language.value == 'ar';
+    _showSnack(isAr ? 'جاري تجهيز التقرير، يرجى الانتظار...' : 'Preparing report, please wait...');
     try {
       final token = await _getToken();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -527,7 +537,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
         // حفظ في مكان اختيار المستخدم
         final savedPath = await FilePicker.platform.saveFile(
-          dialogTitle: 'حفظ تقرير الحضور',
+          dialogTitle: isAr ? 'حفظ تقرير الحضور' : 'Save Attendance Report',
           fileName: fileName,
           type: FileType.custom,
           allowedExtensions: ['pdf'],
@@ -535,35 +545,36 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         );
 
         if (savedPath != null) {
-          _showSnack('✅ تم الحفظ بنجاح');
+          _showSnack(isAr ? '✅ تم الحفظ بنجاح' : '✅ Saved successfully');
         } else {
-          _showSnack('تم إنشاء التقرير ✅');
+          _showSnack(isAr ? 'تم إنشاء التقرير ✅' : 'Report generated successfully ✅');
         }
       } else {
-        _showSnack('فشل تحميل التقرير');
+        _showSnack(isAr ? 'فشل تحميل التقرير' : 'Failed to download report');
       }
     } catch (e) {
       debugPrint('⛔ PDF Export Error: $e');
       if (e is DioException) {
         if (e.response?.statusCode == 404) {
-          _showSnack('لا توجد جلسات حضور في هذه الفترة لتوليد تقرير.');
+          _showSnack(isAr ? 'لا توجد جلسات حضور في هذه الفترة لتوليد تقرير.' : 'No attendance sessions found in this period to generate a report.');
         } else {
           // محاولة قراءة الخطأ من السيرفر (لو كان JSON بالرغم من أننا طلبنا bytes)
-          String errorMsg = 'خطأ خادم: ${e.response?.statusCode}';
+          String errorMsg = isAr ? 'خطأ خادم: ${e.response?.statusCode}' : 'Server error: ${e.response?.statusCode}';
           try {
             if (e.response?.data != null) {
-               errorMsg = 'خطأ خادم: ${String.fromCharCodes(e.response!.data)}';
+               errorMsg = isAr ? 'خطأ خادم: ${String.fromCharCodes(e.response!.data)}' : 'Server error: ${String.fromCharCodes(e.response!.data)}';
             }
           } catch (_) {}
           _showSnack(errorMsg);
         }
       } else {
-        _showSnack('حدث خطأ أثناء تحميل التقرير: $e');
+        _showSnack(isAr ? 'حدث خطأ أثناء تحميل التقرير: $e' : 'Error downloading report: $e');
       }
     }
   }
 
   void _showStudentListSheet([String initialFilter = 'all']) {
+    final isAr = AppSettings.language.value == 'ar';
     final textColor =
         Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
@@ -598,7 +609,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               expand: false,
               builder: (_, scrollCtrl) {
                 return Directionality(
-                  textDirection: TextDirection.rtl,
+                  textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
                   child: Column(
                     children: [
                       const SizedBox(height: 12),
@@ -617,7 +628,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'سجل طلاب الجلسة',
+                              isAr ? 'سجل طلاب الجلسة' : 'Session Students Log',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -631,7 +642,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                '$_presentCount / $_totalCount حاضر',
+                                isAr
+                                    ? '$_presentCount / $_totalCount حاضر'
+                                    : '$_presentCount / $_totalCount Present',
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
@@ -658,21 +671,27 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                           child: Row(
                             children: [
                               _buildFilterTab(
-                                label: 'الكل (${_allStudents.length})',
+                                label: isAr
+                                    ? 'الكل (${_allStudents.length})'
+                                    : 'All (${_allStudents.length})',
                                 isSelected: activeFilter == 'all',
                                 activeColor: _yellow,
                                 textColor: Colors.black,
                                 onTap: () => setSheetState(() => activeFilter = 'all'),
                               ),
                               _buildFilterTab(
-                                label: 'الحاضرون (${presentStudents.length})',
+                                label: isAr
+                                    ? 'الحاضرون (${presentStudents.length})'
+                                    : 'Present (${presentStudents.length})',
                                 isSelected: activeFilter == 'present',
                                 activeColor: Colors.green.shade600,
                                 textColor: Colors.white,
                                 onTap: () => setSheetState(() => activeFilter = 'present'),
                               ),
                               _buildFilterTab(
-                                label: 'الغائبون (${absentStudents.length})',
+                                label: isAr
+                                    ? 'الغائبون (${absentStudents.length})'
+                                    : 'Absent (${absentStudents.length})',
                                 isSelected: activeFilter == 'absent',
                                 activeColor: Colors.red.shade600,
                                 textColor: Colors.white,
@@ -704,10 +723,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                     const SizedBox(height: 10),
                                     Text(
                                       activeFilter == 'present'
-                                          ? 'لم يقم أي طالب بمسح الرمز حتى الآن'
+                                          ? (isAr ? 'لم يقم أي طالب بمسح الرمز حتى الآن' : 'No student has scanned the code yet')
                                           : activeFilter == 'absent'
-                                              ? 'ما في غائبين (الجميع حاضر!)'
-                                              : 'لا يوجد طلاب في هذه الجلسة',
+                                              ? (isAr ? 'ما في غائبين (الجميع حاضر!)' : 'No absent students (All present!)')
+                                              : (isAr ? 'لا يوجد طلاب في هذه الجلسة' : 'No students in this session'),
                                       style: const TextStyle(color: Colors.grey, fontSize: 14),
                                     ),
                                   ],
@@ -740,7 +759,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                       ),
                                     ),
                                     subtitle: Text(
-                                      isPresent ? 'قام بالمسح وتسجيل الحضور' : 'لم يقم بالمسح (غائب)',
+                                      isPresent
+                                          ? (isAr ? 'قام بالمسح وتسجيل الحضور' : 'Scanned & recorded attendance')
+                                          : (isAr ? 'لم يقم بالمسح (غائب)' : 'Did not scan (Absent)'),
                                       style: TextStyle(
                                         color: isPresent ? Colors.green.shade700 : Colors.red.shade400,
                                         fontSize: 12,
@@ -755,7 +776,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
-                                        isPresent ? 'حاضر' : 'غائب',
+                                        isPresent
+                                            ? (isAr ? 'حاضر' : 'Present')
+                                            : (isAr ? 'غائب' : 'Absent'),
                                         style: TextStyle(
                                           color: isPresent ? Colors.green : Colors.red,
                                           fontSize: 12,
@@ -818,6 +841,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor =
@@ -825,7 +849,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: Scaffold(
           backgroundColor: bgColor,
           extendBody: true,
@@ -833,11 +857,15 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             backgroundColor: cardColor,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: textColor, size: 20),
+              icon: Icon(
+                isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+                color: textColor,
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'تسجيل الحضور',
+              isAr ? 'تسجيل الحضور' : 'Attendance Recording',
               style: TextStyle(
                   color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
             ),
@@ -856,9 +884,15 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               indicatorColor: _yellow,
               indicatorWeight: 3,
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              tabs: const [
-                Tab(icon: Icon(Icons.settings_outlined, size: 18), text: 'إعداد الجلسة'),
-                Tab(icon: Icon(Icons.history_outlined, size: 18), text: 'سجل الحضور'),
+              tabs: [
+                Tab(
+                  icon: const Icon(Icons.settings_outlined, size: 18),
+                  text: isAr ? 'إعداد الجلسة' : 'Session Setup',
+                ),
+                Tab(
+                  icon: const Icon(Icons.history_outlined, size: 18),
+                  text: isAr ? 'سجل الحضور' : 'Attendance Log',
+                ),
               ],
             ),
           ),
@@ -866,10 +900,11 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             children: [
               _buildAttendanceTabView(cardColor, textColor, isDark),
               // زر + لتوليد PDF في تبويب سجل الحضور
-              if (_attendanceTabFilter == 'سجل الحضور')
+              if (_attendanceTabController.index == 1)
                 Positioned(
                   bottom: 90,
-                  left: 16,
+                  left: isAr ? 16 : null,
+                  right: isAr ? null : 16,
                   child: FloatingActionButton(
                     heroTag: 'generatePdf',
                     backgroundColor: _yellow,
@@ -891,7 +926,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                 onMessagesTap: () => Navigator.pushReplacement(context,
                     MaterialPageRoute(
                         builder: (_) => const MessagesScreen())),
-            ),
+              ),
             ],
           ),
         ),
@@ -899,6 +934,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   }
 
   Widget _buildAttendanceTabView(Color cardColor, Color textColor, bool isDark) {
+    final isAr = AppSettings.language.value == 'ar';
     return TabBarView(
       controller: _attendanceTabController,
       children: [
@@ -911,13 +947,13 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               _buildSessionSettingsCard(cardColor, textColor, isDark),
               const SizedBox(height: 25),
               if (_sessionActive && _qrToken != null) ...[
-                _buildDividerWithText('الرمز النشط', textColor),
+                _buildDividerWithText(isAr ? 'الرمز النشط' : 'Active QR Code', textColor),
                 const SizedBox(height: 15),
                 _buildQRCodeCard(cardColor, textColor, isDark),
               ],
               if (_sessionEnded) ...[
                 const SizedBox(height: 25),
-                _buildDividerWithText('تصدير الكشف', textColor),
+                _buildDividerWithText(isAr ? 'تصدير الكشف' : 'Export Sheet', textColor),
                 const SizedBox(height: 15),
                 _buildExportCard(cardColor, textColor),
               ],
@@ -943,6 +979,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   // قائمة التقارير فقط (بدون فورم)
   Widget _buildReportsListOnly(Color cardColor, Color textColor, bool isDark) {
+    final isAr = AppSettings.language.value == 'ar';
     if (_generatedReports.isEmpty) {
       return Center(
         child: Padding(
@@ -951,9 +988,13 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             children: [
               Icon(Icons.picture_as_pdf, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 16),
-              Text('لا توجد تقارير بعد\nاضغط + لتوليد تقرير',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[500], fontSize: 15)),
+              Text(
+                isAr
+                    ? 'لا توجد تقارير بعد\nاضغط + لتوليد تقرير'
+                    : 'No reports yet\nTap + to generate a report',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[500], fontSize: 15),
+              ),
             ],
           ),
         ),
@@ -967,8 +1008,12 @@ class _AttendanceScreenState extends State<AttendanceScreen>
           children: [
             const Icon(Icons.folder_special, color: _yellow, size: 20),
             const SizedBox(width: 8),
-            Text('التقارير المولدة سابقاً (${_generatedReports.length})',
-                style: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(
+              isAr
+                  ? 'التقارير المولدة سابقاً (${_generatedReports.length})'
+                  : 'Previously Generated Reports (${_generatedReports.length})',
+              style: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         const SizedBox(height: 15),
@@ -992,7 +1037,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 leading: const Icon(Icons.picture_as_pdf, color: Colors.redAccent, size: 30),
-                title: Text('سجل حضور', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                title: Text(
+                  isAr ? 'سجل حضور' : 'Attendance Record',
+                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
                 subtitle: Text(displayDate, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1000,30 +1048,33 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                     IconButton(
                       icon: const Icon(Icons.remove_red_eye, color: Colors.blue),
                       onPressed: () => OpenFilex.open(file.path),
-                      tooltip: 'فتح',
+                      tooltip: isAr ? 'فتح' : 'Open',
                     ),
                     IconButton(
                       icon: const Icon(Icons.share, color: Colors.green),
-                      onPressed: () => Share.shareXFiles([XFile(file.path)], text: 'تقرير الحضور'),
-                      tooltip: 'مشاركة',
+                      onPressed: () => Share.shareXFiles([XFile(file.path)], text: isAr ? 'تقرير الحضور' : 'Attendance Report'),
+                      tooltip: isAr ? 'مشاركة' : 'Share',
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline, color: Colors.red),
                       onPressed: () => showDialog(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          title: const Text('تأكيد الحذف'),
-                          content: const Text('هل أنت متأكد من حذف هذا التقرير؟'),
+                          title: Text(isAr ? 'تأكيد الحذف' : 'Confirm Deletion'),
+                          content: Text(isAr ? 'هل أنت متأكد من حذف هذا التقرير؟' : 'Are you sure you want to delete this report?'),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text(isAr ? 'إلغاء' : 'Cancel'),
+                            ),
                             TextButton(
                               onPressed: () { Navigator.pop(ctx); _deleteReport(file); },
-                              child: const Text('حذف', style: TextStyle(color: Colors.red)),
+                              child: Text(isAr ? 'حذف' : 'Delete', style: const TextStyle(color: Colors.red)),
                             ),
                           ],
                         ),
                       ),
-                      tooltip: 'حذف',
+                      tooltip: isAr ? 'حذف' : 'Delete',
                     ),
                   ],
                 ),
@@ -1037,6 +1088,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   // bottom sheet الفورم
   void _showGenerateReportSheet() {
+    final isAr = AppSettings.language.value == 'ar';
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
@@ -1069,17 +1121,17 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             if (!uniqueProgramYears.containsKey(key)) {
               final pName = _allPrograms.firstWhere(
                 (p) => p['id'].toString() == pid,
-                orElse: () => {'name': 'غير معروف'},
+                orElse: () => {'name': isAr ? 'غير معروف' : 'Unknown'},
               )['name'];
               uniqueProgramYears[key] = {
                 'key': key,
-                'display': '$pName - السنة ${year == 1 ? "الأولى" : "الثانية"}',
+                'display': '$pName - ${isAr ? (year == 1 ? "السنة الأولى" : "السنة الثانية") : (year == 1 ? "Year 1" : "Year 2")}',
               };
             }
           }
 
           return Directionality(
-            textDirection: TextDirection.rtl,
+            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
             child: Container(
               padding: EdgeInsets.only(
                 top: 24, left: 20, right: 20,
@@ -1109,20 +1161,28 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                       children: [
                         const Icon(Icons.picture_as_pdf, color: _yellow, size: 22),
                         const SizedBox(width: 8),
-                        Text('توليد تقرير PDF',
-                            style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          isAr ? 'توليد تقرير PDF' : 'Generate PDF Report',
+                          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
 
                     // نطاق التقرير
-                    _buildFieldLabel('النطاق', textColor),
+                    _buildFieldLabel(isAr ? 'النطاق' : 'Scope', textColor),
                     _buildDropdown(
-                      hint: 'اختر النطاق',
+                      hint: isAr ? 'اختر النطاق' : 'Select Scope',
                       value: _historyScope,
-                      items: const [
-                        DropdownMenuItem(value: 'my_courses', child: Text('المواد الموكلة إلي')),
-                        DropdownMenuItem(value: 'advisor_class', child: Text('دورتي الإشرافية')),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'my_courses',
+                          child: Text(isAr ? 'المواد الموكلة إلي' : 'My Assigned Courses'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'advisor_class',
+                          child: Text(isAr ? 'دورتي الإشرافية' : 'My Supervisory Class'),
+                        ),
                       ],
                       onChanged: (val) {
                         if (val != null) {
@@ -1139,9 +1199,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                     const SizedBox(height: 15),
 
                     if (_historyScope == 'my_courses') ...[
-                      _buildFieldLabel('الدورة والسنة', textColor),
+                      _buildFieldLabel(isAr ? 'الدورة والسنة' : 'Program & Year', textColor),
                       _buildDropdown(
-                        hint: 'اختر الدورة والسنة',
+                        hint: isAr ? 'اختر الدورة والسنة' : 'Select Program & Year',
                         value: _historyProgramYearKey,
                         items: uniqueProgramYears.values.map((p) => DropdownMenuItem<String>(
                           value: p['key'] as String,
@@ -1154,12 +1214,15 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                         isDark: isDark,
                       ),
                       const SizedBox(height: 15),
-                      _buildFieldLabel('المادة', textColor),
+                      _buildFieldLabel(isAr ? 'المادة' : 'Course', textColor),
                       _buildDropdown(
-                        hint: 'اختر المادة (أو جميع المواد)',
+                        hint: isAr ? 'اختر المادة (أو جميع المواد)' : 'Select Course (or All Courses)',
                         value: _historyCourseId,
                         items: [
-                          const DropdownMenuItem<String>(value: 'all', child: Text('جميع المواد')),
+                          DropdownMenuItem<String>(
+                            value: 'all',
+                            child: Text(isAr ? 'جميع المواد' : 'All Courses'),
+                          ),
                           ...filteredHistoryCourses.map((c) => DropdownMenuItem<String>(
                             value: c['id'] as String,
                             child: Text(c['title'] as String, overflow: TextOverflow.ellipsis),
@@ -1174,15 +1237,15 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                       const SizedBox(height: 15),
                     ],
 
-                    _buildFieldLabel('الفترة الزمنية', textColor),
+                    _buildFieldLabel(isAr ? 'الفترة الزمنية' : 'Time Period', textColor),
                     _buildDropdown(
-                      hint: 'الفترة الزمنية',
+                      hint: isAr ? 'الفترة الزمنية' : 'Time Period',
                       value: _historyPeriod,
-                      items: const [
-                        DropdownMenuItem(value: 'today', child: Text('اليوم')),
-                        DropdownMenuItem(value: 'week', child: Text('أسبوع')),
-                        DropdownMenuItem(value: 'month', child: Text('شهر')),
-                        DropdownMenuItem(value: 'semester', child: Text('من بداية الفصل')),
+                      items: [
+                        DropdownMenuItem(value: 'today', child: Text(isAr ? 'اليوم' : 'Today')),
+                        DropdownMenuItem(value: 'week', child: Text(isAr ? 'أسبوع' : 'Week')),
+                        DropdownMenuItem(value: 'month', child: Text(isAr ? 'شهر' : 'Month')),
+                        DropdownMenuItem(value: 'semester', child: Text(isAr ? 'من بداية الفصل' : 'Since Semester Start')),
                       ],
                       onChanged: (val) {
                         setState(() => _historyPeriod = val ?? 'today');
@@ -1204,11 +1267,11 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                         onPressed: () {
                           if (_historyScope == 'my_courses') {
                             if (_historyProgramYearKey == null) {
-                              _showSnack('الرجاء اختيار الدورة والسنة');
+                              _showSnack(isAr ? 'الرجاء اختيار الدورة والسنة' : 'Please select program and year');
                               return;
                             }
                             if (_historyCourseId == null) {
-                              _showSnack('الرجاء اختيار المادة');
+                              _showSnack(isAr ? 'الرجاء اختيار المادة' : 'Please select course');
                               return;
                             }
                           }
@@ -1216,8 +1279,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                           _exportHistoryPdf();
                         },
                         icon: const Icon(Icons.picture_as_pdf, color: Colors.black),
-                        label: const Text('توليد الكشف (PDF)',
-                            style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+                        label: Text(
+                          isAr ? 'توليد الكشف (PDF)' : 'Generate Report (PDF)',
+                          style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
@@ -1230,8 +1295,8 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     );
   }
 
-
   Widget _buildExportCard(Color cardColor, Color textColor) {
+    final isAr = AppSettings.language.value == 'ar';
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1245,8 +1310,12 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             children: [
               const Icon(Icons.check_circle, color: Colors.green, size: 20),
               const SizedBox(width: 8),
-              Text('انتهت الجلسة — يمكنك تصدير الكشف',
-                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(
+                isAr
+                    ? 'انتهت الجلسة — يمكنك تصدير الكشف'
+                    : 'Session ended — You can export the sheet',
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -1255,8 +1324,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             height: 50,
             child: OutlinedButton.icon(
               icon: const Icon(Icons.table_chart_outlined, color: Colors.green),
-              label: const Text('تصدير كشف اليوم (Excel)',
-                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              label: Text(
+                isAr ? 'تصدير كشف اليوم (Excel)' : 'Export Today Sheet (Excel)',
+                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+              ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.green),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
@@ -1270,8 +1341,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             height: 50,
             child: OutlinedButton.icon(
               icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
-              label: const Text('تصدير كشف المادة الشامل (PDF)',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              label: Text(
+                isAr ? 'تصدير كشف المادة الشامل (PDF)' : 'Export Comprehensive PDF',
+                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.red),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
@@ -1286,6 +1359,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   Widget _buildSessionSettingsCard(
       Color cardColor, Color textColor, bool isDark) {
+    final isAr = AppSettings.language.value == 'ar';
     // استخراج الدورات المميزة
     final uniqueProgramYears = <String, Map<String, dynamic>>{};
     for (var c in _allCourses) {
@@ -1295,11 +1369,11 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       if (!uniqueProgramYears.containsKey(key)) {
         final pName = _allPrograms.firstWhere(
           (p) => p['id'].toString() == pid, 
-          orElse: () => {'name': 'غير معروف'}
+          orElse: () => {'name': isAr ? 'غير معروف' : 'Unknown'}
         )['name'];
         uniqueProgramYears[key] = {
           'key': key,
-          'display': '$pName - السنة ${year == 1 ? "الأولى" : "الثانية"}',
+          'display': '$pName - ${isAr ? (year == 1 ? "السنة الأولى" : "السنة الثانية") : (year == 1 ? "Year 1" : "Year 2")}',
         };
       }
     }
@@ -1320,9 +1394,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             children: [
               const Icon(Icons.tune, color: _yellow, size: 20),
               const SizedBox(width: 8),
-              const Text(
-                'إعدادات الجلسة',
-                style: TextStyle(
+              Text(
+                isAr ? 'إعدادات الجلسة' : 'Session Settings',
+                style: const TextStyle(
                     color: Colors.grey,
                     fontSize: 14,
                     fontWeight: FontWeight.bold),
@@ -1342,9 +1416,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldLabel('الدورة والسنة', textColor),
+                    _buildFieldLabel(isAr ? 'الدورة والسنة' : 'Program & Year', textColor, isAr),
                     _buildDropdown(
-                      hint: 'اختر الدورة والسنة',
+                      hint: isAr ? 'اختر الدورة والسنة' : 'Select Program & Year',
                       value: _selectedProgramYearKey,
                       items: uniqueProgramYears.values.map((p) => DropdownMenuItem<String>(
                         value: p['key'] as String,
@@ -1363,7 +1437,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
           // المادة الدراسية (تظهر بعد اختيار الدورة والسنة)
           if (_selectedProgramYearKey != null) ...[
-            _buildFieldLabel('المادة الدراسية', textColor),
+            _buildFieldLabel(isAr ? 'المادة الدراسية' : 'Course', textColor, isAr),
             _filteredCourses.isEmpty
                 ? Container(
                     padding: const EdgeInsets.all(12),
@@ -1371,13 +1445,15 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                       color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(
-                      child: Text('لا توجد مواد لهذه الدورة والسنة',
-                          style: TextStyle(color: Colors.orange, fontSize: 13)),
+                    child: Center(
+                      child: Text(
+                        isAr ? 'لا توجد مواد لهذه الدورة والسنة' : 'No courses found for this program and year',
+                        style: const TextStyle(color: Colors.orange, fontSize: 13),
+                      ),
                     ),
                   )
                 : _buildDropdown(
-                    hint: 'اختر المادة',
+                    hint: isAr ? 'اختر المادة' : 'Select Course',
                     value: _selectedCourseId,
                     items: _filteredCourses.map((c) => DropdownMenuItem<String>(
                       value: c['id'] as String,
@@ -1404,7 +1480,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                     )
                   : const Icon(Icons.play_circle_fill, color: Colors.black),
               label: Text(
-                _sessionActive ? 'جلسة نشطة' : 'بدء الجلسة الآن',
+                _sessionActive
+                    ? (isAr ? 'جلسة نشطة' : 'Session Active')
+                    : (isAr ? 'بدء الجلسة الآن' : 'Start Session Now'),
                 style: const TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.bold,
@@ -1426,6 +1504,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   }
 
   Widget _buildQRCodeCard(Color cardColor, Color textColor, bool isDark) {
+    final isAr = AppSettings.language.value == 'ar';
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1444,14 +1523,14 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               color: Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircleAvatar(backgroundColor: Colors.green, radius: 4),
-                SizedBox(width: 8),
+                const CircleAvatar(backgroundColor: Colors.green, radius: 4),
+                const SizedBox(width: 8),
                 Text(
-                  'مباشر',
-                  style: TextStyle(
+                  isAr ? 'مباشر' : 'Live',
+                  style: const TextStyle(
                       color: Colors.green,
                       fontWeight: FontWeight.bold,
                       fontSize: 12),
@@ -1461,17 +1540,19 @@ class _AttendanceScreenState extends State<AttendanceScreen>
           ),
           const SizedBox(height: 15),
           Text(
-            'رمز الحضور السريع',
+            isAr ? 'رمز الحضور السريع' : 'Quick Attendance QR',
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: textColor),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'اطلب من الطلاب مسح الرمز أدناه لتسجيل الحضور',
+          Text(
+            isAr
+                ? 'اطلب من الطلاب مسح الرمز أدناه لتسجيل الحضور'
+                : 'Ask students to scan the QR code below to record attendance',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 13),
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
           ),
           const SizedBox(height: 12),
           // عداد تجديد QR
@@ -1481,14 +1562,16 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               const Icon(Icons.timer_outlined, color: _yellow, size: 16),
               const SizedBox(width: 6),
               Text(
-                'يتجدد الرمز خلال $_qrCountdown ثانية',
+                isAr
+                    ? 'يتجدد الرمز خلال $_qrCountdown ثانية'
+                    : 'Code refreshes in $_qrCountdown s',
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const SizedBox(width: 12),
               const Icon(Icons.hourglass_empty, color: Colors.orange, size: 14),
               const SizedBox(width: 4),
               Text(
-                'الجلسة: ${(_sessionCountdown ~/ 60).toString().padLeft(2, '0')}:${(_sessionCountdown % 60).toString().padLeft(2, '0')}',
+                '${isAr ? "الجلسة: " : "Session: "}${(_sessionCountdown ~/ 60).toString().padLeft(2, '0')}:${(_sessionCountdown % 60).toString().padLeft(2, '0')}',
                 style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
@@ -1520,9 +1603,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             height: 50,
             child: ElevatedButton.icon(
               icon: const Icon(Icons.groups_outlined, color: Colors.black, size: 20),
-              label: const Text(
-                'عرض كشف الطلاب (حضور / غياب)',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
+              label: Text(
+                isAr ? 'عرض كشف الطلاب (حضور / غياب)' : 'View Students Sheet (Present / Absent)',
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _yellow,
@@ -1546,9 +1629,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                       child: CircularProgressIndicator(
                           color: Colors.red, strokeWidth: 2),
                     )
-                  : const Text(
-                      'إنهاء الجلسة وإغلاق السجل',
-                      style: TextStyle(
+                  : Text(
+                      isAr ? 'إنهاء الجلسة وإغلاق السجل' : 'End Session & Close Sheet',
+                      style: const TextStyle(
                           color: Colors.red, fontWeight: FontWeight.w600),
                     ),
             ),
@@ -1586,9 +1669,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     );
   }
 
-  Widget _buildFieldLabel(String label, Color textColor) {
+  Widget _buildFieldLabel(String label, Color textColor, [bool isAr = true]) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8, right: 4),
+      padding: EdgeInsets.only(bottom: 8, right: isAr ? 4 : 0, left: isAr ? 0 : 4),
       child: Text(label,
           style: TextStyle(
               color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),

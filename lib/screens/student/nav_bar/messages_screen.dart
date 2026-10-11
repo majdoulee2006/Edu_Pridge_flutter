@@ -32,12 +32,13 @@ class MessagesView extends StatefulWidget {
 }
 
 class _MessagesViewState extends State<MessagesView> {
-  String selectedCategory = 'الكل';
+  String selectedCategory = 'all';
   String searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final chatService = context.read<ChatService>();
       chatService.startContactsPolling();
@@ -50,8 +51,13 @@ class _MessagesViewState extends State<MessagesView> {
     });
   }
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     context.read<ChatService>().stopContactsPolling();
     super.dispose();
   }
@@ -59,21 +65,22 @@ class _MessagesViewState extends State<MessagesView> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isAr = AppSettings.language.value == 'ar';
     final chatService = context.watch<ChatService>();
 
     List<ChatModel> allChats = chatService.contacts.map((contact) {
-      String chatType = 'المدرسين';
+      String chatType = isAr ? 'المدرسين' : 'Teachers';
       if (contact['is_group'] == true || contact['type'] == 'group') {
-        chatType = 'الجروبات';
+        chatType = isAr ? 'الجروبات' : 'Groups';
       }
 
       return ChatModel(
         id: int.tryParse(contact['id']?.toString() ?? '') ?? 0,
-        title: contact['name'] ?? 'مستخدم غير معروف',
+        title: contact['name'] ?? (isAr ? 'مستخدم غير معروف' : 'Unknown User'),
         lastMessage: (contact['last_message'] != null && contact['last_message'].toString().trim().isNotEmpty)
             ? contact['last_message']
-            : 'انقر لبدء المحادثة...',
-        time: contact['time'] ?? 'الآن',
+            : (isAr ? 'انقر لبدء المحادثة...' : 'Tap to start conversation...'),
+        time: contact['time'] ?? (isAr ? 'الآن' : 'Now'),
         unreadCount: int.tryParse(contact['unread']?.toString() ?? '') ?? 0,
         type: chatType,
         isOnline: contact['is_online'] ?? false,
@@ -86,12 +93,14 @@ class _MessagesViewState extends State<MessagesView> {
 
     List<ChatModel> filteredChats = allChats.where((chat) {
       bool matchesCategory = false;
-      if (selectedCategory == 'الكل') {
+      if (selectedCategory == 'all') {
         matchesCategory = true;
-      } else if (selectedCategory == 'غير مقروءة') {
+      } else if (selectedCategory == 'unread') {
         matchesCategory = chat.unreadCount > 0;
-      } else {
-        matchesCategory = chat.type == selectedCategory;
+      } else if (selectedCategory == 'groups') {
+        matchesCategory = chat.isGroup;
+      } else if (selectedCategory == 'teachers') {
+        matchesCategory = !chat.isGroup;
       }
 
       bool matchesSearch =
@@ -102,34 +111,29 @@ class _MessagesViewState extends State<MessagesView> {
     }).toList();
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        // 🐛 بدون هاد، فتح الكيبورد (متل حقل البحث تحت) كان يخلي الـ Stack
-        // يلي فيه CustomBottomNav ينكمش بمقدار ارتفاع الكيبورد، فيطلع
-        // الشريط عائم فوق الكيبورد بدل ما يختفي وراه. هلق الجسم ثابت
-        // بمكانه دايماً، والشريط بيختفي فعلياً وراء الكيبورد (بدعم من
-        // إصلاح CustomBottomNav نفسو).
         resizeToAvoidBottomInset: false,
         backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC),
         appBar: AppBar(
           backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF7F9FC),
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_back_ios_new, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const StudentHomeScreen()),
             ),
           ),
           title: Text(
-            'الرسائل',
+            isAr ? 'الرسائل' : 'Messages',
             style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 22),
           ),
           centerTitle: true,
           actions: [
             IconButton(
               icon: const Icon(Icons.add_circle_rounded, color: Color(0xFFFFCC00), size: 28),
-              tooltip: "محادثة جديدة",
+              tooltip: isAr ? "محادثة جديدة" : "New Chat",
               onPressed: () {
                 Navigator.push(
                   context,
@@ -150,15 +154,17 @@ class _MessagesViewState extends State<MessagesView> {
           children: [
             Column(
               children: [
-                _buildSearchBar(),
-                _buildChatCategories(),
+                _buildSearchBar(isAr),
+                _buildChatCategories(isAr),
                 Expanded(
                   child: chatService.isLoadingContacts
                       ? const Center(child: CircularProgressIndicator(color: Colors.amber))
                       : filteredChats.isEmpty
                           ? Center(
                               child: Text(
-                                'لا توجد رسائل مطابقة للبحث أو الفلتر',
+                                isAr
+                                    ? 'لا توجد رسائل مطابقة للبحث أو الفلتر'
+                                    : 'No messages matching search or filter',
                                 style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                               ),
                             )
@@ -211,7 +217,7 @@ class _MessagesViewState extends State<MessagesView> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(bool isAr) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -224,7 +230,7 @@ class _MessagesViewState extends State<MessagesView> {
         style: TextStyle(color: isDark ? Colors.white : Colors.black),
         onChanged: (value) => setState(() => searchQuery = value),
         decoration: InputDecoration(
-          hintText: 'ابحث عن مادة أو مدرس...',
+          hintText: isAr ? 'ابحث عن مادة أو مدرس...' : 'Search for course or instructor...',
           hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey, fontSize: 14),
           suffixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade500 : Colors.grey),
           border: InputBorder.none,
@@ -234,8 +240,13 @@ class _MessagesViewState extends State<MessagesView> {
     );
   }
 
-  Widget _buildChatCategories() {
-    final categories = ['الكل', 'غير مقروءة', 'الجروبات', 'المدرسين'];
+  Widget _buildChatCategories(bool isAr) {
+    final categories = [
+      {'key': 'all', 'label': isAr ? 'الكل' : 'All'},
+      {'key': 'unread', 'label': isAr ? 'غير مقروءة' : 'Unread'},
+      {'key': 'groups', 'label': isAr ? 'الجروبات' : 'Groups'},
+      {'key': 'teachers', 'label': isAr ? 'المدرسين' : 'Teachers'},
+    ];
     return Container(
       height: 40,
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -244,18 +255,19 @@ class _MessagesViewState extends State<MessagesView> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: categories.length,
         itemBuilder: (context, index) {
-          return _buildCategoryChip(categories[index]);
+          final cat = categories[index];
+          return _buildCategoryChip(cat['label']!, cat['key']!);
         },
       ),
     );
   }
 
-  Widget _buildCategoryChip(String label) {
+  Widget _buildCategoryChip(String label, String key) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    bool isSelected = selectedCategory == label;
+    bool isSelected = selectedCategory == key;
 
     return GestureDetector(
-      onTap: () => setState(() => selectedCategory = label),
+      onTap: () => setState(() => selectedCategory = key),
       child: Container(
         margin: const EdgeInsets.only(left: 10),
         padding: const EdgeInsets.symmetric(horizontal: 25),

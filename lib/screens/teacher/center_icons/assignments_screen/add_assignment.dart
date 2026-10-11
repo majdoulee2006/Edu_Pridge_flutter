@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AddAssignmentScreen extends StatefulWidget {
   final Map<String, dynamic>? assignment;
@@ -36,9 +37,14 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
   bool get _isEditing => widget.assignment != null;
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _loadData();
     if (_isEditing) _prefill();
   }
@@ -66,6 +72,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _titleController.dispose();
     _descController.dispose();
     _notesController.dispose();
@@ -171,10 +178,23 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   }
 
   Future<void> _submit() async {
-    if (_titleController.text.trim().isEmpty) { _snack('يرجى إدخال عنوان التمرين'); return; }
-    if (_descController.text.trim().isEmpty)  { _snack('يرجى إدخال وصف التمرين');  return; }
-    if (_selectedCourseId == null)            { _snack('يرجى اختيار المادة');       return; }
-    if (_dueDate == null)                     { _snack('يرجى اختيار تاريخ التسليم'); return; }
+    final isAr = AppSettings.language.value == 'ar';
+    if (_titleController.text.trim().isEmpty) {
+      _snack(isAr ? 'يرجى إدخال عنوان التمرين' : 'Please enter assignment title');
+      return;
+    }
+    if (_descController.text.trim().isEmpty) {
+      _snack(isAr ? 'يرجى إدخال وصف التمرين' : 'Please enter assignment description');
+      return;
+    }
+    if (_selectedCourseId == null) {
+      _snack(isAr ? 'يرجى اختيار المادة' : 'Please select course');
+      return;
+    }
+    if (_dueDate == null) {
+      _snack(isAr ? 'يرجى اختيار تاريخ التسليم' : 'Please select due date');
+      return;
+    }
 
     final maxPoints  = int.tryParse(_maxPointsController.text.trim()) ?? 100;
     final time       = _dueTime ?? const TimeOfDay(hour: 23, minute: 59);
@@ -224,7 +244,10 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
             options: Options(headers: {...headers, 'Content-Type': 'application/json'}),
           );
         }
-        if (mounted) { _snack('✅ تم تحديث الواجب'); Navigator.pop(context, true); }
+        if (mounted) {
+          _snack(isAr ? '✅ تم تحديث الواجب' : '✅ Assignment updated successfully');
+          Navigator.pop(context, true);
+        }
       } else {
         await Dio().post(
           "${ApiService().baseUrl}/teacher/assignments",
@@ -242,11 +265,14 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
           }),
           options: Options(headers: headers),
         );
-        if (mounted) { _snack('✅ تم نشر التمرين'); Navigator.pop(context, true); }
+        if (mounted) {
+          _snack(isAr ? '✅ تم نشر التمرين' : '✅ Assignment published successfully');
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       debugPrint('⛔ Assignment Error: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, please try again';
       if (e is DioException && e.response?.data is Map) {
         final d = e.response!.data as Map;
         msg = (d['errors'] != null)
@@ -272,6 +298,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr     = AppSettings.language.value == 'ar';
     const Color yellow = Color(0xFFFFCC00);
     final bgColor   = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
@@ -279,7 +306,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
     final isDark    = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
@@ -290,7 +317,9 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            _isEditing ? 'تعديل الواجب' : 'إضافة تمرين منزلي',
+            _isEditing
+                ? (isAr ? 'تعديل الواجب' : 'Edit Assignment')
+                : (isAr ? 'إضافة تمرين منزلي' : 'Add Homework / Assignment'),
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
@@ -304,18 +333,35 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // عنوان التمرين
-                    _label("عنوان التمرين", textColor),
-                    _field(controller: _titleController, hint: 'مثال: حل مسائل قوانين نيوتن', cardColor: cardColor, textColor: textColor),
+                    _label(isAr ? "عنوان التمرين" : "Assignment Title", textColor),
+                    _field(
+                      controller: _titleController,
+                      hint: isAr ? 'مثال: حل مسائل قوانين نيوتن' : 'e.g. Newton Laws Problems',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                    ),
                     const SizedBox(height: 20),
 
                     // وصف التمرين
-                    _label("وصف ومعطيات التمرين", textColor),
-                    _field(controller: _descController, hint: 'اكتب تفاصيل الواجب...', maxLines: 5, cardColor: cardColor, textColor: textColor),
+                    _label(isAr ? "وصف ومعطيات التمرين" : "Description & Requirements", textColor),
+                    _field(
+                      controller: _descController,
+                      hint: isAr ? 'اكتب تفاصيل الواجب...' : 'Write assignment details...',
+                      maxLines: 5,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                    ),
                     const SizedBox(height: 20),
 
                     // ملاحظات
-                    _label("ملاحظات", textColor),
-                    _field(controller: _notesController, hint: 'اكتب أي ملاحظات إضافية للطلاب...', maxLines: 3, cardColor: cardColor, textColor: textColor),
+                    _label(isAr ? "ملاحظات" : "Notes", textColor),
+                    _field(
+                      controller: _notesController,
+                      hint: isAr ? 'اكتب أي ملاحظات إضافية للطلاب...' : 'Write additional notes for students...',
+                      maxLines: 3,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                    ),
                     const SizedBox(height: 20),
 
                     // الدورة + السنة جنب بعض
@@ -325,9 +371,9 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _label("الدورة", textColor),
+                              _label(isAr ? "الدورة" : "Program", textColor),
                               _dropdown(
-                                hint: 'اختر الدورة',
+                                hint: isAr ? 'اختر الدورة' : 'Select Program',
                                 value: _selectedProgramId,
                                 items: _programs.map((p) => DropdownMenuItem(
                                   value: p['id'] as String,
@@ -347,13 +393,13 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _label("السنة الدراسية", textColor),
+                              _label(isAr ? "السنة الدراسية" : "Academic Year", textColor),
                               _dropdown(
-                                hint: 'السنة',
+                                hint: isAr ? 'السنة' : 'Year',
                                 value: _selectedYear?.toString(),
-                                items: const [
-                                  DropdownMenuItem(value: '1', child: Text('السنة الأولى')),
-                                  DropdownMenuItem(value: '2', child: Text('السنة الثانية')),
+                                items: [
+                                  DropdownMenuItem(value: '1', child: Text(isAr ? 'السنة الأولى' : '1st Year')),
+                                  DropdownMenuItem(value: '2', child: Text(isAr ? 'السنة الثانية' : '2nd Year')),
                                 ],
                                 cardColor: cardColor, textColor: textColor, isDark: isDark,
                                 onChanged: (val) {
@@ -370,7 +416,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
 
                     // المادة الدراسية (مفلترة)
                     if (_selectedProgramId != null && _selectedYear != null) ...[
-                      _label("المادة الدراسية", textColor),
+                      _label(isAr ? "المادة الدراسية" : "Course", textColor),
                       _filteredCourses.isEmpty
                           ? Container(
                               padding: const EdgeInsets.all(14),
@@ -379,13 +425,17 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                                 borderRadius: BorderRadius.circular(15),
                                 border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
                               ),
-                              child: const Center(
-                                child: Text('لا توجد مواد لهذه الدورة والسنة',
-                                    style: TextStyle(color: Colors.orange, fontSize: 13)),
+                              child: Center(
+                                child: Text(
+                                  isAr
+                                      ? 'لا توجد مواد لهذه الدورة والسنة'
+                                      : 'No courses for this program and year',
+                                  style: const TextStyle(color: Colors.orange, fontSize: 13),
+                                ),
                               ),
                             )
                           : _dropdown(
-                              hint: 'اختر المادة',
+                              hint: isAr ? 'اختر المادة' : 'Select Course',
                               value: _selectedCourseId,
                               items: _filteredCourses.map((c) => DropdownMenuItem(
                                 value: c['id'] as String,
@@ -398,17 +448,23 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                     ],
 
                     // الدرجة القصوى
-                    _label("الدرجة القصوى", textColor),
-                    _field(controller: _maxPointsController, hint: '100', cardColor: cardColor, textColor: textColor, keyboardType: TextInputType.number),
+                    _label(isAr ? "الدرجة القصوى" : "Max Score", textColor),
+                    _field(
+                      controller: _maxPointsController,
+                      hint: '100',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      keyboardType: TextInputType.number,
+                    ),
                     const SizedBox(height: 20),
 
                     // تاريخ ووقت التسليم
                     Row(
                       children: [
                         Expanded(child: _pickerField(
-                          label: 'تاريخ التسليم',
+                          label: isAr ? 'تاريخ التسليم' : 'Due Date',
                           value: _dueDate == null
-                              ? 'اختر تاريخاً'
+                              ? (isAr ? 'اختر تاريخاً' : 'Select Date')
                               : '${_dueDate!.year}/${_dueDate!.month.toString().padLeft(2, '0')}/${_dueDate!.day.toString().padLeft(2, '0')}',
                           icon: Icons.calendar_month_outlined,
                           onTap: _pickDate,
@@ -417,8 +473,8 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                         )),
                         const SizedBox(width: 15),
                         Expanded(child: _pickerField(
-                          label: 'وقت التسليم',
-                          value: _dueTime == null ? '11:59 م' : _dueTime!.format(context),
+                          label: isAr ? 'وقت التسليم' : 'Due Time',
+                          value: _dueTime == null ? (isAr ? '11:59 م' : '11:59 PM') : _dueTime!.format(context),
                           icon: Icons.access_time,
                           onTap: _pickTime,
                           cardColor: cardColor, textColor: textColor,
@@ -429,7 +485,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                     const SizedBox(height: 20),
 
                     // مرفق
-                    _label("مرفق (اختياري)", textColor),
+                    _label(isAr ? "مرفق (اختياري)" : "Attachment (Optional)", textColor),
 
                     // عرض الملف الحالي عند التعديل
                     if (_isEditing && _existingFileUrl != null && _pickedFile == null) ...[
@@ -455,7 +511,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  _existingFileName ?? 'الملف الحالي',
+                                  _existingFileName ?? (isAr ? 'الملف الحالي' : 'Current File'),
                                   style: const TextStyle(color: Colors.blue, fontSize: 13, fontWeight: FontWeight.bold),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -466,7 +522,10 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text('اضغط أدناه لاستبدال الملف', style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5))),
+                      Text(
+                        isAr ? 'اضغط أدناه لاستبدال الملف' : 'Tap below to replace file',
+                        style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.5)),
+                      ),
                       const SizedBox(height: 8),
                     ],
 
@@ -495,7 +554,9 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                             Text(
                               _pickedFile != null
                                   ? _pickedFile!.name
-                                  : (_isEditing ? 'اضغط لاستبدال الملف' : 'اضغط لرفع ملف (PDF، صورة)'),
+                                  : (_isEditing
+                                      ? (isAr ? 'اضغط لاستبدال الملف' : 'Tap to replace file')
+                                      : (isAr ? 'اضغط لرفع ملف (PDF، صورة)' : 'Tap to upload file (PDF, image)')),
                               textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -527,7 +588,9 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    _isEditing ? 'حفظ التعديلات' : 'نشر التمرين الآن',
+                                    _isEditing
+                                        ? (isAr ? 'حفظ التعديلات' : 'Save Changes')
+                                        : (isAr ? 'نشر التمرين الآن' : 'Publish Assignment'),
                                     style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
                                   ),
                                   const SizedBox(width: 10),
@@ -545,7 +608,7 @@ class _AddAssignmentScreenState extends State<AddAssignmentScreen> {
   }
 
   Widget _label(String text, Color textColor) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, right: 4),
+    padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
     child: Text(text, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
   );
 

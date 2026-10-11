@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import '../../../../widgets/teacher_speed_dial.dart';
 import '../../messages_screen.dart';
 import '../../notifications_screen.dart';
@@ -21,10 +22,21 @@ class _LecturesScreenState extends State<LecturesScreen> {
   bool _isLoading = false;
   List<Map<String, dynamic>> _lectures = [];
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchLectures();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _fetchLectures() async {
@@ -51,18 +63,29 @@ class _LecturesScreenState extends State<LecturesScreen> {
   }
 
   Future<void> _deleteLecture(String id) async {
+    final isAr = AppSettings.language.value == 'ar';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('حذف المحاضرة', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: const Text('هل أنت متأكد من حذف هذه المحاضرة؟ لا يمكن التراجع.'),
+          title: Text(
+            isAr ? 'حذف المحاضرة' : 'Delete Lecture',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            isAr
+                ? 'هل أنت متأكد من حذف هذه المحاضرة؟ لا يمكن التراجع.'
+                : 'Are you sure you want to delete this lecture? This action cannot be undone.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+              child: Text(
+                isAr ? 'إلغاء' : 'Cancel',
+                style: const TextStyle(color: Colors.grey),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -70,7 +93,10 @@ class _LecturesScreenState extends State<LecturesScreen> {
                 backgroundColor: Colors.redAccent,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('حذف', style: TextStyle(color: Colors.white)),
+              child: Text(
+                isAr ? 'حذف' : 'Delete',
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -87,13 +113,19 @@ class _LecturesScreenState extends State<LecturesScreen> {
       _fetchLectures();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم حذف المحاضرة'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(isAr ? '✅ تم حذف المحاضرة' : '✅ Lecture deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ أثناء الحذف'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(isAr ? 'حدث خطأ أثناء الحذف' : 'An error occurred while deleting'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -102,13 +134,14 @@ class _LecturesScreenState extends State<LecturesScreen> {
   @override
   Widget build(BuildContext context) {
     const Color yellow = Color(0xFFFFCC00);
+    final isAr      = AppSettings.language.value == 'ar';
     final bgColor   = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final isDark    = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         extendBody: true,
@@ -116,11 +149,17 @@ class _LecturesScreenState extends State<LecturesScreen> {
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
+            icon: Icon(
+              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
+              color: textColor,
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Text('المحاضرات',
-              style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+          title: Text(
+            isAr ? 'المحاضرات' : 'Lectures',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
           centerTitle: true,
         ),
         body: Stack(
@@ -133,11 +172,13 @@ class _LecturesScreenState extends State<LecturesScreen> {
                     child: _lectures.isEmpty
                         ? ListView(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            children: const [
-                              SizedBox(height: 200),
+                            children: [
+                              const SizedBox(height: 200),
                               Center(
-                                child: Text('لا توجد محاضرات بعد',
-                                    style: TextStyle(color: Colors.grey, fontSize: 15)),
+                                child: Text(
+                                  isAr ? 'لا توجد محاضرات بعد' : 'No lectures yet',
+                                  style: const TextStyle(color: Colors.grey, fontSize: 15),
+                                ),
                               ),
                             ],
                           )
@@ -156,7 +197,8 @@ class _LecturesScreenState extends State<LecturesScreen> {
             // زر الإضافة
             Positioned(
               bottom: 100,
-              left: 20,
+              left: isAr ? 20 : null,
+              right: isAr ? null : 20,
               child: FloatingActionButton(
                 heroTag: "add_lecture_btn",
                 onPressed: () => Navigator.push(

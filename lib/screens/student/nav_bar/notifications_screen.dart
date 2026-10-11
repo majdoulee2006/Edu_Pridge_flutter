@@ -46,10 +46,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _fetchNotifications();
     _loadUserData();
     _scrollController.addListener(_onScroll);
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _scrollController.dispose();
     super.dispose();
   }
@@ -133,21 +139,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _openTranscriptPreview([int? studentId]) async {
+    final bool isAr = AppSettings.language.value == 'ar';
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
+      builder: (_) => Center(
         child: Card(
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(color: Color(0xFFFFCC00)),
-                SizedBox(height: 16),
-                Text('جاري تحميل كشف العلامات المعتمد...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const CircularProgressIndicator(color: Color(0xFFFFCC00)),
+                const SizedBox(height: 16),
+                Text(
+                  isAr ? 'جاري تحميل كشف العلامات المعتمد...' : 'Loading official grades transcript...',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
           ),
@@ -164,18 +174,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => AffairsPdfViewerScreen(
-            title: 'كشف درجات الطالب المعتمد',
+            title: isAr ? 'كشف درجات الطالب المعتمد' : 'Official Student Grades Transcript',
             pdfBytes: pdfBytes,
             fileName: 'transcript_preview.pdf',
-            bannerNotice: '⚠️ تنبيه إداري ورسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط داخل التطبيق. في حال الرغبة بالحصول على النسخة الورقية الرسمية المختومة والموقعة، يتعين على الطالب مراجعة موظف شؤون الطلاب بالمعهد شخصياً.',
+            bannerNotice: isAr
+                ? '⚠️ تنبيه إداري ورسمي: هذه النسخة مخصصة للمعاينة الرقمية الفورية فقط داخل التطبيق. في حال الرغبة بالحصول على النسخة الورقية الرسمية المختومة والموقعة، يتعين على الطالب مراجعة موظف شؤون الطلاب بالمعهد شخصياً.'
+                : '⚠️ Official Notice: This copy is for instant in-app digital preview only. For an official stamped and signed paper copy, the student must contact the student affairs officer in person.',
           ),
         ),
       );
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر تحميل كشف العلامات حالياً. يرجى التحقق من اتصال الخادم.'),
+          SnackBar(
+            content: Text(
+              isAr ? 'تعذر تحميل كشف العلامات حالياً. يرجى التحقق من اتصال الخادم.' : 'Unable to load transcript now. Please check server connection.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -371,9 +385,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: isDark
             ? Theme.of(context).scaffoldBackgroundColor
@@ -385,7 +400,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(
-              Icons.arrow_back,
+              isAr ? Icons.arrow_back : Icons.arrow_back_ios_new,
               color: isDark ? Colors.white : Colors.black,
             ),
             onPressed: () => Navigator.pushReplacement(
@@ -396,7 +411,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
           title: Text(
-            'الإشعارات',
+            isAr ? 'الإشعارات' : 'Notifications',
             style: TextStyle(
               color: isDark ? Colors.white : Colors.black,
               fontWeight: FontWeight.bold,
@@ -412,7 +427,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     )
                   : TextButton(
                       onPressed: _markAllAsRead,
-                      child: Text('تمييز الكل', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
+                      child: Text(isAr ? 'تمييز الكل' : 'Mark all', style: TextStyle(color: Colors.amber[700], fontWeight: FontWeight.bold, fontSize: 12)),
                     )
             else
               IconButton(
@@ -420,7 +435,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SettingsScreen(
-                    userName: _userName, userRole: 'طالب', profileImageUrl: _avatarUrl,
+                    userName: _userName, userRole: isAr ? 'طالب' : 'Student', profileImageUrl: _avatarUrl,
                   )),
                 ),
               ),
@@ -430,7 +445,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           children: [
             Column(
               children: [
-                _buildFiltersBar(isDark),
+                _buildFiltersBar(isDark, isAr),
                 Expanded(
                   child: isLoading
                       ? const Center(
@@ -444,6 +459,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           onOpenTranscript: _openTranscriptPreview,
                           scrollController: _scrollController,
                           isLoadingMore: isLoadingMore,
+                          isAr: isAr,
                         ),
                 ),
               ],
@@ -477,17 +493,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildFiltersBar(bool isDark) {
+  Widget _buildFiltersBar(bool isDark, bool isAr) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Expanded(child: _buildFilterChip('الكل', 'all', isDark)),
+          Expanded(child: _buildFilterChip(isAr ? 'الكل' : 'All', 'all', isDark)),
           const SizedBox(width: 8),
-          Expanded(child: _buildFilterChip('أكاديمية 🎓', 'academic', isDark)),
+          Expanded(child: _buildFilterChip(isAr ? 'أكاديمية 🎓' : 'Academic 🎓', 'academic', isDark)),
           const SizedBox(width: 8),
-          Expanded(child: _buildFilterChip('إدارية 🏢', 'administrative', isDark)),
+          Expanded(child: _buildFilterChip(isAr ? 'إدارية 🏢' : 'Admin 🏢', 'administrative', isDark)),
         ],
       ),
     );
@@ -535,6 +551,7 @@ class _NotificationsListView extends StatelessWidget {
   final void Function(int?)? onOpenTranscript;
   final ScrollController scrollController;
   final bool isLoadingMore;
+  final bool isAr;
 
   const _NotificationsListView({
     required this.notifications,
@@ -544,15 +561,16 @@ class _NotificationsListView extends StatelessWidget {
     this.isLoadingMore = false,
     this.onNavigate,
     this.onOpenTranscript,
+    this.isAr = true,
   });
 
   @override
   Widget build(BuildContext context) {
     if (notifications.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          "لا توجد إشعارات حالياً",
-          style: TextStyle(color: Colors.grey),
+          isAr ? "لا توجد إشعارات حالياً" : "No notifications currently",
+          style: const TextStyle(color: Colors.grey),
         ),
       );
     }
@@ -714,14 +732,14 @@ class _NotificationsListView extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.visibility_rounded, size: 16, color: Colors.black),
-                                SizedBox(width: 5),
+                                const Icon(Icons.visibility_rounded, size: 16, color: Colors.black),
+                                const SizedBox(width: 5),
                                 Text(
-                                  'مشاهدة فقط 👁️',
-                                  style: TextStyle(
+                                  isAr ? 'مشاهدة فقط 👁️' : 'View only 👁️',
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
@@ -732,7 +750,7 @@ class _NotificationsListView extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'معاينة رقمية رسمية',
+                          isAr ? 'معاينة رقمية رسمية' : 'Official digital preview',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,

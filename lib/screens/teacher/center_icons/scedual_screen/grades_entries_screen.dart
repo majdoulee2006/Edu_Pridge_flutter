@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:file_picker/file_picker.dart';
@@ -32,6 +33,10 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
   final Map<int, TextEditingController> _noteControllers = {};
   String _teacherName = '';
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   double get _maxScore {
     final v = widget.event['max_score'];
     if (v is num) return v.toDouble();
@@ -42,26 +47,32 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
   // الحد الأعلى المسموح به هو العلامة القصوى التي حددها المعلم
   double get _allowedMax => _maxScore;
 
-  String? _validateScore(String text) {
+  String? _validateScore(String text, [bool isAr = true]) {
     if (text.trim().isEmpty) return null;
     final v = double.tryParse(text.trim());
-    if (v == null) return 'قيمة غير صالحة';
-    if (v < 0) return 'لا يمكن إدخال علامة سالبة';
-    if (v > _maxScore) return 'الحد الأعلى هو ${_maxScore.toStringAsFixed(0)}';
+    if (v == null) return isAr ? 'قيمة غير صالحة' : 'Invalid value';
+    if (v < 0) return isAr ? 'لا يمكن إدخال علامة سالبة' : 'Negative score not allowed';
+    if (v > _maxScore) return isAr ? 'الحد الأعلى هو ${_maxScore.toStringAsFixed(0)}' : 'Max is ${_maxScore.toStringAsFixed(0)}';
     return null;
   }
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchEntries();
     _loadTeacherName();
   }
 
   @override
   void dispose() {
-    for (final c in _controllers.values) c.dispose();
-    for (final c in _noteControllers.values) c.dispose();
+    AppSettings.language.removeListener(_onLangChange);
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    for (final c in _noteControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -111,11 +122,12 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
   }
 
   Future<void> _saveAll() async {
+    final isAr = AppSettings.language.value == 'ar';
     // تحقق من صحة جميع العلامات قبل الحفظ
     for (final e in _entries) {
       final sid = e['student_id'] as int;
       final text = _controllers[sid]?.text.trim() ?? '';
-      final err = _validateScore(text);
+      final err = _validateScore(text, isAr);
       if (err != null) {
         final name = '${e['first_name'] ?? ''} ${e['last_name'] ?? ''}';
         ScaffoldMessenger.of(context).showSnackBar(
@@ -152,19 +164,28 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
         if (res.statusCode == 200 && res.data['success'] == true) {
           setState(() {}); // لتحديث الألوان
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم حفظ العلامات'), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(isAr ? 'تم حفظ العلامات' : 'Grades saved successfully'),
+              backgroundColor: Colors.green,
+            ),
           );
           await _fetchEntries();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('حدث خطأ'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(isAr ? 'حدث خطأ' : 'An error occurred'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(isAr ? 'حدث خطأ' : 'An error occurred'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -211,33 +232,38 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
   // ═══════════════════════════════════════════════════
 
   Future<Uint8List> _buildExcelBytes() async {
+    final isAr = AppSettings.language.value == 'ar';
     final excel = Excel.createExcel();
-    final sheet = excel['كشف العلامات'];
+    final sheet = excel[isAr ? 'كشف العلامات' : 'Grades Sheet'];
 
     final title = widget.event['title'] ?? '';
     final courseTitle = widget.event['course_title'] ?? '';
     final date = widget.event['date'] ?? '';
-    final type = widget.event['type'] == 'exam' ? 'امتحان' : widget.event['type'] == 'oral' ? 'شفهي' : 'مذاكرة';
+    final type = widget.event['type'] == 'exam'
+        ? (isAr ? 'امتحان' : 'Exam')
+        : widget.event['type'] == 'oral'
+            ? (isAr ? 'شفهي' : 'Oral')
+            : (isAr ? 'مذاكرة' : 'Quiz');
     final stats = _calcStats();
 
     // رأس الملف
-    sheet.appendRow([TextCellValue('الدورة/المادة:'), TextCellValue(courseTitle)]);
-    sheet.appendRow([TextCellValue('نوع التقييم:'), TextCellValue('$type — $title')]);
-    sheet.appendRow([TextCellValue('الأستاذ:'), TextCellValue(_teacherName)]);
-    sheet.appendRow([TextCellValue('التاريخ:'), TextCellValue(date)]);
-    sheet.appendRow([TextCellValue('العلامة القصوى:'), TextCellValue(_maxScore.toString())]);
-    sheet.appendRow([TextCellValue('علامة النجاح:'), TextCellValue(_passMark.toString())]);
+    sheet.appendRow([TextCellValue(isAr ? 'الدورة/المادة:' : 'Course:'), TextCellValue(courseTitle)]);
+    sheet.appendRow([TextCellValue(isAr ? 'نوع التقييم:' : 'Assessment Type:'), TextCellValue('$type — $title')]);
+    sheet.appendRow([TextCellValue(isAr ? 'الأستاذ:' : 'Teacher:'), TextCellValue(_teacherName)]);
+    sheet.appendRow([TextCellValue(isAr ? 'التاريخ:' : 'Date:'), TextCellValue(date)]);
+    sheet.appendRow([TextCellValue(isAr ? 'العلامة القصوى:' : 'Max Score:'), TextCellValue(_maxScore.toString())]);
+    sheet.appendRow([TextCellValue(isAr ? 'علامة النجاح:' : 'Passing Score:'), TextCellValue(_passMark.toString())]);
     sheet.appendRow([TextCellValue('')]);
 
     // رأس الجدول
     sheet.appendRow([
-      TextCellValue('#'),
-      TextCellValue('الرقم الجامعي'),
-      TextCellValue('اسم الطالب'),
-      TextCellValue('العلامة'),
-      TextCellValue('من'),
-      TextCellValue('النتيجة'),
-      TextCellValue('ملاحظة'),
+      TextCellValue(isAr ? '#' : '#'),
+      TextCellValue(isAr ? 'الرقم الجامعي' : 'University ID'),
+      TextCellValue(isAr ? 'اسم الطالب' : 'Student Name'),
+      TextCellValue(isAr ? 'العلامة' : 'Score'),
+      TextCellValue(isAr ? 'من' : 'Out of'),
+      TextCellValue(isAr ? 'النتيجة' : 'Result'),
+      TextCellValue(isAr ? 'ملاحظة' : 'Note'),
     ]);
 
     // بيانات الطلاب
@@ -248,7 +274,7 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
       final uid = e['university_id'] ?? '';
       final scoreText = _controllers[sid]?.text.trim() ?? '';
       final score = double.tryParse(scoreText);
-      final result = score == null ? '—' : (score >= _passMark ? 'ناجح' : 'راسب');
+      final result = score == null ? '—' : (score >= _passMark ? (isAr ? 'ناجح' : 'Passed') : (isAr ? 'راسب' : 'Failed'));
       final note = _noteControllers[sid]?.text.trim() ?? '';
 
       sheet.appendRow([
@@ -265,22 +291,23 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
     // إحصائيات
     if (stats['graded'] > 0) {
       sheet.appendRow([TextCellValue('')]);
-      sheet.appendRow([TextCellValue('=== الإحصائيات ===')]);
-      sheet.appendRow([TextCellValue('إجمالي الطلاب:'), IntCellValue(stats['total'])]);
-      sheet.appendRow([TextCellValue('المصنّفون:'), IntCellValue(stats['graded'])]);
-      sheet.appendRow([TextCellValue('الناجحون:'), IntCellValue(stats['passed'])]);
-      sheet.appendRow([TextCellValue('الراسبون:'), IntCellValue(stats['failed'])]);
-      sheet.appendRow([TextCellValue('نسبة النجاح:'), TextCellValue('${stats['passRate'].toStringAsFixed(1)}%')]);
-      sheet.appendRow([TextCellValue('نسبة الرسوب:'), TextCellValue('${stats['failRate'].toStringAsFixed(1)}%')]);
-      sheet.appendRow([TextCellValue('المعدل:'), TextCellValue(stats['avg'].toStringAsFixed(2))]);
-      sheet.appendRow([TextCellValue('الأعلى:'), TextCellValue(stats['highest'].toString())]);
-      sheet.appendRow([TextCellValue('الأدنى:'), TextCellValue(stats['lowest'].toString())]);
+      sheet.appendRow([TextCellValue(isAr ? '=== الإحصائيات ===' : '=== Statistics ===')]);
+      sheet.appendRow([TextCellValue(isAr ? 'إجمالي الطلاب:' : 'Total Students:'), IntCellValue(stats['total'])]);
+      sheet.appendRow([TextCellValue(isAr ? 'المصنّفون:' : 'Graded:'), IntCellValue(stats['graded'])]);
+      sheet.appendRow([TextCellValue(isAr ? 'الناجحون:' : 'Passed:'), IntCellValue(stats['passed'])]);
+      sheet.appendRow([TextCellValue(isAr ? 'الراسبون:' : 'Failed:'), IntCellValue(stats['failed'])]);
+      sheet.appendRow([TextCellValue(isAr ? 'نسبة النجاح:' : 'Pass Rate:'), TextCellValue('${stats['passRate'].toStringAsFixed(1)}%')]);
+      sheet.appendRow([TextCellValue(isAr ? 'نسبة الرسوب:' : 'Fail Rate:'), TextCellValue('${stats['failRate'].toStringAsFixed(1)}%')]);
+      sheet.appendRow([TextCellValue(isAr ? 'المعدل:' : 'Average:'), TextCellValue(stats['avg'].toStringAsFixed(2))]);
+      sheet.appendRow([TextCellValue(isAr ? 'الأعلى:' : 'Highest:'), TextCellValue(stats['highest'].toString())]);
+      sheet.appendRow([TextCellValue(isAr ? 'الأدنى:' : 'Lowest:'), TextCellValue(stats['lowest'].toString())]);
     }
 
     return Uint8List.fromList(excel.encode()!);
   }
 
   Future<void> _exportExcel({bool share = false}) async {
+    final isAr = AppSettings.language.value == 'ar';
     try {
       final bytes = await _buildExcelBytes();
       final title = (widget.event['title'] ?? '').toString().replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
@@ -289,24 +316,34 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
       if (kIsWeb) {
         // على Web: نستخدم FilePicker لتحميل الملف مباشرة
         await FilePicker.platform.saveFile(
-          dialogTitle: 'حفظ كشف العلامات (Excel)',
+          dialogTitle: isAr ? 'حفظ كشف العلامات (Excel)' : 'Save Grades Sheet (Excel)',
           fileName: fileName,
           type: FileType.custom,
           allowedExtensions: ['xlsx'],
           bytes: bytes,
         );
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم الحفظ ✓'), backgroundColor: Colors.green));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(isAr ? 'تم الحفظ ✓' : 'Saved ✓'), backgroundColor: Colors.green),
+          );
+        }
       } else {
         // على موبايل: احفظ مؤقتاً ثم Share
         final dir = await getApplicationDocumentsDirectory();
         final file = File('${dir.path}/$fileName');
         await file.writeAsBytes(bytes);
-        await Share.shareXFiles([XFile(file.path)], text: 'كشف العلامات — ${widget.event['title']}');
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: '${isAr ? "كشف العلامات — " : "Grades Sheet — "}${widget.event['title']}',
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(isAr ? 'خطأ: $e' : 'Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -636,6 +673,7 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
   }
 
   Future<void> _exportPdf({bool share = false}) async {
+    final isAr = AppSettings.language.value == 'ar';
     try {
       final bytes = await _buildPdfBytes();
       final title = (widget.event['title'] ?? '').toString().replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
@@ -643,23 +681,33 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
 
       if (kIsWeb) {
         await FilePicker.platform.saveFile(
-          dialogTitle: 'حفظ كشف العلامات (PDF)',
+          dialogTitle: isAr ? 'حفظ كشف العلامات (PDF)' : 'Save Grades Sheet (PDF)',
           fileName: fileName,
           type: FileType.custom,
           allowedExtensions: ['pdf'],
           bytes: bytes,
         );
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم الحفظ ✓'), backgroundColor: Colors.green));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(isAr ? 'تم الحفظ ✓' : 'Saved ✓'), backgroundColor: Colors.green),
+          );
+        }
       } else {
         final dir = await getApplicationDocumentsDirectory();
         final file = File('${dir.path}/$fileName');
         await file.writeAsBytes(bytes);
-        await Share.shareXFiles([XFile(file.path)], text: 'كشف العلامات — ${widget.event['title']}');
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: '${isAr ? "كشف العلامات — " : "Grades Sheet — "}${widget.event['title']}',
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(isAr ? 'خطأ: $e' : 'Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -671,21 +719,26 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    final type = widget.event['type'] == 'exam' ? 'امتحان' : widget.event['type'] == 'oral' ? 'شفهي' : 'مذاكرة';
+    final type = widget.event['type'] == 'exam'
+        ? (isAr ? 'امتحان' : 'Exam')
+        : widget.event['type'] == 'oral'
+            ? (isAr ? 'شفهي' : 'Oral')
+            : (isAr ? 'مذاكرة' : 'Quiz');
     final typeColor = widget.event['type'] == 'exam' ? Colors.orange : widget.event['type'] == 'oral' ? Colors.purple : Colors.blue;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
           backgroundColor: cardColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_back_ios_new, color: textColor, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Column(
@@ -710,7 +763,7 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
               ),
               const SizedBox(height: 2),
               Text(
-                '${widget.event['course_title'] ?? ''}  •  ${widget.event['date'] ?? ''}  •  من $_maxScore',
+                '${widget.event['course_title'] ?? ''}  •  ${widget.event['date'] ?? ''}  •  ${isAr ? "من " : "out of "}$_maxScore',
                 style: const TextStyle(color: Colors.grey, fontSize: 11),
               ),
             ],
@@ -720,7 +773,7 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
         body: _isLoading
             ? const Center(child: CircularProgressIndicator(color: _gradeYellow))
             : _entries.isEmpty
-                ? Center(child: Text('لا يوجد طلاب مسجلون', style: TextStyle(color: Colors.grey)))
+                ? Center(child: Text(isAr ? 'لا يوجد طلاب مسجلون' : 'No registered students', style: const TextStyle(color: Colors.grey)))
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     itemCount: _entries.length,
@@ -777,7 +830,7 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
                                 ),
                                 // حقل العلامة
                                 Builder(builder: (ctx) {
-                                  final err = _validateScore(_controllers[sid]?.text ?? '');
+                                  final err = _validateScore(_controllers[sid]?.text ?? '', isAr);
                                   final hasErr = err != null;
                                   return Column(
                                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -827,12 +880,12 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
                               width: double.infinity,
                               child: TextField(
                                 controller: _noteControllers[sid],
-                                textAlign: TextAlign.right,
+                                textAlign: isAr ? TextAlign.right : TextAlign.left,
                                 style: const TextStyle(fontSize: 13),
                                 maxLines: 2,
                                 minLines: 1,
                                 decoration: InputDecoration(
-                                  hintText: 'ملاحظة...',
+                                  hintText: isAr ? 'ملاحظة...' : 'Note...',
                                   hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                                   contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                                   isDense: true,
@@ -893,7 +946,7 @@ class _GradeEntriesScreenState extends State<GradeEntriesScreen> {
                       ? const SizedBox(
                           height: 18, width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                      : const Text('حفظ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      : Text(isAr ? 'حفظ' : 'Save', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

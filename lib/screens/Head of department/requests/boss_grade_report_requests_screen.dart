@@ -32,6 +32,13 @@ class _BossGradeReportRequestsScreenState extends State<BossGradeReportRequestsS
     }
   }
 
+  String _formatStatus(String? s, bool isAr) {
+    if (s == 'pending') return isAr ? 'قيد الانتظار' : 'Pending';
+    if (s == 'approved' || s == 'completed') return isAr ? 'مكتمل' : 'Completed';
+    if (s == 'rejected') return isAr ? 'مرفوض' : 'Rejected';
+    return s ?? (isAr ? 'غير محدد' : 'Not specified');
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -61,7 +68,7 @@ class _BossGradeReportRequestsScreenState extends State<BossGradeReportRequestsS
                       style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     leading: IconButton(
-                      icon: Icon(Icons.arrow_back, color: textColor),
+                      icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -116,7 +123,7 @@ class _BossGradeReportRequestsScreenState extends State<BossGradeReportRequestsS
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  req['course_name'] ?? 'مادة غير معروفة',
+                  req['course_name'] ?? (isAr ? 'مادة غير معروفة' : 'Unknown Course'),
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 Text(
@@ -127,12 +134,12 @@ class _BossGradeReportRequestsScreenState extends State<BossGradeReportRequestsS
             ),
             const SizedBox(height: 8),
             Text(
-              (isAr ? 'المعلم: ' : 'Teacher: ') + (req['teacher_name'] ?? ''),
-              style: TextStyle(color: textColor.withOpacity(0.8), fontSize: 14),
+              (isAr ? 'المعلم: ' : 'Teacher: ') + (req['teacher_name'] ?? (isAr ? 'غير محدد' : 'Not specified')),
+              style: TextStyle(color: textColor.withValues(alpha: 0.8), fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(
-              (isAr ? 'حالة التقرير: ' : 'Status: ') + (req['status'] ?? 'pending'),
+              (isAr ? 'حالة التقرير: ' : 'Status: ') + _formatStatus(req['status'], isAr),
               style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
             ),
           ],

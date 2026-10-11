@@ -78,9 +78,10 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     final bgColor   = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         extendBody: true,
         backgroundColor: bgColor,
@@ -92,7 +93,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'الإعلانات',
+            isAr ? 'الإعلانات' : 'Announcements',
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
@@ -121,14 +122,14 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                 Icon(Icons.campaign_outlined,
                                     size: 64, color: Colors.grey.shade400),
                                 const SizedBox(height: 16),
-                                const Text(
-                                  'لا توجد إعلانات حالياً',
-                                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                                Text(
+                                  isAr ? 'لا توجد إعلانات حالياً' : 'No announcements currently',
+                                  style: const TextStyle(color: Colors.grey, fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
-                                  'اضغط + لإضافة إعلان جديد',
-                                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                                Text(
+                                  isAr ? 'اضغط + لإضافة إعلان جديد' : 'Press + to add a new announcement',
+                                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                                 ),
                               ],
                             ),
@@ -150,6 +151,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                 headerColor: _cardColors[index % _cardColors.length],
                                 textColor: textColor,
                                 cardColor: cardColor,
+                                isAr: isAr,
                               );
                             },
                           ),
@@ -192,6 +194,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     required Color headerColor,
     required Color textColor,
     required Color cardColor,
+    required bool isAr,
   }) {
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(
@@ -222,9 +225,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                       imageUrl,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, e, st) => _headerPlaceholder(headerColor, course),
+                      errorBuilder: (_, e, st) => _headerPlaceholder(headerColor, course, isAr),
                     )
-                  : _headerPlaceholder(headerColor, course),
+                  : _headerPlaceholder(headerColor, course, isAr),
             ),
           ),
           Padding(
@@ -246,9 +249,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 ),
                 const SizedBox(height: 12),
                 Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: isAr ? Alignment.centerLeft : Alignment.centerRight,
                   child: Text(
-                    "نشر بواسطة: ${announcementData['author_name'] as String? ?? announcementData['publisher_name'] as String? ?? announcementData['created_by'] as String? ?? 'الإدارة'} • $timeAgo",
+                    "${isAr ? 'نشر بواسطة:' : 'Published by:'} ${announcementData['author_name'] as String? ?? announcementData['publisher_name'] as String? ?? announcementData['created_by'] as String? ?? (isAr ? 'الإدارة' : 'Admin')} • $timeAgo",
                     style: const TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ),
@@ -260,7 +263,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     ));
   }
 
-  Widget _headerPlaceholder(Color headerColor, String? course) {
+  Widget _headerPlaceholder(Color headerColor, String? course, bool isAr) {
     return Container(
       color: headerColor,
       child: Stack(
@@ -272,7 +275,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-              child: Text(course ?? 'إعلان عام',
+              child: Text(course ?? (isAr ? 'إعلان عام' : 'General Announcement'),
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
             ),
           ),
@@ -329,13 +332,14 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
   }
 
   Future<void> _submit() async {
+    final bool isAr = AppSettings.language.value == 'ar';
     if (_isSaving) return;
     if (_titleController.text.trim().isEmpty) {
-      _showSnack('يرجى إدخال عنوان الإعلان');
+      _showSnack(isAr ? 'يرجى إدخال عنوان الإعلان' : 'Please enter announcement title');
       return;
     }
     if (_contentController.text.trim().isEmpty) {
-      _showSnack('يرجى إدخال نص الإعلان');
+      _showSnack(isAr ? 'يرجى إدخال نص الإعلان' : 'Please enter announcement content');
       return;
     }
 
@@ -362,7 +366,7 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
       if (mounted) widget.onAdded();
     } catch (e) {
       debugPrint('⛔ Add Announcement Error: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, please try again';
       if (e is DioException && e.response?.data is Map) {
         final data = e.response!.data as Map;
         if (data['errors'] != null) {
@@ -387,10 +391,11 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final isDark    = Theme.of(context).brightness == Brightness.dark;
+    final bool isAr = AppSettings.language.value == 'ar';
     const yellow    = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Container(
         decoration: BoxDecoration(
           color: cardColor,
@@ -419,25 +424,25 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
               ),
               const SizedBox(height: 20),
               Text(
-                'إضافة إعلان جديد',
+                isAr ? 'إضافة إعلان جديد' : 'Add New Announcement',
                 style: TextStyle(
                     fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
               ),
               const SizedBox(height: 20),
 
-              _label('عنوان الإعلان', textColor),
+              _label(isAr ? 'عنوان الإعلان' : 'Announcement Title', textColor),
               _textField(
                 controller: _titleController,
-                hint: 'أدخل عنوان الإعلان هنا',
+                hint: isAr ? 'أدخل عنوان الإعلان هنا' : 'Enter announcement title here',
                 cardColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                 textColor: textColor,
               ),
               const SizedBox(height: 16),
 
-              _label('نص الإعلان', textColor),
+              _label(isAr ? 'نص الإعلان' : 'Announcement Content', textColor),
               _textField(
                 controller: _contentController,
-                hint: 'اكتب تفاصيل الإعلان هنا...',
+                hint: isAr ? 'اكتب تفاصيل الإعلان هنا...' : 'Write announcement details here...',
                 cardColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                 textColor: textColor,
                 maxLines: 4,
@@ -456,14 +461,14 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                     activeTrackColor: yellow.withValues(alpha: 0.5),
                   ),
                   const SizedBox(width: 8),
-                  Text('خاص بمادة معينة',
+                  Text(isAr ? 'خاص بمادة معينة' : 'Course specific',
                       style: TextStyle(color: textColor, fontSize: 14)),
                 ],
               ),
 
               if (_isCourseSpecific) ...[
                 const SizedBox(height: 12),
-                _label('اختر المادة', textColor),
+                _label(isAr ? 'اختر المادة' : 'Select Course', textColor),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
@@ -473,8 +478,8 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedCourseId,
-                      hint: const Text('اختر المادة',
-                          style: TextStyle(color: Colors.grey)),
+                      hint: Text(isAr ? 'اختر المادة' : 'Select Course',
+                          style: const TextStyle(color: Colors.grey)),
                       isExpanded: true,
                       dropdownColor: cardColor,
                       items: _courses
@@ -505,14 +510,14 @@ class _AddAnnouncementSheetState extends State<_AddAnnouncementSheet> {
                   child: Center(
                     child: _isSaving
                         ? const CircularProgressIndicator(color: Colors.black)
-                        : const Row(
+                        : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.send_rounded, color: Colors.black),
-                              SizedBox(width: 8),
+                              const Icon(Icons.send_rounded, color: Colors.black),
+                              const SizedBox(width: 8),
                               Text(
-                                'نشر الإعلان',
-                                style: TextStyle(
+                                isAr ? 'نشر الإعلان' : 'Publish Announcement',
+                                style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black),

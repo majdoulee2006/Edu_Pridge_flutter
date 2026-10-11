@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class PhotoRequestsTab extends StatefulWidget {
   final Color cardColor;
@@ -27,10 +28,23 @@ class _PhotoRequestsTabState extends State<PhotoRequestsTab> {
   List<Map<String, dynamic>> _requests = [];
   bool _isLoading = false;
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _load();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<String> _getToken() async {
@@ -68,7 +82,9 @@ class _PhotoRequestsTabState extends State<PhotoRequestsTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-            action == 'approve' ? 'تمت الموافقة على تغيير الصورة ✓' : 'تم رفض الطلب',
+            action == 'approve'
+                ? (isAr ? 'تمت الموافقة على تغيير الصورة ✓' : 'Photo change approved ✓')
+                : (isAr ? 'تم رفض الطلب' : 'Request rejected'),
             style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
           ),
           backgroundColor: action == 'approve' ? Colors.green : Colors.red,
@@ -94,7 +110,7 @@ class _PhotoRequestsTabState extends State<PhotoRequestsTab> {
             Icon(Icons.photo_camera_outlined, size: 60, color: widget.subColor),
             const SizedBox(height: 12),
             Text(
-              'لا توجد طلبات تغيير صورة',
+              isAr ? 'لا توجد طلبات تغيير صورة' : 'No photo change requests',
               style: TextStyle(color: widget.subColor, fontSize: 16, fontFamily: 'Noto Sans Arabic'),
             ),
           ],
@@ -102,11 +118,14 @@ class _PhotoRequestsTabState extends State<PhotoRequestsTab> {
       );
     }
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
-      itemCount: _requests.length,
-      itemBuilder: (_, i) => _buildRequestCard(_requests[i]),
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 140),
+        itemCount: _requests.length,
+        itemBuilder: (_, i) => _buildRequestCard(_requests[i]),
+      ),
     );
   }
 
@@ -154,11 +173,11 @@ class _PhotoRequestsTabState extends State<PhotoRequestsTab> {
             // الصور جنب بعض
             Row(
               children: [
-                Expanded(child: _photoBox('الصورة الحالية', oldUrl, Colors.grey)),
+                Expanded(child: _photoBox(isAr ? 'الصورة الحالية' : 'Current Photo', oldUrl, Colors.grey)),
                 const SizedBox(width: 12),
-                const Icon(Icons.arrow_back_rounded, color: Color(0xFFFFCC00), size: 28),
+                Icon(isAr ? Icons.arrow_back_rounded : Icons.arrow_forward_rounded, color: const Color(0xFFFFCC00), size: 28),
                 const SizedBox(width: 12),
-                Expanded(child: _photoBox('الصورة الجديدة', newUrl, const Color(0xFFFFCC00))),
+                Expanded(child: _photoBox(isAr ? 'الصورة الجديدة' : 'New Photo', newUrl, const Color(0xFFFFCC00))),
               ],
             ),
             const SizedBox(height: 14),
@@ -170,7 +189,7 @@ class _PhotoRequestsTabState extends State<PhotoRequestsTab> {
                   child: OutlinedButton.icon(
                     onPressed: () => _respond(id, 'reject'),
                     icon: const Icon(Icons.close_rounded, color: Colors.red, size: 18),
-                    label: const Text('رفض', style: TextStyle(color: Colors.red, fontFamily: 'Noto Sans Arabic')),
+                    label: Text(isAr ? 'رفض' : 'Reject', style: const TextStyle(color: Colors.red, fontFamily: 'Noto Sans Arabic')),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.red),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -183,7 +202,7 @@ class _PhotoRequestsTabState extends State<PhotoRequestsTab> {
                   child: ElevatedButton.icon(
                     onPressed: () => _respond(id, 'approve'),
                     icon: const Icon(Icons.check_rounded, color: Colors.black, size: 18),
-                    label: const Text('موافقة', style: TextStyle(color: Colors.black, fontFamily: 'Noto Sans Arabic')),
+                    label: Text(isAr ? 'موافقة' : 'Approve', style: const TextStyle(color: Colors.black, fontFamily: 'Noto Sans Arabic')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFFCC00),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -39,6 +39,21 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
     'السنة الخامسة',
   ];
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  String _translateLevel(String lvl, bool isAr) {
+    if (isAr) return lvl;
+    switch (lvl) {
+      case 'الكل': return 'All';
+      case 'السنة الأولى': return 'First Year';
+      case 'السنة الثانية': return 'Second Year';
+      case 'السنة الثالثة': return 'Third Year';
+      case 'السنة الرابعة': return 'Fourth Year';
+      case 'السنة الخامسة': return 'Fifth Year';
+      default: return lvl;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -109,10 +124,10 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
-        _showSnackBar('تم إنشاء الملف: ${res['file_url']}');
+        _showSnackBar(isAr ? 'تم إنشاء الملف: ${res['file_url']}' : 'File generated: ${res['file_url']}');
       }
     } else {
-      _showSnackBar('فشل تصدير ملف PDF');
+      _showSnackBar(isAr ? 'فشل تصدير ملف PDF' : 'Failed to export PDF');
     }
   }
 
@@ -127,10 +142,10 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
-        _showSnackBar('تم إنشاء الملف: ${res['file_url']}');
+        _showSnackBar(isAr ? 'تم إنشاء الملف: ${res['file_url']}' : 'File generated: ${res['file_url']}');
       }
     } else {
-      _showSnackBar('فشل تصدير ملف Excel');
+      _showSnackBar(isAr ? 'فشل تصدير ملف Excel' : 'Failed to export Excel');
     }
   }
 
@@ -141,7 +156,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
     );
   }
 
-  void _openStudentSelectionDialog() {
+  void _openStudentSelectionDialog(bool isAr) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -153,104 +168,108 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
             final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
             final textColor = isDark ? Colors.white : Colors.black;
 
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.75,
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'اختيار الطالب (مرتبة أبجدياً)',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // حقل البحث داخل المودال
-                  TextField(
-                    controller: _searchController,
-                    onChanged: (val) async {
-                      setModalState(() {});
-                      await _fetchStudents();
-                      setModalState(() {});
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'ابحث باسم الطالب أو الرقم الجامعي...',
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFFFFCC00)),
-                      filled: true,
-                      fillColor: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFF3F4F6),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
+            return Directionality(
+              textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.75,
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: _isLoadingStudents
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
-                        : _students.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'لا يوجد طلاب مطابقون للفلتر الحالية',
-                                  style: TextStyle(color: Colors.grey.shade500),
-                                ),
-                              )
-                            : ListView.separated(
-                                itemCount: _students.length,
-                                separatorBuilder: (_, __) => const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final st = _students[index];
-                                  final name = st['full_name'] ?? 'طالب';
-                                  final code = st['university_id'] ?? st['student_code'] ?? '';
-                                  final prog = st['program_name'] ?? '';
-                                  final lvl = st['level'] ?? '';
+                    const SizedBox(height: 16),
+                    Text(
+                      isAr ? 'اختيار الطالب (مرتبة أبجدياً)' : 'Select Student (Alphabetical)',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // حقل البحث داخل المودال
+                    TextField(
+                      controller: _searchController,
+                      textAlign: isAr ? TextAlign.right : TextAlign.left,
+                      onChanged: (val) async {
+                        setModalState(() {});
+                        await _fetchStudents();
+                        setModalState(() {});
+                      },
+                      decoration: InputDecoration(
+                        hintText: isAr ? 'ابحث باسم الطالب أو الرقم الجامعي...' : 'Search by name or university ID...',
+                        prefixIcon: const Icon(Icons.search, color: Color(0xFFFFCC00)),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFF3F4F6),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: _isLoadingStudents
+                          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
+                          : _students.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    isAr ? 'لا يوجد طلاب مطابقون للفلتر الحالية' : 'No students matching current filter',
+                                    style: TextStyle(color: Colors.grey.shade500),
+                                  ),
+                                )
+                              : ListView.separated(
+                                  itemCount: _students.length,
+                                  separatorBuilder: (_, __) => const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    final st = _students[index];
+                                    final name = st['full_name'] ?? (isAr ? 'طالب' : 'Student');
+                                    final code = st['university_id'] ?? st['student_code'] ?? '';
+                                    final prog = st['program_name'] ?? '';
+                                    final lvl = st['level'] ?? '';
 
-                                  return ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: const Color(0xFFFFCC00).withValues(alpha: 0.2),
-                                      child: Text(
-                                        name.isNotEmpty ? name[0] : 'S',
-                                        style: const TextStyle(
-                                          color: Color(0xFFFFCC00),
-                                          fontWeight: FontWeight.bold,
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: const Color(0xFFFFCC00).withValues(alpha: 0.2),
+                                        child: Text(
+                                          name.isNotEmpty ? name[0] : 'S',
+                                          style: const TextStyle(
+                                            color: Color(0xFFFFCC00),
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    title: Text(
-                                      name,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: textColor,
+                                      title: Text(
+                                        name,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
                                       ),
-                                    ),
-                                    subtitle: Text(
-                                      '$code • $prog • $lvl',
-                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                    ),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      _fetchAcademicCard(st['student_id'], name);
-                                    },
-                                  );
-                                },
-                              ),
-                  ),
-                ],
+                                      subtitle: Text(
+                                        '$code • $prog • $lvl',
+                                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                      ),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _fetchAcademicCard(st['student_id'], name);
+                                      },
+                                    );
+                                  },
+                                ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -289,7 +308,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                 ),
               ),
               leading: IconButton(
-                icon: Icon(Icons.arrow_back, color: textColor),
+                icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -308,7 +327,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('القسم / التخصص', style: TextStyle(fontSize: 12, color: subColor, fontWeight: FontWeight.bold)),
+                                Text(isAr ? 'القسم / التخصص' : 'Department / Program', style: TextStyle(fontSize: 12, color: subColor, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -320,11 +339,11 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                                     child: DropdownButton<int?>(
                                       value: _selectedProgramId,
                                       isExpanded: true,
-                                      hint: Text('الكل', style: TextStyle(fontSize: 13, color: textColor)),
+                                      hint: Text(isAr ? 'الكل' : 'All', style: TextStyle(fontSize: 13, color: textColor)),
                                       items: [
-                                        const DropdownMenuItem<int?>(
+                                        DropdownMenuItem<int?>(
                                           value: null,
-                                          child: Text('الكل', style: TextStyle(fontSize: 13)),
+                                          child: Text(isAr ? 'الكل' : 'All', style: const TextStyle(fontSize: 13)),
                                         ),
                                         ..._programs.map((p) {
                                           return DropdownMenuItem<int?>(
@@ -351,7 +370,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('الدورة / السنة', style: TextStyle(fontSize: 12, color: subColor, fontWeight: FontWeight.bold)),
+                                Text(isAr ? 'الدورة / السنة' : 'Level / Year', style: TextStyle(fontSize: 12, color: subColor, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -366,7 +385,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                                       items: _levels.map((lvl) {
                                         return DropdownMenuItem<String>(
                                           value: lvl,
-                                          child: Text(lvl, style: const TextStyle(fontSize: 13)),
+                                          child: Text(_translateLevel(lvl, isAr), style: const TextStyle(fontSize: 13)),
                                         );
                                       }).toList(),
                                       onChanged: (val) {
@@ -389,7 +408,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
 
                       // زر أواختيار الطالب المفلتر
                       GestureDetector(
-                        onTap: _openStudentSelectionDialog,
+                        onTap: () => _openStudentSelectionDialog(isAr),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
@@ -403,7 +422,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  _selectedStudentName ?? 'اضغط لاختيار الطالب (مرتبين أبجدياً)...',
+                                  _selectedStudentName ?? (isAr ? 'اضغط لاختيار الطالب (مرتبين أبجدياً)...' : 'Tap to select student (alphabetical)...'),
                                   style: TextStyle(
                                     color: _selectedStudentName != null ? textColor : subColor,
                                     fontWeight: _selectedStudentName != null ? FontWeight.bold : FontWeight.normal,
@@ -434,13 +453,13 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                                   Icon(Icons.badge_outlined, size: 64, color: subColor.withValues(alpha: 0.5)),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'يرجى اختيار طالب لعرض كشف العلامات',
+                                    isAr ? 'يرجى اختيار طالب لعرض كشف العلامات' : 'Please select a student to view academic card',
                                     style: TextStyle(color: subColor, fontSize: 14),
                                   ),
                                 ],
                               ),
                             )
-                          : _buildAcademicCardContent(cardColor, textColor, subColor, isDark),
+                          : _buildAcademicCardContent(cardColor, textColor, subColor, isDark, isAr),
                 ),
               ],
             ),
@@ -450,7 +469,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
     );
   }
 
-  Widget _buildAcademicCardContent(Color cardColor, Color textColor, Color subColor, bool isDark) {
+  Widget _buildAcademicCardContent(Color cardColor, Color textColor, Color subColor, bool isDark, bool isAr) {
     final student = _cardData!['student'] ?? {};
     final summary = _cardData!['summary'] ?? {};
     final List<dynamic> cards = _cardData!['academic_card'] ?? [];
@@ -494,7 +513,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'الرقم الجامعي: ${student['university_id'] ?? ''}',
+                      isAr ? 'الرقم الجامعي: ${student['university_id'] ?? ''}' : 'University ID: ${student['university_id'] ?? ''}',
                       style: TextStyle(fontSize: 12, color: subColor),
                     ),
                     Text(
@@ -513,11 +532,11 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
         // بطاقات ملخص الأداء والمعدل
         Row(
           children: [
-            _buildStatBadge('المعدل العام', '${summary['average'] ?? 0}%', Colors.orange, cardColor, textColor),
+            _buildStatBadge(isAr ? 'المعدل العام' : 'Overall GPA', '${summary['average'] ?? 0}%', Colors.orange, cardColor, textColor),
             const SizedBox(width: 8),
-            _buildStatBadge('المواد الناجحة', '${summary['passed_courses'] ?? 0}', Colors.green, cardColor, textColor),
+            _buildStatBadge(isAr ? 'المواد الناجحة' : 'Passed Courses', '${summary['passed_courses'] ?? 0}', Colors.green, cardColor, textColor),
             const SizedBox(width: 8),
-            _buildStatBadge('لم يتم التقدم', '${summary['not_attended'] ?? 0}', Colors.grey, cardColor, textColor),
+            _buildStatBadge(isAr ? 'لم يتم التقدم' : 'Not Attended', '${summary['not_attended'] ?? 0}', Colors.grey, cardColor, textColor),
           ],
         ),
 
@@ -536,7 +555,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.picture_as_pdf_rounded, size: 20),
-                label: const Text('تصدير PDF', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(isAr ? 'تصدير PDF' : 'Export PDF', style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(width: 12),
@@ -550,7 +569,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.table_chart_rounded, size: 20),
-                label: const Text('تصدير Excel', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(isAr ? 'تصدير Excel' : 'Export Excel', style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -560,7 +579,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
 
         // جدول المواد والعلامات
         Text(
-          'كشف درجات المواد',
+          isAr ? 'كشف درجات المواد' : 'Course Grade Sheet',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
         ),
         const SizedBox(height: 10),
@@ -569,10 +588,10 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(16)),
-            child: Center(child: Text('لا توجد مواد مسجلة للطالب في سنته الأكاديمية الحالية', style: TextStyle(color: subColor))),
+            child: Center(child: Text(isAr ? 'لا توجد مواد مسجلة للطالب في سنته الأكاديمية الحالية' : 'No courses registered for the student in current academic year', style: TextStyle(color: subColor))),
           )
         else
-          ...cards.map((c) => _buildCourseGradeCard(c, cardColor, textColor, subColor, isDark)),
+          ...cards.map((c) => _buildCourseGradeCard(c, cardColor, textColor, subColor, isDark, isAr)),
       ],
     );
   }
@@ -597,16 +616,19 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
     );
   }
 
-  Widget _buildCourseGradeCard(Map<String, dynamic> c, Color cardColor, Color textColor, Color subColor, bool isDark) {
-    final String status = c['status'] ?? 'لم يتم التقدم';
+  Widget _buildCourseGradeCard(Map<String, dynamic> c, Color cardColor, Color textColor, Color subColor, bool isDark, bool isAr) {
+    final String rawStatus = c['status'] ?? 'لم يتم التقدم';
+    String status = isAr ? 'لم يتم التقدم' : 'Not Attended';
 
     Color statusBg = Colors.grey.withValues(alpha: 0.15);
     Color statusTextColor = Colors.grey;
 
-    if (status == 'ناجح') {
+    if (rawStatus == 'ناجح') {
+      status = isAr ? 'ناجح' : 'Passed';
       statusBg = Colors.green.withValues(alpha: 0.15);
       statusTextColor = Colors.green;
-    } else if (status == 'راسب') {
+    } else if (rawStatus == 'راسب') {
+      status = isAr ? 'راسب' : 'Failed';
       statusBg = Colors.red.withValues(alpha: 0.15);
       statusTextColor = Colors.red;
     }
@@ -654,10 +676,10 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildGradeCol('المذاكرة', c['quiz_score'], textColor, subColor),
-              _buildGradeCol('عملي / شفهي', c['oral_score'], textColor, subColor),
-              _buildGradeCol('النهائي', c['final_score'], textColor, subColor),
-              _buildGradeCol('المجموع', c['total_score'], textColor, subColor, isTotal: true),
+              _buildGradeCol(isAr ? 'المذاكرة' : 'Quiz', c['quiz_score'], textColor, subColor),
+              _buildGradeCol(isAr ? 'عملي / شفهي' : 'Practical/Oral', c['oral_score'], textColor, subColor),
+              _buildGradeCol(isAr ? 'النهائي' : 'Final', c['final_score'], textColor, subColor),
+              _buildGradeCol(isAr ? 'المجموع' : 'Total', c['total_score'], textColor, subColor, isTotal: true),
             ],
           ),
         ],

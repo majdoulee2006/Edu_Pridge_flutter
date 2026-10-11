@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class CorrectedResponsesScreen extends StatelessWidget {
   final List<Map<String, dynamic>> submissions;
@@ -6,45 +7,52 @@ class CorrectedResponsesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // جلب ألوان الثيم لضمان توافق الوضع الليلي
+    final isAr = AppSettings.language.value == 'ar';
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor =
         Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      color: bgColor,
-      child: Column(
-        children: [
-          // قائمة الطلاب المصححة أعمالهم
-          Expanded(
-            child: submissions.isEmpty
-                ? const Center(
-                    child: Text('لا توجد ردود مصححة', style: TextStyle(color: Colors.grey)),
-                  )
-                : ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                    itemCount: submissions.length,
-                    itemBuilder: (context, index) {
-                      final s = submissions[index];
-                      return _buildCorrectedCard(
-                        context,
-                        name:      s['student_name'] as String? ?? '',
-                        task:      s['assignment_title'] as String? ?? '',
-                        date:      s['submitted_at'] as String? ?? '',
-                        grade:     '${s['grade'] ?? 0}',
-                        total:     '${s['max_points'] ?? 100}',
-                        isOnline:  false,
-                        cardColor: cardColor,
-                        textColor: textColor,
-                        isDark:    isDark,
-                      );
-                    },
-                  ),
-          ),
-        ],
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: Container(
+        color: bgColor,
+        child: Column(
+          children: [
+            // قائمة الطلاب المصححة أعمالهم
+            Expanded(
+              child: submissions.isEmpty
+                  ? Center(
+                      child: Text(
+                        isAr ? 'لا توجد ردود مصححة' : 'No graded responses',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                      itemCount: submissions.length,
+                      itemBuilder: (context, index) {
+                        final s = submissions[index];
+                        return _buildCorrectedCard(
+                          context,
+                          name:      s['student_name'] as String? ?? '',
+                          task:      s['assignment_title'] as String? ?? '',
+                          date:      s['submitted_at'] as String? ?? '',
+                          grade:     '${s['grade'] ?? 0}',
+                          total:     '${s['max_points'] ?? 100}',
+                          isOnline:  false,
+                          cardColor: cardColor,
+                          textColor: textColor,
+                          isDark:    isDark,
+                          isAr:      isAr,
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -61,6 +69,7 @@ class CorrectedResponsesScreen extends StatelessWidget {
     required Color cardColor,
     required Color textColor,
     required bool isDark,
+    required bool isAr,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -84,10 +93,13 @@ class CorrectedResponsesScreen extends StatelessWidget {
               CircleAvatar(
                 radius: 26,
                 backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
-                child: Icon(
-                  Icons.person_rounded,
-                  color: textColor.withValues(alpha: 0.3),
-                  size: 30,
+                child: Text(
+                  name.isNotEmpty ? name[0] : '?',
+                  style: TextStyle(
+                    color: textColor.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
               if (isOnline)
@@ -141,7 +153,7 @@ class CorrectedResponsesScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      "تم التصحيح في: $date",
+                      isAr ? "تم التصحيح في: $date" : "Graded on: $date",
                       style: TextStyle(
                         color: textColor.withValues(alpha: 0.4),
                         fontSize: 10,
@@ -153,7 +165,7 @@ class CorrectedResponsesScreen extends StatelessWidget {
             ),
           ),
 
-          // 3. الدرجة (تصميم دائري أو مربع منحني)
+          // 3. الدرجة
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -194,5 +206,4 @@ class CorrectedResponsesScreen extends StatelessWidget {
       ),
     );
   }
-
 }

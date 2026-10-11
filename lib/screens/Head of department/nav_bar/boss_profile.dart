@@ -22,8 +22,10 @@ class BossProfileScreen extends StatefulWidget {
 }
 
 class _BossProfileScreenState extends State<BossProfileScreen> {
-  String  _userName        = "جارِ التحميل...";
-  String  _userRole        = "رئيس القسم الأكاديمي";
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  String  _userName        = "";
+  String  _userRole        = "";
   String  _email           = "";
   String  _phone           = "";
   String  _department      = "";
@@ -32,10 +34,23 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
   bool    _isLoading       = true;
   bool    _uploadingAvatar = false;
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
+    _userName = isAr ? "جارِ التحميل..." : "Loading...";
+    _userRole = isAr ? "رئيس القسم الأكاديمي" : "Academic Department Head";
     _fetchProfile();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _fetchProfile() async {
@@ -64,7 +79,7 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
             _email      = d['email']      as String? ?? '';
             _phone      = d['phone']      as String? ?? '';
             _department = d['department'] as String? ?? '';
-            _userRole   = d['role_label'] as String? ?? "رئيس القسم الأكاديمي";
+            _userRole   = d['role_label'] as String? ?? (isAr ? "رئيس القسم الأكاديمي" : "Academic Department Head");
             _avatarUrl  = ApiService.fixMediaUrl(d['avatar'] as String?);
             _lastLogin  = prefs.getString('last_login_at') ?? '';
           });
@@ -75,7 +90,7 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       if (mounted) {
         setState(() {
-          _userName  = prefs.getString('user_name') ?? "رئيس القسم";
+          _userName  = prefs.getString('user_name') ?? (isAr ? "رئيس القسم" : "Department Head");
           _lastLogin = prefs.getString('last_login_at') ?? '';
         });
       }
@@ -100,9 +115,12 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
       );
       if (res.statusCode == 200 && res.data['success'] == true && mounted) {
         setState(() => _avatarUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?));
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('تم تحديث الصورة الشخصية', style: TextStyle(fontFamily: 'Cairo')),
-          backgroundColor: Color(0xFFCCAA00),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            isAr ? 'تم تحديث الصورة الشخصية' : 'Profile photo updated successfully',
+            style: const TextStyle(fontFamily: 'Cairo'),
+          ),
+          backgroundColor: const Color(0xFFCCAA00),
         ));
       }
     } catch (e) {
@@ -120,7 +138,7 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
     final textColor   = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: _buildAppBar(context, textColor, isDark),
@@ -136,49 +154,54 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
                     _buildProfileHeader(textColor),
                     const SizedBox(height: 30),
 
-                    _buildSectionTitle("معلومات التواصل", textColor),
+                    _buildSectionTitle(isAr ? "معلومات التواصل" : "Contact Information", textColor),
                     _buildInfoCard(cardColor, [
                       _buildClickableRow(
-                        "رقم الهاتف", _phone.isNotEmpty ? _phone : "غير محدد",
+                        isAr ? "رقم الهاتف" : "Phone Number",
+                        _phone.isNotEmpty ? _phone : (isAr ? "غير محدد" : "Not specified"),
                         Icons.phone_android_rounded, Colors.green, textColor,
                         () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditPhoneScreen()))
                             .then((_) => _fetchProfile()),
                       ),
                       _buildDivider(textColor),
                       _buildStaticRow(
-                        "البريد الإلكتروني", _email.isNotEmpty ? _email : "غير محدد",
+                        isAr ? "البريد الإلكتروني" : "Email Address",
+                        _email.isNotEmpty ? _email : (isAr ? "غير محدد" : "Not specified"),
                         Icons.alternate_email_rounded, Colors.blue, textColor,
                       ),
                     ]),
 
                     const SizedBox(height: 25),
-                    _buildSectionTitle("المعلومات الشخصية", textColor),
+                    _buildSectionTitle(isAr ? "المعلومات الشخصية" : "Personal Information", textColor),
                     _buildInfoCard(cardColor, [
                       _buildStaticRow(
-                        "القسم", _department.isNotEmpty ? _department : "غير محدد",
+                        isAr ? "القسم" : "Department",
+                        _department.isNotEmpty ? _department : (isAr ? "غير محدد" : "Not specified"),
                         Icons.business_outlined, Colors.purple, textColor,
                       ),
                     ]),
 
                     const SizedBox(height: 25),
-                    _buildSectionTitle("الصلاحيات والنظام", textColor),
+                    _buildSectionTitle(isAr ? "الصلاحيات والنظام" : "Permissions & System", textColor),
                     _buildInfoCard(cardColor, [
                       _buildStaticRow(
-                        "نوع الحساب", "رئيس القسم",
+                        isAr ? "نوع الحساب" : "Account Type",
+                        isAr ? "رئيس القسم" : "Department Head",
                         Icons.manage_accounts_outlined, const Color(0xFFCCAA00), textColor,
                       ),
                       _buildDivider(textColor),
                       _buildStaticRow(
-                        "آخر تسجيل دخول", _lastLogin.isNotEmpty ? _lastLogin : "غير متاح",
+                        isAr ? "آخر تسجيل دخول" : "Last Login",
+                        _lastLogin.isNotEmpty ? _lastLogin : (isAr ? "غير متاح" : "Not available"),
                         Icons.access_time_rounded, Colors.teal, textColor,
                       ),
                     ]),
 
                     const SizedBox(height: 25),
-                    _buildSectionTitle("الإعدادات والأمان", textColor),
+                    _buildSectionTitle(isAr ? "الإعدادات والأمان" : "Settings & Security", textColor),
                     _buildInfoCard(cardColor, [
                       _buildClickableRow(
-                        "كلمة المرور", "••••••••",
+                        isAr ? "كلمة المرور" : "Password", "••••••••",
                         Icons.lock_reset_rounded, Colors.redAccent, textColor,
                         () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditPasswordScreen())),
                       ),
@@ -211,9 +234,12 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      title: Text("الملف الشخصي", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+      title: Text(
+        isAr ? "الملف الشخصي" : "Profile",
+        style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+      ),
       leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+        icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
         onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
       ),
       actions: [
@@ -222,7 +248,7 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
           onPressed: () => Navigator.push(context, MaterialPageRoute(
             builder: (_) => SettingsScreen(
               userName: _userName,
-              userRole: "رئيس القسم الأكاديمي",
+              userRole: isAr ? "رئيس القسم الأكاديمي" : "Academic Department Head",
               onProfileTap: () => Navigator.pop(context),
             ),
           )),
@@ -344,9 +370,9 @@ class _BossProfileScreenState extends State<BossProfileScreen> {
 
   Widget _buildSectionTitle(String title, Color textColor) {
     return Align(
-      alignment: Alignment.centerRight,
+      alignment: AlignmentDirectional.centerStart,
       child: Padding(
-        padding: const EdgeInsets.only(right: 5, bottom: 10),
+        padding: const EdgeInsetsDirectional.only(start: 5, bottom: 10),
         child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor)),
       ),
     );

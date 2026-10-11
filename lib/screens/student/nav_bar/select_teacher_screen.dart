@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/models/teacher_model.dart';
 import 'package:provider/provider.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class SelectTeacherScreen extends StatefulWidget {
   const SelectTeacherScreen({super.key});
@@ -131,41 +132,43 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
           teacher.subject.toLowerCase().contains(searchQuery.toLowerCase());
     }).toList();
 
+    final bool isAr = AppSettings.language.value == 'ar';
+
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
           backgroundColor: bgColor,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: textColor),
+            icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_back_ios_new, color: textColor),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Text('بدء محادثة جديدة', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+          title: Text(isAr ? 'بدء محادثة جديدة' : 'Start New Chat', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
           centerTitle: true,
         ),
         body: Column(
           children: [
-            _buildSearchBar(isDark, cardColor, textColor),
+            _buildSearchBar(isDark, cardColor, textColor, isAr),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
               child: Align(
-                alignment: Alignment.centerRight,
-                child: Text('اختر مدرساً للمراسلة:', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey, fontWeight: FontWeight.bold)),
+                alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
+                child: Text(isAr ? 'اختر مدرساً للمراسلة:' : 'Select an instructor to message:', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey, fontWeight: FontWeight.bold)),
               ),
             ),
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator(color: Colors.amber))
                   : filteredTeachers.isEmpty
-                  ? Center(child: Text('لم يتم العثور على مدرسين', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey)))
+                  ? Center(child: Text(isAr ? 'لم يتم العثور على مدرسين' : 'No instructors found', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey)))
                   : ListView.builder(
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 itemCount: filteredTeachers.length,
                 itemBuilder: (context, index) {
-                  return _buildTeacherCard(context, filteredTeachers[index], isDark, cardColor, textColor);
+                  return _buildTeacherCard(context, filteredTeachers[index], isDark, cardColor, textColor, isAr);
                 },
               ),
             ),
@@ -175,7 +178,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
     );
   }
 
-  Widget _buildSearchBar(bool isDark, Color cardColor, Color textColor) {
+  Widget _buildSearchBar(bool isDark, Color cardColor, Color textColor, bool isAr) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -188,7 +191,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
         style: TextStyle(color: textColor),
         onChanged: (value) => setState(() => searchQuery = value),
         decoration: InputDecoration(
-          hintText: 'ابحث عن مدرس أو مادة...',
+          hintText: isAr ? 'ابحث عن مدرس أو مادة...' : 'Search instructor or subject...',
           hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey, fontSize: 14),
           prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade500 : Colors.grey),
           border: InputBorder.none,
@@ -197,7 +200,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
     );
   }
 
-  Widget _buildTeacherCard(BuildContext context, TeacherModel teacher, bool isDark, Color cardColor, Color textColor) {
+  Widget _buildTeacherCard(BuildContext context, TeacherModel teacher, bool isDark, Color cardColor, Color textColor, bool isAr) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -232,7 +235,7 @@ class _SelectTeacherScreenState extends State<SelectTeacherScreen> {
         ),
         title: Text(teacher.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
         subtitle: Text(teacher.subject, style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 12)),
-        trailing: Icon(Icons.arrow_back_ios, size: 16, color: isDark ? Colors.grey.shade600 : Colors.grey),
+        trailing: Icon(isAr ? Icons.arrow_back_ios : Icons.arrow_forward_ios, size: 16, color: isDark ? Colors.grey.shade600 : Colors.grey),
         onTap: () {
           final chatServiceInstance = context.read<ChatService>();
           final contactToPass = {

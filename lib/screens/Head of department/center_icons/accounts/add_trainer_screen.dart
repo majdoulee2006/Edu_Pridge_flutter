@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class AddTrainerScreen extends StatefulWidget {
   const AddTrainerScreen({super.key});
@@ -11,6 +12,9 @@ class AddTrainerScreen extends StatefulWidget {
 }
 
 class _AddTrainerScreenState extends State<AddTrainerScreen> {
+  bool get isAr => AppSettings.language.value == 'ar';
+  void _onLangChange() { if (mounted) setState(() {}); }
+
   final _nameController     = TextEditingController();
   final _phoneController    = TextEditingController();
   final _emailController    = TextEditingController();
@@ -21,17 +25,30 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
   String? _selectedSpecialization;
   final List<String> _specializations = ['نظم المعلومات', 'طبي', 'تجاري', 'هندسي'];
 
+  String _specLabel(String s) {
+    if (isAr) return s;
+    return switch (s) {
+      'نظم المعلومات' => 'Information Systems',
+      'طبي'           => 'Medical',
+      'تجاري'         => 'Commercial',
+      'هندسي'         => 'Engineering',
+      _               => s,
+    };
+  }
+
   List<Map<String, dynamic>> _allCourses = [];
   final Set<int> _selectedCourseIds = {};
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchCourses();
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
@@ -72,7 +89,7 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
         _passwordController.text.trim().isEmpty ||
         _selectedSpecialization == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى تعبئة جميع الحقول المطلوبة')),
+        SnackBar(content: Text(isAr ? 'يرجى تعبئة جميع الحقول المطلوبة' : 'Please fill all required fields')),
       );
       return;
     }
@@ -94,8 +111,8 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ تم إنشاء حساب المدرب بنجاح'),
+          SnackBar(
+            content: Text(isAr ? '✅ تم إنشاء حساب المدرب بنجاح' : '✅ Trainer account created successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -103,7 +120,7 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
       }
     } catch (e) {
       debugPrint('⛔ Add Trainer Error: $e');
-      String msg = 'حدث خطأ، حاول مجدداً';
+      String msg = isAr ? 'حدث خطأ، حاول مجدداً' : 'An error occurred, try again';
       if (e is DioException && e.response?.data is Map) {
         msg = e.response!.data['message'] ?? msg;
       }
@@ -121,19 +138,26 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
     const yellow      = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        appBar: AppBar(title: const Text("إنشاء حساب مدرب"), centerTitle: true),
+        appBar: AppBar(
+          title: Text(isAr ? "إنشاء حساب مدرب" : "Create Trainer Account"),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── الاسم ──
-              _customField("اسم المدرب الكامل", Icons.person, _nameController, isDark),
+              _customField(isAr ? "اسم المدرب الكامل" : "Trainer Full Name", Icons.person, _nameController, isDark),
 
               // ── رقم الهاتف (يستخدمه للدخول) ──
-              _customField("رقم الهاتف (للدخول)", Icons.phone, _phoneController, isDark,
+              _customField(isAr ? "رقم الهاتف (للدخول)" : "Phone Number (for login)", Icons.phone, _phoneController, isDark,
                   inputType: TextInputType.phone),
 
               // ── الاختصاص ──
@@ -148,10 +172,10 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedSpecialization,
-                      hint: const Text('القسم الذي يدرس فيه'),
+                      hint: Text(isAr ? 'القسم الذي يدرس فيه' : 'Department taught in'),
                       isExpanded: true,
                       items: _specializations
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .map((s) => DropdownMenuItem(value: s, child: Text(_specLabel(s))))
                           .toList(),
                       onChanged: (val) => setState(() => _selectedSpecialization = val),
                     ),
@@ -160,9 +184,9 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
               ),
 
               // ── البريد (اختياري) وكلمة المرور ──
-              _customField("البريد الإلكتروني (اختياري)", Icons.email, _emailController, isDark,
+              _customField(isAr ? "البريد الإلكتروني (اختياري)" : "Email Address (optional)", Icons.email, _emailController, isDark,
                   inputType: TextInputType.emailAddress),
-              _customField("كلمة المرور", Icons.lock, _passwordController, isDark, isPass: true),
+              _customField(isAr ? "كلمة المرور" : "Password", Icons.lock, _passwordController, isDark, isPass: true),
 
               const SizedBox(height: 10),
 
@@ -185,7 +209,7 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
                           const Icon(Icons.menu_book, color: yellow, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'المواد الدراسية التي يدرّسها',
+                            isAr ? 'المواد الدراسية التي يدرّسها' : 'Subjects taught',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -201,7 +225,9 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '${_selectedCourseIds.length} مختار',
+                                isAr
+                                    ? '${_selectedCourseIds.length} مختار'
+                                    : '${_selectedCourseIds.length} selected',
                                 style: const TextStyle(fontSize: 12, color: Colors.black87),
                               ),
                             ),
@@ -215,9 +241,9 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
                         child: Center(child: CircularProgressIndicator(color: yellow)),
                       )
                     else if (_allCourses.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('لا توجد مواد متاحة', style: TextStyle(color: Colors.grey)),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(isAr ? 'لا توجد مواد متاحة' : 'No subjects available', style: const TextStyle(color: Colors.grey)),
                       )
                     else
                       ...(_allCourses.map((course) {
@@ -290,9 +316,9 @@ class _AddTrainerScreenState extends State<AddTrainerScreen> {
                           height: 22,
                           child: CircularProgressIndicator(
                               color: Colors.black, strokeWidth: 2))
-                      : const Text(
-                          "حفظ البيانات",
-                          style: TextStyle(
+                      : Text(
+                          isAr ? "حفظ البيانات" : "Save Data",
+                          style: const TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 16),

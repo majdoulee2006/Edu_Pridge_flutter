@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/services/affairs_services.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class PendingTab extends StatefulWidget {
   final Color cardColor;
@@ -30,15 +31,23 @@ class _PendingTabState extends State<PendingTab>
   List<dynamic> _studentRequests = [];
   List<dynamic> _parentRequests = [];
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _subTabController = TabController(length: 2, vsync: this);
     _loadRequests();
   }
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _subTabController.dispose();
     super.dispose();
   }
@@ -83,16 +92,22 @@ class _PendingTabState extends State<PendingTab>
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم تفعيل الحساب والموافقة بنجاح', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+        SnackBar(
+          content: Text(
+            isAr ? 'تم تفعيل الحساب والموافقة بنجاح' : 'Account approved and activated successfully',
+            style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+          ),
           backgroundColor: Colors.green,
         ),
       );
       _loadRequests();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('فشل تفعيل الحساب، يرجى المحاولة لاحقاً', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+        SnackBar(
+          content: Text(
+            isAr ? 'فشل تفعيل الحساب، يرجى المحاولة لاحقاً' : 'Failed to activate account, please try again later',
+            style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -104,18 +119,26 @@ class _PendingTabState extends State<PendingTab>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: AlertDialog(
-          title: const Text('تأكيد الرفض', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
-          content: const Text('هل أنت متأكد من رفض وحذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+          title: Text(isAr ? 'تأكيد الرفض' : 'Confirm Rejection', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
+          content: Text(
+            isAr
+                ? 'هل أنت متأكد من رفض وحذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.'
+                : 'Are you sure you want to reject and delete this request? This action cannot be undone.',
+            style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+              child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(fontFamily: 'Noto Sans Arabic')),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('نعم، ارفض', style: TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.red)),
+              child: Text(
+                isAr ? 'نعم، ارفض' : 'Yes, Reject',
+                style: const TextStyle(fontFamily: 'Noto Sans Arabic', color: Colors.red),
+              ),
             ),
           ],
         ),
@@ -141,16 +164,22 @@ class _PendingTabState extends State<PendingTab>
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم رفض الطلب وحذفه بنجاح', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+        SnackBar(
+          content: Text(
+            isAr ? 'تم رفض الطلب وحذفه بنجاح' : 'Request rejected and deleted successfully',
+            style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+          ),
           backgroundColor: Colors.orange,
         ),
       );
       _loadRequests();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('فشل رفض الطلب، يرجى المحاولة لاحقاً', style: TextStyle(fontFamily: 'Noto Sans Arabic')),
+        SnackBar(
+          content: Text(
+            isAr ? 'فشل رفض الطلب، يرجى المحاولة لاحقاً' : 'Failed to reject request, please try again later',
+            style: const TextStyle(fontFamily: 'Noto Sans Arabic'),
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -178,7 +207,7 @@ class _PendingTabState extends State<PendingTab>
               ),
               const SizedBox(width: 10),
               Text(
-                "طلبات جديدة معلقة",
+                isAr ? "طلبات جديدة معلقة" : "New Pending Requests",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -194,7 +223,7 @@ class _PendingTabState extends State<PendingTab>
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${_allRequests.length} طلبات',
+                  isAr ? '${_allRequests.length} طلبات' : '${_allRequests.length} Requests',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -243,9 +272,9 @@ class _PendingTabState extends State<PendingTab>
             ),
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
-            tabs: const [
-              Tab(text: 'طالب'),
-              Tab(text: 'ولي أمر'),
+            tabs: [
+              Tab(text: isAr ? 'طالب' : 'Student'),
+              Tab(text: isAr ? 'ولي أمر' : 'Parent'),
             ],
           ),
         ),
@@ -281,7 +310,7 @@ class _PendingTabState extends State<PendingTab>
     if (_studentRequests.isEmpty) {
       return Center(
         child: Text(
-          "لا توجد طلبات طلاب معلقة حالياً",
+          isAr ? "لا توجد طلبات طلاب معلقة حالياً" : "No pending student requests currently",
           style: TextStyle(color: widget.subColor, fontSize: 14, fontFamily: 'Noto Sans Arabic'),
         ),
       );
@@ -308,7 +337,7 @@ class _PendingTabState extends State<PendingTab>
     if (_parentRequests.isEmpty) {
       return Center(
         child: Text(
-          "لا توجد طلبات أولياء أمور معلقة حالياً",
+          isAr ? "لا توجد طلبات أولياء أمور معلقة حالياً" : "No pending parent requests currently",
           style: TextStyle(color: widget.subColor, fontSize: 14, fontFamily: 'Noto Sans Arabic'),
         ),
       );
@@ -337,7 +366,7 @@ class _PendingTabState extends State<PendingTab>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
         child: Container(
           decoration: BoxDecoration(
             color: widget.isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -378,7 +407,7 @@ class _PendingTabState extends State<PendingTab>
                 const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    data['full_name'] ?? 'بدون اسم',
+                    data['full_name'] ?? (isAr ? 'بدون اسم' : 'Unnamed'),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -388,20 +417,20 @@ class _PendingTabState extends State<PendingTab>
                   ),
                 ),
                 const SizedBox(height: 24),
-                _buildDetailRow('البريد الإلكتروني', data['email'] ?? 'غير متوفر', Icons.email),
-                _buildDetailRow('رقم الهاتف', data['phone'] ?? 'غير متوفر', Icons.phone),
-                _buildDetailRow('تاريخ الميلاد', data['birth_date'] ?? 'غير متوفر', Icons.calendar_today),
-                _buildDetailRow('الجنس', data['gender'] ?? 'غير متوفر', Icons.person),
+                _buildDetailRow(isAr ? 'البريد الإلكتروني' : 'Email Address', data['email'] ?? (isAr ? 'غير متوفر' : 'N/A'), Icons.email),
+                _buildDetailRow(isAr ? 'رقم الهاتف' : 'Phone Number', data['phone'] ?? (isAr ? 'غير متوفر' : 'N/A'), Icons.phone),
+                _buildDetailRow(isAr ? 'تاريخ الميلاد' : 'Date of Birth', data['birth_date'] ?? (isAr ? 'غير متوفر' : 'N/A'), Icons.calendar_today),
+                _buildDetailRow(isAr ? 'الجنس' : 'Gender', data['gender'] ?? (isAr ? 'غير متوفر' : 'N/A'), Icons.person),
                 if (data['role'] == 'student') ...[
-                  _buildDetailRow('القسم', data['department'] ?? 'غير متوفر', Icons.school),
-                  _buildDetailRow('الفرع', data['branch'] ?? 'غير متوفر', Icons.account_tree),
-                  _buildDetailRow('السنة الدراسية', data['academic_year'] ?? 'غير متوفر', Icons.timeline),
-                  _buildDetailRow('معرّف تليجرام', data['telegram_chat_id'] ?? 'غير متوفر', Icons.send),
+                  _buildDetailRow(isAr ? 'القسم' : 'Department', data['department'] ?? (isAr ? 'غير متوفر' : 'N/A'), Icons.school),
+                  _buildDetailRow(isAr ? 'الفرع' : 'Branch', data['branch'] ?? (isAr ? 'غير متوفر' : 'N/A'), Icons.account_tree),
+                  _buildDetailRow(isAr ? 'السنة الدراسية' : 'Academic Year', data['academic_year'] ?? (isAr ? 'غير متوفر' : 'N/A'), Icons.timeline),
+                  _buildDetailRow(isAr ? 'معرّف تليجرام' : 'Telegram Chat ID', data['telegram_chat_id'] ?? (isAr ? 'غير متوفر' : 'N/A'), Icons.send),
                   _buildDetailRow(
-                    'الرقم الجامعي',
+                    isAr ? 'الرقم الجامعي' : 'University ID',
                     (data['university_id'] != null && data['university_id'].toString().isNotEmpty)
                         ? data['university_id']
-                        : 'سيتم توليده تلقائياً عند الموافقة ✨',
+                        : (isAr ? 'سيتم توليده تلقائياً عند الموافقة ✨' : 'Will be auto-generated upon approval ✨'),
                     Icons.badge,
                   ),
                 ],
@@ -423,9 +452,9 @@ class _PendingTabState extends State<PendingTab>
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text(
-                          'رفض الطلب',
-                          style: TextStyle(
+                        child: Text(
+                          isAr ? 'رفض الطلب' : 'Reject Request',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: Colors.redAccent,
@@ -442,9 +471,9 @@ class _PendingTabState extends State<PendingTab>
                           _handleApprove(userId);
                         },
                         icon: const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                        label: const Text(
-                          'موافقة وتفعيل',
-                          style: TextStyle(
+                        label: Text(
+                          isAr ? 'موافقة وتفعيل' : 'Approve & Activate',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -520,7 +549,7 @@ class _PendingTabState extends State<PendingTab>
   Widget _buildStudentCard(Map<String, dynamic> data) {
     final String initial = data['full_name'] != null && data['full_name'].isNotEmpty
         ? data['full_name'][0]
-        : 'ط';
+        : (isAr ? 'ط' : 'S');
     final String? avatarUrl = ApiService.fixMediaUrl(data['avatar']);
 
     return Container(
@@ -565,7 +594,7 @@ class _PendingTabState extends State<PendingTab>
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
-                    data['full_name'] ?? 'بدون اسم',
+                    data['full_name'] ?? (isAr ? 'بدون اسم' : 'Unnamed'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -575,7 +604,7 @@ class _PendingTabState extends State<PendingTab>
                   ),
                 ),
                 Icon(
-                  Icons.arrow_forward_ios_rounded,
+                  isAr ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded,
                   size: 18,
                   color: widget.subColor.withValues(alpha: 0.7),
                 ),
@@ -593,7 +622,7 @@ class _PendingTabState extends State<PendingTab>
   Widget _buildParentCard(Map<String, dynamic> data) {
     final String initial = data['full_name'] != null && data['full_name'].isNotEmpty
         ? data['full_name'][0]
-        : 'أ';
+        : (isAr ? 'أ' : 'P');
     final int userId = data['user_id'] ?? 0;
     final String? avatarUrl = ApiService.fixMediaUrl(data['avatar']);
 
@@ -641,7 +670,7 @@ class _PendingTabState extends State<PendingTab>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        data['full_name'] ?? 'بدون اسم',
+                        data['full_name'] ?? (isAr ? 'بدون اسم' : 'Unnamed'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -651,7 +680,7 @@ class _PendingTabState extends State<PendingTab>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        data['email'] ?? 'بدون بريد إلكتروني',
+                        data['email'] ?? (isAr ? 'بدون بريد إلكتروني' : 'No Email'),
                         style: TextStyle(
                           fontSize: 12,
                           color: widget.subColor,
@@ -694,7 +723,7 @@ class _PendingTabState extends State<PendingTab>
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text(
-                      'رفض',
+                      isAr ? 'رفض' : 'Reject',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -709,9 +738,9 @@ class _PendingTabState extends State<PendingTab>
                   child: ElevatedButton.icon(
                     onPressed: () => _handleApprove(userId),
                     icon: const Icon(Icons.check, color: Colors.white, size: 18),
-                    label: const Text(
-                      'موافقة وتفعيل',
-                      style: TextStyle(
+                    label: Text(
+                      isAr ? 'موافقة وتفعيل' : 'Approve & Activate',
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 // 🚀 استيرادات شاشات رئيس القسم
 import '../screens/Head of department/center_icons/leave_requests_screen.dart';
@@ -20,9 +21,16 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
   bool _isOpen = false;
   late AnimationController _animationController;
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -31,6 +39,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _animationController.dispose();
     super.dispose();
   }
@@ -54,7 +63,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
     final Color separatorColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -89,7 +98,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                           children: [
                             // 1. زر الإجازات
                             _buildMenuItem(
-                              'الإجازات',
+                              isAr ? 'الإجازات' : 'Leaves',
                               Icons.event_note_rounded,
                               Colors.blueAccent,
                               18.0,
@@ -105,7 +114,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                             ),
                             // 2. زر الحسابات
                             _buildMenuItem(
-                              'الحسابات',
+                              isAr ? 'الحسابات' : 'Accounts',
                               Icons.account_balance_wallet_outlined,
                               Colors.orangeAccent,
                               54.0,
@@ -121,9 +130,9 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                                 );
                               },
                             ),
-                            // 3. 🌟 زر مواعيد (الجديد بالمنتصف للأعلى)
+                            // 3. 🌟 زر مواعيد
                             _buildMenuItem(
-                              'مواعيد',
+                              isAr ? 'مواعيد' : 'Schedule',
                               Icons.calendar_month_outlined,
                               Colors.tealAccent,
                               90.0,
@@ -141,7 +150,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                             ),
                             // 4. زر التنظيم
                             _buildMenuItem(
-                              'التنظيم',
+                              isAr ? 'التنظيم' : 'Organization',
                               Icons.auto_fix_high_rounded,
                               Colors.greenAccent,
                               126.0,
@@ -159,7 +168,7 @@ class _Boss_Center_IconState extends State<Boss_Center_Icon>
                             ),
                             // 5. زر طلب التقارير
                             _buildMenuItem(
-                              'طلب التقارير',
+                              isAr ? 'طلب التقارير' : 'Reports',
                               Icons.analytics_outlined,
                               Colors.redAccent,
                               162.0,

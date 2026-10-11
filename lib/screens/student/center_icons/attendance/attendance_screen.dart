@@ -7,6 +7,7 @@ import '../../nav_bar/student_home_screen.dart';
 import '../../nav_bar/profile_screen.dart';
 import '../../nav_bar/notifications_screen.dart';
 import '../../nav_bar/messages_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 // استدعاء السيرفيس
 import 'package:edu_pridge_flutter/services/student_services.dart';
@@ -35,13 +36,27 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   List<dynamic> _myLeaveRequests = [];
   bool _isLoadingRequests = false;
 
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchAttendance();
     _initDefaultDateTime();
     _fetchMyLeaveRequests();
     _fetchWarnings();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    _dateController.dispose();
+    _timeController.dispose();
+    _leaveReasonController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchWarnings() async {
@@ -70,21 +85,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     _timeController.text = "$hour:$minute";
   }
 
-  @override
-  void dispose() {
-    _dateController.dispose();
-    _timeController.dispose();
-    _leaveReasonController.dispose();
-    super.dispose();
-  }
-
   // ignore: unused_element
   Future<void> _submitLeaveRequest() async {
+    final bool isAr = AppSettings.language.value == 'ar';
     final reason = _leaveReasonController.text.trim();
     final date = _dateController.text.trim();
     if (date.isEmpty || reason.isEmpty || reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى ملء جميع الحقول (السبب 3 أحرف على الأقل)')),
+        SnackBar(content: Text(isAr ? 'يرجى ملء جميع الحقول (السبب 3 أحرف على الأقل)' : 'Please fill all fields (reason at least 3 chars)')),
       );
       return;
     }
@@ -94,7 +102,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final time = _timeController.text.trim();
       final ok = await StudentServices().submitLeaveRequest(type, date, reason, time: time);
       if (ok && mounted) {
-        _showSuccessDialog('تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً');
+        _showSuccessDialog(isAr ? 'تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً' : 'Your request was submitted successfully\nCurrently being processed');
         _initDefaultDateTime();
         _leaveReasonController.clear();
         _fetchMyLeaveRequests();
@@ -102,7 +110,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ، يرجى المحاولة مرة أخرى')),
+          SnackBar(content: Text(isAr ? 'حدث خطأ، يرجى المحاولة مرة أخرى' : 'An error occurred, please try again')),
         );
       }
     } finally {
@@ -139,7 +147,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
-  String _translateDate(String dateStr) {
+  String _translateDate(String dateStr, bool isAr) {
+    if (!isAr) return dateStr;
     Map<String, String> translations = {
       'January': 'يناير', 'February': 'فبراير', 'March': 'مارس',
       'April': 'أبريل', 'May': 'مايو', 'June': 'يونيو',
@@ -228,6 +237,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   void _showSuccessDialog(String message) {
+    final bool isAr = AppSettings.language.value == 'ar';
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -269,9 +279,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  child: const Text(
-                    "حسناً",
-                    style: TextStyle(
+                  child: Text(
+                    isAr ? "حسناً" : "OK",
+                    style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -287,6 +297,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   void _showLeaveRequestSheet() {
+    final bool isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     int sheetLeaveType = _leaveType;
     final dateCtrl   = TextEditingController(text: _dateController.text);
@@ -300,7 +311,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
             child: Container(
@@ -325,7 +336,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'طلب إجازة جديد',
+                    isAr ? 'طلب إجازة جديد' : 'New Leave Request',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -350,9 +361,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               color: sheetLeaveType == 0 ? const Color(0xFFFFCC00) : Colors.transparent,
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Center(child: Text('يوم كامل',
-                                style: TextStyle(fontWeight: FontWeight.bold,
-                                    color: sheetLeaveType == 0 ? Colors.black : Colors.grey))),
+                            child: Center(child: Text(
+                              isAr ? 'يوم كامل' : 'Full Day',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: sheetLeaveType == 0 ? Colors.black : Colors.grey,
+                              ),
+                            )),
                           ),
                         )),
                         Expanded(child: GestureDetector(
@@ -364,9 +379,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               color: sheetLeaveType == 1 ? const Color(0xFFFFCC00) : Colors.transparent,
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Center(child: Text('ساعية',
-                                style: TextStyle(fontWeight: FontWeight.bold,
-                                    color: sheetLeaveType == 1 ? Colors.black : Colors.grey))),
+                            child: Center(child: Text(
+                              isAr ? 'ساعية' : 'Hourly',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: sheetLeaveType == 1 ? Colors.black : Colors.grey,
+                              ),
+                            )),
                           ),
                         )),
                       ],
@@ -380,7 +399,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("التاريخ", style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black54)),
+                            Text(isAr ? "التاريخ" : "Date", style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black54)),
                             const SizedBox(height: 8),
                             TextField(
                               controller: dateCtrl,
@@ -399,7 +418,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 }
                               },
                               decoration: InputDecoration(
-                                hintText: 'اختر التاريخ...',
+                                hintText: isAr ? 'اختر التاريخ...' : 'Select date...',
                                 hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
                                 suffixIcon: Icon(Icons.calendar_today_outlined, size: 20, color: isDark ? Colors.white70 : Colors.black54),
                                 filled: true,
@@ -415,7 +434,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("الوقت", style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black54)),
+                            Text(isAr ? "الوقت" : "Time", style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black54)),
                             const SizedBox(height: 8),
                             TextField(
                               controller: timeCtrl,
@@ -429,7 +448,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                   if (picked.hour > 15 || (picked.hour == 15 && picked.minute > 0)) {
                                     if (ctx.mounted) {
                                       ScaffoldMessenger.of(ctx).showSnackBar(
-                                        const SnackBar(content: Text('عذراً، يجب أن يكون وقت الإذن قبل انتهاء الدوام الرسمي (الساعة 3:00 عصراً)')),
+                                        SnackBar(
+                                          content: Text(
+                                            isAr
+                                                ? 'عذراً، يجب أن يكون وقت الإذن قبل انتهاء الدوام الرسمي (الساعة 3:00 عصراً)'
+                                                : 'Permission time must be before 3:00 PM',
+                                          ),
+                                        ),
                                       );
                                     }
                                   } else {
@@ -442,7 +467,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                             (picked.hour == now.hour && picked.minute <= now.minute))) {
                                       if (ctx.mounted) {
                                         ScaffoldMessenger.of(ctx).showSnackBar(
-                                          const SnackBar(content: Text('لا يمكن طلب إجازة لوقت مضى — اختر وقتاً لاحقاً')),
+                                          SnackBar(
+                                            content: Text(
+                                              isAr
+                                                  ? 'لا يمكن طلب إجازة لوقت مضى — اختر وقتاً لاحقاً'
+                                                  : 'Cannot request leave for a past time — select a later time',
+                                            ),
+                                          ),
                                         );
                                       }
                                     } else {
@@ -452,7 +483,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 }
                               },
                               decoration: InputDecoration(
-                                hintText: 'اختر الوقت...',
+                                hintText: isAr ? 'اختر الوقت...' : 'Select time...',
                                 hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
                                 suffixIcon: Icon(Icons.access_time_outlined, size: 20, color: isDark ? Colors.white70 : Colors.black54),
                                 filled: true,
@@ -472,7 +503,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     maxLines: 3,
                     style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
-                      hintText: 'سبب الإجازة...',
+                      hintText: isAr ? 'سبب الإجازة...' : 'Leave reason...',
                       hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
                       filled: true,
                       fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF5F6F8),
@@ -493,7 +524,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         final date   = dateCtrl.text.trim();
                         if (date.isEmpty || reason.length < 3) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('يرجى ملء جميع الحقول (السبب 3 أحرف على الأقل)')),
+                            SnackBar(
+                              content: Text(
+                                isAr
+                                    ? 'يرجى ملء جميع الحقول (السبب 3 أحرف على الأقل)'
+                                    : 'Please fill all fields (reason at least 3 chars)',
+                              ),
+                            ),
                           );
                           return;
                         }
@@ -504,14 +541,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           final ok = await StudentServices().submitLeaveRequest(type, date, reason, time: time);
                           if (ctx.mounted) Navigator.pop(ctx);
                           if (ok && mounted) {
-                            _showSuccessDialog('تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً');
+                            _showSuccessDialog(
+                              isAr
+                                  ? 'تم إرسال طلبكم بنجاح\nالطلب قيد المعالجة حالياً'
+                                  : 'Your request was submitted successfully\nCurrently being processed',
+                            );
                             _fetchMyLeaveRequests();
                           }
                         } catch (_) {
                           setSheet(() => sending = false);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('حدث خطأ، يرجى المحاولة مرة أخرى')),
+                              SnackBar(content: Text(isAr ? 'حدث خطأ، يرجى المحاولة مرة أخرى' : 'An error occurred, please try again')),
                             );
                           }
                         }
@@ -525,7 +566,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       child: sending
                           ? const SizedBox(width: 20, height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                          : const Text('إرسال الطلب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          : Text(
+                              isAr ? 'إرسال الطلب' : 'Submit Request',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -540,6 +584,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
         ? Theme.of(context).scaffoldBackgroundColor
@@ -547,7 +592,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final textColor = isDark ? Colors.white : Colors.black;
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: bgColor,
@@ -559,7 +604,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'الحضور والغياب',
+            isAr ? 'الحضور والغياب' : 'Attendance & Absence',
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
@@ -568,13 +613,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           children: [
             Column(
               children: [
-                _buildCustomTabBar(),
+                _buildCustomTabBar(isAr),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: _selectedTab == 0
-                        ? _buildAttendanceRecord()
-                        : _buildLeaveRequest(),
+                        ? _buildAttendanceRecord(isAr)
+                        : _buildLeaveRequest(isAr),
                   ),
                 ),
               ],
@@ -633,7 +678,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildCustomTabBar() {
+  Widget _buildCustomTabBar(bool isAr) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -651,8 +696,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ),
       child: Row(
         children: [
-          _buildTabItem(title: 'سجل الحضور والغياب', index: 0),
-          _buildTabItem(title: 'طلب إجازة', index: 1),
+          _buildTabItem(title: isAr ? 'سجل الحضور والغياب' : 'Attendance Record', index: 0),
+          _buildTabItem(title: isAr ? 'طلب إجازة' : 'Leave Request', index: 1),
         ],
       ),
     );
@@ -688,7 +733,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildAttendanceRecord() {
+  Widget _buildAttendanceRecord(bool isAr) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (_isLoading) {
@@ -700,7 +745,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (_attendanceList.isEmpty) {
       return Center(
         child: Text(
-          "لا يوجد سجلات حضور وغياب",
+          isAr ? "لا يوجد سجلات حضور وغياب" : "No attendance records found",
           style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
         ),
       );
@@ -722,13 +767,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             final level = latestWarning['warning_level'] ?? 'first';
             final days = latestWarning['absence_days'] ?? 0;
             Color bannerColor = const Color(0xFFF59E0B);
-            String title = "إنذار غياب أول ($days أيام)";
+            String title = isAr
+                ? "إنذار غياب أول ($days أيام)"
+                : "First Absence Warning ($days days)";
             if (level == 'second') {
               bannerColor = const Color(0xFFF97316);
-              title = "إنذار ثانٍ واستدعاء ولي أمر ($days أيام)";
+              title = isAr
+                  ? "إنذار ثانٍ واستدعاء ولي أمر ($days أيام)"
+                  : "Second Warning & Guardian Call ($days days)";
             } else if (level == 'final') {
               bannerColor = const Color(0xFFEF4444);
-              title = "إنذار نهائي - إحالة للإدارة ($days أيام)";
+              title = isAr
+                  ? "إنذار نهائي - إحالة للإدارة ($days أيام)"
+                  : "Final Warning - Referral to Admin ($days days)";
             }
 
             return Container(
@@ -777,7 +828,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           String status = record['status'] ?? 'present'; 
           String subject = record['course_name'] ?? '';
           
-          String date = _translateDate(record['date'] ?? '');
+          String date = _translateDate(record['date'] ?? '', isAr);
 
           final time = record['time']?.toString();
 
@@ -785,7 +836,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             return _buildRecordCard(
               date: date,
               subject: subject,
-              statusText: 'غائب',
+              statusText: isAr ? 'غائب' : 'Absent',
               statusColor: isDark ? Colors.red.shade300 : Colors.red,
               bgColor: isDark ? Colors.red.withAlpha(30) : const Color(0xFFFFEBEE),
               icon: Icons.close,
@@ -795,7 +846,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             return _buildRecordCard(
               date: date,
               subject: subject,
-              statusText: 'قيد الانتظار',
+              statusText: isAr ? 'قيد الانتظار' : 'Pending',
               statusColor: isDark ? Colors.orange.shade300 : Colors.orange,
               bgColor: isDark ? Colors.orange.withAlpha(30) : const Color(0xFFFFF3E0),
               icon: Icons.hourglass_empty_rounded,
@@ -809,17 +860,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           String statusText;
 
           if (status == 'present') {
-            statusText = 'حاضر';
+            statusText = isAr ? 'حاضر' : 'Present';
             statusColor = isDark ? Colors.green.shade400 : const Color(0xFF4CAF50);
             bgColor = isDark ? Colors.green.withAlpha(30) : const Color(0xFFE8F5E9);
             icon = Icons.check;
           } else if (status == 'late') {
-            statusText = 'متأخر';
+            statusText = isAr ? 'متأخر' : 'Late';
             statusColor = isDark ? Colors.amber.shade300 : const Color(0xFFFBC02D);
             bgColor = isDark ? Colors.amber.withAlpha(30) : const Color(0xFFFFF9C4);
             icon = Icons.warning_amber_rounded;
           } else {
-            statusText = 'غير معروف';
+            statusText = isAr ? 'غير معروف' : 'Unknown';
             statusColor = Colors.grey;
             bgColor = Colors.grey.shade200;
             icon = Icons.help_outline;
@@ -946,7 +997,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
-  Widget _buildLeaveRequest() {
+  Widget _buildLeaveRequest(bool isAr) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ListView(
@@ -959,14 +1010,35 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             child: Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00), strokeWidth: 2)),
           )
         else if (_myLeaveRequests.isNotEmpty) ...[
-          Text('طلباتي السابقة',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14,
-                  color: isDark ? Colors.white70 : Colors.black54)),
+          Text(
+            isAr ? 'طلباتي السابقة' : 'My Previous Requests',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black54,
+            ),
+          ),
           const SizedBox(height: 10),
           ..._myLeaveRequests.map((req) {
             final status = req['status'] as String? ?? '';
-            final statusText = req['status_text'] as String? ?? status;
+            String statusText;
+            if (status == 'approved') {
+              statusText = isAr ? 'مقبول' : 'Approved';
+            } else if (status == 'rejected') {
+              statusText = isAr ? 'مرفوض' : 'Rejected';
+            } else if (status.contains('pending')) {
+              statusText = isAr ? 'قيد المراجعة' : 'Pending';
+            } else {
+              statusText = req['status_text'] as String? ?? status;
+            }
             final color = _statusColor(status);
+            final rawType = req['type'] ?? '';
+            final typeText = rawType == 'full_day'
+                ? (isAr ? 'يوم كامل' : 'Full Day')
+                : (rawType == 'hourly'
+                    ? (isAr ? 'ساعية' : 'Hourly')
+                    : rawType);
+
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
@@ -981,7 +1053,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(req['type'] ?? '', style: TextStyle(fontWeight: FontWeight.bold,
+                        Text(typeText, style: TextStyle(fontWeight: FontWeight.bold,
                             fontSize: 13, color: isDark ? Colors.white : Colors.black87)),
                         const SizedBox(height: 3),
                         Text(req['date'] ?? '', style: TextStyle(fontSize: 11,
@@ -1008,7 +1080,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ],
         Center(
           child: Text(
-            'اضغط زر + لطلب إجازة جديدة',
+            isAr ? 'اضغط زر + لطلب إجازة جديدة' : 'Tap + button to request a new leave',
             style: TextStyle(
               color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
               fontSize: 13,

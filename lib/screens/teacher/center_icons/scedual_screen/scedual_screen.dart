@@ -47,9 +47,18 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
   List<dynamic> _gradeEvents = [];
   List<dynamic> _myCourses = [];
 
+  void _onLangChange() {
+    if (mounted) {
+      setState(() {
+        _generateDays();
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     final startTab = widget.gradeReportRequestId != null ? 1 : 0;
     _tabController = TabController(length: 2, vsync: this, initialIndex: startTab)
       ..addListener(() => setState(() => _currentTab = _tabController.index));
@@ -65,12 +74,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
 
   @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _tabController.dispose();
     super.dispose();
   }
 
   void _showGradeRequestBanner() {
     if (!mounted) return;
+    final isAr = AppSettings.language.value == 'ar';
     ScaffoldMessenger.of(context).showMaterialBanner(
       MaterialBanner(
         backgroundColor: Colors.orange.shade50,
@@ -79,10 +90,12 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
           children: [
             const Icon(Icons.grade_outlined, color: Colors.orange, size: 20),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
-                'رئيس القسم يطلب تقرير علامات — أدخل العلامات ثم اضغط "إبلاغ المسؤول"',
-                style: TextStyle(color: Colors.orange, fontSize: 13),
+                isAr
+                    ? 'رئيس القسم يطلب تقرير علامات — أدخل العلامات ثم اضغط "إبلاغ المسؤول"'
+                    : 'Department Head requested grades report — Enter grades then click "Notify Head"',
+                style: const TextStyle(color: Colors.orange, fontSize: 13),
               ),
             ),
           ],
@@ -90,7 +103,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
         actions: [
           TextButton(
             onPressed: () => ScaffoldMessenger.of(context).hideCurrentMaterialBanner(),
-            child: const Text('حسناً', style: TextStyle(color: Colors.orange)),
+            child: Text(isAr ? 'حسناً' : 'OK', style: const TextStyle(color: Colors.orange)),
           ),
         ],
       ),
@@ -98,6 +111,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
   }
 
   Future<void> _completeGradeReport() async {
+    final isAr = AppSettings.language.value == 'ar';
     final reqId = widget.gradeReportRequestId;
     if (reqId == null || reqId.isEmpty) return;
     try {
@@ -110,13 +124,19 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم إبلاغ المسؤول — التقرير جاهز'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(isAr ? '✅ تم إبلاغ المسؤول — التقرير جاهز' : '✅ Head notified — Report is ready'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ أثناء الإرسال'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(isAr ? 'حدث خطأ أثناء الإرسال' : 'Error sending notification'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -125,8 +145,17 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
   // ══════════════════ جدولي ══════════════════
 
   void _generateDays() {
-    const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
-    days = List.generate(5, (i) => {"name": dayNames[i], "dayKey": dayNames[i]});
+    const backendDayKeys = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+    final isAr = AppSettings.language.value == 'ar';
+    final dayNames = isAr ? backendDayKeys : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+    final shortDayNames = isAr ? backendDayKeys : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+
+    days = List.generate(5, (i) => {
+      "name": dayNames[i],
+      "shortName": shortDayNames[i],
+      "dayKey": backendDayKeys[i],
+    });
+
     final now = DateTime.now();
     if (now.weekday == 7) {
       _todayIndex = 0;
@@ -197,6 +226,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
   }
 
   void _showCreateGradeSheet() {
+    final isAr = AppSettings.language.value == 'ar';
     final formKey = GlobalKey<FormState>();
     int? selectedCourseId;
     String selectedCourseTitle = '';
@@ -208,7 +238,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     final notesCtrl    = TextEditingController();
     DateTime selectedDate = DateTime.now();
     TimeOfDay? selectedTime = const TimeOfDay(hour: 9, minute: 0);
-    final durationCtrl = TextEditingController(text: 'ساعتان');
+    final durationCtrl = TextEditingController(text: isAr ? 'ساعتان' : '2 hours');
 
     // ─── شفهي ───
     List<Map<String,dynamic>> _programs = [];
@@ -220,7 +250,13 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     List<Map<String,dynamic>> _programStudents = [];
     bool _loadingStudents = false;
 
-    const yearLabels = {1:'السنة الأولى',2:'السنة الثانية',3:'السنة الثالثة',4:'السنة الرابعة',5:'السنة الخامسة'};
+    final yearLabels = {
+      1: isAr ? 'السنة الأولى' : 'Year 1',
+      2: isAr ? 'السنة الثانية' : 'Year 2',
+      3: isAr ? 'السنة الثالثة' : 'Year 3',
+      4: isAr ? 'السنة الرابعة' : 'Year 4',
+      5: isAr ? 'السنة الخامسة' : 'Year 5',
+    };
 
     showModalBottomSheet(
       context: context,
@@ -230,7 +266,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
           child: SingleChildScrollView(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
@@ -262,11 +298,17 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         child: const Icon(Icons.edit_note_rounded, color: Colors.black87, size: 22),
                       ),
                       const SizedBox(width: 12),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('تقييم جديد', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                          Text('امتحان أو مذاكرة لمادة معينة', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            isAr ? 'تقييم جديد' : 'New Assessment',
+                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            isAr ? 'امتحان أو مذاكرة لمادة معينة' : 'Exam or quiz for a specific course',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
                         ],
                       ),
                     ],
@@ -274,14 +316,17 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                   const SizedBox(height: 24),
 
                   // ── نوع التقييم ──
-                  const Text('نوع التقييم', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  Text(
+                    isAr ? 'نوع التقييم' : 'Assessment Type',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       for (final t in [
-                        {'val':'exam',  'label':'امتحان', 'icon': Icons.assignment_outlined},
-                        {'val':'quiz',  'label':'مذاكرة', 'icon': Icons.quiz_outlined},
-                        {'val':'oral',  'label':'شفهي',   'icon': Icons.record_voice_over_outlined},
+                        {'val':'exam',  'label': isAr ? 'امتحان' : 'Exam', 'icon': Icons.assignment_outlined},
+                        {'val':'quiz',  'label': isAr ? 'مذاكرة' : 'Quiz', 'icon': Icons.quiz_outlined},
+                        {'val':'oral',  'label': isAr ? 'شفهي' : 'Oral',   'icon': Icons.record_voice_over_outlined},
                       ]) ...[
                         Expanded(
                           child: GestureDetector(
@@ -290,9 +335,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                 selectedType = t['val'] as String;
 
                                 if (selectedType == 'exam') {
-                                  durationCtrl.text = 'ساعتان';
+                                  durationCtrl.text = isAr ? 'ساعتان' : '2 hours';
                                 } else if (selectedType == 'quiz') {
-                                  durationCtrl.text = 'ساعة';
+                                  durationCtrl.text = isAr ? 'ساعة' : '1 hour';
                                 }
                               });
                               if (t['val'] == 'oral' && _programs.isEmpty) {
@@ -310,7 +355,10 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                   debugPrint('Programs fetch error: $e');
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('فشل تحميل الدورات: $e'), backgroundColor: Colors.red),
+                                      SnackBar(
+                                        content: Text(isAr ? 'فشل تحميل الدورات: $e' : 'Failed to load programs: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
                                     );
                                   }
                                 }
@@ -344,10 +392,13 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                   const SizedBox(height: 16),
 
                   // ── المادة (لكافة أنواع التقييم: امتحان / مذاكرة / شفهي) ──
-                  const Text('المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  Text(
+                    isAr ? 'المادة' : 'Course',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                  ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<int>(
-                    decoration: _inputDec('اختر المادة'),
+                    decoration: _inputDec(isAr ? 'اختر المادة' : 'Select Course'),
                     value: selectedCourseId,
                     items: _myCourses.map((c) => DropdownMenuItem<int>(
                       value: c['id'] as int,
@@ -364,7 +415,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         _programStudents = [];
                       });
                     },
-                    validator: (v) => v == null ? 'اختر المادة' : null,
+                    validator: (v) => v == null ? (isAr ? 'اختر المادة' : 'Select Course') : null,
                   ),
                   if (selectedCourseId != null) ...[
                     const SizedBox(height: 8),
@@ -377,7 +428,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                           const Icon(Icons.school_outlined, size: 15, color: Colors.black54),
                           const SizedBox(width: 6),
                           Text(
-                            '${yearLabels[selectedCourseYear] ?? 'السنة ${selectedCourseYear ?? 1}'}${selectedCourseProgramName.isNotEmpty ? ' - $selectedCourseProgramName' : ''}',
+                            '${yearLabels[selectedCourseYear] ?? "${isAr ? "السنة " : "Year "}${selectedCourseYear ?? 1}"}${selectedCourseProgramName.isNotEmpty ? ' - $selectedCourseProgramName' : ''}',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87),
                           ),
                         ],
@@ -388,7 +439,10 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
 
                   if (selectedType == 'oral') ...[
                     // ── تطبيق على ──
-                    const Text('تطبيق على', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                    Text(
+                      isAr ? 'تطبيق على' : 'Apply To',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -403,7 +457,12 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: oralAllStudents ? _yellow : Colors.grey.shade300),
                               ),
-                              child: Center(child: Text('كل الطلاب', style: TextStyle(color: oralAllStudents ? Colors.black : Colors.black87, fontWeight: FontWeight.w600, fontSize: 13))),
+                              child: Center(
+                                child: Text(
+                                  isAr ? 'كل الطلاب' : 'All Students',
+                                  style: TextStyle(color: oralAllStudents ? Colors.black : Colors.black87, fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -412,7 +471,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                           child: GestureDetector(
                             onTap: () async {
                               if (selectedCourseId == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر المادة أولاً')));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(isAr ? 'اختر المادة أولاً' : 'Select course first')),
+                                );
                                 return;
                               }
                               setSheet(() { oralAllStudents = false; _loadingStudents = true; });
@@ -438,7 +499,12 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: !oralAllStudents ? _yellow : Colors.grey.shade300),
                               ),
-                              child: Center(child: Text('طالب محدد', style: TextStyle(color: !oralAllStudents ? Colors.black : Colors.black87, fontWeight: FontWeight.w600, fontSize: 13))),
+                              child: Center(
+                                child: Text(
+                                  isAr ? 'طالب محدد' : 'Specific Student',
+                                  style: TextStyle(color: !oralAllStudents ? Colors.black : Colors.black87, fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -449,9 +515,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                       _loadingStudents
                           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
                           : _programStudents.isEmpty
-                              ? Text('لا يوجد طلاب', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))
+                              ? Text(isAr ? 'لا يوجد طلاب' : 'No students found', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))
                               : DropdownButtonFormField<int>(
-                                  decoration: _inputDec('اختر الطالب'),
+                                  decoration: _inputDec(isAr ? 'اختر الطالب' : 'Select Student'),
                                   value: selStudentId,
                                   items: _programStudents.map((s) => DropdownMenuItem<int>(
                                     value: s['student_id'] as int,
@@ -474,12 +540,15 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('العنوان', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                            Text(
+                              isAr ? 'العنوان' : 'Title',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                            ),
                             const SizedBox(height: 8),
                             TextFormField(
                               controller: titleCtrl,
-                              decoration: _inputDec('مثال: امتحان نصفي'),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+                              decoration: _inputDec(isAr ? 'مثال: امتحان نصفي' : 'e.g. Midterm exam'),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? (isAr ? 'مطلوب' : 'Required') : null,
                             ),
                           ],
                         ),
@@ -490,7 +559,10 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('العلامة القصوى', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                            Text(
+                              isAr ? 'العلامة القصوى' : 'Max Score',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                            ),
                             const SizedBox(height: 8),
                             TextFormField(
                               controller: maxScoreCtrl,
@@ -499,7 +571,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                               textAlign: TextAlign.center,
                               validator: (v) {
                                 final d = double.tryParse(v ?? '');
-                                if (d == null || d <= 0) return 'أدخل علامة صالحة';
+                                if (d == null || d <= 0) return isAr ? 'أدخل علامة صالحة' : 'Enter valid score';
                                 return null;
                               },
                             ),
@@ -511,17 +583,23 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                   const SizedBox(height: 12),
 
                   // ── ملاحظات ──
-                  const Text('ملاحظات (اختياري)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  Text(
+                    isAr ? 'ملاحظات (اختياري)' : 'Notes (Optional)',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                  ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: notesCtrl,
-                    decoration: _inputDec('أضف ملاحظة...'),
+                    decoration: _inputDec(isAr ? 'أضف ملاحظة...' : 'Add a note...'),
                     maxLines: 2,
                   ),
                   const SizedBox(height: 20),
 
                   // ── التاريخ ──
-                  const Text('التاريخ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  Text(
+                    isAr ? 'التاريخ' : 'Date',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                  ),
                   const SizedBox(height: 8),
                   GestureDetector(
                     onTap: () async {
@@ -543,8 +621,10 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         children: [
                           const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.grey),
                           const SizedBox(width: 10),
-                          Text(intl.DateFormat('EEEE، d MMMM yyyy', 'ar').format(selectedDate),
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                          Text(
+                            intl.DateFormat(isAr ? 'EEEE، d MMMM yyyy' : 'EEEE, d MMMM yyyy', isAr ? 'ar' : 'en').format(selectedDate),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
                         ],
                       ),
                     ),
@@ -558,7 +638,10 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('وقت الامتحان (الساعة)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                              Text(
+                                isAr ? 'وقت الامتحان (الساعة)' : 'Exam Time',
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                              ),
                               const SizedBox(height: 8),
                               GestureDetector(
                                 onTap: () async {
@@ -580,7 +663,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                       const SizedBox(width: 10),
                                       Text(
                                         selectedTime == null 
-                                            ? 'اختر الوقت' 
+                                            ? (isAr ? 'اختر الوقت' : 'Select Time')
                                             : selectedTime!.format(ctx),
                                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                                       ),
@@ -597,12 +680,17 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('مدة الامتحان', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                              Text(
+                                isAr ? 'مدة الامتحان' : 'Exam Duration',
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                              ),
                               const SizedBox(height: 8),
                               TextFormField(
                                 controller: durationCtrl,
-                                decoration: _inputDec('مثال: ساعتان'),
-                                validator: (v) => (selectedType != 'oral' && (v == null || v.trim().isEmpty)) ? 'مطلوب' : null,
+                                decoration: _inputDec(isAr ? 'مثال: ساعتان' : 'e.g. 2 hours'),
+                                validator: (v) => (selectedType != 'oral' && (v == null || v.trim().isEmpty))
+                                    ? (isAr ? 'مطلوب' : 'Required')
+                                    : null,
                               ),
                             ],
                           ),
@@ -623,19 +711,28 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         elevation: 0,
                       ),
                       icon: const Icon(Icons.check_circle_outline, size: 20),
-                      label: const Text('إنشاء التقييم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      label: Text(
+                        isAr ? 'إنشاء التقييم' : 'Create Assessment',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
                       onPressed: () async {
                         if (selectedType == 'oral') {
                           if (selectedCourseId == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر المادة أو (الدورة والسنة)')));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(isAr ? 'اختر المادة أو (الدورة والسنة)' : 'Select course or (program & year)')),
+                            );
                             return;
                           }
                           if (!oralAllStudents && selStudentId == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر الطالب')));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(isAr ? 'اختر الطالب' : 'Select student')),
+                            );
                             return;
                           }
                           if (titleCtrl.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل العنوان')));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(isAr ? 'أدخل العنوان' : 'Enter title')),
+                            );
                             return;
                           }
                         } else {
@@ -692,6 +789,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     int? yearLevel,
     int? studentId,
   }) async {
+    final isAr = AppSettings.language.value == 'ar';
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -744,7 +842,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
       }
     } on DioException catch (e) {
       if (mounted) {
-        final msg = e.response?.data?['message'] as String? ?? 'حدث خطأ';
+        final msg = e.response?.data?['message'] as String? ?? (isAr ? 'حدث خطأ' : 'An error occurred');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg), backgroundColor: Colors.red),
         );
@@ -752,24 +850,35 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(isAr ? 'حدث خطأ' : 'An error occurred'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
   Future<void> _deleteGradeEvent(int id) async {
+    final isAr = AppSettings.language.value == 'ar';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('حذف التقييم'),
-        content: const Text('هل أنت متأكد من حذف هذا التقييم وجميع علاماته؟'),
+        title: Text(isAr ? 'حذف التقييم' : 'Delete Assessment'),
+        content: Text(
+          isAr
+              ? 'هل أنت متأكد من حذف هذا التقييم وجميع علاماته؟'
+              : 'Are you sure you want to delete this assessment and all its grades?',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(isAr ? 'إلغاء' : 'Cancel'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('حذف', style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isAr ? 'حذف' : 'Delete', style: const TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -791,6 +900,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor =
@@ -798,43 +908,51 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     final isDark =
         Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      extendBody: true,
-      appBar: AppBar(
-        backgroundColor: cardColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-            _currentTab == 0 ? 'جدول الحصص' : 'العلامات والتقييمات',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: textColor),
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen())),
+    return Directionality(
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        extendBody: true,
+        appBar: AppBar(
+          backgroundColor: cardColor,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: textColor, size: 20),
+            onPressed: () => Navigator.pop(context),
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: isDark ? _yellow : Colors.black,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: _yellow,
-          indicatorWeight: 3,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-          tabs: const [
-            Tab(icon: Icon(Icons.calendar_month_outlined, size: 18), text: 'جدول الحصص'),
-            Tab(icon: Icon(Icons.grade_outlined, size: 18), text: 'التقييمات'),
+          title: Text(
+              _currentTab == 0
+                  ? (isAr ? 'جدول الحصص' : 'Schedule')
+                  : (isAr ? 'العلامات والتقييمات' : 'Grades & Assessments'),
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.settings_outlined, color: textColor),
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            ),
           ],
+          bottom: TabBar(
+            controller: _tabController,
+            labelColor: isDark ? _yellow : Colors.black,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: _yellow,
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            tabs: [
+              Tab(
+                icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                text: isAr ? 'جدول الحصص' : 'Schedule',
+              ),
+              Tab(
+                icon: const Icon(Icons.grade_outlined, size: 18),
+                text: isAr ? 'التقييمات' : 'Assessments',
+              ),
+            ],
+          ),
         ),
-      ),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Stack(
+        body: Stack(
           children: [
             TabBarView(
               controller: _tabController,
@@ -864,6 +982,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
   // ══════════════════ تبويب جدولي ══════════════════
 
   Widget _buildScheduleTab(Color cardColor, Color textColor) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final dayKey = days.isNotEmpty ? (days[selectedDayIndex]['dayKey'] as String) : '';
     final rawList = _scheduleData[dayKey] as List? ?? [];
@@ -876,7 +995,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
       children: [
         const SizedBox(height: 16),
 
-        // شريط الأيام من اليمين لليسار (يبدأ بالأحد)
+        // شريط الأيام
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
@@ -899,8 +1018,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
               Text(
                 days.isNotEmpty
                     ? (selectedDayIndex == _todayIndex
-                        ? 'برنامج اليوم ($selectedDayName)'
-                        : 'برنامج $selectedDayName')
+                        ? (isAr ? 'برنامج اليوم ($selectedDayName)' : "Today's Schedule ($selectedDayName)")
+                        : (isAr ? 'برنامج $selectedDayName' : '$selectedDayName Schedule'))
                     : '',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
@@ -915,7 +1034,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
-                  '${classes.length} حصص',
+                  isAr
+                      ? '${classes.length} حصص'
+                      : '${classes.length} ${classes.length == 1 ? 'Class' : 'Classes'}',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -949,7 +1070,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                             ),
                             const SizedBox(height: 14),
                             Text(
-                              'لا توجد حصص ليوم $selectedDayName',
+                              isAr
+                                  ? 'لا توجد حصص ليوم $selectedDayName'
+                                  : 'No classes for $selectedDayName',
                               style: TextStyle(
                                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                 fontSize: 15,
@@ -986,9 +1109,11 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                             isCurrentTime: isCurrent || isSelected,
                             isLast: isLast,
                             card: _buildClassCard(
-                              title: cls['course_name'] as String? ?? 'مادة دراسية',
+                              title: cls['course_name'] as String? ?? (isAr ? 'مادة دراسية' : 'Course'),
                               location: cls['room'] as String? ?? '',
-                              tagText: isCurrent ? 'الآن' : 'محاضرة',
+                              tagText: isCurrent
+                                  ? (isAr ? 'الآن' : 'Now')
+                                  : (isAr ? 'محاضرة' : 'Lecture'),
                               isActive: isSelected,
                               now: isCurrent,
                               cardColor: cardColor,
@@ -1014,7 +1139,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.only(left: 12),
+        margin: const EdgeInsets.symmetric(horizontal: 6),
         width: 70,
         height: 70,
         decoration: BoxDecoration(
@@ -1132,6 +1257,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
   // ══════════════════ تبويب العلامات ══════════════════
 
   Widget _buildGradesTab(Color cardColor, Color textColor) {
+    final isAr = AppSettings.language.value == 'ar';
     return Stack(
       children: [
         _isLoadingGrades
@@ -1144,13 +1270,19 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         Icon(Icons.grade_outlined,
                             size: 64, color: Colors.grey.shade300),
                         const SizedBox(height: 16),
-                        Text('لا توجد تقييمات بعد',
-                            style: TextStyle(
-                                color: Colors.grey.shade500, fontSize: 16)),
+                        Text(
+                          isAr ? 'لا توجد تقييمات بعد' : 'No assessments yet',
+                          style: TextStyle(
+                              color: Colors.grey.shade500, fontSize: 16),
+                        ),
                         const SizedBox(height: 8),
-                        Text('اضغط + لإضافة امتحان أو مذاكرة',
-                            style: TextStyle(
-                                color: Colors.grey.shade400, fontSize: 13)),
+                        Text(
+                          isAr
+                              ? 'اضغط + لإضافة امتحان أو مذاكرة'
+                              : 'Tap + to add an exam or quiz',
+                          style: TextStyle(
+                              color: Colors.grey.shade400, fontSize: 13),
+                        ),
                       ],
                     ),
                   )
@@ -1163,7 +1295,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                   ),
         Positioned(
           bottom: 90,
-          left: 16,
+          left: isAr ? 16 : null,
+          right: isAr ? null : 16,
           child: FloatingActionButton(
             heroTag: 'createGrade',
             backgroundColor: _yellow,
@@ -1175,14 +1308,18 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
         if (widget.gradeReportRequestId != null)
           Positioned(
             bottom: 90,
-            right: 16,
+            left: isAr ? null : 16,
+            right: isAr ? 16 : null,
             child: FloatingActionButton.extended(
               heroTag: 'notifyBoss',
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
               onPressed: _completeGradeReport,
               icon: const Icon(Icons.send_rounded),
-              label: const Text('إبلاغ المسؤول', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                isAr ? 'إبلاغ المسؤول' : 'Notify Admin',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
       ],
@@ -1191,9 +1328,16 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
 
   Widget _buildGradeEventCard(
       dynamic event, Color cardColor, Color textColor) {
-    final type = event['type'] == 'exam' ? 'امتحان' : event['type'] == 'quiz' ? 'مذاكرة' : 'شفهي';
-    final typeColor = event['type'] == 'exam' ? Colors.orange : event['type'] == 'quiz' ? Colors.blue : Colors.purple;
-    // نعتبر التقييم "غير مكتمل" إذا لم يكن في بياناته علامات (نتحقق من حقل اختياري)
+    final isAr = AppSettings.language.value == 'ar';
+    final typeStr = event['type'] as String? ?? '';
+    final String type;
+    if (isAr) {
+      type = typeStr == 'exam' ? 'امتحان' : (typeStr == 'quiz' ? 'مذاكرة' : 'شفهي');
+    } else {
+      type = typeStr == 'exam' ? 'Exam' : (typeStr == 'quiz' ? 'Quiz' : 'Oral');
+    }
+    final typeColor = typeStr == 'exam' ? Colors.orange : (typeStr == 'quiz' ? Colors.blue : Colors.purple);
+
     final gradedCount = (event['graded_count'] as int?) ?? 0;
     final totalCount = (event['total_count'] as int?) ?? 0;
     final hasUngraded = totalCount > 0 && gradedCount < totalCount;
@@ -1261,16 +1405,20 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                           color: Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('علامات ناقصة',
-                            style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          isAr ? 'علامات ناقصة' : 'Missing Grades',
+                          style: const TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
                       ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(event['course_title'] ?? '',
                     style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                Text('${event['date'] ?? ''} • من ${event['max_score']}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(
+                  '${event['date'] ?? ''} • ${isAr ? 'من' : 'out of'} ${event['max_score']}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -1325,15 +1473,15 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
       );
 
   Map<String, String> _parseTime(dynamic rawTime) {
+    final isAr = AppSettings.language.value == 'ar';
     if (rawTime == null) return {'time': '', 'period': ''};
     final str = rawTime.toString().trim();
     if (str.isEmpty) return {'time': '', 'period': ''};
 
     final spaceParts = str.split(' ');
     if (spaceParts.length > 1) {
-      final period = spaceParts[1].toUpperCase() == 'AM'
-          ? 'ص'
-          : (spaceParts[1].toUpperCase() == 'PM' ? 'م' : spaceParts[1]);
+      final isAm = spaceParts[1].toUpperCase() == 'AM';
+      final period = isAr ? (isAm ? 'ص' : 'م') : (isAm ? 'AM' : 'PM');
       return {'time': spaceParts[0], 'period': period};
     }
 
@@ -1341,7 +1489,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     if (colonParts.length >= 2) {
       final hour = int.tryParse(colonParts[0]) ?? 0;
       final minute = int.tryParse(colonParts[1]) ?? 0;
-      final period = hour >= 12 ? 'م' : 'ص';
+      final period = isAr ? (hour >= 12 ? 'م' : 'ص') : (hour >= 12 ? 'PM' : 'AM');
       final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
       final minStr = minute.toString().padLeft(2, '0');
       return {'time': '$displayHour:$minStr', 'period': period};
@@ -1360,6 +1508,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     required Color textColor,
     int iconIndex = 0,
   }) {
+    final isAr = AppSettings.language.value == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final palette = [
@@ -1405,9 +1554,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         color: _yellow,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        'الآن',
-                        style: TextStyle(
+                      child: Text(
+                        isAr ? 'الآن' : 'Now',
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
@@ -1467,7 +1616,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
-                  location.isNotEmpty ? location : 'لم يتم تحديد القاعة',
+                  location.isNotEmpty
+                      ? location
+                      : (isAr ? 'لم يتم تحديد القاعة' : 'Room not specified'),
                   style: TextStyle(
                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     fontSize: 13,

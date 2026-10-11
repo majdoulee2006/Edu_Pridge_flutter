@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/qr_scanner/face_capture_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -14,9 +15,20 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   bool _isProcessing = false;
 
   @override
+  void initState() {
+    super.initState();
+    AppSettings.language.addListener(_onLangChange);
+  }
+
+  @override
   void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
     _cameraController.dispose();
     super.dispose();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _onQrDetected(String qrToken) async {
@@ -38,17 +50,19 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = AppSettings.language.value == 'ar';
+
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
           backgroundColor: Colors.black,
           elevation: 0,
           centerTitle: true,
-          title: const Text(
-            'مسح رمز الحضور',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          title: Text(
+            isAr ? 'مسح رمز الحضور' : 'Scan Attendance QR',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -108,7 +122,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     const Icon(Icons.qr_code_scanner, color: Colors.white54, size: 32),
                   const SizedBox(height: 12),
                   Text(
-                    _isProcessing ? 'جارِ الانتقال لكاميرا الوجه...' : 'وجّه الكاميرا نحو رمز QR',
+                    _isProcessing
+                        ? (isAr ? 'جارِ الانتقال لكاميرا الوجه...' : 'Proceeding to face camera...')
+                        : (isAr ? 'وجّه الكاميرا نحو رمز QR' : 'Point camera at QR code'),
                     style: const TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                 ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
+import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_home.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_profile.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/nav_bar/boss_notification.dart';
@@ -21,6 +22,12 @@ class MainOrganizationInterfaceScreen extends StatefulWidget {
 class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterfaceScreen> {
   int _tabIndex = 0; // 0=دراسي 1=امتحاني
 
+  bool get isAr => AppSettings.language.value == 'ar';
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
   // بيانات البرامج مع جداولها
   bool _isLoadingPrograms = true;
   List<Map<String, dynamic>> _programs = [];
@@ -34,18 +41,29 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
   int? _selectedProgramId;
   String? _selectedProgramName;
   int _selectedYear = 1;
-  int _selectedCycle = 0; // 0: الكل, 1: الدورة الأولى, 2: الدورة الثانية
+  int _selectedCycle = 0;
 
   static const _dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-  static const _dayNames = {
-    'Sunday': 'الأحد', 'Monday': 'الاثنين', 'Tuesday': 'الثلاثاء',
-    'Wednesday': 'الأربعاء', 'Thursday': 'الخميس',
+
+  Map<String, String> get _dayNames => {
+    'Sunday': isAr ? 'الأحد' : 'Sunday',
+    'Monday': isAr ? 'الاثنين' : 'Monday',
+    'Tuesday': isAr ? 'الثلاثاء' : 'Tuesday',
+    'Wednesday': isAr ? 'الأربعاء' : 'Wednesday',
+    'Thursday': isAr ? 'الخميس' : 'Thursday',
   };
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchPrograms();
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<String> _token() async {
@@ -132,7 +150,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
     const yellow    = Color(0xFFFFCC00);
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
@@ -178,9 +196,12 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const SizedBox(width: 48),
-          Text('واجهة التنظيم', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Cairo')),
+          Text(
+            isAr ? 'واجهة التنظيم' : 'Organization Interface',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+          ),
           IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+            icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -193,10 +214,14 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
       margin: const EdgeInsets.symmetric(horizontal: 20),
       height: 50,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)]),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
+      ),
       child: Row(children: [
-        _mainTab('الجداول الدراسية', 0, yellow),
-        _mainTab('الجداول الامتحانية', 1, yellow),
+        _mainTab(isAr ? 'الجداول الدراسية' : 'Class Schedules', 0, yellow),
+        _mainTab(isAr ? 'الجداول الامتحانية' : 'Exam Schedules', 1, yellow),
       ]),
     );
   }
@@ -212,22 +237,30 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           decoration: BoxDecoration(color: active ? yellow : Colors.transparent, borderRadius: BorderRadius.circular(11)),
-          child: Center(child: Text(title, style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13, color: active ? Colors.black : Colors.grey))),
+          child: Center(
+            child: Text(
+              title,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: active ? Colors.black : Colors.grey),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  // ─── تبويب الجداول الدراسية ──────────────────────────────────────
   Widget _buildScheduleTab(Color cardColor, Color textColor, bool isDark, Color yellow) {
     if (_isLoadingPrograms) return const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)));
     if (_programs.isEmpty) {
-      return Center(child: Text('لا توجد برامج مسجّلة', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontFamily: 'Cairo')));
+      return Center(
+        child: Text(
+          isAr ? 'لا توجد برامج مسجّلة' : 'No registered programs found',
+          style: TextStyle(color: textColor.withValues(alpha: 0.5)),
+        ),
+      );
     }
 
     return Column(
       children: [
-        // أزرار البرامج (الدورات)
         SizedBox(
           height: 42,
           child: ListView.separated(
@@ -251,8 +284,10 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6)],
                   ),
-                  child: Text(prog['name'] as String? ?? '',
-                      style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13, color: isActive ? Colors.black : Colors.grey)),
+                  child: Text(
+                    prog['name'] as String? ?? '',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isActive ? Colors.black : Colors.grey),
+                  ),
                 ),
               );
             },
@@ -260,7 +295,6 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
         ),
         const SizedBox(height: 10),
 
-        // مفتاح السنة والدورة
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
@@ -277,31 +311,33 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                       context,
                       MaterialPageRoute(builder: (context) => const TableViewScreen()),
                     );
-                    _fetchPrograms(); // تحديث البيانات بعد العودة
+                    _fetchPrograms();
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(10)),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.table_chart_outlined, color: Colors.black, size: 15),
-                        SizedBox(width: 4),
-                        Text('عرض التفاصيل', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11, fontFamily: 'Cairo')),
+                        const Icon(Icons.table_chart_outlined, color: Colors.black, size: 15),
+                        const SizedBox(width: 4),
+                        Text(
+                          isAr ? 'عرض التفاصيل' : 'View Details',
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
                       ],
                     ),
                   ),
                 ),
                 const Spacer(),
                 if (_selectedProgramName != null)
-                  Text(_selectedProgramName!, style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Cairo')),
+                  Text(_selectedProgramName!, style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ]),
             ],
           ),
         ),
         const SizedBox(height: 10),
 
-        // الجدول
         Expanded(
           child: _buildWeeklySchedule(cardColor, textColor, isDark),
         ),
@@ -321,7 +357,10 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           borderRadius: BorderRadius.circular(10),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
         ),
-        child: Text('السنة $year', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13, color: active ? Colors.black : Colors.grey)),
+        child: Text(
+          isAr ? 'السنة $year' : 'Year $year',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: active ? Colors.black : Colors.grey),
+        ),
       ),
     );
   }
@@ -336,13 +375,15 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           children: [
             Icon(Icons.calendar_today_outlined, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 10),
-            Text('لا يوجد جدول لهذا القسم والدورة المختارة', style: TextStyle(color: Colors.grey.shade500, fontFamily: 'Cairo')),
+            Text(
+              isAr ? 'لا يوجد جدول لهذا القسم والدورة المختارة' : 'No schedule found for this selection',
+              style: TextStyle(color: Colors.grey.shade500),
+            ),
           ],
         ),
       );
     }
 
-    // تجميع حسب اليوم
     final byDay = <String, List<Map<String, dynamic>>>{};
     for (final s in sessions) {
       final day = s['day'] as String? ?? '';
@@ -363,11 +404,13 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           final list = byDay[day]!;
           return Container(
             margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(18),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 8, offset: const Offset(0, 3))]),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 8, offset: const Offset(0, 3))],
+            ),
             child: Column(
               children: [
-                // رأس اليوم
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -375,10 +418,11 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                     color: const Color(0xFFFFCC00).withValues(alpha: 0.15),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                   ),
-                  child: Text(_dayNames[day] ?? day,
-                      style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFAA8800))),
+                  child: Text(
+                    _dayNames[day] ?? day,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFAA8800)),
+                  ),
                 ),
-                // الجلسات
                 ...list.asMap().entries.map((entry) {
                   final idx = entry.key;
                   final s   = entry.value;
@@ -402,8 +446,10 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                       title: Row(
                         children: [
                           Expanded(
-                            child: Text(s['course_name'] as String? ?? '—',
-                                style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor)),
+                            child: Text(
+                              s['course_name'] as String? ?? '—',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
+                            ),
                           ),
                           if (semName != null || semId != null) ...[
                             const SizedBox(width: 6),
@@ -416,9 +462,8 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                semName ?? (semId == 1 ? 'الدورة 1' : 'الدورة 2'),
+                                semName ?? (semId == 1 ? (isAr ? 'الدورة 1' : 'Cycle 1') : (isAr ? 'الدورة 2' : 'Cycle 2')),
                                 style: TextStyle(
-                                  fontFamily: 'Cairo',
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: (semId == 2) ? Colors.purple : Colors.teal,
@@ -428,12 +473,12 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                           ],
                         ],
                       ),
-                      subtitle: Text('$start - $end', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Cairo')),
+                      subtitle: Text('$start - $end', style: const TextStyle(color: Colors.grey, fontSize: 11)),
                       trailing: s['room'] != null
                           ? Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(color: Colors.blueAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                              child: Text(s['room'] as String, style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                              child: Text(s['room'] as String, style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                             )
                           : null,
                     ),
@@ -449,9 +494,8 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
 
   String _trimTime(String t) => t.length >= 5 ? t.substring(0, 5) : t;
 
-  // ─── تبويب الجداول الامتحانية ────────────────────────────────────
   int _examSelectedYear = 1;
-  int _examSelectedCycle = 0; // 0: الكل, 1: الدورة الأولى, 2: الدورة الثانية
+  int _examSelectedCycle = 0;
   int? _examSelectedProgramId;
 
   List<Map<String, dynamic>> get _filteredExams {
@@ -488,7 +532,6 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
 
     const yellow = Color(0xFFFFCC00);
 
-    // تهيئة الاختيار الافتراضي
     if (_examSelectedProgramId == null && _programs.isNotEmpty) {
       _examSelectedProgramId = _programs.first['id'] as int?;
     }
@@ -502,7 +545,6 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
 
     return Column(
       children: [
-        // ── تبويبات الدورات (معلوماتية / اتصالات / ...) ──
         if (_programs.isNotEmpty)
           SizedBox(
             height: 44,
@@ -526,9 +568,10 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6)],
                     ),
-                    child: Text(prog['name'] as String? ?? '',
-                        style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13,
-                            color: active ? Colors.black : Colors.grey)),
+                    child: Text(
+                      prog['name'] as String? ?? '',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: active ? Colors.black : Colors.grey),
+                    ),
                   ),
                 );
               },
@@ -536,7 +579,6 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           ),
         const SizedBox(height: 10),
 
-        // ── تبويب السنة ──
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
@@ -552,7 +594,6 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
         ),
         const SizedBox(height: 10),
 
-        // ── المحتوى ──
         Expanded(
           child: sortedDates.isEmpty
               ? Center(
@@ -561,8 +602,10 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                     children: [
                       Icon(Icons.event_busy_outlined, size: 52, color: Colors.grey.shade400),
                       const SizedBox(height: 10),
-                      Text('لا توجد امتحانات لهذا القسم والسنة',
-                          style: TextStyle(color: textColor.withValues(alpha: 0.5), fontFamily: 'Cairo')),
+                      Text(
+                        isAr ? 'لا توجد امتحانات لهذا القسم والسنة' : 'No exams found for this selection',
+                        style: TextStyle(color: textColor.withValues(alpha: 0.5)),
+                      ),
                     ],
                   ),
                 )
@@ -599,9 +642,10 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
           borderRadius: BorderRadius.circular(10),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
         ),
-        child: Text('السنة $year',
-            style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13,
-                color: active ? Colors.black : Colors.grey)),
+        child: Text(
+          isAr ? 'السنة $year' : 'Year $year',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: active ? Colors.black : Colors.grey),
+        ),
       ),
     );
   }
@@ -613,16 +657,19 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
     Color textColor,
     bool isDark,
   ) {
-    // تنسيق التاريخ: 2025-01-15 → الثلاثاء 15 يناير 2025
     String formattedDate = date;
     String dayName = '';
     try {
       final dt = DateTime.parse(date);
-      const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-      const months = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      final daysAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      final daysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      final monthsAr = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
           'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-      dayName = days[dt.weekday % 7];
-      formattedDate = '${dt.day} ${months[dt.month]} ${dt.year}';
+      final monthsEn = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      dayName = isAr ? daysAr[dt.weekday % 7] : daysEn[dt.weekday % 7];
+      formattedDate = isAr ? '${dt.day} ${monthsAr[dt.month]} ${dt.year}' : '${dt.day} ${monthsEn[dt.month]} ${dt.year}';
     } catch (_) {}
 
     return Container(
@@ -637,7 +684,6 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
       ),
       child: Column(
         children: [
-          // ── رأس التاريخ ──────────────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
@@ -648,15 +694,14 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
             child: Row(children: [
               const Icon(Icons.event_outlined, color: Color(0xFFE65100), size: 18),
               const SizedBox(width: 8),
-              Text(dayName,
-                  style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFE65100))),
+              Text(
+                dayName,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFE65100)),
+              ),
               const SizedBox(width: 8),
-              Text(formattedDate,
-                  style: TextStyle(fontFamily: 'Cairo', fontSize: 12, color: Colors.grey.shade500)),
+              Text(formattedDate, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
             ]),
           ),
-
-          // ── الامتحانات ───────────────────────────────────
           ...exams.asMap().entries.map((entry) {
             final idx  = entry.key;
             final e    = entry.value;
@@ -695,7 +740,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                     Expanded(
                       child: Text(
                         e['course_name'] as String? ?? '—',
-                        style: TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
                       ),
                     ),
                     if (semName != null || semId != null) ...[
@@ -709,9 +754,8 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          semName ?? (semId == 1 ? 'الدورة 1' : 'الدورة 2'),
+                          semName ?? (semId == 1 ? (isAr ? 'الدورة 1' : 'Cycle 1') : (isAr ? 'الدورة 2' : 'Cycle 2')),
                           style: TextStyle(
-                            fontFamily: 'Cairo',
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: (semId == 2) ? Colors.purple : Colors.teal,
@@ -725,14 +769,11 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (examType != null && examType.isNotEmpty)
-                      Text(examType,
-                          style: const TextStyle(color: Color(0xFFE65100), fontSize: 11, fontFamily: 'Cairo')),
+                      Text(examType, style: const TextStyle(color: Color(0xFFE65100), fontSize: 11)),
                     if (period != null && period.isNotEmpty)
-                      Text(period,
-                          style: TextStyle(color: Colors.orange.shade700, fontSize: 11, fontFamily: 'Cairo')),
+                      Text(period, style: TextStyle(color: Colors.orange.shade700, fontSize: 11)),
                     if (hasTime)
-                      Text('$start - $end',
-                          style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Cairo')),
+                      Text('$start - $end', style: const TextStyle(color: Colors.grey, fontSize: 11)),
                   ],
                 ),
                 trailing: hall != null && hall.isNotEmpty
@@ -743,7 +784,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(hall,
-                            style: const TextStyle(color: Colors.orange, fontSize: 12, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                            style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
                       )
                     : null,
               ),

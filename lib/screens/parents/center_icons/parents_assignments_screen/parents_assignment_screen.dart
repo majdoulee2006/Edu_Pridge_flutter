@@ -22,12 +22,23 @@ class ParentsAssignmentsScreen extends StatefulWidget {
 class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
   List<dynamic> assignments = [];
   bool isLoading = true;
-  String selectedFilter = "الكل"; // الكل، المكتملة، فائتة
+  String selectedFilter = "all"; // all, completed, missed
 
   @override
   void initState() {
     super.initState();
+    AppSettings.language.addListener(_onLangChange);
     _fetchAssignments();
+  }
+
+  void _onLangChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AppSettings.language.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _fetchAssignments() async {
@@ -55,59 +66,63 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
          setState(() => isLoading = false);
       }
     } catch (e) {
-      print("خطأ في جلب الواجبات: $e");
+      debugPrint("خطأ في جلب الواجبات: $e");
       setState(() => isLoading = false);
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    // 🎨 ألوان متجاوبة مع الثيم
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = Theme.of(context).cardColor;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final bool isAr = AppSettings.language.value == 'ar';
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bgColor,
         extendBody: true,
-        appBar: _buildAppBar(context, textColor),
+        appBar: _buildAppBar(context, textColor, isAr),
         body: Stack(
           children: [
             Column(
               children: [
-                _buildFilterBar(textColor),
+                _buildFilterBar(textColor, isAr),
                 Expanded(
                   child: isLoading
                       ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFCC00)))
                       : assignments.isEmpty
-                          ? const Center(child: Text("لا توجد واجبات لعرضها"))
+                          ? Center(child: Text(isAr ? "لا توجد واجبات لعرضها" : "No assignments to display"))
                           : ListView.builder(
                               padding: const EdgeInsets.symmetric(horizontal: 15),
                               itemCount: assignments.length,
                               itemBuilder: (context, index) {
                                 var item = assignments[index];
-                                // فلترة الواجبات
-                                if (selectedFilter == "المكتملة" && item['status'] != "مكتملة" && item['status'] != "مصحح") return const SizedBox.shrink();
-                                if (selectedFilter == "فائتة" && item['status'] != "فائتة") return const SizedBox.shrink();
+                                final rawStatus = item['status']?.toString() ?? '';
+                                final bool isCompleted = rawStatus == "مكتملة" || rawStatus == "مصحح" || rawStatus == "completed" || rawStatus == "graded";
+                                final bool isMissed = rawStatus == "فائتة" || rawStatus == "missed" || rawStatus == "overdue";
 
-                                // تحويل نسبة العلامة (مؤقتاً)
-                                double progress = (item['status'] == "مكتملة" || item['status'] == "مصحح") ? 1.0 : (item['status'] == "فائتة" ? 0.0 : 0.5);
+                                if (selectedFilter == "completed" && !isCompleted) return const SizedBox.shrink();
+                                if (selectedFilter == "missed" && !isMissed) return const SizedBox.shrink();
+
+                                double progress = isCompleted ? 1.0 : (isMissed ? 0.0 : 0.5);
 
                                 return _taskCard(
                                    context: context,
-                                   title: item['title'] ?? "واجب",
-                                   subtitle: item['course_name'] ?? "مادة",
-                                   status: item['status'] ?? "جاري",
+                                   title: item['title'] ?? (isAr ? "واجب" : "Assignment"),
+                                   subtitle: item['course_name'] ?? (isAr ? "مادة" : "Course"),
+                                   status: rawStatus,
                                    progress: progress,
-                                   date: item['due_date']?.toString().substring(0, 10) ?? "غير محدد",
+                                   date: item['due_date']?.toString().substring(0, 10) ?? (isAr ? "غير محدد" : "Not specified"),
                                    icon: Icons.assignment_outlined,
-                                   iconColor: (item['status'] == "مكتملة" || item['status'] == "مصحح") ? Colors.green : (item['status'] == "فائتة" ? Colors.red : Colors.blue),
+                                   iconColor: isCompleted ? Colors.green : (isMissed ? Colors.red : Colors.blue),
                                    cardColor: cardColor,
                                    textColor: textColor,
                                    grade: item['grade'] != null ? "${item['grade']}/${item['max_points']}" : null,
-                                   isOverdue: item['status'] == "فائتة",
-                                   onTap: () => _showAssignmentDetailsBottomSheet(context, item),
+                                   isOverdue: isMissed,
+                                   isAr: isAr,
+                                   onTap: () => _showAssignmentDetailsBottomSheet(context, item, isAr),
                                  );
                               },
                             ),
@@ -115,9 +130,8 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
               ],
             ),
 
-            // الشريط السفلي الموحد المستخدم في Edu_Bridge
             CustomBottomNav(
-              currentIndex: 0, // تتبع للرئيسية أو اتركها بدون تظليل حسب التصميم
+              currentIndex: 0,
               centerButton: const Parents_Center_Icon(),
               onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
               onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsProfileScreen())),
@@ -130,13 +144,13 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, Color textColor, bool isAr) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
       title: Text(
-        "واجبات ومشاريع الطالبة",
+        isAr ? "واجبات ومشاريع الأبناء" : "Children Assignments & Projects",
         style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
       ),
       leading: IconButton(
@@ -145,23 +159,32 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor),
+          icon: Icon(isAr ? Icons.arrow_back : Icons.arrow_forward, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ],
     );
   }
 
-  Widget _buildFilterBar(Color textColor) {
+  Widget _buildFilterBar(Color textColor, bool isAr) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            GestureDetector(onTap: () => setState(() => selectedFilter = "الكل"), child: _filterChip("الكل", selectedFilter == "الكل", textColor)),
-            GestureDetector(onTap: () => setState(() => selectedFilter = "المكتملة"), child: _filterChip("المكتملة", selectedFilter == "المكتملة", textColor)),
-            GestureDetector(onTap: () => setState(() => selectedFilter = "فائتة"), child: _filterChip("فائتة", selectedFilter == "فائتة", textColor)),
+            GestureDetector(
+              onTap: () => setState(() => selectedFilter = "all"),
+              child: _filterChip(isAr ? "الكل" : "All", selectedFilter == "all", textColor),
+            ),
+            GestureDetector(
+              onTap: () => setState(() => selectedFilter = "completed"),
+              child: _filterChip(isAr ? "المكتملة" : "Completed", selectedFilter == "completed", textColor),
+            ),
+            GestureDetector(
+              onTap: () => setState(() => selectedFilter = "missed"),
+              child: _filterChip(isAr ? "فائتة" : "Missed", selectedFilter == "missed", textColor),
+            ),
           ],
         ),
       ),
@@ -182,8 +205,12 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
     bool hasAttachment = false,
     String? grade,
     bool isOverdue = false,
+    required bool isAr,
     VoidCallback? onTap,
   }) {
+    final bool isCompleted = status == "مكتملة" || status == "مصحح" || status == "completed" || status == "graded";
+    final bool isGraded = status == "مصحح" || status == "graded";
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -214,7 +241,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
                   ],
                 ),
               ),
-              _statusBadge(status),
+              _statusBadge(status, isAr),
             ],
           ),
           const SizedBox(height: 15),
@@ -238,7 +265,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
               Text(
                 date,
                 style: TextStyle(
-                  color: isOverdue ? Colors.red : ((status == "مكتملة" || status == "مصحح") ? Colors.green : Colors.grey),
+                  color: isOverdue ? Colors.red : (isCompleted ? Colors.green : Colors.grey),
                   fontSize: 12,
                 ),
               ),
@@ -249,30 +276,30 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
                   child: Row(
                     children: [
                       Icon(Icons.attach_file, size: 14, color: textColor.withValues(alpha: 0.6)),
-                      const Text(" 3 مرفقات", style: TextStyle(fontSize: 11)),
+                      Text(isAr ? " 3 مرفقات" : " 3 attachments", style: const TextStyle(fontSize: 11)),
                     ],
                   ),
                 ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: (status == "مصحح" ? const Color(0xFFFFCC00) : textColor).withValues(alpha: 0.1),
+                  color: (isGraded ? const Color(0xFFFFCC00) : textColor).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: status == "مصحح" ? Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.4), width: 1) : null,
+                  border: isGraded ? Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.4), width: 1) : null,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      status == "مصحح" ? Icons.star_rounded : Icons.info_outline,
-                      color: status == "مصحح" ? const Color(0xFFCCAA00) : textColor.withValues(alpha: 0.6),
+                      isGraded ? Icons.star_rounded : Icons.info_outline,
+                      color: isGraded ? const Color(0xFFCCAA00) : textColor.withValues(alpha: 0.6),
                       size: 14,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      status == "مصحح" ? "عرض الدرجة" : "تفاصيل الواجب",
+                      isGraded ? (isAr ? "عرض الدرجة" : "View Grade") : (isAr ? "تفاصيل الواجب" : "Assignment Details"),
                       style: TextStyle(
-                        color: status == "مصحح" ? const Color(0xFFCCAA00) : textColor.withValues(alpha: 0.6),
+                        color: isGraded ? const Color(0xFFCCAA00) : textColor.withValues(alpha: 0.6),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -287,21 +314,29 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
     ));
   }
 
-  Widget _statusBadge(String label) {
+  Widget _statusBadge(String label, bool isAr) {
     Color bg = Colors.yellow.withValues(alpha: 0.1);
     Color txtColor = Colors.orange;
-    if (label == "مكتملة" || label == "مصحح") {
+    String display = isAr ? "جاري" : "In Progress";
+
+    if (label == "مكتملة" || label == "completed") {
       bg = Colors.green.withValues(alpha: 0.1);
       txtColor = Colors.green;
-    }
-    if (label == "فائتة") {
+      display = isAr ? "مكتملة" : "Completed";
+    } else if (label == "مصحح" || label == "graded") {
+      bg = Colors.green.withValues(alpha: 0.1);
+      txtColor = Colors.green;
+      display = isAr ? "مصحح" : "Graded";
+    } else if (label == "فائتة" || label == "missed" || label == "overdue") {
       bg = Colors.red.withValues(alpha: 0.1);
       txtColor = Colors.red;
+      display = isAr ? "فائتة" : "Missed";
     }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(15)),
-      child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: txtColor)),
+      child: Text(display, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: txtColor)),
     );
   }
 
@@ -324,7 +359,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
     );
   }
 
-  void _showAssignmentDetailsBottomSheet(BuildContext context, Map<String, dynamic> item) {
+  void _showAssignmentDetailsBottomSheet(BuildContext context, Map<String, dynamic> item, bool isAr) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -336,208 +371,211 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
         
         final grade = item['grade'];
         final maxPoints = item['max_points'] ?? 100;
-        final status = item['status'] ?? "جاري";
-        final title = item['title'] ?? "واجب";
-        final courseName = item['course_name'] ?? "مادة";
-        final dueDate = item['due_date']?.toString().substring(0, 10) ?? "غير محدد";
+        final status = item['status'] ?? (isAr ? "جاري" : "In Progress");
+        final title = item['title'] ?? (isAr ? "واجب" : "Assignment");
+        final courseName = item['course_name'] ?? (isAr ? "مادة" : "Course");
+        final dueDate = item['due_date']?.toString().substring(0, 10) ?? (isAr ? "غير محدد" : "Not specified");
         final feedback = item['feedback'];
         final submittedAt = item['submitted_at']?.toString().substring(0, 10);
 
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+        return Directionality(
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                )
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
-              )
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 50,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 50,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 25),
-              Row(
-                children: [
+                const SizedBox(height: 25),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.assignment_outlined, color: Color(0xFFFFCC00), size: 28),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: txtColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            courseName,
+                            style: const TextStyle(color: Colors.grey, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 25),
+                _buildDetailRow(context, Icons.info_outline, isAr ? "الحالة" : "Status", status, isAr, isStatus: true),
+                const SizedBox(height: 15),
+                _buildDetailRow(context, Icons.calendar_today_outlined, isAr ? "تاريخ التسليم الأقصى" : "Due Date", dueDate, isAr),
+                if (submittedAt != null) ...[
+                  const SizedBox(height: 15),
+                  _buildDetailRow(context, Icons.check_circle_outline, isAr ? "تاريخ تقديم الواجب" : "Submission Date", submittedAt, isAr),
+                ],
+                const SizedBox(height: 25),
+                const Divider(),
+                const SizedBox(height: 15),
+                Text(
+                  isAr ? "علامة الواجب" : "Assignment Grade",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: txtColor,
+                  ),
+                  textAlign: TextAlign.start,
+                ),
+                const SizedBox(height: 12),
+                if (grade != null) ...[
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.3), width: 1.5),
                     ),
-                    child: const Icon(Icons.assignment_outlined, color: Color(0xFFFFCC00), size: 28),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: txtColor,
-                          ),
+                        const Icon(Icons.star_rounded, color: Color(0xFFFFCC00), size: 36),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "$grade / $maxPoints",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFFFFDD44) : const Color(0xFFCCAA00),
+                              ),
+                            ),
+                            Text(
+                              isAr ? "درجة الطالب" : "Student Grade",
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
+                      ],
+                    ),
+                  ),
+                  if (feedback != null && feedback.toString().trim().isNotEmpty) ...[
+                    const SizedBox(height: 15),
+                    Text(
+                      isAr ? "ملاحظات المعلم" : "Teacher Feedback",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: txtColor,
+                      ),
+                      textAlign: TextAlign.start,
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                      ),
+                      child: Text(
+                        feedback.toString(),
+                        style: TextStyle(color: txtColor.withValues(alpha: 0.8), fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.hourglass_empty_rounded, color: Colors.grey, size: 24),
+                        const SizedBox(width: 12),
                         Text(
-                          courseName,
-                          style: const TextStyle(color: Colors.grey, fontSize: 13),
+                          isAr ? "لم يتم رصد العلامة بعد" : "Grade not recorded yet",
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 25),
-              _buildDetailRow(context, Icons.info_outline, "الحالة", status, isStatus: true),
-              const SizedBox(height: 15),
-              _buildDetailRow(context, Icons.calendar_today_outlined, "تاريخ التسليم الأقصى", dueDate),
-              if (submittedAt != null) ...[
-                const SizedBox(height: 15),
-                _buildDetailRow(context, Icons.check_circle_outline, "تاريخ تقديم الواجب", submittedAt),
+                const SizedBox(height: 25),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFCC00),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    isAr ? "إغلاق" : "Close",
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                const SizedBox(height: 10),
               ],
-              const SizedBox(height: 25),
-              const Divider(),
-              const SizedBox(height: 15),
-              Text(
-                "علامة الواجب",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: txtColor,
-                ),
-                textAlign: TextAlign.start,
-              ),
-              const SizedBox(height: 12),
-              if (grade != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.3), width: 1.5),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.star_rounded, color: Color(0xFFFFCC00), size: 36),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "$grade / $maxPoints",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? const Color(0xFFFFDD44) : const Color(0xFFCCAA00),
-                            ),
-                          ),
-                          const Text(
-                            "درجة الطالبة",
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (feedback != null && feedback.toString().trim().isNotEmpty) ...[
-                  const SizedBox(height: 15),
-                  Text(
-                    "ملاحظات المعلم",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: txtColor,
-                    ),
-                    textAlign: TextAlign.start,
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-                    ),
-                    child: Text(
-                      feedback.toString(),
-                      style: TextStyle(color: txtColor.withValues(alpha: 0.8), fontSize: 13),
-                    ),
-                  ),
-                ],
-              ] else ...[
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.hourglass_empty_rounded, color: Colors.grey, size: 24),
-                      const SizedBox(width: 12),
-                      const Text(
-                        "لم يتم رصد العلامة بعد",
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 25),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFCC00),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  "إغلاق",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value, {bool isStatus = false}) {
+  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value, bool isAr, {bool isStatus = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
@@ -546,7 +584,7 @@ class _ParentsAssignmentsScreenState extends State<ParentsAssignmentsScreen> {
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
         const Spacer(),
         isStatus
-            ? _statusBadge(value)
+            ? _statusBadge(value, isAr)
             : Text(
                 value,
                 style: TextStyle(
