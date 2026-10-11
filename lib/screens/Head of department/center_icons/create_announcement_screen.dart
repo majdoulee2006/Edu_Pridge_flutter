@@ -306,7 +306,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 isExpanded: true,
-                                value: _selectedAudience,
+                                initialValue: _selectedAudience,
                                 decoration: InputDecoration(
                                   fillColor: cardColor,
                                   filled: true,
@@ -371,7 +371,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 isExpanded: true,
-                                value: _selectedDepartment,
+                                initialValue: _selectedDepartment,
                                 decoration: InputDecoration(
                                   fillColor: cardColor,
                                   filled: true,
@@ -414,7 +414,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 isExpanded: true,
-                                value: _selectedCourse,
+                                initialValue: _selectedCourse,
                                 decoration: InputDecoration(
                                   fillColor: cardColor,
                                   filled: true,

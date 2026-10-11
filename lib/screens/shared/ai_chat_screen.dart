@@ -82,9 +82,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
   _ChatSession? _currentSession;
   bool _isTyping = false;
   bool _isLoading = true;
+  String _userId = 'guest';
 
-  String get _storageKey => 'ai_chat_sessions_${widget.userRole}';
-  String get _activeSessionKey => 'ai_chat_active_id_${widget.userRole}';
+  /// مصدر آخر رد: 'gemini' | 'local_engine' | 'offline' (يحدد حالة المؤشر في الهيدر)
+  String _lastSource = 'gemini';
+
+  static const int _maxSessions = 30;
+  static const int _maxMessagesPerSession = 200;
+
+  // المفتاح مرتبط بالمستخدم نفسه (وليس بالدور فقط) حتى لا يرى مستخدم محادثات غيره على نفس الجهاز
+  String get _storageKey => 'ai_chat_sessions_${widget.userRole}_$_userId';
+  String get _activeSessionKey => 'ai_chat_active_id_${widget.userRole}_$_userId';
 
   @override
   void initState() {
@@ -95,6 +103,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Future<void> _loadHistoryAndSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      _userId = prefs.getString('user_id') ?? prefs.getInt('user_id')?.toString() ?? 'guest';
       final rawData = prefs.getString(_storageKey);
       final activeId = prefs.getString(_activeSessionKey);
 
@@ -147,7 +156,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
         break;
       case 'boss':
       case 'head':
+      case 'hod':
         greeting = "أهلاً بك رئيس القسم! أنا مساعدك الإداري والأكاديمي الذكي لنظام EduBridge. جاهز لدعمك في الأنظمة، التقارير، والقرارات الأكاديمية.";
+        break;
+      case 'admin':
+        greeting = "أهلاً بك يا مدير النظام! أنا **EduBridge AI**. أجيبك عن إحصاءات المعهد، الأقسام ورؤسائها، الطلبات المعلقة، الفصل الحالي، وآخر النشاطات في النظام.";
         break;
       case 'affairs':
         greeting = "مرحباً بك زميلنا في شؤون الطلاب! أنا المساعد الذكي لمتابعة اللوائح والخدمات الطلابية وتسهيل الإجراءات الإدارية.";
@@ -193,6 +206,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Future<void> _saveSessions() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (_sessions.length > _maxSessions) {
+        _sessions.removeRange(_maxSessions, _sessions.length);
+      }
+      for (final session in _sessions) {
+        if (session.messages.length > _maxMessagesPerSession) {
+          session.messages.removeRange(0, session.messages.length - _maxMessagesPerSession);
+        }
+      }
       final encoded = jsonEncode(_sessions.map((s) => s.toJson()).toList());
       await prefs.setString(_storageKey, encoded);
       if (_currentSession != null) {
@@ -237,40 +258,61 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _saveSessions();
   }
 
+  /// اقتراحات سريعة بحسب الدور (كلها أسئلة يجيب عنها المساعد من بيانات المستخدم)
   List<String> _getSuggestions() {
     switch (widget.userRole) {
       case 'teacher':
         return [
-          "ما هي نسبة الحرمان من المقرر؟",
-          "كيف أصيغ أسئلة اختبار متوازنة؟",
-          "نصائح لتعزيز تفاعل الطلاب",
+          "شو الدورات اللي بعطيها؟",
+          "مين الطلاب اللي بعطيهم؟",
+          "شو جدولي؟",
+          "شو أسأل؟",
         ];
       case 'parent':
         return [
-          "كيف أتابع غياب ابني بدقة؟",
-          "ما هي درجات النجاح المعتمدة؟",
-          "مواعيد الامتحانات القادمة",
+          "مين ابني؟",
+          "كم غياب ابني؟",
+          "مين بيعطيه؟",
+          "شو أسأل؟",
         ];
       case 'boss':
       case 'head':
+      case 'hod':
         return [
-          "ما هي لوائح الإنذار الأكاديمي؟",
-          "شروط فتح شعبة دراسية إضافية",
-          "إجراءات تقديم الأعذار المقبولة",
+          "شو عندي أساتذة بالقسم؟",
+          "مين المشرف لكل دورة؟",
+          "كم طالب عندي؟",
+          "شو دورات القسم؟",
+          "شو أسأل؟",
+        ];
+      case 'admin':
+        return [
+          "كم طالب بالمعهد؟",
+          "شو رؤساء الأقسام؟",
+          "شو آخر النشاطات؟",
+          "كم طلب معلق؟",
+          "شو أسأل؟",
+        ];
+      case 'affairs':
+        return [
+          "كم طلباً معلقاً لدينا؟",
+          "كيف أعيد تعيين جهاز طالب؟",
+          "كيف أصدّر كشف علامات؟",
+          "شو أسأل؟",
         ];
       default: // student
         return [
-          "متى يتم توجيه إنذار الغياب؟",
-          "كيف أستعلم عن علاماتي والمسار؟",
-          "طريقة طلب إعادة تعيين الجهاز",
-          "أفضل نصائح لتنظيم وقت الدراسة",
+          "كم غيابي؟",
+          "شو جدولي؟",
+          "مين بيعطيني؟",
+          "شو أسأل؟",
         ];
     }
   }
 
   void _sendMessage([String? presetText]) async {
     final text = (presetText ?? _controller.text).trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isTyping) return;
 
     if (presetText == null) {
       _controller.clear();
@@ -308,7 +350,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
     final history = recentMessages
         .map((m) => {
               'role': m.isUser ? 'user' : 'model',
-              'text': m.text,
+              // الردود الطويلة تُقصّ: السجل للسياق فقط
+              'text': m.text.length > 600 ? m.text.substring(0, 600) : m.text,
             })
         .toList();
 
@@ -319,8 +362,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
 
     if (mounted) {
+      _lastSource = response.source == 'error' ? _lastSource : response.source;
       final aiMsg = _ChatMessage(
-        text: response,
+        text: response.text,
         isUser: false,
         time: DateTime.now(),
       );
@@ -354,7 +398,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
   String _formatSessionTime(DateTime dt) {
     final now = DateTime.now();
     final isToday = now.year == dt.year && now.month == dt.month && now.day == dt.day;
-    final isYesterday = now.difference(dt).inDays == 1 || (now.day - dt.day == 1 && now.month == dt.month);
+    final isYesterday = DateTime(now.year, now.month, now.day)
+            .difference(DateTime(dt.year, dt.month, dt.day))
+            .inDays ==
+        1;
 
     final hourInt = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
     final period = dt.hour >= 12 ? 'م' : 'ص';
@@ -394,7 +441,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 15,
                       offset: const Offset(0, -4),
                     ),
@@ -409,7 +456,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.grey.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -422,7 +469,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: primaryYellow.withOpacity(0.2),
+                              color: primaryYellow.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(Icons.history_rounded, color: Color(0xFFB8860B), size: 22),
@@ -523,7 +570,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
                                         color: isActive
-                                            ? primaryYellow.withOpacity(isDark ? 0.15 : 0.08)
+                                            ? primaryYellow.withValues(alpha: isDark ? 0.15 : 0.08)
                                             : (isDark ? const Color(0xFF252830) : Colors.grey.shade50),
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
@@ -675,6 +722,49 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
+  Color get _statusColor => switch (_lastSource) {
+        'offline' => Colors.redAccent,
+        'local_engine' => Colors.orange,
+        _ => Colors.green,
+      };
+
+  String get _statusLabel => switch (_lastSource) {
+        'offline' => 'غير متصل بالخادم',
+        'local_engine' => 'وضع محلي (بدون الذكاء التوليدي)',
+        _ => 'المساعد الأكاديمي نشط',
+      };
+
+  /// عرض مبسّط لـ Markdown: **عريض** و`كود` والقوائم النقطية والعناوين.
+  TextSpan _markdownSpans(String text, TextStyle base) {
+    final spans = <InlineSpan>[];
+    final inline = RegExp(r'\*\*(.+?)\*\*|`([^`]+)`');
+    final lines = text.split('\n');
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      line = line.replaceFirstMapped(RegExp(r'^\s*[-*]\s+'), (_) => '•  ');
+      line = line.replaceFirst(RegExp(r'^\s*#{1,6}\s*'), '');
+
+      var last = 0;
+      for (final m in inline.allMatches(line)) {
+        if (m.start > last) spans.add(TextSpan(text: line.substring(last, m.start)));
+        if (m.group(1) != null) {
+          spans.add(TextSpan(text: m.group(1), style: const TextStyle(fontWeight: FontWeight.bold)));
+        } else {
+          spans.add(TextSpan(
+            text: m.group(2),
+            style: const TextStyle(fontFamily: 'monospace', backgroundColor: Color(0x22888888)),
+          ));
+        }
+        last = m.end;
+      }
+      if (last < line.length) spans.add(TextSpan(text: line.substring(last)));
+      if (i < lines.length - 1) spans.add(const TextSpan(text: '\n'));
+    }
+
+    return TextSpan(style: base, children: spans);
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -711,7 +801,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryYellow.withOpacity(0.35),
+                      color: primaryYellow.withValues(alpha: 0.35),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -733,23 +823,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
                           color: textColor,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                        decoration: BoxDecoration(
-                          color: primaryYellow.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: primaryYellow, width: 0.8),
-                        ),
-                        child: const Text(
-                          "PRO",
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFFB8860B),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   Row(
@@ -757,14 +830,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       Container(
                         width: 7,
                         height: 7,
-                        decoration: const BoxDecoration(
-                          color: Colors.green,
+                        decoration: BoxDecoration(
+                          color: _statusColor,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        "المساعد الأكاديمي نشط",
+                        _statusLabel,
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
@@ -781,9 +854,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: primaryYellow.withOpacity(0.18),
+                  color: primaryYellow.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: primaryYellow.withOpacity(0.6), width: 1.2),
+                  border: Border.all(color: primaryYellow.withValues(alpha: 0.6), width: 1.2),
                 ),
                 child: const Icon(Icons.history_rounded, color: Color(0xFFB8860B), size: 21),
               ),
@@ -838,7 +911,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                               ),
                               backgroundColor: cardColor,
                               side: BorderSide(
-                                color: primaryYellow.withOpacity(0.5),
+                                color: primaryYellow.withValues(alpha: 0.5),
                                 width: 1,
                               ),
                               elevation: 0,
@@ -911,7 +984,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -920,12 +993,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SelectableText(
-                      msg.text,
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        height: 1.45,
-                        color: isUser ? Colors.black : textColor,
+                    SelectableText.rich(
+                      _markdownSpans(
+                        msg.text,
+                        TextStyle(
+                          fontSize: 14.5,
+                          height: 1.45,
+                          color: isUser ? Colors.black : textColor,
+                        ),
                       ),
                     ),
                     if (detectedUrl != null)
@@ -1011,7 +1086,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1B1E24) : const Color(0xFFF3F5F9),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: primaryYellow.withOpacity(0.6), width: 1.2),
+        border: Border.all(color: primaryYellow.withValues(alpha: 0.6), width: 1.2),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1182,16 +1257,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
             const SizedBox(width: 8),
             GestureDetector(
-              onTap: () => _sendMessage(),
+              onTap: _isTyping ? null : () => _sendMessage(),
               child: Container(
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: primaryYellow,
+                  color: _isTyping ? primaryYellow.withValues(alpha: 0.5) : primaryYellow,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: primaryYellow.withOpacity(0.35),
+                      color: primaryYellow.withValues(alpha: 0.35),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),

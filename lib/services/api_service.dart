@@ -10,11 +10,16 @@ class ApiService {
   // 🌟 رابط السيرفر المحلي (جهاز اللابتوب)
   // ==========================================
   static const String defaultServerUrl = 'http://127.0.0.1:8000';
-  static String _serverIp = '127.0.0.1';
+  // 🌐 سيرفر المعهد: الافتراضي للمستخدمين (يمكن تغييره من شاشة تسجيل الدخول)
+  static const String instituteServerUrl = 'http://82.137.250.43:8080/edu_bridge/public';
+  static String _serverIp = instituteServerUrl;
   static String _port = '8000';
   static bool _isDiscovering = false;
 
   static String get serverIp => _serverIp;
+
+  /// المنفذ الذي اتصل به البحث التلقائي (8000 الأساسي، وإلا 8001)
+  static String get port => _port;
 
   static Future<void> setServerIp(String ip) async {
     String formatted = ip.trim();
@@ -37,14 +42,20 @@ class ApiService {
       final prefs = await SharedPreferences.getInstance();
 
       if (kIsWeb) {
-        _serverIp = 'http://127.0.0.1:8001';
+        _serverIp = 'http://127.0.0.1:8000';
         await prefs.setString('server_ip', _serverIp);
         debugPrint("🎯 ApiService initialized for Web on $_serverIp");
         return;
       }
 
       final savedIp = prefs.getString('server_ip');
-      if (savedIp != null && savedIp.isNotEmpty && savedIp != defaultServerUrl) {
+      if (savedIp == null || savedIp.isEmpty) {
+        // أول تشغيل: الاتصال بسيرفر المعهد افتراضياً
+        _serverIp = instituteServerUrl;
+        debugPrint("🌐 ApiService: الاعتماد على سيرفر المعهد ($_serverIp)");
+        return;
+      }
+      if (savedIp != defaultServerUrl) {
         String fixed = savedIp;
         final u = Uri.tryParse(savedIp);
         if (u != null && !u.hasPort && u.scheme == 'http') {
@@ -179,6 +190,7 @@ class ApiService {
   }
 
   static Future<String?> _tryConnect(String ip, {int timeoutMs = 800}) async {
+    // 8000 هو المنفذ الأساسي، و8001 احتياطي (لمن لا يستطيع استعمال 8000): يُجرَّب بهذا الترتيب
     for (final port in [8000, 8001]) {
       try {
         final socket = await Socket.connect(ip, port, timeout: Duration(milliseconds: timeoutMs));

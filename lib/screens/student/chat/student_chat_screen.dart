@@ -8,7 +8,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 class StudentChatScreen extends StatelessWidget {
   final String chatId;
 
-  const StudentChatScreen({Key? key, required this.chatId}) : super(key: key);
+  const StudentChatScreen({super.key, required this.chatId});
 
   @override
   Widget build(BuildContext context) {

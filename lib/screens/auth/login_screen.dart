@@ -184,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 "new_device_id": deviceId,
                               },
                             );
-                            if (mounted) Navigator.pop(context);
+                            if (mounted && context.mounted) Navigator.pop(context);
                             if (response.data != null && response.data['success'] == true) {
                               _showSnackBar(response.data['message'] ?? (isAr ? "تم إرسال الطلب بنجاح" : "Request submitted successfully"), isError: false);
                             } else {

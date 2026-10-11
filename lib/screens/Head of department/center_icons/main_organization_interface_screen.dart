@@ -175,7 +175,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
                 currentIndex: 0,
                 centerButton: GestureDetector(
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountsManagementScreen())),
-                  child: const Boss_Center_Icon(),
+                  child: const BossCenterIcon(),
                 ),
                 onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
                 onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossProfileScreen())),

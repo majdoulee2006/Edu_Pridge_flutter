@@ -6,7 +6,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/attendance_screen/attendance_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/assignments_screen/assignments_screen.dart';
-import 'package:edu_pridge_flutter/screens/teacher/center_icons/lectures_Screen/lectures_Screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/center_icons/lectures_Screen/lectures_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/scedual_screen/scedual_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/report_requests_screen.dart';

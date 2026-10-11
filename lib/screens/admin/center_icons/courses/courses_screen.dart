@@ -342,6 +342,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
     final deptList = (hodData['departments'] as List<dynamic>?) ?? [];
     final teachersList = (hodData['teachers'] as List<dynamic>?) ?? [];
+if (!mounted || !context.mounted) return;
 
     if (!context.mounted) return;
 

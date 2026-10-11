@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
 import 'package:file_picker/file_picker.dart';
@@ -154,6 +153,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           }
 
           if (fileBytes != null || filePath != null) {
+            if (!mounted) return;
             await context.read<ChatService>().sendMessage(
               widget.receiverId.toString(),
               "[Attachment]",
@@ -329,6 +329,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         final name = result.files.single.name;
         
         if (bytes != null || path != null) {
+          if (!mounted) return;
           await context.read<ChatService>().sendMessage(
             widget.receiverId.toString(),
             "[Voice Note]",

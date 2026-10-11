@@ -7,12 +7,16 @@ class AiFloatingButton extends StatefulWidget {
   final double bottom;
   final double right;
 
+  /// إن حُدد يوضع الزر على اليسار بدل اليمين (يتجاهل [right])
+  final double? left;
+
   const AiFloatingButton({
     super.key,
     this.userRole = 'student',
     this.userName,
     this.bottom = 100,
     this.right = 20,
+    this.left,
   });
 
   @override
@@ -49,7 +53,8 @@ class _AiFloatingButtonState extends State<AiFloatingButton>
 
     return Positioned(
       bottom: widget.bottom,
-      right: widget.right,
+      right: widget.left == null ? widget.right : null,
+      left: widget.left,
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) => Transform.scale(
@@ -89,13 +94,13 @@ class _AiFloatingButtonState extends State<AiFloatingButton>
               borderRadius: BorderRadius.circular(18), // مربع بزوايا دائرية مثل الصورة المرفقة
               boxShadow: [
                 BoxShadow(
-                  color: primaryYellow.withOpacity(0.4),
+                  color: primaryYellow.withValues(alpha: 0.4),
                   blurRadius: 14,
                   spreadRadius: 1,
                   offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),

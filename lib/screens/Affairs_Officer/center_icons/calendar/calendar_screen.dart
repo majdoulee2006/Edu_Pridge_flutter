@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:ui' as ui;
 
-import 'package:edu_pridge_flutter/widgets/Affairs_Officer_speed_dial.dart';
+import 'package:edu_pridge_flutter/widgets/affairs_officer_speed_dial.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 
@@ -181,7 +181,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                           'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
                         });
 
-                        if (mounted) {
+                        if (mounted && context.mounted) {
                           Navigator.pop(context); // Pop the Add Event dialog
                           if (result != null) {
                             _loadEvents();
@@ -300,7 +300,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                           'event_date': DateFormat('yyyy-MM-dd').format(selectedDate),
                         });
 
-                        if (mounted) {
+                        if (mounted && context.mounted) {
                           Navigator.pop(context); // Pop the Edit Event dialog
                           if (result != null) {
                             _loadEvents();
@@ -347,6 +347,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
     );
 
     if (confirm != true) return;
+if (!mounted) return;
 
     showDialog(
       context: context,
@@ -486,9 +487,9 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                                     ),
                                     calendarStyle: CalendarStyle(
                                       defaultTextStyle: TextStyle(color: textColor),
-                                      weekendTextStyle: TextStyle(color: textColor.withOpacity(0.6)),
+                                      weekendTextStyle: TextStyle(color: textColor.withValues(alpha: 0.6)),
                                       todayDecoration: BoxDecoration(
-                                        color: const Color(0xFFFFCC00).withOpacity(0.2),
+                                        color: const Color(0xFFFFCC00).withValues(alpha: 0.2),
                                         shape: BoxShape.circle,
                                       ),
                                       todayTextStyle: TextStyle(color: textColor, fontWeight: FontWeight.bold),
@@ -631,7 +632,7 @@ class _AffairsOfficerCalendarScreenState extends State<AffairsOfficerCalendarScr
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: eventColor.withOpacity(0.1),
+                  color: eventColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(

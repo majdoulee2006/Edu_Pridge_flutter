@@ -69,7 +69,9 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
     if (widget.activity["event_date"] != null) {
       try {
         _selectedDate = DateTime.parse(widget.activity["event_date"].toString());
-      } catch (e) {}
+      } catch (_) {
+        // قيمة غير صالحة من السيرفر: نترك الحقل فارغاً ليختاره المستخدم
+      }
     }
     if (widget.activity["event_time"] != null) {
       try {
@@ -78,7 +80,9 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
         if (parts.length >= 2) {
           _selectedTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
         }
-      } catch (e) {}
+      } catch (_) {
+        // قيمة غير صالحة من السيرفر: نترك الحقل فارغاً ليختاره المستخدم
+      }
     }
   }
 
@@ -344,7 +348,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 isExpanded: true,
-                                value: _selectedAudience,
+                                initialValue: _selectedAudience,
                                 decoration: InputDecoration(
                                   fillColor: cardColor,
                                   filled: true,
@@ -414,7 +418,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                   const SizedBox(height: 8),
                                   DropdownButtonFormField<String>(
                                     isExpanded: true,
-                                    value: _departments.any((d) => (d['department_id'] ?? d['id']).toString() == _selectedDepartment)
+                                    initialValue: _departments.any((d) => (d['department_id'] ?? d['id']).toString() == _selectedDepartment)
                                         ? _selectedDepartment
                                         : null,
                                     decoration: InputDecoration(
@@ -462,7 +466,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                   const SizedBox(height: 8),
                                   DropdownButtonFormField<String>(
                                     isExpanded: true,
-                                    value: (isDeptSelected && filteredCourses.any((c) => (c['course_id'] ?? c['id']).toString() == _selectedCourse))
+                                    initialValue: (isDeptSelected && filteredCourses.any((c) => (c['course_id'] ?? c['id']).toString() == _selectedCourse))
                                         ? _selectedCourse
                                         : null,
                                     decoration: InputDecoration(
@@ -655,7 +659,7 @@ class _EditActivityScreenState extends State<EditActivityScreen> {
                                     child: Image.network(
                                       widget.activity["image_url"].toString(),
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Column(
+                                      errorBuilder: (_, _, _) => Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey.shade400),

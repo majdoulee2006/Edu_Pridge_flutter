@@ -7,6 +7,7 @@ import 'package:edu_pridge_flutter/screens/auth/login_screen.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/chat_service.dart';
 import 'package:edu_pridge_flutter/services/notification_polling.dart';
+import 'package:edu_pridge_flutter/services/ai_service.dart';
 
 // ─── AppSettings ───────────────────────────────────────────────────────────
 class AppSettings {
@@ -220,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         ValueListenableBuilder<bool>(
                           valueListenable: AppSettings.isNotificationsEnabled,
-                          builder: (_, notif, __) => _switchTile(
+                          builder: (_, notif, _) => _switchTile(
                             icon: Icons.notifications_none_outlined,
                             title: isAr ? "تفعيل الإشعارات" : "Notifications",
                             value: notif,
@@ -231,7 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         ValueListenableBuilder<bool>(
                           valueListenable: AppSettings.isSoundsEnabled,
-                          builder: (_, sounds, __) => _switchTile(
+                          builder: (_, sounds, _) => _switchTile(
                             icon: Icons.volume_up_outlined,
                             title: isAr ? "الأصوات" : "Sounds",
                             value: sounds,
@@ -242,7 +243,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         ValueListenableBuilder<bool>(
                           valueListenable: AppSettings.isVibrationEnabled,
-                          builder: (_, vib, __) => _switchTile(
+                          builder: (_, vib, _) => _switchTile(
                             icon: Icons.vibration_outlined,
                             title: isAr ? "الاهتزاز" : "Vibration",
                             value: vib,
@@ -313,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _fontSizeSlider(Color cardColor, Color textColor, bool isAr) {
     return ValueListenableBuilder<double>(
       valueListenable: AppSettings.fontSize,
-      builder: (_, scale, __) => Container(
+      builder: (_, scale, _) => Container(
         padding: const EdgeInsets.all(15),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
@@ -381,8 +382,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("🇸🇦", style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
+                        if (isAr) ...[
+                          const Icon(Icons.check_circle_rounded, size: 16, color: Colors.black),
+                          const SizedBox(width: 6),
+                        ],
                         Text(
                           "العربية",
                           style: TextStyle(
@@ -414,8 +417,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("🇺🇸", style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
+                        if (!isAr) ...[
+                          const Icon(Icons.check_circle_rounded, size: 16, color: Colors.black),
+                          const SizedBox(width: 6),
+                        ],
                         Text(
                           "English",
                           style: TextStyle(
@@ -579,6 +584,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }
                     }
 
+                    await AiService.clearLocalChats();
                     await prefs.remove('token');
                     await prefs.remove('role');
                     await prefs.remove('user_role');

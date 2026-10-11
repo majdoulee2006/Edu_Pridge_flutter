@@ -158,7 +158,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
                                 : ListView.separated(
                                     padding: const EdgeInsets.symmetric(horizontal: 20),
                                     itemCount: _accounts.length,
-                                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                                     itemBuilder: (context, index) {
                                       final acc = _accounts[index];
                                       final name = acc['full_name'] as String? ?? acc['name'] as String? ?? '---';
@@ -206,7 +206,7 @@ class _AccountsManagementScreenState extends State<AccountsManagementScreen> {
 
               CustomBottomNav(
                 currentIndex: 0,
-                centerButton: const Boss_Center_Icon(),
+                centerButton: const BossCenterIcon(),
                 onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
                 onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossProfileScreen())),
                 onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossNotificationScreen())),

@@ -707,9 +707,9 @@ class AdminServices {
       final formData = FormData.fromMap({
         'title': title,
         'content': content,
-        if (targetAudience != null) 'target_audience': targetAudience,
-        if (departmentId != null) 'department_id': departmentId,
-        if (courseId != null) 'course_id': courseId,
+        'target_audience': ?targetAudience,
+        'department_id': ?departmentId,
+        'course_id': ?courseId,
         if (link != null && link.isNotEmpty) 'link_url': link,
         if (imagePath != null)
           'image': await MultipartFile.fromFile(

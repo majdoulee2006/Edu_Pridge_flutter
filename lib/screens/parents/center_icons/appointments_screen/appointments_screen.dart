@@ -127,7 +127,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       Text(isAr ? "الابن المعني:" : "Concerned Child:", style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<int>(
-                        value: selectedChildId,
+                        initialValue: selectedChildId,
                         dropdownColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
@@ -295,6 +295,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                           );
 
                           if (success) {
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(isAr ? "✅ تم إرسال طلب الموعد لرئيس القسم بنجاح" : "✅ Meeting request sent successfully"),
@@ -303,6 +304,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                             );
                             _loadAllData();
                           } else {
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(isAr ? "❌ فشل إرسال الطلب، يرجى المحاولة لاحقاً" : "❌ Failed to send request, please try again"),
@@ -342,6 +344,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     setState(() => _isLoading = true);
     final success = await _parentService.respondToSummon(summonId, status);
     if (success) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(status == 'acknowledged'
@@ -352,6 +355,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
       );
       _loadAllData();
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(isAr ? "❌ حدث خطأ أثناء إرسال ردك، حاول لاحقاً" : "❌ Error sending response, please try later"),

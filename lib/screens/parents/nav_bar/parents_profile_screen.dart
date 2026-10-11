@@ -177,6 +177,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
       );
       if (res.statusCode == 200 && res.data['success'] == true) {
         final newUrl = ApiService.fixMediaUrl(res.data['avatar'] as String?);
+        if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
         if (newUrl != null) {
           final prefs = await SharedPreferences.getInstance();
@@ -271,7 +272,7 @@ class _ParentsProfileScreenState extends State<ParentsProfileScreen> {
 
             CustomBottomNav(
               currentIndex: 1,
-              centerButton: const Parents_Center_Icon(),
+              centerButton: const ParentsCenterIcon(),
               onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsHomeScreen())),
               onProfileTap: () {},
               onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ParentsNotificationsScreen())),

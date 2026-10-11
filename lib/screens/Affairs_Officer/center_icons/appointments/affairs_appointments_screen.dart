@@ -210,7 +210,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
       onSelected: (selected) {
         if (selected) setState(() => _filterStatus = statusKey);
       },
-      selectedColor: primaryColor.withOpacity(0.2),
+      selectedColor: primaryColor.withValues(alpha: 0.2),
       labelStyle: TextStyle(
         color: isSelected ? primaryColor : (isDark ? Colors.grey.shade300 : Colors.grey.shade800),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -257,7 +257,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -273,7 +273,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.08),
+              color: statusColor.withValues(alpha: 0.08),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
@@ -370,7 +370,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.08),
+                      color: Colors.blue.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -391,7 +391,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.08),
+                      color: Colors.green.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -835,7 +835,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
         border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -849,7 +849,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Icons.assignment_ind_rounded, color: Colors.orange.shade800),
@@ -874,7 +874,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -964,6 +964,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                         lastDate: DateTime.now().add(const Duration(days: 60)),
                       );
                       if (d != null) {
+                        if (!mounted || !context.mounted) return;
                         final t = await showTimePicker(
                           context: sheetCtx,
                           initialTime: TimeOfDay.fromDateTime(selectedDate),
@@ -1003,7 +1004,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                 formatted,
                                 notes: notesController.text.trim(),
                               );
-                              if (mounted) {
+                              if (mounted && sheetCtx.mounted) {
                                 Navigator.pop(sheetCtx);
                                 if (ok) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1080,7 +1081,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                       Text(isAr ? 'اختر الطالب المعني:' : 'Select Concerned Student:', style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<int>(
-                        value: selectedStudentId,
+                        initialValue: selectedStudentId,
                         isExpanded: true,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -1198,7 +1199,7 @@ class _AffairsAppointmentsScreenState extends State<AffairsAppointmentsScreen> w
                                     'time': timeFormatted,
                                   });
 
-                                  if (mounted) {
+                                  if (mounted && context.mounted) {
                                     Navigator.pop(sheetContext);
                                     if (success) {
                                       ScaffoldMessenger.of(context).showSnackBar(

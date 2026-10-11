@@ -96,6 +96,12 @@ class _AppRouterState extends State<_AppRouter> {
       };
     }
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => dest));
+
+    // فحص التحديثات بعد ما تستقر الشاشة (ينتظر تهيئة ApiService بالخلفية)
+    Future.delayed(const Duration(seconds: 3), () {
+      final ctx = appNavigatorKey.currentContext;
+      if (ctx != null && ctx.mounted) AppUpdateService.checkOnStartup(ctx);
+    });
   }
 
   @override

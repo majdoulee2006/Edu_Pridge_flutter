@@ -241,14 +241,14 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
     final durationCtrl = TextEditingController(text: isAr ? 'ساعتان' : '2 hours');
 
     // ─── شفهي ───
-    List<Map<String,dynamic>> _programs = [];
+    List<Map<String,dynamic>> programs = [];
     int? selProgramId;
     String selProgramName = '';
     int? selYearLevel;
     bool oralAllStudents = true;
     int? selStudentId;
-    List<Map<String,dynamic>> _programStudents = [];
-    bool _loadingStudents = false;
+    List<Map<String,dynamic>> programStudents = [];
+    bool loadingStudents = false;
 
     final yearLabels = {
       1: isAr ? 'السنة الأولى' : 'Year 1',
@@ -340,7 +340,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                   durationCtrl.text = isAr ? 'ساعة' : '1 hour';
                                 }
                               });
-                              if (t['val'] == 'oral' && _programs.isEmpty) {
+                              if (t['val'] == 'oral' && programs.isEmpty) {
                                 try {
                                   final prefs = await SharedPreferences.getInstance();
                                   final token = prefs.getString('token') ?? '';
@@ -349,11 +349,11 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                     options: Options(headers: {"Authorization": "Bearer $token"}),
                                   );
                                   if (res.statusCode == 200) {
-                                    setSheet(() => _programs = List<Map<String,dynamic>>.from(res.data['data'] ?? []));
+                                    setSheet(() => programs = List<Map<String,dynamic>>.from(res.data['data'] ?? []));
                                   }
                                 } catch (e) {
                                   debugPrint('Programs fetch error: $e');
-                                  if (context.mounted) {
+                                  if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(isAr ? 'فشل تحميل الدورات: $e' : 'Failed to load programs: $e'),
@@ -412,7 +412,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                         selectedCourseYear = course['year'] as int?;
                         selectedCourseProgramName = course['program_name'] as String? ?? course['level'] as String? ?? '';
                         selStudentId = null;
-                        _programStudents = [];
+                        programStudents = [];
                       });
                     },
                     validator: (v) => v == null ? (isAr ? 'اختر المادة' : 'Select Course') : null,
@@ -476,7 +476,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                                 );
                                 return;
                               }
-                              setSheet(() { oralAllStudents = false; _loadingStudents = true; });
+                              setSheet(() { oralAllStudents = false; loadingStudents = true; });
                               final prefs = await SharedPreferences.getInstance();
                               final token = prefs.getString('token') ?? '';
                               final String fetchUrl = "${ApiService().baseUrl}/teacher/grades/program-students?course_id=$selectedCourseId";
@@ -486,8 +486,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                               );
                               if (res.statusCode == 200) {
                                 setSheet(() {
-                                  _programStudents = List<Map<String,dynamic>>.from(res.data['data'] ?? []);
-                                  _loadingStudents = false;
+                                  programStudents = List<Map<String,dynamic>>.from(res.data['data'] ?? []);
+                                  loadingStudents = false;
                                 });
                               }
                             },
@@ -512,7 +512,7 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                     ),
                     if (!oralAllStudents) ...[
                       const SizedBox(height: 10),
-                      _loadingStudents
+                      loadingStudents
                           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
                           : _programStudents.isEmpty
                               ? Text(isAr ? 'لا يوجد طلاب' : 'No students found', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))
@@ -799,9 +799,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
         'title':     title,
         'max_score': maxScore,
         'date':      date,
-        if (time != null) 'time': time,
-        if (duration != null) 'duration': duration,
-        if (notes != null) 'notes': notes,
+        'time': ?time,
+        'duration': ?duration,
+        'notes': ?notes,
       };
 
       if (type == 'oral') {

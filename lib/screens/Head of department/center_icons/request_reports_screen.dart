@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -77,10 +76,12 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
 
       if (mounted) {
         setState(() {
-          if (results[0].statusCode == 200 && results[0].data['success'] == true)
+          if (results[0].statusCode == 200 && results[0].data['success'] == true) {
             _myRequests = List<Map<String, dynamic>>.from(results[0].data['data'] ?? []);
-          if (results[1].statusCode == 200 && results[1].data['success'] == true)
+          }
+          if (results[1].statusCode == 200 && results[1].data['success'] == true) {
             _gradeRequests = List<Map<String, dynamic>>.from(results[1].data['data'] ?? []);
+          }
         });
       }
     } catch (e) {
@@ -336,7 +337,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                         onPressed: (selStudent == null || selTeacher == null || submitting) ? null : () async {
                           setSB(() => submitting = true);
                           await _submitReport(selStudent!, selTeacher!, false, notes);
-                          if (mounted) Navigator.pop(ctx2);
+                          if (mounted && ctx2.mounted) Navigator.pop(ctx2);
                         },
                         child: submitting
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
@@ -466,7 +467,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                         onPressed: (selStudent == null || submitting) ? null : () async {
                           setSB(() => submitting = true);
                           await _submitReport(selStudent!, null, true, notes);
-                          if (mounted) Navigator.pop(ctx2);
+                          if (mounted && ctx2.mounted) Navigator.pop(ctx2);
                         },
                         child: submitting
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
@@ -653,7 +654,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
                         onPressed: (selCourse == null || selTeacher == null || submitting) ? null : () async {
                           setSB(() => submitting = true);
                           await _submitGradeReport(selCourse!, selTeacher!, notes, ctx2);
-                          if (mounted) Navigator.pop(ctx2);
+                          if (mounted && ctx2.mounted) Navigator.pop(ctx2);
                         },
                         child: submitting
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
@@ -838,7 +839,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
               ),
               CustomBottomNav(
                 currentIndex: 0,
-                centerButton: const Boss_Center_Icon(),
+                centerButton: const BossCenterIcon(),
                 onHomeTap:          () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen())),
                 onProfileTap:       () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossProfileScreen())),
                 onNotificationsTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BossNotificationScreen())),
@@ -853,8 +854,12 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
 
   List<Map<String, dynamic>> _allReports() {
     final List<Map<String, dynamic>> all = [];
-    for (final r in _gradeRequests) all.add({...r, '_type': 'grade'});
-    for (final r in _myRequests)    all.add({...r, '_type': 'report'});
+    for (final r in _gradeRequests) {
+      all.add({...r, '_type': 'grade'});
+    }
+    for (final r in _myRequests) {
+      all.add({...r, '_type': 'report'});
+    }
     all.sort((a, b) {
       final da = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(2000);
       final db = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(2000);
@@ -1090,6 +1095,7 @@ class _ReportRequestScreenState extends State<ReportRequestScreen> {
     final base  = ApiService().baseUrl;
     List<dynamic> entries = [];
     bool loading = true;
+if (!mounted) return;
 
     await showModalBottomSheet(
       context: context,

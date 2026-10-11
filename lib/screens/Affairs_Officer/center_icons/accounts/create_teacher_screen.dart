@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 class CreateTeacherScreen extends StatefulWidget {
   const CreateTeacherScreen({super.key});
@@ -19,7 +20,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String _selectedGender = 'ذكر';
-  String? _selectedSystem;
+  final TextEditingController _specializationController = TextEditingController();
 
   bool get isAr => AppSettings.language.value == 'ar';
 
@@ -40,6 +41,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
     _idController.dispose();
     _emailController.dispose();
     _birthDateController.dispose();
+    _specializationController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -324,8 +326,19 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 const SizedBox(height: 12),
 
                 // ═══════════════════════════════════════
-                // قائمة نظام المعلومات
+                // قائمة القسم + الاختصاص
                 // ═══════════════════════════════════════
+                _buildTextField(
+                  controller: _specializationController,
+                  hint: 'الاختصاص (مثال: برمجة، رياضيات)',
+                  icon: Icons.school_outlined,
+                  fieldColor: fieldColor,
+                  textColor: textColor,
+                  subColor: subColor,
+                ),
+
+                const SizedBox(height: 12),
+
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
@@ -333,9 +346,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
+                    child: DropdownButton<int>(
                       isExpanded: true,
-                      value: _selectedSystem,
+                      value: _selectedDepartmentId,
                       hint: Text(
                         isAr ? 'نظام المعلومات' : 'Information System',
                         style: TextStyle(
@@ -357,9 +370,9 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                           child: Text(label),
                         );
                       }).toList(),
-                      onChanged: (String? newValue) {
+                      onChanged: (int? newValue) {
                         setState(() {
-                          _selectedSystem = newValue;
+                          _selectedDepartmentId = newValue;
                         });
                       },
                     ),

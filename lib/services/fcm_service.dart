@@ -13,6 +13,7 @@ import 'package:edu_pridge_flutter/screens/student/center_icons/attendance/atten
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/weekly_digest_screen/weekly_digest_screen.dart';
 
 // Handler لإشعارات الخلفية (يجب أن يكون top-level function)
 @pragma('vm:entry-point')
@@ -33,8 +34,7 @@ class FcmService {
         data['event_id']?.toString();
     final intId = int.tryParse(relatedIdStr ?? '');
 
-    final ctx = appNavigatorKey.currentContext;
-    if (ctx == null) return;
+    if (appNavigatorKey.currentContext == null) return;
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
@@ -46,7 +46,7 @@ class FcmService {
           '${ApiService().baseUrl}/notifications/read-by-type',
           data: {
             'type': type,
-            if (intId != null) 'related_id': intId,
+            'related_id': ?intId,
           },
           options: Options(headers: {'Authorization': 'Bearer $token'}),
         );
@@ -55,30 +55,36 @@ class FcmService {
       }
     }
 
+    // بعد الـ await قد تتغير الشاشة: نقرأ الـ Navigator الحالي ولا نعيد استعمال BuildContext قديم
+    final navigator = appNavigatorKey.currentState;
+    if (navigator == null) return;
+
     switch (type) {
+      case 'weekly_digest':
+        navigator.push(MaterialPageRoute(
+          builder: (_) => WeeklyDigestScreen(openDigestId: intId),
+        ));
+        break;
       case 'meeting_request':
       case 'summon':
-        Navigator.push(ctx, MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
+        navigator.push(MaterialPageRoute(builder: (_) => const AppointmentsScreen()));
         break;
       case 'lecture':
-        Navigator.push(
-          ctx,
+        navigator.push(
           MaterialPageRoute(
             builder: (_) => LecturesScreen(highlightLessonId: intId),
           ),
         );
         break;
       case 'assignment':
-        Navigator.push(
-          ctx,
+        navigator.push(
           MaterialPageRoute(
             builder: (_) => AssignmentsScreen(highlightId: intId),
           ),
         );
         break;
       case 'attendance':
-        Navigator.push(
-          ctx,
+        navigator.push(
           MaterialPageRoute(builder: (_) => const AttendanceScreen()),
         );
         break;
@@ -88,8 +94,7 @@ class FcmService {
         // بدل ما يوديه على المحادثة مباشرة.
         final chatSenderId = data['sender_id']?.toString();
         if (chatSenderId != null && chatSenderId.isNotEmpty) {
-          Navigator.push(
-            ctx,
+          navigator.push(
             MaterialPageRoute(
               builder: (_) => ChatRoomScreen(
                 contact: {
@@ -126,7 +131,7 @@ class FcmService {
         final body  = message.notification?.body  ?? message.data['body']  ?? '';
         if (title.isNotEmpty || body.isNotEmpty) {
           final ctx = appNavigatorKey.currentContext;
-          if (ctx != null) {
+          if (ctx != null && ctx.mounted) {
             showInAppBanner(
               ctx,
               title,
@@ -194,7 +199,7 @@ class FcmService {
       final body = message.notification?.body ?? message.data['body'] ?? '';
       if (title.isNotEmpty || body.isNotEmpty) {
         final ctx = appNavigatorKey.currentContext;
-        if (ctx != null) {
+        if (ctx != null && ctx.mounted) {
           showInAppBanner(
             ctx,
             title,

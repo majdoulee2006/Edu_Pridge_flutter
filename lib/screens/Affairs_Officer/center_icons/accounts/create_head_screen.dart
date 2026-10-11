@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 class CreateHeadScreen extends StatefulWidget {
   const CreateHeadScreen({super.key});
@@ -19,7 +20,10 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String _selectedGender = 'ذكر';
-  String? _selectedDepartment;
+  List<Map<String, dynamic>> _departments = [];
+  int? _selectedDepartmentId;
+  bool _loadingDepartments = true;
+  bool _saving = false;
 
   bool get isAr => AppSettings.language.value == 'ar';
 
@@ -334,9 +338,9 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
+                    child: DropdownButton<int>(
                       isExpanded: true,
-                      value: _selectedDepartment,
+                      value: _selectedDepartmentId,
                       hint: Text(
                         isAr ? 'القسم المسؤول عنه' : 'Department Responsible For',
                         style: TextStyle(
@@ -358,9 +362,9 @@ class _CreateHeadScreenState extends State<CreateHeadScreen> {
                           child: Text(label),
                         );
                       }).toList(),
-                      onChanged: (String? newValue) {
+                      onChanged: (int? newValue) {
                         setState(() {
-                          _selectedDepartment = newValue;
+                          _selectedDepartmentId = newValue;
                         });
                       },
                     ),

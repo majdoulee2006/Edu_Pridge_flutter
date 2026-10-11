@@ -641,17 +641,17 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
                   decision: selectedDecision,
                   notes: notesController.text.trim(),
                 );
-                if (mounted) Navigator.pop(context);
+                if (mounted && context.mounted) Navigator.pop(context);
 
                 if (res != null && res['success'] == true) {
-                  if (mounted) {
+                  if (mounted && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(res['message'] ?? (isAr ? 'تم حفظ القرار بنجاح' : 'Decision saved successfully')), backgroundColor: Colors.green),
                     );
                   }
                   _fetchMasterData();
                 } else {
-                  if (mounted) {
+                  if (mounted && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(isAr ? 'فشل حفظ القرار الأكاديمي' : 'Failed to save academic decision'), backgroundColor: Colors.red),
                     );

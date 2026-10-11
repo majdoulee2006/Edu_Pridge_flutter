@@ -4,6 +4,7 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/academic_card/parent_children_academic_card_screen.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/weekly_digest_screen/weekly_digest_screen.dart';
 
 class ParentServicesMenuScreen extends StatelessWidget {
   final String parentName;
@@ -77,6 +78,25 @@ class ParentServicesMenuScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const ParentChildrenAcademicCardScreen(),
+                          ),
+                        ),
+                      ),
+
+                      _buildServiceCard(
+                        icon: Icons.insights_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "الملخص الأسبوعي" : "Weekly Digest",
+                        subtitle: isAr
+                            ? "ملخص أسبوعي عن حضور الأبناء وواجباتهم وعلاماتهم"
+                            : "Weekly summary of your children's attendance, assignments and grades",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const WeeklyDigestScreen(),
                           ),
                         ),
                       ),

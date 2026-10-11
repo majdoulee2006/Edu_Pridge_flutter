@@ -1745,6 +1745,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final isAr = AppSettings.language.value == 'ar';
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
+    if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Map<String, dynamic>? info;

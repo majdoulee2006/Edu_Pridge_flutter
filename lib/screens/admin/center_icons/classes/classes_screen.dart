@@ -194,6 +194,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
 
       final dio = Dio();
       await dio.download(fullUrl, savePath);
+if (!mounted) return;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

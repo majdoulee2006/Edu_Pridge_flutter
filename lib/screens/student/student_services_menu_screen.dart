@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/privacy_policy_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
 import 'package:edu_pridge_flutter/screens/student/student_service_requests_list_screen.dart';
@@ -327,7 +326,7 @@ class StudentServicesMenuScreen extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withOpacity(0.08)),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.08)),
         ),
         child: InkWell(
           onTap: onTap,
@@ -339,7 +338,7 @@ class StudentServicesMenuScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: iconColor, size: 26),
@@ -372,7 +371,7 @@ class StudentServicesMenuScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(
                   Icons.arrow_back,
-                  color: subColor.withOpacity(0.5),
+                  color: subColor.withValues(alpha: 0.5),
                   size: 16,
                 ),
               ],
@@ -472,7 +471,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                   color: Color(0x1A008080),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle_rounded, color: const Color(0xFFFFCC00), size: 60),
+                child: const Icon(Icons.check_circle_rounded, color: Color(0xFFFFCC00), size: 60),
               ),
               const SizedBox(height: 20),
               Text(
@@ -553,14 +552,14 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFCC00).withOpacity(0.08),
+                          color: const Color(0xFFFFCC00).withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: const Color(0xFFFFCC00).withOpacity(0.2)),
+                          border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.info_outline, color: const Color(0xFFFFCC00), size: 24),
+                            const Icon(Icons.info_outline, color: Color(0xFFFFCC00), size: 24),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -571,7 +570,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      color: const Color(0xFFFFCC00),
+                                      color: Color(0xFFFFCC00),
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -581,7 +580,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                                         : "Please fill the form accurately and attach supporting documents (e.g. medical reports) to expedite the review process.",
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: isDark ? const Color(0xFFFFCC00).withOpacity(0.4) : const Color(0xFFFFCC00),
+                                      color: isDark ? const Color(0xFFFFCC00).withValues(alpha: 0.4) : const Color(0xFFFFCC00),
                                       height: 1.4,
                                     ),
                                   ),
@@ -600,7 +599,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _selectedPetitionType,
+                        initialValue: _selectedPetitionType,
                         hint: Text(isAr ? "اختر نوع الطلب" : "Select petition type", style: TextStyle(color: subColor, fontSize: 14)),
                         dropdownColor: cardColor,
                         style: TextStyle(color: textColor),
@@ -629,7 +628,7 @@ class _MercyPetitionFormScreenState extends State<MercyPetitionFormScreen> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _selectedCourse,
+                          initialValue: _selectedCourse,
                           hint: _isLoadingCourses 
                               ? Text(isAr ? "جاري تحميل المواد..." : "Loading courses...", style: TextStyle(color: subColor, fontSize: 14))
                               : Text(isAr ? "اختر المقرر الدراسي" : "Select course", style: TextStyle(color: subColor, fontSize: 14)),
@@ -782,10 +781,10 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withOpacity(0.1),
+                  color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle_rounded, color: const Color(0xFFFFCC00), size: 60),
+                child: const Icon(Icons.check_circle_rounded, color: Color(0xFFFFCC00), size: 60),
               ),
               const SizedBox(height: 20),
               Text(
@@ -866,14 +865,14 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFCC00).withOpacity(0.08),
+                          color: const Color(0xFFFFCC00).withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: const Color(0xFFFFCC00).withOpacity(0.2)),
+                          border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.payment_rounded, color: const Color(0xFFFFCC00), size: 24),
+                            const Icon(Icons.payment_rounded, color: Color(0xFFFFCC00), size: 24),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -884,7 +883,7 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      color: const Color(0xFFFFCC00),
+                                      color: Color(0xFFFFCC00),
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -894,7 +893,7 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                                         : "This service is subject to nominal administrative fees payable at the university cashier. A recent photo is required for ID cards.",
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: isDark ? const Color(0xFFFFCC00).withOpacity(0.4) : const Color(0xFFFFCC00),
+                                      color: isDark ? const Color(0xFFFFCC00).withValues(alpha: 0.4) : const Color(0xFFFFCC00),
                                       height: 1.4,
                                     ),
                                   ),
@@ -1012,7 +1011,7 @@ class _LostItemReplacementFormScreenState extends State<LostItemReplacementFormS
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFFCC00),
-                            disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                            disabledBackgroundColor: Colors.grey.withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             elevation: 0,
                           ),
@@ -1140,7 +1139,7 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00).withOpacity(0.1),
+                  color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check_circle_rounded, color: Color(0xFFFFCC00), size: 60),
@@ -1223,9 +1222,9 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFCC00).withOpacity(0.08),
+                          color: const Color(0xFFFFCC00).withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: const Color(0xFFFFCC00).withOpacity(0.2)),
+                          border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1251,7 +1250,7 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
                                         : "You can only request a makeup exam for courses you failed in the previous semester.",
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: isDark ? const Color(0xFFFFCC00).withOpacity(0.4) : const Color(0xFFFFCC00),
+                                      color: isDark ? const Color(0xFFFFCC00).withValues(alpha: 0.4) : const Color(0xFFFFCC00),
                                       height: 1.4,
                                     ),
                                   ),
@@ -1359,7 +1358,7 @@ class _MakeupExamFormScreenState extends State<MakeupExamFormScreen> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFFCC00),
-                            disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                            disabledBackgroundColor: Colors.grey.withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             elevation: 0,
                           ),
@@ -1685,9 +1684,9 @@ class _FacePhotoChangeFormScreenState extends State<FacePhotoChangeFormScreen> {
                   Container(
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFCC00).withOpacity(0.1),
+                      color: const Color(0xFFFFCC00).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: const Color(0xFFFFCC00).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFFFFCC00).withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [

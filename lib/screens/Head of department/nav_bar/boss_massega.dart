@@ -190,7 +190,7 @@ class _BossMessageViewState extends State<BossMessageView> {
 
               CustomBottomNav(
                 currentIndex: 3,
-                centerButton: const Boss_Center_Icon(),
+                centerButton: const BossCenterIcon(),
                 onHomeTap: () => Navigator.pushReplacement(
                     context, MaterialPageRoute(builder: (context) => const DeptHeadHomeScreen())),
                 onProfileTap: () => Navigator.pushReplacement(

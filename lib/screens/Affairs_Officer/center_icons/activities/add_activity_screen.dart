@@ -304,7 +304,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
                                 isExpanded: true,
-                                value: _selectedAudience,
+                                initialValue: _selectedAudience,
                                 decoration: InputDecoration(
                                   fillColor: cardColor,
                                   filled: true,
@@ -374,7 +374,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                                   const SizedBox(height: 8),
                                   DropdownButtonFormField<String>(
                                     isExpanded: true,
-                                    value: _selectedDepartment,
+                                    initialValue: _selectedDepartment,
                                     decoration: InputDecoration(
                                       fillColor: cardColor,
                                       filled: true,
@@ -420,7 +420,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                                   const SizedBox(height: 8),
                                   DropdownButtonFormField<String>(
                                     isExpanded: true,
-                                    value: (isDeptSelected && filteredCourses.any((c) => (c['course_id'] ?? c['id']).toString() == _selectedCourse))
+                                    initialValue: (isDeptSelected && filteredCourses.any((c) => (c['course_id'] ?? c['id']).toString() == _selectedCourse))
                                         ? _selectedCourse
                                         : null,
                                     decoration: InputDecoration(

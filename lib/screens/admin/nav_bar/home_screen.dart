@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/screens/admin/admin_services_menu_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/announcement_detail_screen.dart';
+import 'package:edu_pridge_flutter/screens/shared/ai_floating_button.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'messages_screen.dart';
@@ -233,6 +234,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   ),
                 ],
               ),
+            ),
+
+            // إضافة منشور على اليسار، والمساعد الذكي على اليمين
+            Positioned(
+              bottom: 100,
+              left: 20,
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: _buildCircularAddButton(),
+              ),
+            ),
+            AiFloatingButton(
+              userRole: 'admin',
+              userName: offlineName,
+              bottom: 100,
+              right: 20,
             ),
 
             // الشريط السفلي الأصلي المعتمد
@@ -700,7 +718,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 height: 180,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
           Padding(
@@ -868,7 +886,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   height: 140,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
             ),

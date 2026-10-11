@@ -144,7 +144,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: statusConfig['color'].withOpacity(0.1),
+                                        color: statusConfig['color'].withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Row(
@@ -174,7 +174,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.withOpacity(0.1),
+                                      color: Colors.grey.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border(
                                         right: isAr ? BorderSide(color: statusConfig['color'], width: 3) : BorderSide.none,
@@ -191,7 +191,7 @@ class _StudentServiceRequestsListScreenState extends State<StudentServiceRequest
                                         const SizedBox(height: 4),
                                         Text(
                                           req['admin_notes'],
-                                          style: TextStyle(color: textColor.withOpacity(0.8), fontSize: 13),
+                                          style: TextStyle(color: textColor.withValues(alpha: 0.8), fontSize: 13),
                                         ),
                                       ],
                                     ),

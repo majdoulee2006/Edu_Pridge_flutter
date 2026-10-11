@@ -18,6 +18,7 @@ import 'package:edu_pridge_flutter/services/notification_polling.dart';
 import '../../../widgets/parents_center_icon.dart';
 import 'package:edu_pridge_flutter/screens/Affairs_Officer/center_icons/academic_card/affairs_pdf_viewer_screen.dart';
 import 'package:edu_pridge_flutter/services/student_services.dart';
+import 'package:edu_pridge_flutter/screens/parents/center_icons/weekly_digest_screen/weekly_digest_screen.dart';
 
 class ParentsNotificationsScreen extends StatefulWidget {
   const ParentsNotificationsScreen({super.key});
@@ -155,9 +156,11 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         "${ApiService().baseUrl}/parent/notifications/read-all",
         options: Options(headers: {"Accept": "application/json", "Authorization": "Bearer $token"}),
       );
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         for (final n in _notifications) { n['is_read'] = true; }
       });
+      }
     } catch (e) {
       debugPrint("⛔ Parent mark all read error: $e");
     } finally {
@@ -206,6 +209,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
       final prefs = await SharedPreferences.getInstance();
       resolvedStudentId = prefs.getInt('selected_student_id');
     }
+if (!mounted) return;
 
     showDialog(
       context: context,
@@ -264,6 +268,16 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
     final title = n['title']?.toString() ?? '';
     final msg = n['message']?.toString() ?? n['body']?.toString() ?? '';
 
+    // الملخص الأسبوعي: يُفحص أولًا لأن نصه يذكر كلمات (علامات، غياب) تطابق فحوصات الأنواع الأخرى
+    if (type == 'weekly_digest') {
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => WeeklyDigestScreen(
+          openDigestId: int.tryParse(n['related_id']?.toString() ?? ''),
+        ),
+      ));
+      return;
+    }
+
     final bool isTranscript = type == 'transcript_shared' ||
         type == 'transcript' ||
         title.contains('كشف علامات') || title.contains('كشف درجات') ||
@@ -291,6 +305,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
         if (!mounted) return;
         final studentId   = prefs.getInt('selected_student_id');
         final studentName = prefs.getString('selected_student_name');
+        if (!ctx.mounted) return;
         Navigator.push(ctx, MaterialPageRoute(
           builder: (_) => PermissionsScreen(
             studentId:   studentId,
@@ -344,6 +359,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
           if (!mounted) return;
           final studentId   = prefs.getInt('selected_student_id');
           final studentName = prefs.getString('selected_student_name');
+          if (!ctx.mounted) return;
           Navigator.push(ctx, MaterialPageRoute(
             builder: (_) => PermissionsScreen(
               studentId:   studentId,
@@ -518,7 +534,7 @@ class _ParentsNotificationsScreenState extends State<ParentsNotificationsScreen>
             ),
             CustomBottomNav(
               currentIndex: 2,
-              centerButton: const Parents_Center_Icon(),
+              centerButton: const ParentsCenterIcon(),
               onHomeTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsHomeScreen())),
               onProfileTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ParentsProfileScreen())),
               onNotificationsTap: () {},

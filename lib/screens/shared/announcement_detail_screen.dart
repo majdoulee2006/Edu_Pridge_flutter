@@ -37,7 +37,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
         '${ApiService().baseUrl}/notifications/read-by-type',
         data: {
           'type': type,
-          if (relatedId != null) 'related_id': relatedId,
+          'related_id': ?relatedId,
         },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
