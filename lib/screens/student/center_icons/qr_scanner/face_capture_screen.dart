@@ -361,10 +361,13 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       });
 
       if (!alreadyExists) {
+        final clientScanId = "scan_${DateTime.now().millisecondsSinceEpoch}_${qrToken.hashCode.abs()}";
         String scanData = jsonEncode({
+          'client_scan_id': clientScanId,
           'qr_token': qrToken,
           'scanned_at': DateTime.now().toUtc().toIso8601String(),
           'face_embedding': embedding,
+          'status': 'pending',
         });
         offlineScans.add(scanData);
         await prefs.setStringList('offline_attendance_scans', offlineScans);
@@ -373,7 +376,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       if (!mounted) return;
       _showResult(
         success: true,
-        message: 'لا يوجد اتصال بالإنترنت. تم حفظ رمز حضورك محلياً بنجاح وسيرسل تلقائياً فور توفر الشبكة! 📡✅',
+        message: 'لا يوجد اتصال بالإنترنت. تم حفظ مسح الحضور على جهازك وهو بانتظار المزامنة عند توفر الشبكة 📡⏳',
       );
     } catch (e) {
       if (!mounted) return;

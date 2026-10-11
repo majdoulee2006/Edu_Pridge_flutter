@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart' show Share, XFile;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:edu_pridge_flutter/services/api_service.dart';
+import 'package:edu_pridge_flutter/services/totp_qr_service.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import '../../../../widgets/teacher_speed_dial.dart';
 import '../../messages_screen.dart';
@@ -58,6 +59,8 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   // بيانات الجلسة الحالية
   int? _sessionId;
   int? _lastSessionId; // يُحفظ بعد إنهاء الجلسة للتصدير
+  String? _sessionUuid;
+  String? _sessionSecret;
   String? _qrToken;
   bool _sessionActive = false;
   bool _sessionEnded  = false; // يظهر أزرار التصدير بعد الإنهاء
@@ -137,6 +140,18 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   }
 
   Future<void> _refreshQrToken() async {
+    // إذا توفر سر ومعرف الجلسة: تجديد الرمز محلياً فوراً بخوارزمية TOTP (المرحلة 2: يعمل حتى بدون إنترنت)
+    if (_sessionUuid != null && _sessionSecret != null) {
+      final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final payload = TotpQrService.generatePayload(
+        secret: _sessionSecret!,
+        sessionUuid: _sessionUuid!,
+        unixTime: nowUnix,
+      );
+      if (mounted) setState(() => _qrToken = payload);
+      return;
+    }
+
     if (_sessionId == null) return;
     try {
       final token = await _getToken();
@@ -257,9 +272,24 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       );
       if (res.statusCode == 200 && res.data['success'] == true) {
         final d = res.data['data'] as Map<String, dynamic>;
+        final sessionUuid = d['session_uuid'] as String?;
+        final sessionSecret = d['session_secret'] as String?;
+        String? currentToken = d['qr_token'] as String?;
+
+        if (sessionUuid != null && sessionSecret != null) {
+          final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+          currentToken = TotpQrService.generatePayload(
+            secret: sessionSecret,
+            sessionUuid: sessionUuid,
+            unixTime: nowUnix,
+          );
+        }
+
         setState(() {
           _sessionId = d['session_id'] as int?;
-          _qrToken = d['qr_token'] as String?;
+          _sessionUuid = sessionUuid;
+          _sessionSecret = sessionSecret;
+          _qrToken = currentToken;
           _sessionActive = true;
           _sessionEnded  = false;
           _absentStudents = [];
@@ -325,6 +355,8 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         _sessionEnded  = true;
         _qrToken = null;
         _sessionId = null;
+        _sessionUuid = null;
+        _sessionSecret = null;
         _absentStudents = [];
       });
       _showSnack('تم إنهاء الجلسة وتسجيل الغياب بنجاح ✅');

@@ -13,6 +13,7 @@ import 'package:edu_pridge_flutter/services/api_service.dart';
 import 'package:edu_pridge_flutter/services/notification_polling.dart';
 import 'package:edu_pridge_flutter/widgets/in_app_notification_banner.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/qr_scanner/qr_scanner_screen.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/assignments/assignments_screen.dart';
 
 import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedule_screen.dart';
@@ -36,6 +37,23 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   bool isLoading = true;
   String offlineName = "طالب";
   bool _hasUnread = false;
+  int _pendingScansCount = 0;
+  int _rejectedScansCount = 0;
+  bool _isSyncingOffline = false;
+
+  Future<void> _checkOfflineScansCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pending = prefs.getStringList('offline_attendance_scans') ?? [];
+      final rejected = prefs.getStringList('offline_attendance_rejected') ?? [];
+      if (mounted) {
+        setState(() {
+          _pendingScansCount = pending.length;
+          _rejectedScansCount = rejected.length;
+        });
+      }
+    } catch (_) {}
+  }
 
   void _onUnreadChanged() {
     if (mounted) setState(() => _hasUnread = NotificationPolling.unreadCount.value > 0);
@@ -122,6 +140,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _checkOfflineScansCount();
     _loadDashboardData();
     NotificationPolling.start('/student/notifications');
     NotificationPolling.unreadCount.addListener(_onUnreadChanged);
@@ -138,68 +157,109 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     super.dispose();
   }
 
-  // مراجعة الحضور المخزن محلياً وإرساله للسيرفر عند توفر الشبكة
+  // مراجعة الحضور المخزن محلياً وإرساله للسيرفر عبر نقطة الدفعة (Batch Sync)
   Future<void> _syncOfflineAttendance() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final offlineScans = prefs.getStringList('offline_attendance_scans') ?? [];
-      debugPrint("🔍 [Offline Sync] Found ${offlineScans.length} offline scans.");
-      if (offlineScans.isEmpty) return;
-
-      final token = prefs.getString('token') ?? '';
-      if (token.isEmpty) {
-        debugPrint("🔍 [Offline Sync] Token is empty, aborting.");
+      if (offlineScans.isEmpty) {
+        await _checkOfflineScansCount();
         return;
       }
 
+      final token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return;
+
       final dio = Dio();
-      List<String> remainingScans = List.from(offlineScans);
-
-      for (String scanStr in offlineScans) {
+      final List<Map<String, dynamic>> payloadScans = [];
+      for (var scanStr in offlineScans) {
         try {
-          final data = jsonDecode(scanStr);
-          final qrToken = data['qr_token'];
-          final scannedAt = data['scanned_at'];
-          final faceEmbedding = data['face_embedding'];
-
-          final url = "${ApiService().baseUrl}/student/attendance/scan";
-          debugPrint("🔍 [Offline Sync] Sending scan to $url. Token: $qrToken, ScannedAt: $scannedAt");
-
-          final res = await dio.post(
-            url,
-            data: {
-              "qr_token": qrToken,
-              "scanned_at": scannedAt,
-              "face_embedding": ?faceEmbedding,
-            },
-            options: Options(headers: {
-              "Authorization": "Bearer $token",
-              "Accept": "application/json",
-            }),
-          );
-
-          debugPrint("🔍 [Offline Sync] Response code: ${res.statusCode}. Body: ${res.data}");
-          if (res.statusCode == 200 || res.statusCode == 409 || res.data?['reject_reason'] == 'already_marked') {
-            remainingScans.remove(scanStr);
-          }
-        } on DioException catch (e) {
-          debugPrint("🔍 [Offline Sync] DioException: ${e.message}, Response: ${e.response?.data}");
-          if (e.response != null) {
-            remainingScans.remove(scanStr);
-          }
-          if (e.response == null) {
-            break;
-          }
-        } catch (e) {
-          debugPrint("🔍 [Offline Sync] Error parsing scan: $e");
-          remainingScans.remove(scanStr);
-        }
+          final data = jsonDecode(scanStr) as Map<String, dynamic>;
+          payloadScans.add(data);
+        } catch (_) {}
       }
 
-      await prefs.setStringList('offline_attendance_scans', remainingScans);
-      debugPrint("🔍 [Offline Sync] Sync cycle finished. Remaining scans: ${remainingScans.length}");
+      if (payloadScans.isEmpty) {
+        await prefs.setStringList('offline_attendance_scans', []);
+        await _checkOfflineScansCount();
+        return;
+      }
+
+      final url = "${ApiService().baseUrl}/student/attendance/sync";
+      final res = await dio.post(
+        url,
+        data: {"scans": payloadScans},
+        options: Options(headers: {
+          "Authorization": "Bearer $token",
+          "Accept": "application/json",
+        }),
+      );
+
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final List<dynamic> results = res.data['results'] ?? [];
+        final rejectedScans = prefs.getStringList('offline_attendance_rejected') ?? [];
+        final updatedRejected = List<String>.from(rejectedScans);
+        final remainingScans = <String>[];
+        int syncedCount = 0;
+        String? lastRejectMessage;
+
+        for (var scanMap in payloadScans) {
+          final clientScanId = scanMap['client_scan_id'] ?? scanMap['qr_token'];
+          final scanResult = results.firstWhere(
+            (r) => (r['client_scan_id'] == clientScanId || r['qr_token'] == scanMap['qr_token']),
+            orElse: () => null,
+          );
+
+          if (scanResult != null && scanResult['success'] == true) {
+            syncedCount++;
+          } else if (scanResult != null && scanResult['success'] == false) {
+            final reason = scanResult['reject_reason'] ?? 'rejected';
+            final msg = scanResult['message'] ?? 'تم رفض الحضور من السيرفر';
+            lastRejectMessage = msg;
+            updatedRejected.add(jsonEncode({
+              'client_scan_id': clientScanId,
+              'qr_token': scanMap['qr_token'],
+              'scanned_at': scanMap['scanned_at'],
+              'rejected_at': DateTime.now().toUtc().toIso8601String(),
+              'reject_reason': reason,
+              'message': msg,
+            }));
+          } else {
+            remainingScans.add(jsonEncode(scanMap));
+          }
+        }
+
+        await prefs.setStringList('offline_attendance_scans', remainingScans);
+        await prefs.setStringList('offline_attendance_rejected', updatedRejected);
+        await _checkOfflineScansCount();
+
+        if (mounted) {
+          if (syncedCount > 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('تمت مزامنة $syncedCount مسح حضور بنجاح ✅'),
+                backgroundColor: Colors.green.shade700,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          if (lastRejectMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('تنبيه مزامنة: $lastRejectMessage ⚠️'),
+                backgroundColor: Colors.red.shade700,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+        }
+      }
+    } on DioException catch (e) {
+      debugPrint("🔍 [Offline Sync DioException]: ${e.message}");
     } catch (e) {
       debugPrint("⛔️ Offline Sync Error: $e");
+    } finally {
+      await _checkOfflineScansCount();
     }
   }
 
@@ -303,6 +363,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                             physics: const BouncingScrollPhysics(),
                             padding: const EdgeInsets.only(bottom: 100),
                             children: [
+                              _buildOfflineAttendanceBanner(isDark),
                               if (hasLecture)
                                 _buildUpcomingLectureCard(upcoming, isDark),
                               const SizedBox(height: 16),
@@ -442,6 +503,161 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildOfflineAttendanceBanner(bool isDark) {
+    if (_pendingScansCount == 0 && _rejectedScansCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    final hasPending = _pendingScansCount > 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: hasPending
+            ? (isDark ? const Color(0xFF2E2408) : const Color(0xFFFFF9E6))
+            : (isDark ? const Color(0xFF2E1010) : const Color(0xFFFDE8E8)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: hasPending ? const Color(0xFFFFCC00).withValues(alpha: 0.5) : Colors.red.shade300,
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasPending ? Icons.cloud_upload_outlined : Icons.warning_amber_rounded,
+            color: hasPending ? const Color(0xFFD99B00) : Colors.red,
+            size: 28,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasPending
+                      ? 'حضور أوفلاين معلق ($_pendingScansCount)'
+                      : 'تنبيه مزامنة الحضور',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: hasPending
+                        ? (isDark ? Colors.amber.shade200 : const Color(0xFF8C6400))
+                        : (isDark ? Colors.red.shade200 : Colors.red.shade900),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasPending
+                      ? 'محفوظ محلياً وبانتظار الإرسال للسيرفر'
+                      : 'تم رفض مسح سابق من السيرفر',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hasPending) ...[
+            IconButton(
+              tooltip: 'عرض رمز الإثبات للمعلم',
+              icon: const Icon(Icons.qr_code_2_rounded, size: 26, color: Color(0xFFD99B00)),
+              onPressed: () => _showProofQrDialog(context),
+            ),
+            const SizedBox(width: 4),
+            ElevatedButton.icon(
+              onPressed: _isSyncingOffline
+                  ? null
+                  : () async {
+                      setState(() => _isSyncingOffline = true);
+                      await _syncOfflineAttendance();
+                      await _checkOfflineScansCount();
+                      if (mounted) setState(() => _isSyncingOffline = false);
+                    },
+              icon: _isSyncingOffline
+                  ? const SizedBox(
+                      width: 13,
+                      height: 13,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    )
+                  : const Icon(Icons.sync_rounded, size: 15, color: Colors.black),
+              label: Text(
+                _isSyncingOffline ? 'مزامنة...' : 'مزامنة الآن',
+                style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFCC00),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ] else
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 18),
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('offline_attendance_rejected');
+                await _checkOfflineScansCount();
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showProofQrDialog(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawQueue = prefs.getStringList('offline_attendance_queue') ?? [];
+    if (rawQueue.isEmpty) return;
+
+    final latestScan = jsonDecode(rawQueue.last) as Map<String, dynamic>;
+    final scanId = latestScan['client_scan_id']?.toString() ?? 'SCAN-PROOF';
+    final proofPayload = 'edu-bridge://proof?scan_id=$scanId';
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('رمز إثبات الحضور (المعلم)', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'اعرض هذا الرمز للمعلم لمسحه وتأكيد حضورك رسمياً في الوضع الصارم',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 190,
+              height: 190,
+              child: QrImageView(
+                data: proofPayload,
+                version: QrVersions.auto,
+                size: 190.0,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'معرف المسح: ${scanId.length > 20 ? "${scanId.substring(0, 20)}..." : scanId}',
+              style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.blueGrey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إغلاق'),
+          ),
+        ],
       ),
     );
   }
