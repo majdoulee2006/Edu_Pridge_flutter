@@ -18,10 +18,11 @@ class BossMessageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DeptHeadHomeScreen()));
-        return false;
       },
       child: const BossMessageView(),
     );
