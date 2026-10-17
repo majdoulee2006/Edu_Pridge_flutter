@@ -116,6 +116,9 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
       final profileData = resProfile.data['data'];
       final bool hasFace = profileData['has_face_embedding'] == true;
+      if (hasFace) {
+        await prefs.setBool('has_face_embedding', true);
+      }
       final String? photoUrl = profileData['reference_photo_url'];
 
       if (!hasFace) {
@@ -181,9 +184,34 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       await _initCamera();
     } catch (e) {
       final isAr = AppSettings.language.value == 'ar';
+      bool isNetworkError = false;
+      if (e is DioException) {
+        if (e.type == DioExceptionType.connectionError ||
+            e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.sendTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.error is SocketException) {
+          isNetworkError = true;
+        }
+      } else if (e is SocketException) {
+        isNetworkError = true;
+      } else if (e.toString().contains('SocketException') ||
+          e.toString().contains('Network is unreachable') ||
+          e.toString().contains('Connection failed')) {
+        isNetworkError = true;
+      }
+
+      if (isNetworkError) {
+        debugPrint("📡 Offline mode detected during face check, proceeding to camera directly: $e");
+        await _initCamera();
+        return;
+      }
+
       _showErrorDialog(isAr ? "حدث خطأ أثناء الاتصال بالخادم لتهيئة الوجه: $e" : "Error connecting to server for face setup: $e");
     } finally {
-      setState(() => _isInitializingReference = false);
+      if (mounted) {
+        setState(() => _isInitializingReference = false);
+      }
     }
   }
 
