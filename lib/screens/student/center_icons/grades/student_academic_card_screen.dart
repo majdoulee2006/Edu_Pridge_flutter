@@ -509,8 +509,8 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
                                 ? (isPassed ? 'ناجح' : 'راسب')
                                 : (isPassed ? 'Passed' : 'Failed');
                             final bgStatusColor = isPassed 
-                                ? Colors.green.withOpacity(0.12)
-                                : Colors.red.withOpacity(0.12);
+                                ? Colors.green.withValues(alpha: 0.12)
+                                : Colors.red.withValues(alpha: 0.12);
                             final textStatusColor = isPassed 
                                 ? Colors.green.shade700
                                 : Colors.red.shade700;
@@ -688,7 +688,7 @@ class _StudentAcademicCardScreenState extends State<StudentAcademicCardScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [gpaColor.withOpacity(0.12), gpaColor.withOpacity(0.05)],
+                colors: [gpaColor.withValues(alpha: 0.12), gpaColor.withValues(alpha: 0.05)],
                 begin: isAr ? Alignment.centerRight : Alignment.centerLeft,
                 end: isAr ? Alignment.centerLeft : Alignment.centerRight,
               ),

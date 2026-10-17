@@ -135,7 +135,7 @@ class _GradesScreenState extends State<GradesScreen> {
           const SizedBox(height: 16),
           Text(
             isAr ? "لا توجد علامات مرصودة حتى الآن" : "No grades recorded yet",
-            style: TextStyle(fontSize: 16, color: textColor.withOpacity(0.7), fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, color: textColor.withValues(alpha: 0.7), fontWeight: FontWeight.bold),
           ),
         ],
       ),
