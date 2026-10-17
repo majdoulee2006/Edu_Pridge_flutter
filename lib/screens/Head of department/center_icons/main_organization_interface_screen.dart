@@ -41,7 +41,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
   int? _selectedProgramId;
   String? _selectedProgramName;
   int _selectedYear = 1;
-  int _selectedCycle = 0;
+  final int _selectedCycle = 0;
 
   static const _dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
 
@@ -495,7 +495,7 @@ class _MainOrganizationInterfaceScreenState extends State<MainOrganizationInterf
   String _trimTime(String t) => t.length >= 5 ? t.substring(0, 5) : t;
 
   int _examSelectedYear = 1;
-  int _examSelectedCycle = 0;
+  final int _examSelectedCycle = 0;
   int? _examSelectedProgramId;
 
   List<Map<String, dynamic>> get _filteredExams {

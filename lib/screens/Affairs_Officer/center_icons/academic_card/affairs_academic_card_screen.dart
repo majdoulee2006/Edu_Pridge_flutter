@@ -230,7 +230,7 @@ class _AffairsAcademicCardScreenState extends State<AffairsAcademicCardScreen> {
                                 )
                               : ListView.separated(
                                   itemCount: _students.length,
-                                  separatorBuilder: (_, __) => const Divider(height: 1),
+                                  separatorBuilder: (_, _) => const Divider(height: 1),
                                   itemBuilder: (context, index) {
                                     final st = _students[index];
                                     final name = st['full_name'] ?? (isAr ? 'طالب' : 'Student');

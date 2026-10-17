@@ -738,7 +738,7 @@ class _TeacherManagementScreenState extends State<TeacherManagementScreen> {
             Expanded(
               child: _buildDropdown(
                 isAr ? "تصفية بالقسم" : "Filter by Dept",
-                ["الكل", ...allDepts.map((d) => d['name'].toString()).toList()],
+                ["الكل", ...allDepts.map((d) => d['name'].toString())],
                 filterDept ?? "الكل",
                 (val) {
                   setState(() {

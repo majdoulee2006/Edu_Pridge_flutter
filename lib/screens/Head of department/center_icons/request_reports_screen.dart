@@ -1157,8 +1157,10 @@ if (!mounted) return;
                                     final bytes = await _buildPdf(entries, courseTitle);
                                     await _exportFile(bytes, '${isAr ? 'علامات' : 'grades'}_$courseTitle.pdf');
                                   } catch (e) {
-                                    if (ctx2.mounted) ScaffoldMessenger.of(ctx2).showSnackBar(
-                                      SnackBar(content: Text('${isAr ? 'خطأ PDF:' : 'PDF error:'} $e'), backgroundColor: Colors.red));
+                                    if (ctx2.mounted) {
+                                      ScaffoldMessenger.of(ctx2).showSnackBar(
+                                        SnackBar(content: Text('${isAr ? 'خطأ PDF:' : 'PDF error:'} $e'), backgroundColor: Colors.red));
+                                    }
                                   }
                                 }),
                                 const SizedBox(width: 8),
@@ -1167,8 +1169,10 @@ if (!mounted) return;
                                     final bytes = await _buildExcel(entries, courseTitle);
                                     await _exportFile(bytes, '${isAr ? 'علامات' : 'grades'}_$courseTitle.xlsx');
                                   } catch (e) {
-                                    if (ctx2.mounted) ScaffoldMessenger.of(ctx2).showSnackBar(
-                                      SnackBar(content: Text('${isAr ? 'خطأ Excel:' : 'Excel error:'} $e'), backgroundColor: Colors.red));
+                                    if (ctx2.mounted) {
+                                      ScaffoldMessenger.of(ctx2).showSnackBar(
+                                        SnackBar(content: Text('${isAr ? 'خطأ Excel:' : 'Excel error:'} $e'), backgroundColor: Colors.red));
+                                    }
                                   }
                                 }),
                               ],
