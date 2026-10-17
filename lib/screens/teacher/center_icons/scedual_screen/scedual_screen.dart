@@ -399,7 +399,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                   const SizedBox(height: 8),
                   DropdownButtonFormField<int>(
                     decoration: _inputDec(isAr ? 'اختر المادة' : 'Select Course'),
-                    value: selectedCourseId,
+                    key: ValueKey(selectedCourseId),
+                    initialValue: selectedCourseId,
                     items: _myCourses.map((c) => DropdownMenuItem<int>(
                       value: c['id'] as int,
                       child: Text(c['title'] as String? ?? ''),
@@ -518,7 +519,8 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                               ? Text(isAr ? 'لا يوجد طلاب' : 'No students found', style: TextStyle(color: Colors.grey.shade500, fontSize: 12))
                               : DropdownButtonFormField<int>(
                                   decoration: _inputDec(isAr ? 'اختر الطالب' : 'Select Student'),
-                                  value: selStudentId,
+                                  key: ValueKey(selStudentId),
+                                  initialValue: selStudentId,
                                   items: programStudents.map((s) => DropdownMenuItem<int>(
                                     value: s['student_id'] as int,
                                     child: Text('${s['full_name']} - ${s['university_id'] ?? ''}'),

@@ -454,7 +454,8 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
       children: [
         _buildFieldLabel(isAr ? "اختر القسم" : "Select Department"),
         DropdownButtonFormField<int>(
-          value: selectedDepartmentId,
+          key: ValueKey(selectedDepartmentId),
+          initialValue: selectedDepartmentId,
           decoration: _inputDecoration(
             isAr ? "اختر القسم المستهدف" : "Select Target Department",
             isDark,
@@ -532,7 +533,8 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
 
         _buildFieldLabel(isAr ? "اختر القسم" : "Select Department"),
         DropdownButtonFormField<int>(
-          value: selectedDeptForIndividuals,
+          key: ValueKey(selectedDeptForIndividuals),
+          initialValue: selectedDeptForIndividuals,
           decoration: _inputDecoration(
             isAr ? "كل الأقسام" : "All Departments",
             isDark,
