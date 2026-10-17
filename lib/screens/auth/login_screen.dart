@@ -191,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               _showSnackBar(response.data['message'] ?? (isAr ? "حدث خطأ أثناء إرسال الطلب" : "Error submitting request"), isError: true);
                             }
                           } catch (e) {
-                            if (mounted) Navigator.pop(context);
+                            if (context.mounted) Navigator.pop(context);
                             String errorMsg = isAr ? "حدث خطأ أثناء تقديم الطلب" : "Error submitting request";
                             if (e is DioException && e.response?.data != null && e.response?.data['message'] != null) {
                               errorMsg = e.response?.data['message'];
@@ -432,7 +432,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   final newUrl = ipCtrl.text.trim();
                   if (newUrl.isNotEmpty) {
                     await ApiService.setServerIp(newUrl);
-                    if (mounted) {
+                    if (mounted && ctx.mounted) {
                       _showSnackBar(isAr ? "تم حفظ رابط السيرفر: $newUrl" : "Server address saved: $newUrl", isError: false);
                       Navigator.pop(ctx);
                       setState(() {});

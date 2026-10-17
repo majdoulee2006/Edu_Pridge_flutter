@@ -133,7 +133,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                       _isLoadingStudents
                           ? const Center(child: CircularProgressIndicator())
                           : DropdownButtonFormField<dynamic>(
-                              value: _selectedStudent,
+                              initialValue: _selectedStudent,
                               decoration: InputDecoration(
                                 labelText: isAr
                                     ? "اختر الطالب (من دوراتي/مجموعاتي)"
@@ -216,7 +216,7 @@ class _TeacherParentSummonScreenState extends State<TeacherParentSummonScreen> w
                                   );
                                   setModalState(() => _isSubmitting = false);
 
-                                  if (ok && mounted) {
+                                  if (ok && mounted && context.mounted) {
                                     Navigator.pop(context);
                                     _reasonController.clear();
                                     _detailsController.clear();

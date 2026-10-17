@@ -446,7 +446,7 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
                                           setModalState(
                                             () => isSubmitting = false,
                                           );
-                                          if (success && mounted) {
+                                          if (success && mounted && context.mounted) {
                                             Navigator.pop(context);
                                             ScaffoldMessenger.of(
                                               this.context,
@@ -536,7 +536,7 @@ class _AdminStudentServicesScreenState extends State<AdminStudentServicesScreen>
                                           setModalState(
                                             () => isSubmitting = false,
                                           );
-                                          if (success && mounted) {
+                                          if (success && mounted && context.mounted) {
                                             Navigator.pop(context);
                                             ScaffoldMessenger.of(
                                               this.context,
