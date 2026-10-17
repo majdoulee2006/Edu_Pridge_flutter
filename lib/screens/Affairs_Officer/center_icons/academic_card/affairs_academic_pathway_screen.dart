@@ -46,26 +46,6 @@ class _AffairsAcademicPathwayScreenState extends State<AffairsAcademicPathwayScr
     if (mounted) setState(() {});
   }
 
-  String _semTitle(String title, bool isAr) {
-    if (isAr) return title;
-    switch (title) {
-      case 'الفصل الأول': return 'First Semester';
-      case 'الفصل الثاني': return 'Second Semester';
-      case 'الفصل الثالث': return 'Third Semester';
-      case 'الفصل الرابع': return 'Fourth Semester';
-      default: return title;
-    }
-  }
-
-  String _yearLabel(String label, bool isAr) {
-    if (isAr) return label;
-    switch (label) {
-      case 'السنة الأولى': return 'First Year';
-      case 'السنة الثانية': return 'Second Year';
-      default: return label;
-    }
-  }
-
   @override
   void initState() {
     super.initState();
