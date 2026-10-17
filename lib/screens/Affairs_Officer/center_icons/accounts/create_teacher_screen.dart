@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
+import 'package:edu_pridge_flutter/services/affairs_services.dart';
 
 class CreateTeacherScreen extends StatefulWidget {
   const CreateTeacherScreen({super.key});
@@ -19,8 +20,11 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String _selectedGender = 'ذكر';
-  String? _selectedSystem;
+  int? _selectedDepartmentId;
+  List<dynamic> _departments = [];
+  bool _isSubmitting = false;
   final TextEditingController _specializationController = TextEditingController();
+  final AffairsServices _affairsServices = AffairsServices();
 
   bool get isAr => AppSettings.language.value == 'ar';
 
@@ -32,6 +36,72 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
   void initState() {
     super.initState();
     AppSettings.language.addListener(_onLangChange);
+    _loadDepartments();
+  }
+
+  Future<void> _loadDepartments() async {
+    final meta = await _affairsServices.getMetadata();
+    if (!mounted) return;
+    setState(() {
+      _departments = (meta != null && meta['departments'] is List) ? meta['departments'] : [];
+    });
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      _showMessage(isAr ? 'يرجى تعبئة الاسم والبريد وكلمة المرور' : 'Please fill name, email and password');
+      return;
+    }
+    if (_selectedDepartmentId == null) {
+      _showMessage(isAr ? 'يرجى اختيار القسم' : 'Please select a department');
+      return;
+    }
+    if (_specializationController.text.trim().isEmpty) {
+      _showMessage(isAr ? 'يرجى إدخال الاختصاص' : 'Please enter the specialization');
+      return;
+    }
+    if (password.length < 6) {
+      _showMessage(isAr ? 'كلمة المرور يجب ألا تقل عن 6 أحرف' : 'Password must be at least 6 characters');
+      return;
+    }
+    if (password != _confirmPasswordController.text) {
+      _showMessage(isAr ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final result = await _affairsServices.createAccount({
+      'full_name': name,
+      'email': email,
+      'phone': _idController.text.trim(),
+      'role_id': 2,
+      'gender': _selectedGender,
+      if (_birthDateController.text.isNotEmpty) 'birth_date': _birthDateController.text,
+      'department_id': _selectedDepartmentId,
+      'specialization': _specializationController.text.trim(),
+      'password': password,
+    });
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    _showMessage(result['message']?.toString() ??
+        (result['success'] == true ? 'تم إنشاء الحساب بنجاح.' : 'فشل إنشاء الحساب'));
+    if (result['success'] == true) Navigator.pop(context);
   }
 
   @override
@@ -46,13 +116,6 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
-
-  List<Map<String, String>> get _systems => [
-    {'ar': 'نظام المعلومات', 'en': 'Information Systems'},
-    {'ar': 'نظام المحاسبة', 'en': 'Accounting System'},
-    {'ar': 'نظام الموارد البشرية', 'en': 'Human Resources System'},
-    {'ar': 'نظام التعليم الإلكتروني', 'en': 'E-Learning System'},
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -346,11 +409,11 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
+                    child: DropdownButton<int>(
                       isExpanded: true,
-                      value: _selectedSystem,
+                      value: _selectedDepartmentId,
                       hint: Text(
-                        isAr ? 'نظام المعلومات' : 'Information System',
+                        isAr ? 'القسم' : 'Department',
                         style: TextStyle(
                           color: subColor,
                           fontFamily: 'Noto Sans Arabic',
@@ -362,17 +425,15 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                         color: textColor,
                         fontFamily: 'Noto Sans Arabic',
                       ),
-                      items: _systems.map((item) {
-                        final key = item['ar']!;
-                        final label = isAr ? item['ar']! : item['en']!;
-                        return DropdownMenuItem<String>(
-                          value: key,
-                          child: Text(label),
+                      items: _departments.map((dept) {
+                        return DropdownMenuItem<int>(
+                          value: int.tryParse(dept['department_id'].toString()),
+                          child: Text(dept['name']?.toString() ?? ''),
                         );
                       }).toList(),
-                      onChanged: (String? newValue) {
+                      onChanged: (int? newValue) {
                         setState(() {
-                          _selectedSystem = newValue;
+                          _selectedDepartmentId = newValue;
                         });
                       },
                     ),
@@ -434,17 +495,7 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: حفظ بيانات المعلم
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isAr ? 'حفظ بيانات المعلم - قريباً' : 'Saving Teacher Data - Coming soon',
-                            textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
-                          ),
-                        ),
-                      );
-                    },
+                    onPressed: _isSubmitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFFCC00),
                       shape: RoundedRectangleBorder(
@@ -452,7 +503,13 @@ class _CreateTeacherScreenState extends State<CreateTeacherScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: Text(
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                          )
+                        : Text(
                       isAr ? 'حفظ بيانات المعلم' : 'Save Teacher Data',
                       style: const TextStyle(
                         fontSize: 16,
