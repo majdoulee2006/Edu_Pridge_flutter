@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/screens/shared/follow_up_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
@@ -65,6 +66,32 @@ class TeacherServicesMenuScreen extends StatelessWidget {
                         subColor,
                       ),
                       const SizedBox(height: 12),
+
+                      // لوحة المتابعة (للمرشد): تُخفى عن المعلم غير المرشد
+                      FutureBuilder<bool>(
+                        future: SharedPreferences.getInstance().then((p) => p.getBool('is_advisor') ?? true),
+                        builder: (context, snap) => snap.data == false
+                            ? const SizedBox.shrink()
+                            : Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _buildServiceCard(
+                                  icon: Icons.dashboard_customize_rounded,
+                                  iconColor: const Color(0xFFFFCC00),
+                                  title: isAr ? "لوحة المتابعة" : "Follow-up Dashboard",
+                                  subtitle: isAr
+                                      ? "طلابك ومقرراتهم: من يحتاج انتباهك اليوم؟"
+                                      : "Your students and their courses: who needs attention today?",
+                                  cardColor: cardColor,
+                                  textColor: textColor,
+                                  subColor: subColor,
+                                  isAr: isAr,
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const FollowUpDashboardScreen(basePath: 'teacher')),
+                                  ),
+                                ),
+                              ),
+                      ),
 
                       // المعرَّضون للتعثر (للمرشد): تُخفى عن المعلم غير المرشد
                       FutureBuilder<bool>(

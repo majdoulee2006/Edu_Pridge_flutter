@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/screens/shared/follow_up_dashboard_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -69,6 +70,9 @@ class FcmService {
         navigator.push(MaterialPageRoute(
           builder: (_) => AtRiskStudentsScreen(basePath: (prefs.getString('role') ?? '') == 'teacher' ? 'teacher' : 'department-head'),
         ));
+        break;
+      case 'clock_alert_escalation':
+        navigator.push(MaterialPageRoute(builder: (_) => const FollowUpDashboardScreen(basePath: 'department-head')));
         break;
       case 'attendance_flags':
         navigator.push(MaterialPageRoute(builder: (_) => const AttendanceFlagsScreen()));

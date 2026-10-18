@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/screens/shared/follow_up_dashboard_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -722,6 +723,10 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
     return GestureDetector(
       onTap: () {
         _markAsRead(n.id, index);
+        if (n.type == 'clock_alert_escalation') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpDashboardScreen(basePath: 'department-head')));
+          return;
+        }
         if (n.type == 'risk_alert') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const AtRiskStudentsScreen(basePath: 'department-head')));
           return;

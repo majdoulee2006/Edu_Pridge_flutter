@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/screens/shared/follow_up_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
@@ -58,6 +59,23 @@ class BossServicesMenuScreen extends StatelessWidget {
                     physics: const BouncingScrollPhysics(),
                     children: [
                       // القسم الأول: الخدمات الإدارية والطلبات
+
+                      _buildServiceCard(
+                        icon: Icons.dashboard_customize_rounded,
+                        iconColor: const Color(0xFFCCAA00),
+                        title: isAr ? "لوحة المتابعة" : "Follow-up Dashboard",
+                        subtitle: isAr
+                            ? "البرامج ومقرراتها مرتبة بالأحوج للاهتمام، ومن يتابع طلابه من المرشدين"
+                            : "Programs and their courses ranked by need of attention, and advisor follow-through",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const FollowUpDashboardScreen(basePath: 'department-head')),
+                        ),
+                      ),
 
                       _buildServiceCard(
                         icon: Icons.warning_amber_rounded,
