@@ -313,12 +313,13 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   }
 
   Future<void> _fetchAbsentList([String initialFilter = 'all']) async {
-    if (_sessionId == null) return;
+    final sid = _sessionId ?? _lastSessionId; // بعد الإنهاء نبقى نقرأ آخر جلسة (لتسجيل الاستثناءات)
+    if (sid == null) return;
     final isAr = AppSettings.language.value == 'ar';
     try {
       final token = await _getToken();
       final res = await Dio().get(
-        "${ApiService().baseUrl}/teacher/attendance/session/$_sessionId/list",
+        "${ApiService().baseUrl}/teacher/attendance/session/$sid/list",
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (res.statusCode == 200 && res.data['success'] == true) {
@@ -374,6 +375,66 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       _showSnack(isAr ? 'حدث خطأ أثناء إنهاء الجلسة' : 'An error occurred while ending the session');
     } finally {
       if (mounted) setState(() => _isEnding = false);
+    }
+  }
+
+  /// زر "استثناء": المعلم يسجّل حضور طالب لم يُسجَّل (مزامنة فشلت، هاتف تعطل...) بسبب مكتوب إلزامي.
+  /// يعمل قبل الإنهاء النهائي عند 12 ليلاً وبعده (حتى عدد الأيام المسموح به على السيرفر).
+  Future<void> _showExceptionDialog(Map<String, dynamic> student) async {
+    final isAr = AppSettings.language.value == 'ar';
+    final sid = _sessionId ?? _lastSessionId;
+    if (sid == null) return;
+    final ctrl = TextEditingController();
+
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: Text(isAr ? 'استثناء حضور' : 'Attendance exception'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(student['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              maxLines: 3,
+              maxLength: 500,
+              decoration: InputDecoration(
+                hintText: isAr ? 'اكتب السبب (مطلوب، 5 أحرف على الأقل)' : 'Reason (required, min 5 chars)',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dCtx), child: Text(isAr ? 'إلغاء' : 'Cancel')),
+          FilledButton(
+            onPressed: () {
+              final r = ctrl.text.trim();
+              if (r.length >= 5) Navigator.pop(dCtx, r);
+            },
+            child: Text(isAr ? 'تسجيل حاضر' : 'Mark present'),
+          ),
+        ],
+      ),
+    );
+    if (reason == null) return;
+
+    try {
+      final token = await _getToken();
+      await Dio().post(
+        "${ApiService().baseUrl}/teacher/attendance/session/$sid/exception",
+        data: {"student_id": student['student_id'], "reason": reason},
+        options: Options(headers: {"Authorization": "Bearer $token", "Accept": "application/json"}),
+      );
+      if (!mounted) return;
+      Navigator.pop(context); // أغلق قائمة الطلاب ثم أعد فتحها بالحالة المحدّثة
+      _showSnack(isAr ? 'تم تسجيل الاستثناء ✅' : 'Exception recorded ✅');
+      _fetchAbsentList('absent');
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map ? e.response?.data['message'] as String? : null;
+      _showSnack(msg ?? (isAr ? 'تعذّر تسجيل الاستثناء' : 'Could not record the exception'));
     }
   }
 
@@ -806,7 +867,13 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                         fontSize: 12,
                                       ),
                                     ),
-                                    trailing: Container(
+                                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                                      if (!isPresent)
+                                        TextButton(
+                                          onPressed: () => _showExceptionDialog(s),
+                                          child: Text(isAr ? 'استثناء' : 'Exception', style: const TextStyle(fontSize: 12)),
+                                        ),
+                                      Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: isPresent
@@ -825,6 +892,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                         ),
                                       ),
                                     ),
+                                    ]),
                                   );
                                 },
                               ),
@@ -1358,6 +1426,23 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             ],
           ),
           const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.fact_check_outlined, color: Colors.orange),
+              label: Text(
+                isAr ? 'قائمة الطلاب / تسجيل استثناء' : 'Students list / record exception',
+                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.orange),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+              onPressed: () => _fetchAbsentList('absent'),
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             height: 50,
