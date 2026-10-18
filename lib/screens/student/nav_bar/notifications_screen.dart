@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/shared/custom_bottom_nav.dart';
 import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
@@ -236,6 +237,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     // على جدول الامتحانات بدل صفحة الواجبات. هلق التخمين النصي صار حصراً
     // fallback لما النوع نفسه مش معروف/فاضي.
     switch (notify.type) {
+      case 'clock_alert':
+        _showClockAlertDialog(ctx, notify);
+        return;
       case 'message':
       case 'chat':
         final senderId = notify.senderId ?? notify.relatedId;
@@ -330,6 +334,52 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'author_name': 'الإدارة',
       }),
     ));
+  }
+
+  /// تنبيه ساعة الهاتف: يقرأ الطالب التفاصيل ويضغط "تأكيد" بعد ضبط الوقت التلقائي. هذا هو "ردّه" الذي يوقف
+  /// تصعيد التنبيه إلى رئيس القسم عند تكراره.
+  void _showClockAlertDialog(BuildContext ctx, AppNotification notify) {
+    final isAr = AppSettings.language.value == 'ar';
+    showDialog(
+      context: ctx,
+      builder: (dCtx) => AlertDialog(
+        title: Text(notify.title),
+        content: Text(notify.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: Text(isAr ? 'لاحقًا' : 'Later'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final alertId = notify.relatedId;
+              Navigator.pop(dCtx);
+              if (alertId == null) return;
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                final token = prefs.getString('token') ?? '';
+                await Dio().post(
+                  "${ApiService().baseUrl}/student/clock-alerts/$alertId/acknowledge",
+                  options: Options(headers: {"Authorization": "Bearer $token", "Accept": "application/json"}),
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(isAr ? 'شكرًا، تم تسجيل تأكيدك' : 'Thanks, your confirmation was recorded'),
+                  ));
+                }
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(isAr ? 'تعذّر إرسال التأكيد، حاول لاحقًا' : 'Could not send confirmation, try again later'),
+                  ));
+                }
+              }
+            },
+            child: Text(isAr ? 'تأكيد: صحّحت الساعة' : 'Confirm: I fixed my clock'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showLeaveDetailDialog(BuildContext ctx, AppNotification notify) {
