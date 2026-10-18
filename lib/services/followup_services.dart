@@ -18,6 +18,7 @@ class FollowUpService {
     String? search,
     int? programId,
     int? days,
+    bool pending = false,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -29,6 +30,7 @@ class FollowUpService {
           if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
           'program_id': ?programId,
           'days': ?days,
+          if (pending) 'pending': 1,
         },
         options: Options(
           headers: {'Accept': 'application/json', 'Authorization': 'Bearer ${prefs.getString('token') ?? ''}'},

@@ -51,6 +51,10 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
   String _status = '';
   String _sort = 'attention';
   int? _programId;
+  bool _pendingOnly = false;
+  final ScrollController _scroll = ScrollController();
+  final GlobalKey _clockKey = GlobalKey();
+  final GlobalKey _programsKey = GlobalKey();
   bool _loading = true;
   bool _failed = false;
   String? _forbidden;
@@ -65,6 +69,7 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
   @override
   void dispose() {
     _search.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -73,7 +78,7 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
       _loading = true;
       _failed = false;
     });
-    final res = await _service.load(widget.basePath, status: _status, sort: _sort, search: _search.text, programId: _programId);
+    final res = await _service.load(widget.basePath, status: _status, sort: _sort, search: _search.text, programId: _programId, pending: _pendingOnly);
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -144,6 +149,7 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
     final programOptions = _list((_d['filters'] as Map?)?['programs']);
 
     return ListView(
+      controller: _scroll,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       children: [
@@ -154,9 +160,27 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
         _sectionTitle('عليك اليوم', text),
         _todayBox('الأعلى خطرًا', _list(_today['top_risk']), card, text, sub, (r) => _topRiskRow(r, text, sub)),
         _todayBox('متابعات فات موعدها', _list(_today['overdue']), card, text, sub, (r) => _overdueRow(r, text, sub)),
-        _todayBox('تلاعب بساعة الهاتف دون رد', _list(_today['clock_alerts']), card, text, sub, (r) => _clockRow(r, text, sub)),
+        KeyedSubtree(
+          key: _clockKey,
+          child: _todayBox('تلاعب بساعة الهاتف دون رد', _list(_today['clock_alerts']), card, text, sub, (r) => _clockRow(r, text, sub)),
+        ),
         const SizedBox(height: 6),
-        _sectionTitle('البرامج ومقرراتها (${programs.length})', text),
+        KeyedSubtree(key: _programsKey, child: _sectionTitle('البرامج ومقرراتها (${programs.length})', text)),
+        if (_pendingOnly)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ActionChip(
+                avatar: const Icon(Icons.close, size: 16),
+                label: const Text('⏳ جلسات معلّقة فقط'),
+                onPressed: () {
+                  setState(() => _pendingOnly = false);
+                  _load();
+                },
+              ),
+            ),
+          ),
         if (programs.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 30),
@@ -185,13 +209,17 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
   Widget _kpiGrid(Color card, Color sub) {
     final k = _kpis;
     int n(String key) => (k[key] as num?)?.toInt() ?? 0;
-    Widget item(String value, String label, Color color, {VoidCallback? onTap}) => InkWell(
+    Widget item(String value, String label, Color color, {VoidCallback? onTap, bool active = false}) => InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
           child: Container(
             width: (MediaQuery.of(context).size.width - 32 - 16) / 3,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-            decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(
+              color: card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: active ? color : Colors.transparent, width: 1.6),
+            ),
             child: Column(children: [
               Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 22)),
               const SizedBox(height: 2),
@@ -199,15 +227,37 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
             ]),
           ),
         );
-    void risk() => Navigator.push(context, MaterialPageRoute(builder: (_) => AtRiskStudentsScreen(basePath: widget.basePath)));
+
+    // كل مربع ينقل إلى بياناته: قائمة الطلاب المطابقة، أو القسم المناسب في هذه الشاشة
+    void risk({String? level, String? followUp, String? sort}) => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AtRiskStudentsScreen(basePath: widget.basePath, initialLevel: level ?? '', initialFollowUp: followUp, initialSort: sort),
+          ),
+        );
+
+    void scrollTo(GlobalKey key) {
+      final ctx = key.currentContext;
+      if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
+    }
 
     return Wrap(spacing: 8, runSpacing: 8, children: [
-      item('${n('high')}', 'خطر عالٍ', riskColor('high'), onTap: risk),
-      item('${n('medium')}', 'خطر متوسط', riskColor('medium'), onTap: risk),
-      item('${n('rising_week')}', 'ارتفع خطرهم هذا الأسبوع', const Color(0xFFC62828), onTap: risk),
-      item('${n('overdue_followups')}', 'متابعات فات موعدها', n('overdue_followups') > 0 ? const Color(0xFFE65100) : const Color(0xFF2E7D32)),
-      item('${n('clock_alerts_escalated')}', 'تلاعب بساعة الهاتف بلا رد', n('clock_alerts_escalated') > 0 ? const Color(0xFFC62828) : const Color(0xFF2E7D32)),
-      item('${n('pending_sessions')}', 'جلسات بانتظار الإغلاق (12 ليلاً)', n('pending_sessions') > 0 ? const Color(0xFFE65100) : const Color(0xFF2E7D32)),
+      item('${n('high')}', 'خطر عالٍ', riskColor('high'), onTap: () => risk(level: 'high')),
+      item('${n('medium')}', 'خطر متوسط', riskColor('medium'), onTap: () => risk(level: 'medium')),
+      item('${n('rising_week')}', 'ارتفع خطرهم هذا الأسبوع', const Color(0xFFC62828), onTap: () => risk(level: 'at_risk', sort: 'change')),
+      item('${n('overdue_followups')}', 'متابعات فات موعدها', n('overdue_followups') > 0 ? const Color(0xFFE65100) : const Color(0xFF2E7D32), onTap: () => risk(followUp: 'overdue')),
+      item('${n('clock_alerts_escalated')}', 'تلاعب بساعة الهاتف بلا رد', n('clock_alerts_escalated') > 0 ? const Color(0xFFC62828) : const Color(0xFF2E7D32), onTap: () => scrollTo(_clockKey)),
+      item(
+        '${n('pending_sessions')}',
+        'جلسات بانتظار الإغلاق (12 ليلاً)',
+        n('pending_sessions') > 0 ? const Color(0xFFE65100) : const Color(0xFF2E7D32),
+        active: _pendingOnly,
+        onTap: () {
+          setState(() => _pendingOnly = !_pendingOnly);
+          _load().then((_) => WidgetsBinding.instance.addPostFrameCallback((_) => scrollTo(_programsKey)));
+        },
+      ),
+      item('${n('students')}', 'إجمالي الطلاب (عرض الكل)', Theme.of(context).colorScheme.primary, onTap: () => risk(level: '')),
     ]);
   }
 

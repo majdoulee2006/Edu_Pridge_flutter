@@ -23,7 +23,12 @@ Color riskColor(String? level) {
 class AtRiskStudentsScreen extends StatefulWidget {
   final String basePath;
 
-  const AtRiskStudentsScreen({super.key, required this.basePath});
+  /// فتح القائمة مفلترة مباشرة (من مربعات لوحة المتابعة): مستوى، أو المتابعات المتأخرة، أو ترتيب.
+  final String? initialLevel;
+  final String? initialFollowUp;
+  final String? initialSort;
+
+  const AtRiskStudentsScreen({super.key, required this.basePath, this.initialLevel, this.initialFollowUp, this.initialSort});
 
   @override
   State<AtRiskStudentsScreen> createState() => _AtRiskStudentsScreenState();
@@ -40,9 +45,12 @@ class _AtRiskStudentsScreenState extends State<AtRiskStudentsScreen> {
     'medium': 'متوسط',
     'low': 'منخفض',
     'unknown': 'غير كافية',
+    'overdue': 'متابعة متأخرة',
   };
 
-  String _level = 'at_risk';
+  late String _level = widget.initialLevel ?? 'at_risk';
+  late String _followUp = widget.initialFollowUp ?? '';
+  late final String _sort = widget.initialSort ?? 'score';
   bool _loading = true;
   bool _failed = false;
   String? _forbidden;
@@ -66,7 +74,7 @@ class _AtRiskStudentsScreenState extends State<AtRiskStudentsScreen> {
       _loading = true;
       _failed = false;
     });
-    final res = await _service.list(widget.basePath, level: _level, search: _search.text);
+    final res = await _service.list(widget.basePath, level: _level, search: _search.text, sort: _sort, followUp: _followUp);
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -143,11 +151,13 @@ class _AtRiskStudentsScreenState extends State<AtRiskStudentsScreen> {
         Text('درجة خطر لكل طالب من الحضور والواجبات والعلامات والنشاط، مع أسبابها. أداة لترتيب أولوياتك وليست حكمًا على الطالب.',
             style: TextStyle(color: sub, fontSize: 12, height: 1.6)),
         const SizedBox(height: 12),
+        // كل مربع يفلتر القائمة تحته (نفس سلوك الويب)
         Row(children: [
-          _stat('${_summary['high'] ?? 0}', 'عالٍ', riskColor('high'), sub, card),
-          _stat('${_summary['medium'] ?? 0}', 'متوسط', riskColor('medium'), sub, card),
-          _stat('${_summary['low'] ?? 0}', 'منخفض', riskColor('low'), sub, card),
-          _stat('${_summary['unknown'] ?? 0}', 'غير كافية', riskColor('unknown'), sub, card),
+          _stat('${_summary['high'] ?? 0}', 'عالٍ', riskColor('high'), sub, card, active: _isActive('high'), onTap: () => _pick('high')),
+          _stat('${_summary['medium'] ?? 0}', 'متوسط', riskColor('medium'), sub, card, active: _isActive('medium'), onTap: () => _pick('medium')),
+          _stat('${_summary['low'] ?? 0}', 'منخفض', riskColor('low'), sub, card, active: _isActive('low'), onTap: () => _pick('low')),
+          _stat('${_summary['unknown'] ?? 0}', 'غير كافية', riskColor('unknown'), sub, card, active: _isActive('unknown'), onTap: () => _pick('unknown')),
+          _stat('${_summary['overdue'] ?? 0}', 'متابعة متأخرة', const Color(0xFFE65100), sub, card, active: _isActive('overdue'), onTap: () => _pick('overdue')),
         ]),
         const SizedBox(height: 12),
         TextField(
@@ -173,14 +183,10 @@ class _AtRiskStudentsScreenState extends State<AtRiskStudentsScreen> {
                       padding: const EdgeInsetsDirectional.only(end: 8),
                       child: ChoiceChip(
                         label: Text(e.value),
-                        selected: _level == e.key,
+                        selected: _isActive(e.key),
                         selectedColor: AppColors.primary,
-                        labelStyle: TextStyle(color: _level == e.key ? Colors.white : text),
-                        onSelected: (_) {
-                          if (_level == e.key) return;
-                          setState(() => _level = e.key);
-                          _load();
-                        },
+                        labelStyle: TextStyle(color: _isActive(e.key) ? Colors.white : text),
+                        onSelected: (_) => _pick(e.key),
                       ),
                     ))
                 .toList(),
@@ -204,17 +210,36 @@ class _AtRiskStudentsScreenState extends State<AtRiskStudentsScreen> {
     );
   }
 
-  Widget _stat(String value, String label, Color color, Color sub, Color card) {
+  /// هل هذا المربع/الشريحة هو الفلتر الحالي؟ ('overdue' فلتر مستقل عن المستوى)
+  bool _isActive(String key) => key == 'overdue' ? _followUp == 'overdue' : (_followUp.isEmpty && _level == key);
+
+  void _pick(String key) {
+    if (_isActive(key)) return;
+    setState(() {
+      _followUp = key == 'overdue' ? 'overdue' : '';
+      _level = key == 'overdue' ? '' : key;
+    });
+    _load();
+  }
+
+  Widget _stat(String value, String label, Color color, Color sub, Color card, {required VoidCallback onTap, bool active = false}) {
     return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(14)),
-        child: Column(children: [
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 20)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(color: sub, fontSize: 10.5)),
-        ]),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
+          decoration: BoxDecoration(
+            color: card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: active ? color : Colors.transparent, width: 1.6),
+          ),
+          child: Column(children: [
+            Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 20)),
+            const SizedBox(height: 2),
+            Text(label, textAlign: TextAlign.center, style: TextStyle(color: sub, fontSize: 10, height: 1.2)),
+          ]),
+        ),
       ),
     );
   }

@@ -18,7 +18,7 @@ class RiskService {
   }
 
   /// قائمة الطلاب. يرجع null عند الفشل، و`{'forbidden': true}` إن لم يكن المستخدم مرشدًا.
-  Future<Map<String, dynamic>?> list(String basePath, {String? level, String? search, String sort = 'score'}) async {
+  Future<Map<String, dynamic>?> list(String basePath, {String? level, String? search, String sort = 'score', String? followUp}) async {
     try {
       final res = await _dio.get(
         '$baseUrl/$basePath/risk',
@@ -26,6 +26,7 @@ class RiskService {
           if (level != null && level.isNotEmpty) 'level': level,
           if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
           'sort': sort,
+          if (followUp != null && followUp.isNotEmpty) 'followup': followUp,
           'per_page': 50,
         },
         options: await _options(),
