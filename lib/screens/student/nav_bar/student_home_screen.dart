@@ -175,6 +175,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       for (var scanStr in offlineScans) {
         try {
           final data = jsonDecode(scanStr) as Map<String, dynamic>;
+          // ساعة الهاتف لحظة المزامنة (وليس لحظة المسح): يصحّح بها السيرفر وقت المسح
+          data['device_time'] = DateTime.now().toUtc().toIso8601String();
           payloadScans.add(data);
         } catch (_) {}
       }

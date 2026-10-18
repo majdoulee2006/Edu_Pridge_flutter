@@ -341,6 +341,8 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
           "qr_token":       widget.qrToken,
           "face_embedding": embedding,
           "scanned_at":     DateTime.now().toUtc().toIso8601String(),
+          // ساعة الهاتف لحظة الإرسال: يقارنها السيرفر بساعته لكشف الانحراف/التلاعب
+          "device_time":    DateTime.now().toUtc().toIso8601String(),
         },
         options: Options(
           headers: {

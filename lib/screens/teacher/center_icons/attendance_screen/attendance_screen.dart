@@ -349,10 +349,11 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     setState(() => _isEnding = true);
     try {
       final token = await _getToken();
-      await Dio().post(
+      final endRes = await Dio().post(
         "${ApiService().baseUrl}/teacher/attendance/session/$_sessionId/end",
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
+      final endMsg = endRes.data is Map ? endRes.data['message'] as String? : null;
       _stopTimers();
       setState(() {
         _lastSessionId = _sessionId;
@@ -364,7 +365,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         _sessionSecret = null;
         _absentStudents = [];
       });
-      _showSnack(isAr ? 'تم إنهاء الجلسة وتسجيل الغياب بنجاح ✅' : 'Session ended and absence recorded successfully ✅');
+      _showSnack(endMsg ??
+          (isAr
+              ? 'تم إغلاق الجلسة. يُسجَّل الغياب عند الساعة 12 ليلاً ✅'
+              : 'Session closed. Absences are recorded at midnight ✅'));
     } catch (e) {
       debugPrint('⛔ End Session Error: $e');
       _showSnack(isAr ? 'حدث خطأ أثناء إنهاء الجلسة' : 'An error occurred while ending the session');
@@ -623,7 +627,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final presentStudents = _allStudents.where((s) => s['status'] == 'present').toList();
-            final absentStudents = _allStudents.where((s) => s['status'] == 'absent').toList();
+            final absentStudents = _allStudents.where((s) => s['status'] == 'absent' || s['status'] == 'pending').toList();
 
             List<Map<String, dynamic>> displayedStudents;
             if (activeFilter == 'present') {
@@ -771,15 +775,16 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                 itemBuilder: (_, i) {
                                   final s = displayedStudents[i];
                                   final isPresent = s['status'] == 'present';
+                                  final isPending = s['status'] == 'pending';
                                   return ListTile(
                                     contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                                     leading: CircleAvatar(
                                       backgroundColor: isPresent
                                           ? Colors.green.withValues(alpha: 0.12)
-                                          : Colors.red.withValues(alpha: 0.12),
+                                          : (isPending ? Colors.orange.withValues(alpha: 0.12) : Colors.red.withValues(alpha: 0.12)),
                                       child: Icon(
-                                        isPresent ? Icons.check : Icons.close,
-                                        color: isPresent ? Colors.green : Colors.red,
+                                        isPresent ? Icons.check : (isPending ? Icons.hourglass_top : Icons.close),
+                                        color: isPresent ? Colors.green : (isPending ? Colors.orange : Colors.red),
                                         size: 20,
                                       ),
                                     ),
@@ -793,9 +798,11 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                     subtitle: Text(
                                       isPresent
                                           ? (isAr ? 'قام بالمسح وتسجيل الحضور' : 'Scanned & recorded attendance')
-                                          : (isAr ? 'لم يقم بالمسح (غائب)' : 'Did not scan (Absent)'),
+                                          : (isPending
+                                              ? (isAr ? 'لم يُسجَّل بعد، قد يزامن مسحه حتى 12 ليلاً' : 'Not recorded yet, may still sync until midnight')
+                                              : (isAr ? 'لم يقم بالمسح (غائب)' : 'Did not scan (Absent)')),
                                       style: TextStyle(
-                                        color: isPresent ? Colors.green.shade700 : Colors.red.shade400,
+                                        color: isPresent ? Colors.green.shade700 : (isPending ? Colors.orange.shade700 : Colors.red.shade400),
                                         fontSize: 12,
                                       ),
                                     ),
@@ -804,15 +811,15 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                       decoration: BoxDecoration(
                                         color: isPresent
                                             ? Colors.green.withValues(alpha: 0.1)
-                                            : Colors.red.withValues(alpha: 0.1),
+                                            : (isPending ? Colors.orange.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1)),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
                                         isPresent
                                             ? (isAr ? 'حاضر' : 'Present')
-                                            : (isAr ? 'غائب' : 'Absent'),
+                                            : (isPending ? (isAr ? 'قيد المزامنة' : 'Pending') : (isAr ? 'غائب' : 'Absent')),
                                         style: TextStyle(
-                                          color: isPresent ? Colors.green : Colors.red,
+                                          color: isPresent ? Colors.green : (isPending ? Colors.orange : Colors.red),
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                         ),
