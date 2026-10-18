@@ -153,6 +153,7 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       children: [
+        _filterBanner(programOptions),
         _kpiGrid(card, sub),
         const SizedBox(height: 14),
         _filters(card, text, sub, programOptions),
@@ -201,6 +202,49 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
         ),
         const SizedBox(height: 40),
       ],
+    );
+  }
+
+  // ───────────────────────────── شريط الفلاتر ─────────────────────────────
+
+  /// يوضّح أن الأرقام لجزء من الطلاب عند وجود فلتر، ويتيح إزالته بنقرة (مثل الويب).
+  Widget _filterBanner(List<Map<String, dynamic>> programOptions) {
+    final parts = <String>[];
+    if (_programId != null) {
+      final name = programOptions.where((p) => (p['id'] as num).toInt() == _programId).map((p) => p['name'].toString()).firstOrNull;
+      parts.add('البرنامج: ${name ?? '#$_programId'}');
+    }
+    if (_status.isNotEmpty) parts.add('الحالة: ${_statusLabels[_status] ?? _status}');
+    if (_search.text.trim().isNotEmpty) parts.add('بحث: «${_search.text.trim()}»');
+    if (_pendingOnly) parts.add('جلسات معلّقة فقط');
+    if (parts.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: const Color(0xFFE65100).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+      child: Row(children: [
+        const Icon(Icons.filter_alt_rounded, size: 18, color: Color(0xFFE65100)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'عرض مفلتر: ${parts.join(' • ')}${_programId != null ? ' — المؤشرات العلوية تخص هذا البرنامج فقط' : ''}',
+            style: const TextStyle(color: Color(0xFFE65100), fontWeight: FontWeight.w700, fontSize: 12, height: 1.4),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              _programId = null;
+              _status = '';
+              _pendingOnly = false;
+              _search.clear();
+            });
+            _load();
+          },
+          child: const Text('إزالة ✕', style: TextStyle(color: Color(0xFFE65100), fontWeight: FontWeight.w800)),
+        ),
+      ]),
     );
   }
 

@@ -151,6 +151,27 @@ class _AtRiskStudentsScreenState extends State<AtRiskStudentsScreen> {
         Text('درجة خطر لكل طالب من الحضور والواجبات والعلامات والنشاط، مع أسبابها. أداة لترتيب أولوياتك وليست حكمًا على الطالب.',
             style: TextStyle(color: sub, fontSize: 12, height: 1.6)),
         const SizedBox(height: 12),
+        if (_search.text.trim().isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(color: const Color(0xFFE65100).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+            child: Row(children: [
+              const Icon(Icons.filter_alt_rounded, size: 18, color: Color(0xFFE65100)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('عرض مفلتر، الأرقام لجزء من طلابك • بحث: «${_search.text.trim()}»',
+                    style: const TextStyle(color: Color(0xFFE65100), fontWeight: FontWeight.w700, fontSize: 12, height: 1.4)),
+              ),
+              TextButton(
+                onPressed: () {
+                  _search.clear();
+                  _load();
+                },
+                child: const Text('إزالة ✕', style: TextStyle(color: Color(0xFFE65100), fontWeight: FontWeight.w800)),
+              ),
+            ]),
+          ),
         // كل مربع يفلتر القائمة تحته (نفس سلوك الويب)
         Row(children: [
           _stat('${_summary['high'] ?? 0}', 'عالٍ', riskColor('high'), sub, card, active: _isActive('high'), onTap: () => _pick('high')),
