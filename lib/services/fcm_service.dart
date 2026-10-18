@@ -16,7 +16,6 @@ import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/appointments_screen/appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/parents/center_icons/weekly_digest_screen/weekly_digest_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
 import 'package:edu_pridge_flutter/screens/student/center_icons/schedule/schedule_screen.dart' as student_schedule;
 import 'package:edu_pridge_flutter/screens/student/study_screens.dart';
 import 'package:edu_pridge_flutter/screens/teacher/center_icons/scedual_screen/scedual_screen.dart' show TeacherScheduleScreen;
@@ -68,7 +67,7 @@ class FcmService {
     switch (type) {
       case 'risk_alert':
         navigator.push(MaterialPageRoute(
-          builder: (_) => AtRiskStudentsScreen(basePath: (prefs.getString('role') ?? '') == 'teacher' ? 'teacher' : 'department-head'),
+          builder: (_) => FollowUpDashboardScreen(basePath: (prefs.getString('role') ?? '') == 'teacher' ? 'teacher' : 'department-head', initialTab: 1, initialLevel: 'at_risk'),
         ));
         break;
       case 'clock_alert_escalation':

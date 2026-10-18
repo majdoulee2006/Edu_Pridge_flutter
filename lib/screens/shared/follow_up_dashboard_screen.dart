@@ -31,13 +31,27 @@ const _statusLabels = {
 class FollowUpDashboardScreen extends StatefulWidget {
   final String basePath;
 
-  const FollowUpDashboardScreen({super.key, required this.basePath});
+  /// 0 = نظرة عامة، 1 = الطلاب المعرَّضون. وللتبويب الثاني مستوى/متابعة/ترتيب ابتدائي (من الإشعارات والمربعات).
+  final int initialTab;
+  final String? initialLevel;
+  final String? initialFollowUp;
+  final String? initialSort;
+
+  const FollowUpDashboardScreen({super.key, required this.basePath, this.initialTab = 0, this.initialLevel, this.initialFollowUp, this.initialSort});
 
   @override
   State<FollowUpDashboardScreen> createState() => _FollowUpDashboardScreenState();
 }
 
-class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
+class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> with SingleTickerProviderStateMixin {
+  late final TabController _tabs = TabController(length: 2, vsync: this, initialIndex: widget.initialTab.clamp(0, 1));
+
+  // فلتر تبويب الطلاب، يتبدل عند الضغط على مربعات النظرة العامة. المفتاح يعيد بناء القائمة بالفلتر الجديد.
+  late String _riskLevel = widget.initialLevel ?? 'at_risk';
+  late String? _riskFollowUp = widget.initialFollowUp;
+  late String? _riskSort = widget.initialSort;
+  int _riskVersion = 0;
+
   final FollowUpService _service = FollowUpService();
   final TextEditingController _search = TextEditingController();
 
@@ -70,6 +84,7 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
   void dispose() {
     _search.dispose();
     _scroll.dispose();
+    _tabs.dispose();
     super.dispose();
   }
 
@@ -118,8 +133,29 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
               centerTitle: true,
               title: Text('لوحة المتابعة', style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 18)),
               leading: IconButton(icon: Icon(Icons.arrow_back, color: text), onPressed: () => Navigator.pop(context)),
+              bottom: TabBar(
+                controller: _tabs,
+                labelColor: AppColors.primary,
+                unselectedLabelColor: sub,
+                indicatorColor: AppColors.primary,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w800),
+                tabs: const [Tab(text: 'نظرة عامة'), Tab(text: 'الطلاب المعرَّضون')],
+              ),
             ),
-            body: RefreshIndicator(onRefresh: _load, child: _body(card, text, sub)),
+            body: TabBarView(
+              controller: _tabs,
+              children: [
+                RefreshIndicator(onRefresh: _load, child: _body(card, text, sub)),
+                AtRiskStudentsScreen(
+                  key: ValueKey('risk_$_riskVersion'),
+                  basePath: widget.basePath,
+                  embedded: true,
+                  initialLevel: _riskLevel,
+                  initialFollowUp: _riskFollowUp,
+                  initialSort: _riskSort,
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -273,12 +309,15 @@ class _FollowUpDashboardScreenState extends State<FollowUpDashboardScreen> {
         );
 
     // كل مربع ينقل إلى بياناته: قائمة الطلاب المطابقة، أو القسم المناسب في هذه الشاشة
-    void risk({String? level, String? followUp, String? sort}) => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AtRiskStudentsScreen(basePath: widget.basePath, initialLevel: level ?? '', initialFollowUp: followUp, initialSort: sort),
-          ),
-        );
+    void risk({String? level, String? followUp, String? sort}) {
+      setState(() {
+        _riskLevel = level ?? '';
+        _riskFollowUp = followUp;
+        _riskSort = sort;
+        _riskVersion++; // يعيد بناء قائمة الطلاب بالفلتر الجديد
+      });
+      _tabs.animateTo(1);
+    }
 
     void scrollTo(GlobalKey key) {
       final ctx = key.currentContext;

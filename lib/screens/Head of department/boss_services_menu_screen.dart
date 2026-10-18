@@ -6,7 +6,6 @@ import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/requests/boss_student_service_requests_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/attendance_insights/attendance_insights_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head of department/schedule_studio_screens.dart';
 
 // ─── BossServicesMenuScreen ──────────────────────────────────────────────
@@ -74,23 +73,6 @@ class BossServicesMenuScreen extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const FollowUpDashboardScreen(basePath: 'department-head')),
-                        ),
-                      ),
-
-                      _buildServiceCard(
-                        icon: Icons.warning_amber_rounded,
-                        iconColor: const Color(0xFFCCAA00),
-                        title: isAr ? "المعرَّضون للتعثر" : "At-risk Students",
-                        subtitle: isAr
-                            ? "طلاب القسم الأكثر حاجة للمتابعة مع أسباب الخطر"
-                            : "Department students who most need follow-up",
-                        cardColor: cardColor,
-                        textColor: textColor,
-                        subColor: subColor,
-                        isAr: isAr,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AtRiskStudentsScreen(basePath: 'department-head')),
                         ),
                       ),
 

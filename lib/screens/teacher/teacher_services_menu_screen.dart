@@ -5,7 +5,6 @@ import 'package:edu_pridge_flutter/screens/shared/settings_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/teacher/profile_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/study_teacher_screens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
@@ -89,29 +88,6 @@ class TeacherServicesMenuScreen extends StatelessWidget {
                                     context,
                                     MaterialPageRoute(builder: (_) => const FollowUpDashboardScreen(basePath: 'teacher')),
                                   ),
-                                ),
-                              ),
-                      ),
-
-                      // المعرَّضون للتعثر (للمرشد): تُخفى عن المعلم غير المرشد
-                      FutureBuilder<bool>(
-                        future: SharedPreferences.getInstance().then((p) => p.getBool('is_advisor') ?? true),
-                        builder: (context, snap) => snap.data == false
-                            ? const SizedBox.shrink()
-                            : _buildServiceCard(
-                                icon: Icons.warning_amber_rounded,
-                                iconColor: const Color(0xFFFFCC00),
-                                title: isAr ? "المعرَّضون للتعثر" : "At-risk Students",
-                                subtitle: isAr
-                                    ? "طلابك الأكثر حاجة للمتابعة، مع أسباب الخطر وسجل متابعتك"
-                                    : "Your students who most need follow-up, with reasons",
-                                cardColor: cardColor,
-                                textColor: textColor,
-                                subColor: subColor,
-                                isAr: isAr,
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const AtRiskStudentsScreen(basePath: 'teacher')),
                                 ),
                               ),
                       ),

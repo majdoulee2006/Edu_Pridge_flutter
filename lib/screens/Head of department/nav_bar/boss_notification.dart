@@ -16,7 +16,6 @@ import '../center_icons/request_reports_screen.dart';
 import '../../parents/center_icons/appointments_screen/appointments_screen.dart';
 import 'package:edu_pridge_flutter/screens/shared/chat_room_screen.dart';
 import '../requests/boss_student_service_requests_screen.dart';
-import 'package:edu_pridge_flutter/screens/shared/at_risk_students_screen.dart';
 
 Widget? _bossStudentServiceScreenForType(String notificationType) {
   if (!notificationType.startsWith('student_service_')) return null;
@@ -728,7 +727,7 @@ class _BossNotificationScreenState extends State<BossNotificationScreen> {
           return;
         }
         if (n.type == 'risk_alert') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const AtRiskStudentsScreen(basePath: 'department-head')));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpDashboardScreen(basePath: 'department-head', initialTab: 1, initialLevel: 'at_risk')));
           return;
         }
         if (n.type == 'message' || n.type == 'chat') {

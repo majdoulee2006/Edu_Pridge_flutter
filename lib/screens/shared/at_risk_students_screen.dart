@@ -28,7 +28,10 @@ class AtRiskStudentsScreen extends StatefulWidget {
   final String? initialFollowUp;
   final String? initialSort;
 
-  const AtRiskStudentsScreen({super.key, required this.basePath, this.initialLevel, this.initialFollowUp, this.initialSort});
+  /// عند true تُعرض القائمة كتبويب داخل لوحة المتابعة (بلا شريط علوي ولا Scaffold خاص بها).
+  final bool embedded;
+
+  const AtRiskStudentsScreen({super.key, required this.basePath, this.initialLevel, this.initialFollowUp, this.initialSort, this.embedded = false});
 
   @override
   State<AtRiskStudentsScreen> createState() => _AtRiskStudentsScreenState();
@@ -101,6 +104,10 @@ class _AtRiskStudentsScreenState extends State<AtRiskStudentsScreen> {
         final text = isDark ? Colors.white : AppColors.textDark;
         final sub = isDark ? Colors.grey.shade400 : AppColors.textGrey;
 
+        if (widget.embedded) {
+          return RefreshIndicator(onRefresh: _load, child: _body(card, text, sub));
+        }
+
         return Directionality(
           textDirection: TextDirection.rtl,
           child: Scaffold(
@@ -109,7 +116,7 @@ class _AtRiskStudentsScreenState extends State<AtRiskStudentsScreen> {
               backgroundColor: card,
               elevation: 0,
               centerTitle: true,
-              title: Text('المعرَّضون للتعثر', style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 18)),
+              title: Text('لوحة المتابعة', style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 18)),
               leading: IconButton(icon: Icon(Icons.arrow_back, color: text), onPressed: () => Navigator.pop(context)),
             ),
             body: RefreshIndicator(onRefresh: _load, child: _body(card, text, sub)),
