@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/core/constants/feature_flags.dart';
 import 'package:edu_pridge_flutter/screens/shared/follow_up_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:edu_pridge_flutter/core/constants/app_colors.dart';
@@ -93,7 +94,8 @@ class TeacherServicesMenuScreen extends StatelessWidget {
                               ),
                       ),
 
-                      // رفيق المذاكرة: مسودات يولّدها الذكاء الاصطناعي ويعتمدها المعلم
+                      // رفيق المذاكرة: مسودات يولّدها الذكاء الاصطناعي ويعتمدها المعلم (معطّل مؤقتاً)
+                      if (kStudyCompanionUi)
                       _buildServiceCard(
                         icon: Icons.auto_stories_rounded,
                         iconColor: const Color(0xFFFFCC00),

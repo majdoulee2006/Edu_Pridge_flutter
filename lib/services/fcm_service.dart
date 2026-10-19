@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/core/constants/feature_flags.dart';
 import 'package:edu_pridge_flutter/screens/shared/follow_up_dashboard_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -83,7 +84,7 @@ class FcmService {
         ));
         break;
       case 'study_material':
-        if (intId != null) navigator.push(MaterialPageRoute(builder: (_) => StudyMaterialScreen(id: intId)));
+        if (kStudyCompanionUi && intId != null) navigator.push(MaterialPageRoute(builder: (_) => StudyMaterialScreen(id: intId)));
         break;
       case 'weekly_digest':
         navigator.push(MaterialPageRoute(

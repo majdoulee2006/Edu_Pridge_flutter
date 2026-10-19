@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/core/constants/feature_flags.dart';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
@@ -79,6 +80,7 @@ class StudentServicesMenuScreen extends StatelessWidget {
                         onTap: () => _showUniversityIdPopup(context, isAr),
                       ),
 
+                      if (kStudyCompanionUi)
                       _buildServiceCard(
                         icon: Icons.auto_stories_rounded,
                         iconColor: const Color(0xFF4CAF50),
