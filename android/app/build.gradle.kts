@@ -15,23 +15,6 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
-// 🔒 الإصدار الرسمي (release) لا يُبنى إلا بمفتاح التوقيع الخاص بمالكة المشروع.
-// بدون مفتاح التوقيع الخاص بها يفشل البناء بدل أن يُنتج APK غير موقّع أو موقّع بمفتاح آخر
-// (APK بمفتاح مختلف لا يقدر يحدّث النسخة المثبتة عند المستخدمين أصلاً). التفاصيل: OFFICIAL_RELEASES.md
-gradle.taskGraph.whenReady {
-    val wantsRelease = allTasks.any {
-        it.name.contains("Release", ignoreCase = true) &&
-            (it.name.startsWith("assemble") || it.name.startsWith("bundle") || it.name.startsWith("package"))
-    }
-    if (wantsRelease && !keystorePropertiesFile.exists()) {
-        throw GradleException(
-            "\n\nبناء الإصدار الرسمي (release) متاح لمالكة المشروع فقط: مفتاح التوقيع غير موجود عندك." +
-                "\nالإصدارات الرسمية تُبنى وتُنشر من جهازها فقط. للتجربة استعمل: flutter run أو flutter build apk --debug" +
-                "\nOfficial release builds are produced only by the project owner. See OFFICIAL_RELEASES.md.\n"
-        )
-    }
-}
-
 android {
     namespace = "com.example.edu_pridge_flutter"
     compileSdk = 36
