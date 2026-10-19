@@ -8,6 +8,7 @@ import 'package:edu_pridge_flutter/screens/teacher/profile_screen.dart';
 import 'package:edu_pridge_flutter/screens/teacher/study_teacher_screens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:edu_pridge_flutter/screens/teacher/attendance_flags_screen.dart';
+import 'package:edu_pridge_flutter/screens/teacher/exam_rooms_screen.dart';
 
 class TeacherServicesMenuScreen extends StatelessWidget {
   final String teacherName;
@@ -107,6 +108,24 @@ class TeacherServicesMenuScreen extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const TeacherStudyListScreen()),
+                        ),
+                      ),
+
+                      // الامتحانات والمراقبة (الجدول الامتحاني المعتمد)
+                      _buildServiceCard(
+                        icon: Icons.fact_check_rounded,
+                        iconColor: const Color(0xFFFFCC00),
+                        title: isAr ? "الامتحانات والمراقبة" : "Exams & Invigilation",
+                        subtitle: isAr
+                            ? "قاعات مراقبتك وقوائم طلابها، وقاعات تقييمات مقرراتك"
+                            : "Your invigilation rooms with student lists, and your courses' exam rooms",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TeacherExamRoomsScreen()),
                         ),
                       ),
 

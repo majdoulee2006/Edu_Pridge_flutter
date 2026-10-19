@@ -6,6 +6,7 @@ import 'package:edu_pridge_flutter/screens/shared/about_app_screen.dart';
 import 'package:edu_pridge_flutter/widgets/logout_icon_button.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/requests/boss_student_service_requests_screen.dart';
 import 'package:edu_pridge_flutter/screens/Head%20of%20department/center_icons/attendance_insights/attendance_insights_screen.dart';
+import 'package:edu_pridge_flutter/screens/Head of department/exam_studio_screens.dart';
 import 'package:edu_pridge_flutter/screens/Head of department/schedule_studio_screens.dart';
 
 // ─── BossServicesMenuScreen ──────────────────────────────────────────────
@@ -90,6 +91,23 @@ class BossServicesMenuScreen extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const ScheduleStudioScreen()),
+                        ),
+                      ),
+
+                      _buildServiceCard(
+                        icon: Icons.edit_calendar_rounded,
+                        iconColor: const Color(0xFFCCAA00),
+                        title: isAr ? "مولّد الامتحانات" : "Exam Studio",
+                        subtitle: isAr
+                            ? "مذاكرات وامتحانات بتواريخك وفتراتك، توزيع الطلاب على القاعات، ومراقب لكل قاعة"
+                            : "Quizzes and exams on your dates, students spread across rooms, a proctor per room",
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        subColor: subColor,
+                        isAr: isAr,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ExamStudioScreen()),
                         ),
                       ),
 
