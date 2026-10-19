@@ -8,8 +8,7 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-// 🔑 قراءة بيانات مفتاح التوقيع الحقيقي من key.properties (الملف نفسو
-// مستثنى من git عمداً لأنه فيه كلمات سر — شوف .gitignore)
+// 🔑 بيانات التوقيع الرسمي تُقرأ من جهاز مالكة المشروع فقط ولا تُرفع إلى git.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
@@ -71,9 +70,7 @@ android {
 
     buildTypes {
         release {
-            // 🔑 هلق موقّع بمفتاح إصدار حقيقي دائم (edubridge-release.jks)
-            // بدل مفتاح التجربة (debug) — ضروري لأي تحديث مستقبلي للتطبيق
-            // ولأي نشر عام (Uptodown، Play Store، إلخ)
+            // 🔑 موقّع بمفتاح الإصدار الرسمي الدائم (بحوزة مالكة المشروع فقط)، ضروري لأي تحديث مستقبلي.
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
