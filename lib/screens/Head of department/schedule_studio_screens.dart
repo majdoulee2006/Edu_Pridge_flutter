@@ -9,7 +9,7 @@ const _statusLabels = {'draft': 'مسودة', 'approved': 'معتمدة', 'disca
 
 Color _statusColor(String s) => s == 'approved' ? const Color(0xFF2E7D32) : (s == 'draft' ? const Color(0xFFE65100) : const Color(0xFF78909C));
 
-/// مدخل الاستوديو: تقرير قدرة الأسبوع، توليد مسودة جديدة، وقائمة المسودات.
+/// مدخل الاستوديو: اختيار الفصل، زر بناء واضح، لوحة جاهزية البيانات، وقائمة المسودات.
 class ScheduleStudioScreen extends StatefulWidget {
   const ScheduleStudioScreen({super.key});
 
@@ -24,6 +24,13 @@ class _ScheduleStudioScreenState extends State<ScheduleStudioScreen> {
   String? _error;
   Map<String, dynamic> _data = {};
   int _periods = 5;
+  int? _semesterId;
+
+  static const _levelColor = {'ok': Color(0xFF2E7D32), 'info': Color(0xFF1565C0), 'warn': Color(0xFFE65100), 'error': Color(0xFFC62828)};
+  static const _levelIcon = {'ok': '✓', 'info': 'ℹ', 'warn': '⚠', 'error': '✖'};
+  static const _actionLabel = {'auto_rooms': 'أنشئ قاعة لكل شعبة', 'open_rooms': 'القاعات', 'open_availability': 'إضافة قيود'};
+
+  bool get _isNext => _semesterId != null && _semesterId != (_data['current_semester_id'] as num?)?.toInt();
 
   @override
   void initState() {
@@ -32,7 +39,7 @@ class _ScheduleStudioScreenState extends State<ScheduleStudioScreen> {
   }
 
   Future<void> _load() async {
-    final r = await _service.overview();
+    final r = await _service.overview(semesterId: _semesterId);
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -40,13 +47,14 @@ class _ScheduleStudioScreenState extends State<ScheduleStudioScreen> {
       if (r.ok) {
         _data = r.data!;
         _periods = (_data['default_periods'] as num?)?.toInt() ?? 5;
+        _semesterId ??= (_data['selected_semester_id'] as num?)?.toInt();
       }
     });
   }
 
   Future<void> _generate() async {
     setState(() => _generating = true);
-    final r = await _service.generate(periods: _periods);
+    final r = await _service.generate(periods: _periods, semesterId: _semesterId);
     if (!mounted) return;
     setState(() => _generating = false);
     if (!r.ok) {
@@ -57,88 +65,209 @@ class _ScheduleStudioScreenState extends State<ScheduleStudioScreen> {
     _load();
   }
 
+  Future<void> _openSettings() async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleSettingsScreen()));
+    _load();
+  }
+
+  Future<void> _fix(String action) async {
+    if (action == 'auto_rooms') {
+      final r = await _service.autoRooms();
+      if (!mounted) return;
+      final created = ((r.data?['created'] as List?) ?? []).length;
+      final linked = ((r.data?['linked'] as List?) ?? []).length;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r.ok ? (created + linked == 0 ? 'لكل شعبة قاعتها الخاصة أصلاً' : 'أُنشئت $created قاعة وربطت $linked بشعبتها') : r.error!)));
+      _load();
+    } else {
+      _openSettings();
+    }
+  }
+
+  void _buildSheet(Color card, Color text, Color sub) {
+    final maxPeriods = (_data['max_periods'] as num?)?.toInt() ?? 7;
+    final periods = Map<String, dynamic>.from((_data['periods'] as Map?) ?? {});
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: card,
+      isScrollControlled: true,
+      builder: (c) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: StatefulBuilder(
+          builder: (c, set) => Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(c).viewInsets.bottom),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('بناء جدول أسبوعي', style: TextStyle(color: text, fontWeight: FontWeight.w800, fontSize: 17)),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<int>(
+                initialValue: _periods,
+                decoration: const InputDecoration(labelText: 'عدد الفترات في اليوم'),
+                items: [
+                  for (var i = 3; i <= maxPeriods; i++)
+                    DropdownMenuItem(value: i, child: Text('$i فترات (${(periods['1'] as List?)?.first ?? ''} إلى ${(periods['$i'] as List?)?.last ?? ''})')),
+                ],
+                onChanged: (v) => set(() => _periods = v ?? _periods),
+              ),
+              if (_isNext) _note('ستُحفظ المسودة للفصل القادم ولن تُعتمد الآن.', const Color(0xFF1565C0)),
+              const SizedBox(height: 8),
+              Text('لن يتغيّر الجدول الحالي. ستراجع المسودة وتعدّلها قبل أي اعتماد.', style: TextStyle(color: sub, fontSize: 12)),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  onPressed: () {
+                    Navigator.pop(c);
+                    _generate();
+                  },
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('ابنِ الجدول'),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StudyScaffold(
-      title: 'مولّد الجدول',
+      title: 'مولّد الجداول',
       actions: [
-        IconButton(
-          tooltip: 'القاعات وتوفّر المعلمين',
-          icon: const Icon(Icons.tune_rounded),
-          onPressed: () async {
-            await Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleSettingsScreen()));
-            _load();
-          },
-        ),
+        IconButton(tooltip: 'القاعات وتوفّر المعلمين', icon: const Icon(Icons.tune_rounded), onPressed: _openSettings),
       ],
       body: (card, text, sub) {
         if (_loading) return const Center(child: CircularProgressIndicator());
         if (_error != null) return Center(child: Text(_error!, style: TextStyle(color: text)));
-        final capacity = ((_data['capacity'] as List?) ?? []).cast<Map>();
+
         final drafts = ((_data['drafts'] as List?) ?? []).cast<Map>();
-        final maxPeriods = (_data['max_periods'] as num?)?.toInt() ?? 7;
+        final semesters = ((_data['semesters'] as List?) ?? []).cast<Map>();
+        final readiness = _data['readiness'] as Map?;
+        final items = ((readiness?['items'] as List?) ?? []).cast<Map>();
+        final errors = (readiness?['errors'] as num?)?.toInt() ?? 0;
+        final warnings = (readiness?['warnings'] as num?)?.toInt() ?? 0;
 
         return RefreshIndicator(
           onRefresh: _load,
           child: ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16), children: [
-            Text('يقترح النظام مسودة تحترم القيود، وأنت تراجعها وتعدّلها وتعتمدها. لا يتغيّر الجدول الحالي إلا عند اعتمادك. القاعات وتوفّر المعلمين من زر الإعدادات أعلى الشاشة.',
-                style: TextStyle(color: sub, fontSize: 12, height: 1.6)),
-            const SizedBox(height: 14),
+            // الفصل الدراسي
             Card(
               color: card,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('هل يتسع الأسبوع لحصص كل شعبة؟', style: TextStyle(color: text, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  if (capacity.isEmpty) Text('لا شعب ولا مواد في قسمك بعد', style: TextStyle(color: sub)),
-                  ...capacity.map((c) {
-                    final over = (c['overflow'] as num) > 0;
-                    final noT = (c['no_teacher'] as num) > 0;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${c['label']}: ${c['needed']} حصة مطلوبة من ${c['available']} متاحة', style: TextStyle(color: text, fontSize: 13)),
-                        if (over) Text('يزيد ${c['overflow']} حصة عن المتاح: زد الفترات أو قلّل المواد', style: const TextStyle(color: Color(0xFFE65100), fontSize: 12, fontWeight: FontWeight.bold)),
-                        if (noT) Text('${c['no_teacher']} حصة لمواد بلا معلم مرتبط', style: const TextStyle(color: Color(0xFFE65100), fontSize: 12)),
-                      ]),
-                    );
-                  }),
-                ]),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    isExpanded: true,
+                    value: semesters.any((s) => (s['id'] as num).toInt() == _semesterId) ? _semesterId : null,
+                    hint: Text('اختر الفصل الدراسي', style: TextStyle(color: sub)),
+                    dropdownColor: card,
+                    style: TextStyle(color: text, fontWeight: FontWeight.bold),
+                    items: [
+                      for (final s in semesters)
+                        DropdownMenuItem(value: (s['id'] as num).toInt(), child: Text('${s['name']}${s['current'] == true ? ' (الحالي)' : ''}')),
+                    ],
+                    onChanged: (v) {
+                      setState(() {
+                        _semesterId = v;
+                        _loading = true;
+                      });
+                      _load();
+                    },
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            Row(children: [
-              Text('فترات اليوم', style: TextStyle(color: text)),
-              const SizedBox(width: 12),
-              DropdownButton<int>(
-                value: _periods,
-                dropdownColor: card,
-                style: TextStyle(color: text),
-                items: [for (var i = 3; i <= maxPeriods; i++) DropdownMenuItem(value: i, child: Text('$i'))],
-                onChanged: (v) => setState(() => _periods = v ?? _periods),
+            if (_semesterId == null) _note('لا يوجد فصل دراسي فعّال. اختر فصلاً لعرض مقرراته وتوليد جدوله.', const Color(0xFFE65100)),
+            if (_isNext) _note('هذا الفصل ليس الفعّال حالياً: المسودة التي تولّدها تُحفظ للفصل القادم، ولا تُعتمد ولا تظهر للطلاب إلا عندما يصبح فعّالاً.', const Color(0xFF1565C0)),
+            const SizedBox(height: 10),
+
+            // الإجراء الرئيسي
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: LinearGradient(colors: [AppColors.primary.withValues(alpha: 0.85), AppColors.primary]),
               ),
-              const Spacer(),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-                onPressed: _generating ? null : _generate,
-                icon: _generating ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.auto_awesome),
-                label: const Text('اقترح جدولًا'),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('✨ ابنِ لي الجدول تلقائياً', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                const SizedBox(height: 6),
+                const Text('يوزّع النظام حصص كل دورة وسنة دون تعارض معلمين أو قاعات، ويشرح ما تعذّر وضعه. تراجع المسودة وتعدّلها ثم تعتمدها بنفسك.',
+                    style: TextStyle(color: Colors.white, fontSize: 12.5, height: 1.6)),
+                const SizedBox(height: 12),
+                Row(children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87, padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12)),
+                    onPressed: (_generating || _semesterId == null) ? null : () => _buildSheet(card, text, sub),
+                    child: _generating
+                        ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Text('ابدأ البناء', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                  const SizedBox(width: 10),
+                  if (readiness != null)
+                    Flexible(
+                      child: Text(
+                        errors > 0 ? '⚠ $errors يمنع جزءاً من الحصص' : (warnings > 0 ? '$warnings تنبيه' : '✓ البيانات جاهزة'),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                ]),
+              ]),
+            ),
+            const SizedBox(height: 14),
+
+            // جاهزية البيانات
+            if (items.isNotEmpty)
+              Card(
+                color: card,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('جاهزية البيانات', style: TextStyle(color: text, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    ...items.map((it) {
+                      final col = _levelColor['${it['level']}'] ?? const Color(0xFF78909C);
+                      final action = it['action']?.toString();
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: col.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border(right: BorderSide(color: col, width: 4))),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(_levelIcon['${it['level']}'] ?? '', style: TextStyle(color: col, fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text('${it['title']}', style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 13)),
+                              if ('${it['detail']}'.isNotEmpty) Text('${it['detail']}', style: TextStyle(color: sub, fontSize: 11.5, height: 1.5)),
+                              if (action != null && _actionLabel.containsKey(action))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: OutlinedButton(onPressed: () => _fix(action), child: Text(_actionLabel[action]!)),
+                                ),
+                            ]),
+                          ),
+                        ]),
+                      );
+                    }),
+                  ]),
+                ),
               ),
-            ]),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+
             Text('المسودات', style: TextStyle(color: text, fontWeight: FontWeight.bold)),
-            if (drafts.isEmpty) Padding(padding: const EdgeInsets.all(20), child: Center(child: Text('لا مسودات بعد', style: TextStyle(color: sub)))),
+            if (drafts.isEmpty) Padding(padding: const EdgeInsets.all(20), child: Center(child: Text('لا مسودات بعد. اضغط «ابدأ البناء».', style: TextStyle(color: sub)))),
             ...drafts.map((d) {
               final st = '${d['status']}';
+              final next = d['saved_for_next'] == true;
               return Card(
                 color: card,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 child: ListTile(
                   title: Text('${d['name']}', style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text('${d['placed']} / ${d['required']} حصة · ${d['unscheduled']} ناقصة', style: TextStyle(color: sub, fontSize: 12)),
-                  trailing: Text(_statusLabels[st] ?? st, style: TextStyle(color: _statusColor(st), fontWeight: FontWeight.bold, fontSize: 12)),
+                  subtitle: Text('${d['semester_name'] ?? ''} · ${d['placed']} / ${d['required']} حصة · ${d['unscheduled']} ناقصة', style: TextStyle(color: sub, fontSize: 12)),
+                  trailing: Text(next ? 'محفوظة للفصل القادم' : (_statusLabels[st] ?? st), style: TextStyle(color: next ? const Color(0xFF1565C0) : _statusColor(st), fontWeight: FontWeight.bold, fontSize: 12)),
                   onTap: () async {
                     await Navigator.push(context, MaterialPageRoute(builder: (_) => ScheduleDraftScreen(id: (d['id'] as num).toInt())));
                     _load();
@@ -151,6 +280,13 @@ class _ScheduleStudioScreenState extends State<ScheduleStudioScreen> {
       },
     );
   }
+
+  Widget _note(String msg, Color color) => Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+        child: Text(msg, style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w600, height: 1.5)),
+      );
 }
 
 /// مراجعة مسودة: شبكة أسبوعية لكل شعبة، تعديل بالنقر على حصة (نقل/تثبيت)، ثم اعتماد.
@@ -333,8 +469,11 @@ class _ScheduleDraftScreenState extends State<ScheduleDraftScreen> {
         final violations = ((_d['violation_messages'] as List?) ?? []).cast<String>();
         final unscheduled = ((_d['unscheduled_items'] as List?) ?? []).cast<Map>();
         final st = '${_d['status']}';
+        final savedForNext = _d['saved_for_next'] == true;
 
         return ListView(padding: const EdgeInsets.all(16), children: [
+          if (savedForNext)
+            _note('محفوظة للفصل القادم: هذه المسودة لفصل «${_d['semester_name'] ?? ''}» وهو ليس الفعّال الآن. يمكنك مراجعتها وتعديلها، لكنها لا تُعتمد ولا تظهر للطلاب والمعلمين إلا عندما يصبح هذا الفصل فعّالاً.', const Color(0xFF1565C0)),
           Row(children: [
             Text(_statusLabels[st] ?? st, style: TextStyle(color: _statusColor(st), fontWeight: FontWeight.bold)),
             const Spacer(),
@@ -375,7 +514,7 @@ class _ScheduleDraftScreenState extends State<ScheduleDraftScreen> {
           const SizedBox(height: 16),
           if (_editable) ...[
             _btn('إعادة توزيع غير المثبّت', () => _run(() => _service.regenerate(widget.id), ok: 'أُعيد التوزيع')),
-            _btn('اعتماد الجدول', _approve, filled: true, disabled: violations.isNotEmpty),
+            _btn('اعتماد الجدول', _approve, filled: true, disabled: violations.isNotEmpty || savedForNext),
             _btn('إهمال المسودة', () => _confirm('إهمال المسودة', 'ستُهمل هذه المسودة. متابعة؟', () async {
                   final nav = Navigator.of(context);
                   final messenger = ScaffoldMessenger.of(context);

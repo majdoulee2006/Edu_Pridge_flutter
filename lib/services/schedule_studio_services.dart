@@ -38,9 +38,9 @@ class ScheduleStudioService {
     }
   }
 
-  Future<StudyResult<Map<String, dynamic>>> overview() => _call('GET', '');
-  Future<StudyResult<Map<String, dynamic>>> generate({String? name, int? periods}) =>
-      _call('POST', '/generate', body: {if (name != null && name.trim().isNotEmpty) 'name': name.trim(), 'periods': ?periods});
+  Future<StudyResult<Map<String, dynamic>>> overview({int? semesterId}) => _call('GET', semesterId == null ? '' : '?semester_id=$semesterId');
+  Future<StudyResult<Map<String, dynamic>>> generate({String? name, int? periods, int? semesterId}) =>
+      _call('POST', '/generate', body: {if (name != null && name.trim().isNotEmpty) 'name': name.trim(), 'periods': ?periods, 'semester_id': ?semesterId});
   Future<StudyResult<Map<String, dynamic>>> show(int id) => _call('GET', '/$id');
   Future<StudyResult<Map<String, dynamic>>> move(int id, int entryId, String day, int period) =>
       _call('POST', '/$id/move', body: {'entry_id': entryId, 'day': day, 'period': period});
@@ -53,7 +53,14 @@ class ScheduleStudioService {
 
   // ---- القاعات وتوفّر المعلمين
   Future<StudyResult<Map<String, dynamic>>> settings() => _call('GET', '/settings');
-  Future<StudyResult<Map<String, dynamic>>> addRoom(String name, int capacity) => _call('POST', '/rooms', body: {'name': name, 'capacity': capacity});
+  Future<StudyResult<Map<String, dynamic>>> addRoom(String name, int capacity, {String type = 'classroom', int? programId, int? year}) =>
+      _call('POST', '/rooms', body: {'name': name, 'capacity': capacity, 'type': type, 'program_id': ?programId, 'year': ?year});
+  Future<StudyResult<Map<String, dynamic>>> updateRoom(int id, String name, int capacity, {String type = 'classroom', int? programId, int? year}) =>
+      _call('PUT', '/rooms/$id', body: {'name': name, 'capacity': capacity, 'type': type, 'program_id': ?programId, 'year': ?year});
+  /// قاعة خاصة لكل شعبة بلا قاعة (أو ربط قاعة موجودة بنفس الاسم).
+  Future<StudyResult<Map<String, dynamic>>> autoRooms() => _call('POST', '/rooms/auto');
+  /// استيراد قاعات من نص: سطر لكل قاعة (الاسم، السعة، النوع، الدورة، السنة).
+  Future<StudyResult<Map<String, dynamic>>> importRooms(String lines) => _call('POST', '/rooms/import', body: {'lines': lines});
   Future<StudyResult<Map<String, dynamic>>> deleteRoom(int id) => _call('DELETE', '/rooms/$id');
   Future<StudyResult<Map<String, dynamic>>> addAvailability(int teacherUserId, String day, int period, String kind) =>
       _call('POST', '/availability', body: {'teacher_user_id': teacherUserId, 'day': day, 'period': period, 'kind': kind});
