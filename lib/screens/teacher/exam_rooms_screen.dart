@@ -1,5 +1,5 @@
 import 'package:edu_pridge_flutter/screens/student/study_screens.dart' show StudyScaffold;
-import 'package:edu_pridge_flutter/services/exam_studio_services.dart';
+import 'package:edu_pridge_flutter/services/teacher_exam_service.dart';
 import 'package:flutter/material.dart';
 
 const _kindColor = {'midterm': Color(0xFF1565C0), 'final': Color(0xFF6A1B9A)};

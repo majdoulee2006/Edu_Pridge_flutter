@@ -1021,7 +1021,9 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                 days.isNotEmpty
                     ? (selectedDayIndex == _todayIndex
                         ? (isAr ? 'برنامج اليوم ($selectedDayName)' : "Today's Schedule ($selectedDayName)")
-                        : (isAr ? 'برنامج $selectedDayName' : '$selectedDayName Schedule'))
+                        : (_todayIndex == -1 && selectedDayIndex == 0
+                            ? (isAr ? 'برنامج الأحد (عطلة نهاية الأسبوع)' : 'Sunday Schedule (Weekend)')
+                            : (isAr ? 'برنامج $selectedDayName' : '$selectedDayName Schedule')))
                     : '',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
@@ -1171,16 +1173,32 @@ class _TeacherScheduleScreenState extends State<TeacherScheduleScreen>
                 ],
         ),
         child: Center(
-          child: Text(
-            day,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected
-                  ? Colors.black87
-                  : (isDark ? Colors.grey.shade300 : Colors.grey),
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                day,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.black87
+                      : (isDark ? Colors.grey.shade300 : Colors.grey),
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              if (index == _todayIndex) ...[
+                const SizedBox(height: 2),
+                Text(
+                  AppSettings.language.value == 'ar' ? 'اليوم' : 'Today',
+                  style: TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.black54 : _yellow,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

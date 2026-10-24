@@ -81,13 +81,10 @@ class _MessagesViewState extends State<MessagesView> {
     final isLoading = chatService.isLoadingContacts;
 
     // 💡 تصفية المحادثات النشطة فقط (الذين تحدثت معهم المعلمة سابقاً)
-    final allContacts = chatService.contacts.isNotEmpty
-        ? chatService.contacts
-        : _getMockActiveData();
+    final allContacts = chatService.contacts;
 
     // نأخذ فقط من لديه رسائل سابقة
     final activeContacts = allContacts.where((c) {
-      if (chatService.contacts.isEmpty) return true; // mock active data
       final lastMsg = c['last_message']?.toString().trim() ?? '';
       final msg = c['message']?.toString().trim() ?? '';
       final hasLast = lastMsg.isNotEmpty;
@@ -468,30 +465,6 @@ class _MessagesViewState extends State<MessagesView> {
     );
   }
 
-  static final List<Map<String, dynamic>> _activeMockList = [
-    {'id': 1, 'name': 'د. يوسف (رئيس القسم)', 'message': 'تم اعتماد جدول الامتحانات الجديد', 'time': '2:24 م', 'is_read': true, 'role': 'رئيس القسم', 'raw_contact': {'id': 1, 'name': 'د. يوسف (رئيس القسم)', 'role': 'رئيس القسم'}},
-    {'id': 2, 'name': 'إدارة شؤون الطلاب', 'message': 'يرجى مراجعة طلبات التسجيل المتأخرة', 'time': '2:20 م', 'is_read': true, 'role': 'إدارة', 'raw_contact': {'id': 2, 'name': 'إدارة شؤون الطلاب', 'role': 'إدارة'}},
-    {'id': 3, 'name': 'المدرب علي (زميل)', 'message': 'هل انتهيت من تقييم مشاريع فلاتر؟', 'time': '2:11 م', 'is_read': true, 'role': 'مدرب', 'raw_contact': {'id': 3, 'name': 'المدرب علي (زميل)', 'role': 'استاذ'}},
-    {'id': 4, 'name': 'أحمد خالد (طالب Flutter)', 'message': 'أستاذ، متى موعد تسليم الوظيفة؟', 'time': '12:26 م', 'is_read': false, 'role': 'طالب', 'raw_contact': {'id': 4, 'name': 'أحمد خالد (طالب Flutter)', 'role': 'طالب'}},
-    {'id': 5, 'name': 'زينب سعيد (طالبة)', 'message': 'شكراً جزيلاً لك أستاذ على الشرح', 'time': 'أمس', 'is_read': true, 'role': 'طالب', 'raw_contact': {'id': 5, 'name': 'زينب سعيد (طالبة)', 'role': 'طالب'}}
-  ];
-
-  List<Map<String, dynamic>> _getMockActiveData() {
-    return _activeMockList;
-  }
-
-  // جهات الاتصال الجديدة المتاحة لبدء شات جديد (عند النقر على زر +)
-  List<Map<String, dynamic>> _getNewContactsMockData() {
-    return [
-      {'id': 10, 'name': 'د. سامر النجار (عميد الكلية)', 'role': 'إدارة', 'raw_contact': {'id': 10, 'name': 'د. سامر النجار (عميد الكلية)', 'role': 'إدارة'}},
-      {'id': 11, 'name': 'م. ريم الخالد (مدرسة شبكات)', 'role': 'استاذ', 'raw_contact': {'id': 11, 'name': 'م. ريم الخالد (مدرسة شبكات)', 'role': 'استاذ'}},
-      {'id': 12, 'name': 'د. هاني قاسم (رئيس قسم الحاسوب)', 'role': 'رئيس القسم', 'raw_contact': {'id': 12, 'name': 'د. هاني قاسم (رئيس قسم الحاسوب)', 'role': 'رئيس القسم'}},
-      {'id': 13, 'name': 'عمر الفاروق (طالب)', 'role': 'طالب', 'raw_contact': {'id': 13, 'name': 'عمر الفاروق (طالب)', 'role': 'طالب'}},
-      {'id': 14, 'name': 'سارة الأحمد (طالبة)', 'role': 'طالب', 'raw_contact': {'id': 14, 'name': 'سارة الأحمد (طالبة)', 'role': 'طالب'}},
-      {'id': 15, 'name': 'مكتب الامتحانات والتنسيق', 'role': 'إدارة', 'raw_contact': {'id': 15, 'name': 'مكتب الامتحانات والتنسيق', 'role': 'إدارة'}},
-    ];
-  }
-
   // 🌟 مودال زر الزائد (+): يعرض الأشخاص غير المتحدث معهم لبدء شات جديد
   void _showNewChatModal(BuildContext context, ChatService chatService, bool isAr) {
     showModalBottomSheet(
@@ -517,8 +490,6 @@ class _MessagesViewState extends State<MessagesView> {
                 if (newContacts.isEmpty) {
                   newContacts = chatService.contacts; // إذا الجميع تم محادثتهم نعرضهم للبحث
                 }
-              } else {
-                newContacts = _getNewContactsMockData();
               }
 
               final filtered = newContacts.where((c) {

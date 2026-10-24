@@ -67,22 +67,6 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     super.dispose();
   }
 
-  List<Map<String, dynamic>> _getMockActiveData(bool isAr) {
-    return [
-      {'id': 1, 'name': isAr ? 'أ. مريم (مدرسة اللغة العربية)' : 'Ms. Maryam (Arabic Teacher)', 'message': isAr ? 'أهلاً بك، ابنكم متفوق جداً هذا الفصل' : 'Welcome, your son is excelling this semester', 'time': isAr ? '2:24 م' : '2:24 PM', 'is_read': false, 'role': isAr ? 'مدرسة' : 'Teacher', 'raw_contact': {'id': 1, 'name': isAr ? 'أ. مريم (مدرسة اللغة العربية)' : 'Ms. Maryam (Arabic Teacher)', 'role': isAr ? 'مدرسة' : 'Teacher'}},
-      {'id': 2, 'name': isAr ? 'د. يوسف (رئيس قسم الحاسوب)' : 'Dr. Youssef (CS Dept Head)', 'message': isAr ? 'تم تحديد موعد اجتماع أولياء الأمور المقبل' : 'Next parent-teacher meeting is scheduled', 'time': isAr ? '2:20 م' : '2:20 PM', 'is_read': true, 'role': isAr ? 'رئيس القسم' : 'Dept Head', 'raw_contact': {'id': 2, 'name': isAr ? 'د. يوسف (رئيس قسم الحاسوب)' : 'Dr. Youssef (CS Dept Head)', 'role': isAr ? 'رئيس القسم' : 'Dept Head'}},
-      {'id': 3, 'name': isAr ? 'إدارة المدرسة' : 'School Administration', 'message': isAr ? 'يرجى استلام بطاقات النتائج الامتحانية' : 'Please receive the exam report cards', 'time': isAr ? '2:11 م' : '2:11 PM', 'is_read': true, 'role': isAr ? 'إدارة' : 'Admin', 'raw_contact': {'id': 3, 'name': isAr ? 'إدارة المدرسة' : 'School Administration', 'role': isAr ? 'إدارة' : 'Admin'}},
-    ];
-  }
-
-  List<Map<String, dynamic>> _getNewContactsMockData(bool isAr) {
-    return [
-      {'id': 10, 'name': isAr ? 'م. خالد (مدرس الفيزياء)' : 'Eng. Khaled (Physics Teacher)', 'role': isAr ? 'مدرس' : 'Teacher', 'raw_contact': {'id': 10, 'name': isAr ? 'م. خالد (مدرس الفيزياء)' : 'Eng. Khaled (Physics Teacher)', 'role': isAr ? 'مدرس' : 'Teacher'}},
-      {'id': 11, 'name': isAr ? 'أ. ريم (مدرسة الرياضيات)' : 'Ms. Reem (Math Teacher)', 'role': isAr ? 'مدرسة' : 'Teacher', 'raw_contact': {'id': 11, 'name': isAr ? 'أ. ريم (مدرسة الرياضيات)' : 'Ms. Reem (Math Teacher)', 'role': isAr ? 'مدرسة' : 'Teacher'}},
-      {'id': 12, 'name': isAr ? 'الموجه التربوي' : 'Educational Supervisor', 'role': isAr ? 'إدارة' : 'Admin', 'raw_contact': {'id': 12, 'name': isAr ? 'الموجه التربوي' : 'Educational Supervisor', 'role': isAr ? 'إدارة' : 'Admin'}},
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -94,9 +78,7 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
     final chatService = context.watch<ChatService>();
     final isLoading = chatService.isLoadingContacts;
 
-    final allContacts = chatService.contacts.isNotEmpty
-        ? chatService.contacts
-        : _getMockActiveData(isAr);
+    final allContacts = chatService.contacts;
 
     final activeContacts = allContacts.where((c) {
       final name = (c['name']?.toString() ?? '').toLowerCase();
@@ -355,7 +337,7 @@ class _ParentsMessagesViewState extends State<ParentsMessagesView> {
         String query = '';
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final contacts = chatService.contacts.isNotEmpty ? chatService.contacts : _getNewContactsMockData(isAr);
+            final contacts = chatService.contacts;
             final filtered = contacts.where((c) {
               final name = (c['name']?.toString() ?? '').toLowerCase();
               return name.contains(query.toLowerCase());

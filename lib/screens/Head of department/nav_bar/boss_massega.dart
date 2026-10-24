@@ -84,26 +84,6 @@ class _BossMessageViewState extends State<BossMessageView> {
     }
   }
 
-  static final List<Map<String, dynamic>> _activeMockList = [
-    {'id': 1, 'name': 'العميد (إدارة الكلية)', 'message': 'تمت الموافقة على الخطة الدراسية', 'time': '2:24 م', 'is_read': true, 'role': 'عميد الكلية', 'raw_contact': {'id': 1, 'name': 'العميد (إدارة الكلية)', 'role': 'عميد الكلية'}},
-    {'id': 2, 'name': 'المهندس أحمد (مدرس شبكات)', 'message': 'أستاذ، تم رفع درجات الوظائف', 'time': '2:20 م', 'is_read': true, 'role': 'مدرس قسم', 'raw_contact': {'id': 2, 'name': 'المهندس أحمد (مدرس شبكات)', 'role': 'مدرس'}},
-    {'id': 3, 'name': 'شؤون الطلاب', 'message': 'جدول امتحانات الفصل الأول أصبح جاهزاً', 'time': '2:11 م', 'is_read': true, 'role': 'إدارة', 'raw_contact': {'id': 3, 'name': 'شؤون الطلاب', 'role': 'إدارة'}},
-    {'id': 4, 'name': 'الطالب خالد العلي', 'message': 'دكتور، هل يمكن إعادة التقييم؟', 'time': '12:26 م', 'is_read': false, 'role': 'طالب', 'raw_contact': {'id': 4, 'name': 'الطالب خالد العلي', 'role': 'طالب'}},
-  ];
-
-  List<Map<String, dynamic>> _getMockActiveData() {
-    return _activeMockList;
-  }
-
-  List<Map<String, dynamic>> _getNewContactsMockData() {
-    return [
-      {'id': 10, 'name': 'د. هاني قاسم (نائب رئيس القسم)', 'role': 'إدارة', 'raw_contact': {'id': 10, 'name': 'د. هاني قاسم (نائب رئيس القسم)', 'role': 'إدارة'}},
-      {'id': 11, 'name': 'م. ريم الخالد (مدرسة البرمجة)', 'role': 'استاذ', 'raw_contact': {'id': 11, 'name': 'م. ريم الخالد (مدرسة البرمجة)', 'role': 'استاذ'}},
-      {'id': 12, 'name': 'مكتب جودة التعليم', 'role': 'إدارة', 'raw_contact': {'id': 12, 'name': 'مكتب جودة التعليم', 'role': 'إدارة'}},
-      {'id': 13, 'name': 'سارة الأحمد (طالبة دبلوم)', 'role': 'طالب', 'raw_contact': {'id': 13, 'name': 'سارة الأحمد (طالبة دبلوم)', 'role': 'طالب'}},
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -114,9 +94,7 @@ class _BossMessageViewState extends State<BossMessageView> {
     final chatService = context.watch<ChatService>();
     final isLoading = chatService.isLoadingContacts;
 
-    final allContacts = chatService.contacts.isNotEmpty
-        ? chatService.contacts
-        : _getMockActiveData();
+    final allContacts = chatService.contacts;
 
     final activeContacts = allContacts.where((c) {
       final lastMsg = c['last_message']?.toString();
@@ -389,7 +367,7 @@ class _BossMessageViewState extends State<BossMessageView> {
         String query = '';
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final contacts = chatService.contacts.isNotEmpty ? chatService.contacts : _getNewContactsMockData();
+            final contacts = chatService.contacts;
             final filtered = contacts.where((c) {
               final name = (c['name']?.toString() ?? '').toLowerCase();
               return name.contains(query.toLowerCase());

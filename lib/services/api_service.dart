@@ -55,20 +55,30 @@ class ApiService {
         debugPrint("🌐 ApiService: الاعتماد على سيرفر المعهد ($_serverIp)");
         return;
       }
-      if (savedIp != defaultServerUrl) {
-        String fixed = savedIp;
-        final u = Uri.tryParse(savedIp);
-        if (u != null && !u.hasPort && u.scheme == 'http') {
-          fixed = 'http://${u.host}:8000';
-          await prefs.setString('server_ip', fixed);
+      if (savedIp != null && savedIp.isNotEmpty && savedIp != defaultServerUrl) {
+        if (savedIp == '127.0.0.1' || savedIp.contains('127.0.0.1')) {
+          final usbActive = await _tryConnect('127.0.0.1', timeoutMs: 1000);
+          if (usbActive != null) {
+            _serverIp = '127.0.0.1';
+            debugPrint("🎯 ApiService: متصل بالسيرفر المحلي عبر USB (127.0.0.1:$_port)");
+            return;
+          }
+          debugPrint("⚠️ ApiService: 127.0.0.1 غير متاح، جاري البحث عبر WiFi...");
+        } else {
+          String fixed = savedIp;
+          final u = Uri.tryParse(savedIp);
+          if (u != null && !u.hasPort && u.scheme == 'http') {
+            fixed = 'http://${u.host}:8000';
+            await prefs.setString('server_ip', fixed);
+          }
+          _serverIp = fixed;
+          debugPrint("📡 ApiService using saved server: $_serverIp");
+          return;
         }
-        _serverIp = fixed;
-        debugPrint("📡 ApiService using saved server: $_serverIp");
-        return;
       }
 
       // 1. فحص الاتصال الفوري عبر ADB Reverse (127.0.0.1) أولاً (USB سلكي)
-      final usb = await _tryConnect('127.0.0.1', timeoutMs: 1500);
+      final usb = await _tryConnect('127.0.0.1', timeoutMs: 1200);
       if (usb != null) {
         _serverIp = '127.0.0.1';
         await prefs.setString('server_ip', '127.0.0.1');
@@ -77,7 +87,7 @@ class ApiService {
       }
 
       // 2. فحص آي بي الكمبيوتر المباشر على الشبكة الحالية (WiFi)
-      for (final ip in ['192.168.21.6', '10.102.114.209', '192.168.55.205']) {
+      for (final ip in ['192.168.1.102', '192.168.21.6', '10.102.114.209', '192.168.55.205']) {
         final currentNetworkIp = await _tryConnect(ip, timeoutMs: 1000);
         if (currentNetworkIp != null) {
           _serverIp = currentNetworkIp;

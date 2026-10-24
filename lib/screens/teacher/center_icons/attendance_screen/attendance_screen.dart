@@ -53,6 +53,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   // المواد المفلترة بعد اختيار الدورة والسنة
   List<Map<String, dynamic>> _filteredCourses = [];
   String? _selectedCourseId;
+  bool _requireFaceVerification = true;
 
   // بيانات الجلسة الحالية
   int? _sessionId;
@@ -148,6 +149,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         secret: _sessionSecret!,
         sessionUuid: _sessionUuid!,
         unixTime: nowUnix,
+        requireFace: _requireFaceVerification,
       );
       if (mounted) setState(() => _qrToken = payload);
       return;
@@ -270,7 +272,10 @@ class _AttendanceScreenState extends State<AttendanceScreen>
       final token = await _getToken();
       final res = await Dio().post(
         "${ApiService().baseUrl}/teacher/attendance/generate-qr",
-        data: {"course_id": _selectedCourseId},
+        data: {
+          "course_id": _selectedCourseId,
+          "require_face_verification": _requireFaceVerification,
+        },
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       if (res.statusCode == 200 && res.data['success'] == true) {
@@ -285,6 +290,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             secret: sessionSecret,
             sessionUuid: sessionUuid,
             unixTime: nowUnix,
+            requireFace: _requireFaceVerification,
           );
         }
 
@@ -1589,6 +1595,74 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             const SizedBox(height: 8),
           ],
 
+          const SizedBox(height: 12),
+
+          // خيار التحقق من بصمة الوجه
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _requireFaceVerification
+                    ? _yellow.withValues(alpha: 0.8)
+                    : (isDark ? Colors.white12 : Colors.grey.shade300),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _requireFaceVerification
+                        ? _yellow.withValues(alpha: 0.2)
+                        : Colors.grey.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.face_retouching_natural_outlined,
+                    color: _requireFaceVerification ? (isDark ? Colors.amber : Colors.orange.shade800) : Colors.grey,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isAr ? 'التحقق من بصمة الوجه' : 'Face Verification',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _requireFaceVerification
+                            ? (isAr ? 'مطلوب صورة الوجه ومطابقتها' : 'Face scan required to check identity')
+                            : (isAr ? 'مسح رمز QR فقط بدون صورة الوجه' : 'QR scan only, face verification skipped'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _requireFaceVerification ? Colors.green : Colors.grey,
+                          fontWeight: _requireFaceVerification ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _requireFaceVerification,
+                  activeThumbColor: Colors.black,
+                  activeTrackColor: _yellow,
+                  onChanged: _sessionActive ? null : (val) => setState(() => _requireFaceVerification = val),
+                ),
+              ],
+            ),
+          ),
+
           const SizedBox(height: 16),
 
           SizedBox(
@@ -1699,6 +1773,42 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                 style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: _requireFaceVerification
+                  ? Colors.green.withValues(alpha: 0.12)
+                  : Colors.orange.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _requireFaceVerification
+                    ? Colors.green.withValues(alpha: 0.3)
+                    : Colors.orange.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _requireFaceVerification ? Icons.face_rounded : Icons.qr_code_2,
+                  size: 16,
+                  color: _requireFaceVerification ? Colors.green : Colors.orange,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _requireFaceVerification
+                      ? (isAr ? 'التحقق بالوجه: مفعّل 📸' : 'Face Verification: ON 📸')
+                      : (isAr ? 'التحقق بالوجه: ملغى (رمز فقط) ⚡' : 'Face Verification: OFF (QR only) ⚡'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _requireFaceVerification ? Colors.green : Colors.orange,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 15),
 

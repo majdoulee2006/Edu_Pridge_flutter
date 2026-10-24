@@ -33,6 +33,7 @@ class TotpQrService {
     required String secret,
     required String sessionUuid,
     required int unixTime,
+    bool requireFace = true,
     int step = defaultStep,
   }) {
     final counter = calculateCounter(unixTime, step: step);
@@ -42,7 +43,7 @@ class TotpQrService {
       counter: counter,
     );
 
-    return '$protocolPrefix?v=2&sid=$sessionUuid&c=$counter&t=$token';
+    return '$protocolPrefix?v=2&sid=$sessionUuid&c=$counter&t=$token&rf=${requireFace ? 1 : 0}';
   }
 
   /// تحليل حمولة الـ QR المستخرجة عند المسح
@@ -67,6 +68,7 @@ class TotpQrService {
         'sid': params['sid'] ?? '',
         'counter': int.tryParse(params['c'] ?? '') ?? 0,
         'token': params['t'] ?? '',
+        'require_face': params.containsKey('rf') ? params['rf'] != '0' : true,
       };
     } catch (_) {
       return null;

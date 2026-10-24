@@ -37,6 +37,7 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   late int _selectedTab; // 0 = جدول الحصص، 1 = جدول الامتحانات
   int _selectedDateIndex = 0; // تبدأ من 0 برمجياً
+  int _todayIndex = -1; // مؤشر اليوم الفعلي (0 للأحد .. 4 للخميس، -1 للعطلة)
   int _selectedLectureIndex =
       0; // 🌟 متغير جديد: لتحديد الحصة المحددة بالإطار الأصفر
 
@@ -50,10 +51,23 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   List<dynamic> _schedulesData = [];
   List<dynamic> _examsData = [];
 
+  int _getTodayIndex() {
+    final now = DateTime.now();
+    if (now.weekday == DateTime.sunday) {
+      _todayIndex = 0;
+    } else if (now.weekday <= 4) {
+      _todayIndex = now.weekday;
+    } else {
+      _todayIndex = -1; // الجمعة (5) أو السبت (6) عطلة
+    }
+    return (_todayIndex == -1) ? 0 : _todayIndex;
+  }
+
   @override
   void initState() {
     super.initState();
     _selectedTab = widget.initialTab;
+    _selectedDateIndex = _getTodayIndex();
     AppSettings.language.addListener(_onLangChange);
     _fetchSchedules();
     _fetchExams();
@@ -603,7 +617,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 Row(
                   children: [
                     Text(
-                      isAr ? 'برنامج $selectedDayName' : '$selectedDayName Schedule',
+                      isAr
+                          ? (_selectedDateIndex == _todayIndex
+                              ? 'برنامج اليوم ($selectedDayName)'
+                              : (_todayIndex == -1 && _selectedDateIndex == 0
+                                  ? 'برنامج الأحد (عطلة نهاية الأسبوع)'
+                                  : 'برنامج $selectedDayName'))
+                          : (_selectedDateIndex == _todayIndex
+                              ? "Today's Schedule ($selectedDayName)"
+                              : (_todayIndex == -1 && _selectedDateIndex == 0
+                                  ? 'Sunday Schedule (Weekend)'
+                                  : '$selectedDayName Schedule')),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -909,14 +933,30 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               : [],
         ),
         child: Center(
-          child: Text(
-            day,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.black87 : (isDark ? Colors.grey.shade300 : Colors.grey),
-              fontSize: 11,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                day,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected ? Colors.black87 : (isDark ? Colors.grey.shade300 : Colors.grey),
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              if (index == _todayIndex) ...[
+                const SizedBox(height: 2),
+                Text(
+                  AppSettings.language.value == 'ar' ? 'اليوم' : 'Today',
+                  style: TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.black54 : const Color(0xFFFFCC00),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
