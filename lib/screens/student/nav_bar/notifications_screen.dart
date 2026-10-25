@@ -1,3 +1,4 @@
+import 'package:edu_pridge_flutter/core/constants/feature_flags.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -294,6 +295,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         Navigator.push(ctx, MaterialPageRoute(builder: (_) => const ScheduleScreen()));
         return;
       case 'study_material':
+        if (!kStudyCompanionUi) return;
         final materialId = notify.relatedId;
         if (materialId != null && materialId > 0) {
           Navigator.push(ctx, MaterialPageRoute(builder: (_) => StudyMaterialScreen(id: materialId)));
